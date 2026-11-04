@@ -1,8 +1,35 @@
-// Placeholder (TOOL-2). Owner: admin-core.
+// Admin Worker (admin.<domain>, behind Cloudflare Access). Owner: admin-core.
+// ENV defaults to "production" (fail-safe): only `npm run dev` passes --var ENV:development.
+// Secrets (never in this file): CSRF_SECRET; DEV_SESSION_SECRET (development only). Locally they
+// come from apps/admin/.dev.vars (gitignored; see .dev.vars.example).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "hb-admin",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
-  "dev": { "port": 4240 }
+  // Close every non-Access entry point: Access protects the custom domain only.
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "ENV": "production",
+    // [PLACEHOLDER] the client's Zero Trust team domain and the Access application AUD tag.
+    "ACCESS_TEAM_DOMAIN": "https://placeholder.cloudflareaccess.com",
+    "ACCESS_AUD": "[PLACEHOLDER]"
+  },
+  // Shared local D1 convention: packages/db/wrangler.jsonc.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hb-destockage",
+      "database_id": "00000000-0000-4000-8000-000000000d1b",
+      "migrations_dir": "../../packages/db/migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "hb-media" }],
+  // Every request, including static files, goes through the Worker (auth + headers).
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
+  "observability": { "enabled": true },
+  "dev": { "port": 4240, "ip": "127.0.0.1" }
+  // Production route ([PLACEHOLDER], no deploy in this project):
+  // "routes": [{ "pattern": "admin.<domain>", "custom_domain": true }]
 }

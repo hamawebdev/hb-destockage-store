@@ -1,0 +1,3 @@
+# Copy to apps/admin/.dev.vars (gitignored). Local development only.
+CSRF_SECRET=dev-only-csrf-secret-change-me-0123456789abcdef
+DEV_SESSION_SECRET=dev-only-session-secret-change-me-0123456789abcdef
