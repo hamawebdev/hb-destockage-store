@@ -78,8 +78,8 @@ export interface Router {
  */
 export function createRouter(snapshot: CatalogSnapshot, pageSize = DEFAULT_PAGE_SIZE): Router {
   if (!Number.isInteger(pageSize) || pageSize < 1) throw new RouteError(`invalid pageSize ${pageSize}`);
-  const products = publishedProducts(snapshot);
   const categories = publishedCategories(snapshot);
+  const products = publishedProducts(snapshot, categories);
   const contents = publishedContentPages(snapshot);
   const catById = new Map(categories.map((c) => [c.id, c]));
   const productById = new Map(products.map((p) => [p.id, p]));

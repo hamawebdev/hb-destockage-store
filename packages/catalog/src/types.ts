@@ -55,7 +55,8 @@ export interface CatalogSnapshot {
   readonly products: readonly SnapshotProduct[];
   readonly contentPages: readonly SnapshotContentPage[];
   readonly settings: SnapshotSettings;
-  /** All 69 wilayas (code 1–69). Communes are not here: geo assets come from `data/geo` (CAT-5). */
+  /** All 69 wilayas (code 1–69); `validateSnapshot` requires all 69 unless `requireAllWilayas: false`
+   *  (fixtures, partial dev builds). Communes are not here: geo assets come from `data/geo` (CAT-5). */
   readonly wilayas: readonly SnapshotWilaya[];
 }
 
@@ -82,6 +83,9 @@ export interface SnapshotCategory {
   readonly placeholder: boolean;
   /** Languages whose text (name, description, slug) is our translation, not the client's. `[]` when none. */
   readonly translationPlaceholder: readonly Lang[];
+  /** Category's own image (DB-1 `images.category_id`; `variantId` null). Absent/null ⇒ builders use
+   *  the first product image in the category's subtree. */
+  readonly image?: SnapshotImage | null;
 }
 
 export type ProductKind = 'simple' | 'variable' | 'pack';
@@ -222,9 +226,13 @@ export interface SnapshotSettings {
   /** E.164 without `+`, e.g. `213779942022` (used in `https://wa.me/<this>`). */
   readonly whatsapp: string;
   readonly contactEmail: string | null;
-  /** Product ids featured on the home page, in order. Empty ⇒ builder picks by `sort`. */
+  /**
+   * Product ids featured on the home page, in order. Ids must exist (validator); ids of products
+   * that are not published (draft/archived, inactive category) are skipped by the builders, so
+   * archiving a featured product never fails a publish. None published ⇒ first products by `sort`.
+   */
   readonly homeFeaturedProductIds: readonly Id[];
-  /** Product whose main image is the home hero (LCP). Null ⇒ first featured product. */
+  /** Product whose main image is the home hero (LCP). Null or unpublished ⇒ first featured product. */
   readonly homeHeroProductId: Id | null;
   /** Public Turnstile site key; null ⇒ the form does not load Turnstile (orders are flagged). */
   readonly turnstileSiteKey: string | null;
@@ -305,6 +313,28 @@ export interface SrcsetCandidate {
 }
 
 export const IMAGE_WIDTHS: readonly number[] = [360, 480, 720, 960, 1200];
+
+/**
+ * CAT-4 output, CAT-3 input: the encoded files for each original, keyed by `SnapshotImage.key`.
+ * JSON-serialisable (`dist/image-manifest.json`). Builders combine an entry with the image's alt,
+ * the slot's `sizes` and the LCP flag into `ImageProps`.
+ */
+export type ImageManifest = Readonly<Record<string, ImageManifestEntry>>;
+
+export interface ImageManifestEntry {
+  readonly key: string;
+  /** Content hash of the original (hex), the file-name stem. */
+  readonly hash: string;
+  /** Ascending width. Never wider than the original. */
+  readonly candidates: readonly SrcsetCandidate[];
+  /** 1200×630 JPEG for `og:image`; null when not generated. */
+  readonly og: { readonly url: string; readonly bytes: number } | null;
+  /** True when the entry is a stand-in (no encoded files; fixtures/tests only). */
+  readonly stub: boolean;
+}
+
+/** Where an image is shown; decides `sizes`. Templates may override `sizes` for other uses. */
+export type ImageSlot = 'hero' | 'gallery' | 'card' | 'thumb';
 export const IMAGE_MAX_BYTES_UP_TO_960 = 25_000;
 
 export interface ImageProps {
@@ -407,8 +437,8 @@ export type StockState = 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export interface StockProps {
   readonly state: StockState;
-  /** Units at snapshot time; null when untracked. Stale by design: the order POST re-checks. */
-  /** Null = untracked: always orderable (state is `in_stock`). */
+  /** Units at snapshot time. Stale by design: the order POST re-checks. Null = untracked: always
+   *  orderable (state is `in_stock`). */
   readonly qty: number | null;
 }
 
@@ -713,4 +743,6 @@ export interface BuildOptions {
   readonly lowStockThreshold?: number;
   /** Related products per product page. Default 4. */
   readonly relatedCount?: number;
+  /** Featured products on the home page when settings name none. Default 8. */
+  readonly featuredCount?: number;
 }
