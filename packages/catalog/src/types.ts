@@ -170,8 +170,8 @@ export interface SnapshotImage {
   /** Null = product-level image; else the variant it illustrates. */
   readonly variantId: Id | null;
   /**
-   * Where the original lives. `seed`: path relative to `data/photos/`. `d1`: the R2 object key.
-   * The image pipeline (CAT-4) resolves it according to `meta.source`.
+   * The original's key: its path relative to `data/photos/`. `db`'s seed uploads `data/photos/*`
+   * to R2 under the same keys, so a `d1` snapshot's key is also the R2 object key.
    */
   readonly key: string;
   /** Intrinsic size of the original, px. */
@@ -203,7 +203,9 @@ export type ContentPageKey = 'about' | 'delivery' | 'returns' | 'contact' | 'leg
 
 /**
  * Structured body, no HTML in data (no sanitiser, no Markdown parser, nothing to escape wrong).
- * Text is plain; templates escape it. Links are same-origin paths, `tel:`, or `https://wa.me/…`.
+ * Text is plain; templates escape it. Links are same-origin paths, `tel:`, or `https://wa.me/…`;
+ * render the text of `tel:`/`wa.me` links in `<bdi dir="ltr">` (brand puts phone numbers in link
+ * blocks, never inside running text).
  */
 export type ContentBlock =
   | { readonly type: 'h2'; readonly text: string }
@@ -578,7 +580,8 @@ export interface OrderFormProps {
   readonly variants: readonly VariantProps[];
   readonly options: readonly OptionProps[];
   readonly wilayas: readonly WilayaOption[];
-  /** Per-wilaya commune JSON, `{code}` replaced by the wilaya code: `/geo/communes/{code}.json`. */
+  /** This page's language already filled in; replace `{code}` with the wilaya code:
+   *  `/geo/communes/ar/{code}.json`. Body: `[[communeId, "name"], …]`, collated for that language. */
   readonly communesUrlTemplate: string;
   readonly quoteEndpoint: '/api/quote';
   /** Form `action` (POST, works without JS: the Worker renders the review step). */
