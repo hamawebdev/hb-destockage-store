@@ -108,7 +108,7 @@ v = p.variant('PH-SPK-ROUGE', 5500, 3, None, [c['rouge']])
 p.variant('PH-SPK-VERT', 5500, 10, None, [c['vert-sauge']])
 p.photo('front', '#1f1f1f', TMP_AR + 'مكبّر صوت بلوتوث أسطواني', TMP_FR + 'enceinte Bluetooth cylindrique')
 p.photo('front', '#b3261e', TMP_AR + 'مكبّر الصوت، اللون الأحمر', TMP_FR + 'enceinte, coloris rouge', v)
-p.photo('detail', '#1f1f1f', TMP_AR + 'تفاصيل أزرار مكبّر الصوت', TMP_FR + 'détail des boutons de l’enceinte')
+p.photo('detail', '#1f1f1f', TMP_AR + 'مكبّر الصوت عن قرب', TMP_FR + 'vue rapprochée de l’enceinte')
 
 p = add(P(203, 'simple', 211, 'shahin-sari-20-watt', 'chargeur-rapide-usb-c-20w', 'شاحن سريع USB-C بقوة 20 واط', 'Chargeur rapide USB-C 20 W',
           'شاحن حائطي صغير بمنفذ USB-C.', 'Chargeur secteur compact avec port USB-C.',
@@ -124,7 +124,7 @@ c = p.option('other', 'الطول', 'Longueur', [('1m', '1 متر', '1 m', None)
 p.variant('PH-CBL-1M', 600, None, None, [c['1m']], default=True)   # untracked stock
 p.variant('PH-CBL-2M', 800, None, None, [c['2m']])
 p.photo('front', '#3a3a3a', TMP_AR + 'كابل USB-C ملفوف', TMP_FR + 'câble USB-C enroulé')
-p.photo('detail', '#3a3a3a', TMP_AR + 'طرف الكابل', TMP_FR + 'embout du câble')
+p.photo('detail', '#3a3a3a', TMP_AR + 'الكابل عن قرب', TMP_FR + 'vue rapprochée du câble')
 
 p = add(P(205, 'variable', 212, 'ghitaa-silikon', 'coque-silicone-smartphone', 'غطاء سيليكون للهاتف', 'Coque silicone pour smartphone',
           'غطاء ناعم يحمي من الصدمات والخدوش.', 'Coque douce qui protège des chocs et des rayures.',
@@ -154,7 +154,7 @@ for col in ['blanc', 'noir', 'marine']:
 p.photo('front', '#f4f4f2', TMP_AR + 'تيشيرت رجالي', TMP_FR + 't-shirt homme')
 p.photo('front', '#1f1f1f', TMP_AR + 'التيشيرت، اللون الأسود', TMP_FR + 't-shirt, coloris noir', vid[('M', 'noir')])
 p.photo('front', '#1f2a44', TMP_AR + 'التيشيرت، اللون الكحلي', TMP_FR + 't-shirt, coloris bleu marine', vid[('M', 'marine')])
-p.photo('detail', '#f4f4f2', TMP_AR + 'تفاصيل نسيج التيشيرت', TMP_FR + 'détail du tissu')
+p.photo('detail', '#f4f4f2', TMP_AR + 'التيشيرت عن قرب', TMP_FR + 'vue rapprochée du t-shirt')
 
 p = add(P(207, 'variable', 31, 'sutra-bi-qubba', 'sweat-a-capuche', 'سترة بقبعة', 'Sweat à capuche',
           'سترة دافئة من القطن المبطّن بجيب أمامي.', 'Sweat chaud en molleton avec poche kangourou.',
@@ -175,7 +175,7 @@ s = p.option('size', 'المقاس', 'Taille', [(k, k, k, None) for k in ['S', '
 for sz, st in [('S', 5), ('M', 8), ('L', 3)]:
     p.variant(f'PH-DRS-{sz}', 2800, st, 3500, [s[sz]], default=sz == 'M')
 p.photo('front', '#c0643f', TMP_AR + 'فستان صيفي', TMP_FR + 'robe d’été')
-p.photo('detail', '#c0643f', TMP_AR + 'تفاصيل الطبعة', TMP_FR + 'détail de l’imprimé')
+p.photo('detail', '#c0643f', TMP_AR + 'الفستان عن قرب', TMP_FR + 'vue rapprochée de la robe')
 
 p = add(P(209, 'variable', 32, 'wishah-muslin', 'foulard-mousseline', 'وشاح من الموسلين', 'Foulard en mousseline',
           'وشاح خفيف وناعم بعدة ألوان.', 'Foulard léger et fluide, plusieurs couleurs.',
@@ -216,7 +216,7 @@ p = add(P(212, 'simple', 41, 'sirum-vitamin-c', 'serum-vitamine-c', 'سيروم 
           'بضع قطرات على بشرة نظيفة.', 'Quelques gouttes sur peau propre.', 'dropper', brand='DemoCare', sort=20))
 serum = p.variant('PH-SER-30', 2200, 15, None, default=True, weight=70)
 p.photo('front', '#e3a54a', TMP_AR + 'قارورة سيروم بقطّارة', TMP_FR + 'flacon de sérum compte-gouttes')
-p.photo('detail', '#e3a54a', TMP_AR + 'قطّارة السيروم', TMP_FR + 'pipette du sérum')
+p.photo('detail', '#e3a54a', TMP_AR + 'قارورة السيروم عن قرب', TMP_FR + 'vue rapprochée du flacon de sérum')
 
 p = add(P(213, 'simple', 41, 'jil-munazzif', 'gel-nettoyant-visage', 'جل منظّف للوجه 150 مل', 'Gel nettoyant visage 150 ml',
           'جل لطيف لتنظيف البشرة يوميًا.', 'Gel doux pour le nettoyage quotidien.',
@@ -232,7 +232,7 @@ c = p.option('size', 'الحجم', 'Contenance', [('250', '250 مل', '250 ml', 
 p.variant('PH-SHP-250', 900, 22, None, [c['250']], default=True)
 p.variant('PH-SHP-500', 1500, 14, 1800, [c['500']])
 p.photo('front', '#6d4c9c', TMP_AR + 'قارورة شامبو', TMP_FR + 'flacon de shampooing')
-p.photo('detail', '#6d4c9c', TMP_AR + 'غطاء القارورة', TMP_FR + 'bouchon du flacon')
+p.photo('detail', '#6d4c9c', TMP_AR + 'قارورة الشامبو عن قرب', TMP_FR + 'vue rapprochée du flacon de shampooing')
 
 p = add(P(215, 'simple', 42, 'zayt-al-argan', 'huile-argan', 'زيت الأرغان 100 مل', 'Huile d’argan 100 ml',
           'زيت أرغان نقي للشعر والبشرة.', 'Huile d’argan pure pour cheveux et peau.',
@@ -247,7 +247,7 @@ p = add(P(216, 'pack', 43, 'ulbat-al-inaya-bil-wajh', 'coffret-soin-visage', 'ع
 p.variant('PH-BOX-VISAGE', 4400, 6, 4900, default=True)
 p.d['packItems'] = [dict(variantId=cream, qty=1), dict(variantId=serum, qty=1), dict(variantId=gel, qty=1)]
 p.photo('front', '#b5838d', TMP_AR + 'علبة هدية العناية بالوجه', TMP_FR + 'coffret cadeau soin visage')
-p.photo('open', '#b5838d', TMP_AR + 'العلبة مفتوحة ومنتجاتها الثلاثة', TMP_FR + 'coffret ouvert et ses trois produits')
+p.photo('open', '#b5838d', TMP_AR + 'العلبة وأمامها منتجاتها الثلاثة', TMP_FR + 'le coffret et, devant, ses trois produits')
 
 # ---------------------------------------------------------------- Jouets & enfants
 p = add(P(217, 'simple', 51, 'mukaabat-tarkib-120', 'blocs-construction-120', 'مكعّبات تركيب 120 قطعة', 'Blocs de construction 120 pièces',
@@ -272,7 +272,7 @@ p.variant('PH-TED-30', 1500, 20, None, [c['30']], default=True)
 p.variant('PH-TED-50', 2600, 10, None, [c['50']])
 p.variant('PH-TED-80', 4200, 3, None, [c['80']])
 p.photo('front', '#a9744f', TMP_AR + 'دبدوب بنّي', TMP_FR + 'ourson brun')
-p.photo('detail', '#a9744f', TMP_AR + 'وجه الدبدوب', TMP_FR + 'visage de l’ourson')
+p.photo('detail', '#a9744f', TMP_AR + 'الدبدوب عن قرب', TMP_FR + 'vue rapprochée de l’ourson')
 
 p = add(P(220, 'variable', 53, 'sayyara-bi-tahakkum', 'voiture-telecommandee', 'سيارة بجهاز تحكّم', 'Voiture télécommandée',
           'سيارة سريعة بجهاز تحكّم لاسلكي.', 'Voiture rapide avec télécommande sans fil.',
