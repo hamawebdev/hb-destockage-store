@@ -441,6 +441,10 @@ export function parseOrderDraft(input: unknown): ParseResult<OrderDraft> {
   if (missing.length > 0) return { ok: false, errors: missing };
   const o = r.output;
   const line = o.items?.[0];
+  // Check the parsed options, not the raw ones: v.record drops keys such as `__proto__`.
+  if (line === undefined && Object.keys(o.options ?? {}).length === 0) {
+    return { ok: false, errors: [{ field: 'items', code: 'variant_required' }] };
+  }
   const selection: DraftSelection =
     line !== undefined
       ? { kind: 'variant', variantId: line.variantId, qty: line.qty }

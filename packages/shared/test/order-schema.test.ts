@@ -239,6 +239,13 @@ describe('parseOrderDraft (no-JS step 1)', () => {
     });
   });
 
+  test('review r2 nit: options that the schema drops leave no selection', () => {
+    expect(parseOrderDraft(formFieldsToBody({ ...base, productId: '7', 'opt.__proto__': '3', qty: '1' }))).toEqual({
+      ok: false,
+      errors: [{ field: 'items', code: 'variant_required' }],
+    });
+  });
+
   test('bad option ids and quantities', () => {
     expect(parseOrderDraft(formFieldsToBody({ ...base, productId: '7', 'opt.x': '1', qty: '1' }))).toEqual({
       ok: false,
