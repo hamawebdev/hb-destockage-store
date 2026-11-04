@@ -28,7 +28,7 @@
     "accent-hover":       { "$value": "#0062c4", "$type": "color", "$description": "Hover/pressed fill of accent. Darker (not lighter, as on apple.com) so on-accent text keeps >= 4.5:1." },
     "accent-text":        { "$value": "#0066cc", "$type": "color", "$description": "Accent used as TEXT (inline links, text buttons). accent itself is only 4.31:1 on surface-alt, so links use this." },
     "accent-inverse":     { "$value": "#2997ff", "$type": "color", "$description": "Links on surface-inverse." },
-    "accent-surface":     { "$value": "#eef5fe", "$type": "color", "$description": "Very light accent tint: info notes, selected list row." },
+    "accent-surface":     { "$value": "#eef5fe", "$type": "color", "$description": "Very light accent tint: info notes, selected list row. Only 1.10:1 against surface: never the sole cue for a state — a selected row also gets a 2px accent border (4.70:1) or a check icon (WCAG 1.4.11)." },
     "focus":              { "$value": "#0071e3", "$type": "color", "$description": "Focus ring: outline 2px solid, offset 2px. >= 3:1 against surface, surface-alt and surface-inverse." },
 
     "success":            { "$value": "#007a0c", "$type": "color", "$description": "In-stock text, order confirmed. Text and icon colour." },
@@ -92,7 +92,7 @@
   "font": {
     "family": {
       "latin":  { "$value": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", \"Liberation Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"", "$type": "fontFamily", "$description": "French pages and all Latin UI. 0 bytes: SF Pro on Apple, Roboto on Android, Segoe UI on Windows. No Latin webfont (CLAUDE.md budget)." },
-      "arabic": { "$value": "\"HB Noto Sans Arabic\", \"Noto Sans Arabic\", system-ui, -apple-system, \"Segoe UI\", Tahoma, sans-serif", "$type": "fontFamily", "$description": "Arabic pages. First entry = the self-hosted static Noto Sans Arabic 400 subset (packages/ui-tokens owns the file and @font-face: font-display optional, preload on /ar/ only, unicode-range Arabic). Fallbacks are system fonts (Noto Naskh on Android, SF Arabic on iOS, Segoe UI on Windows)." },
+      "arabic": { "$value": "\"HB Noto Sans Arabic\", \"Noto Sans Arabic\", system-ui, -apple-system, \"Segoe UI\", Tahoma, sans-serif", "$type": "fontFamily", "$description": "Arabic pages. First entry = the self-hosted static Noto Sans Arabic 400 subset (packages/ui-tokens owns the file and @font-face: font-display optional, preload on /ar/ only, unicode-range = exactly the subset's ranges per STACK-REPORT §5: Arabic core + Maghrebi letters ڨ ڢ ڧ + ASCII digits and punctuation, so prices and phone numbers on /ar/ use the same face as the letters). Fallbacks are system fonts (Noto Naskh on Android, SF Arabic on iOS, Segoe UI on Windows)." },
       "switcher": { "$value": "system-ui, -apple-system, \"Segoe UI\", Tahoma, sans-serif", "$type": "fontFamily", "$description": "The «العربية» language-switch label on /fr/ pages. Must not name the webfont, so French pages never download it through unicode-range." },
       "numeric": { "$value": "inherit", "$type": "fontFamily", "$description": "Prices and phone numbers use the page font with font-variant-numeric: tabular-nums (system fonts and Noto Sans Arabic both support it)." }
     },

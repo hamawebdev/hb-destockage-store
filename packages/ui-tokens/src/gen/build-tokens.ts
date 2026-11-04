@@ -12,6 +12,7 @@ export interface BrandTokens {
     weight: Record<'regular' | 'emphasis', Leaf>;
     lineHeight: Record<string, Leaf>;
     letterSpacing: Record<string, Leaf>;
+    synthesis: Leaf;
   };
   typeScale: {
     steps: Record<string, { role: string; px360: number; px1440: number; fluid: string }>;
@@ -122,6 +123,7 @@ export function buildTokens({ tokens: t, sourcePath, sourceSha256 }: BuildInput)
   }
   const ls = t.font.letterSpacing;
   if (!ls.arabic || Number.parseFloat(val(ls.arabic)) !== 0) throw new Error('font.letterSpacing.arabic must be 0');
+  if (val(t.font.synthesis) !== 'none') throw new Error('font.synthesis must be none (Arabic is one static 400 weight)');
   for (const k of Object.keys(t.typeScale.steps)) if (!STEP_NAMES[k]) throw new Error(`typeScale step ${k} has no CSS name`);
 
   const layout = t.layout as Record<string, Record<string, unknown>>;
@@ -167,6 +169,7 @@ export function buildTokens({ tokens: t, sourcePath, sourceSha256 }: BuildInput)
         latin: Object.fromEntries(leaves(ls).filter(([k]) => k.startsWith('latin-')).map(([k, l]) => [k.slice(6), val(l)])),
         arabic: '0',
       },
+      synthesis: val(t.font.synthesis),
     },
     fontSize,
     measure: val(t.typeScale.measure),
@@ -237,8 +240,16 @@ export function buildTokens({ tokens: t, sourcePath, sourceSha256 }: BuildInput)
   for (const [k, v] of Object.entries(model.zIndex)) add(`z-${k}`, v);
   for (const [k, v] of Object.entries(model.icon.size)) add(`icon-${k}`, `${v}px`);
 
-  // Arabic: webfont stack, one weight, Arabic line-heights, zero letter-spacing.
+  // Arabic, on every Arabic element (:lang matches descendants, unlike [lang]).
+  // Custom properties give components the Arabic values. The three real properties are needed
+  // because letter-spacing / font-weight / font-synthesis are inherited as *computed* values: a
+  // lang="ar" span inside a French h1 would otherwise keep the h1's resolved letter-spacing.
+  // They are CLAUDE.md/brand invariants (no letter-spacing, one 400 weight, no faux bold), so they
+  // are unlayered and !important: no component rule can bring them back.
   const ar: string[] = [
+    'letter-spacing:0!important',
+    `font-weight:${model.font.weight.regular}!important`,
+    `font-synthesis:${model.font.synthesis}!important`,
     '--font-body:var(--font-arabic)',
     `--fw-emphasis:${model.font.weight.regular}`,
     ...Object.entries(model.font.lineHeight.arabic).map(([k, v]) => `--lh-${k}:${v}`),
@@ -254,7 +265,7 @@ export function buildTokens({ tokens: t, sourcePath, sourceSha256 }: BuildInput)
     `/* ${header}\n` +
     `   Breakpoints (min-width; custom properties cannot be used in @media, write the literal): ${bp}. */\n` +
     `:root{\n${decl.map((d) => `  ${d};`).join('\n')}\n}\n` +
-    `[lang|=ar]{\n${ar.map((d) => `  ${d};`).join('\n')}\n}\n` +
+    `:lang(ar){\n${ar.map((d) => `  ${d};`).join('\n')}\n}\n` +
     `@media (prefers-reduced-motion:reduce){:root{${reduced.join(';')}}}\n`;
 
   const ts =
