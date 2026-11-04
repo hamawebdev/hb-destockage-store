@@ -84,3 +84,16 @@ and `placeholders/render.mjs` (SVG → JPEG with system Chrome):
 python3 -I data/catalog/placeholders/build.py . /tmp/ph-svg
 node data/catalog/placeholders/render.mjs /tmp/ph-svg data/photos
 ```
+
+## Validation (SEED-5)
+
+```sh
+node data/catalog/validate.mjs              # exits 1 and lists issues as products/<file>.json.<path>: message
+node --test 'data/catalog/test/*.test.mjs'
+```
+
+`validate.mjs` exports `loadSeed(repoRoot)`, `toSnapshot(seed)`, `validateLoadedSeed(seed)`,
+`validateSeed(repoRoot)` (→ `{path, message}[]`, empty = valid) and `imageSize(buffer)`.
+`db` runs it before seeding D1 and `pagedata` runs it in `fromSeed` before the build. It applies
+CAT-1's own schema and integrity checks (`@hb/catalog/schema`), then the seed-only rules listed at the
+top of the file: image files, sizes and keys, placeholder marking, and provenance.
