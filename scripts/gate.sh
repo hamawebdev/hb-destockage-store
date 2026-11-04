@@ -69,8 +69,8 @@ changed_files() {
 }
 
 steps=(typecheck test build)
-budget_needed=0 lh_needed=0
-if has_real_pages; then budget_needed=1; steps+=(budget); fi
+real_pages=0 lh_needed=0
+if has_real_pages; then real_pages=1; steps+=(budget); fi
 if [[ $full -eq 1 ]] || changed_files | grep -Eq "$storefront_paths"; then lh_needed=1; steps+=(lh); fi
 
 say "gate: $branch @ $short (tree ${tree:0:12}, $([[ $clean -eq 1 ]] && echo clean || echo DIRTY)) in $wt"
@@ -120,8 +120,12 @@ fi
 for s in "${steps[@]}"; do
   [[ -n "$red" ]] && { summary+=("SKIP  $s (after red)"); continue; }
   if [[ "$s" == budget || "$s" == lh ]] && ! script_wired "$s"; then
-    summary+=("RED   $s (script missing or a stub: apps/storefront has real pages, so it must be wired — owner: measure)")
-    red="$s"
+    if [[ $real_pages -eq 1 ]]; then
+      summary+=("RED   $s (script missing or a stub while apps/storefront has real pages — owner: measure)")
+      red="$s"
+    else
+      summary+=("SKIP  $s (not wired yet; only TOOL-2 placeholder pages exist)")
+    fi
     continue
   fi
   run_step "$s" npm run "$s"
