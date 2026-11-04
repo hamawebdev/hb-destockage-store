@@ -239,6 +239,7 @@
   "order.errors.variant_required": "اختر الخيار المناسب (المقاس، اللون…) قبل الطلب.",
   "order.errors.variant_unavailable": "هذا الخيار لم يعد متوفراً. اختر خياراً آخر.",
   "order.errors.out_of_stock": "الكمية المتوفرة لا تكفي. خفّض الكمية أو اختر خياراً آخر.",
+  "order.errors.order_total_out_of_range": "لا يمكن تسجيل هذا الطلب عبر الإنترنت. اتصل بنا على {phone} أو راسلنا على واتساب وسنسجّله معك.",
   "order.errors.delivery_unavailable": "التوصيل إلى هذه الولاية غير متوفر حالياً. اتصل بنا على {phone} أو راسلنا على واتساب وسنجد لك حلاً.",
   "order.errors.idempotency_key_invalid": "تعذّرت قراءة الطلب. أعد تحميل الصفحة وحاول مرة أخرى.",
   "order.errors.forbidden_origin": "تعذّر إرسال الطلب. أعد تحميل الصفحة وحاول مرة أخرى.",

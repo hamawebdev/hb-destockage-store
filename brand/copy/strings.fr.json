@@ -239,6 +239,7 @@
   "order.errors.variant_required": "Choisissez une option (taille, couleur…) avant de commander.",
   "order.errors.variant_unavailable": "Cette option n'est plus disponible. Choisissez-en une autre.",
   "order.errors.out_of_stock": "Stock insuffisant pour cette quantité. Réduisez la quantité ou choisissez une autre option.",
+  "order.errors.order_total_out_of_range": "Cette commande ne peut pas être passée en ligne. Appelez-nous au {phone} ou écrivez-nous sur WhatsApp : nous la prendrons avec vous.",
   "order.errors.delivery_unavailable": "La livraison vers cette wilaya n'est pas disponible pour le moment. Appelez-nous au {phone} ou écrivez-nous sur WhatsApp : nous chercherons une solution.",
   "order.errors.idempotency_key_invalid": "La commande n'a pas pu être lue. Rechargez la page et réessayez.",
   "order.errors.forbidden_origin": "La commande n'a pas pu être envoyée. Rechargez la page et réessayez.",
