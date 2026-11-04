@@ -1,0 +1,71 @@
+[
+  {
+    "id": 1,
+    "parentId": null,
+    "slug": {
+      "ar": "al-hammam",
+      "fr": "salle-de-bain"
+    },
+    "name": {
+      "ar": "الحمّام",
+      "fr": "Salle de bain"
+    },
+    "description": {
+      "ar": "كل ما يلزم لحمّام عصري: أطقم الاستحمام والخلّاطات والحنفيات.",
+      "fr": "Tout pour une salle de bain moderne : packs de douche, mitigeurs et robinetterie."
+    },
+    "sort": 10,
+    "active": true,
+    "placeholder": false,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 11,
+    "parentId": 1,
+    "slug": {
+      "ar": "atqum-al-hammam",
+      "fr": "packs-salle-de-bain"
+    },
+    "name": {
+      "ar": "أطقم الحمّام",
+      "fr": "Packs salle de bain"
+    },
+    "description": {
+      "ar": "أطقم كاملة: عمود استحمام وخلّاط مغسلة وحنفية مرحاض بسعر واحد.",
+      "fr": "Packs complets : colonne de douche, mitigeur de lavabo et robinet de toilette à prix unique."
+    },
+    "sort": 10,
+    "active": true,
+    "placeholder": false,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 12,
+    "parentId": 1,
+    "slug": {
+      "ar": "al-hanafiyat",
+      "fr": "robinetterie"
+    },
+    "name": {
+      "ar": "الحنفيات والخلّاطات",
+      "fr": "Robinetterie"
+    },
+    "description": {
+      "ar": "القطع الموجودة في الأطقم. غير معروضة للبيع منفردة حاليًا.",
+      "fr": "Les pièces contenues dans les packs. Pas encore vendues à l’unité."
+    },
+    "sort": 20,
+    "active": false,
+    "placeholder": false,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  }
+]

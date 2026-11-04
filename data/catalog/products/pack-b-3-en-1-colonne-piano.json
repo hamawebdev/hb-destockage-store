@@ -1,0 +1,57 @@
+{
+  "id": 102,
+  "kind": "pack",
+  "categoryId": 11,
+  "status": "active",
+  "sort": 20,
+  "slug": {
+    "ar": "taqm-al-hammam-b-3-fi-1-piano",
+    "fr": "pack-b-3-en-1-colonne-piano"
+  },
+  "name": {
+    "ar": "طقم الحمّام B 3 في 1 – عمود «بيانو» صغير",
+    "fr": "Pack B 3 en 1 – colonne de douche Piano petit modèle"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "عمود استحمام «بيانو» بالحجم الصغير، وخلّاط للمغسلة، وحنفية للمرحاض مع شطّاف.",
+    "fr": "Colonne de douche Piano petit modèle, mitigeur de lavabo et robinet de toilette avec douchette."
+  },
+  "description": {
+    "ar": "طقم 3 قطع بسعر أقل.\n\nعمود الاستحمام «بيانو» (الحجم الصغير).\n\nخلّاط المغسلة.\n\nحنفية المرحاض مع شطّاف.",
+    "fr": "Pack 3 pièces à petit prix.\n\nColonne de douche Piano (petit modèle).\n\nMitigeur de lavabo.\n\nRobinet de toilette avec douchette."
+  },
+  "placeholder": false,
+  "translationPlaceholder": [
+    "ar"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 10201,
+      "sku": "HB-PACK-B",
+      "priceDzd": 13600,
+      "compareAtDzd": null,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [
+    {
+      "variantId": 11102,
+      "qty": 1
+    },
+    {
+      "variantId": 11201,
+      "qty": 1
+    },
+    {
+      "variantId": 11301,
+      "qty": 1
+    }
+  ],
+  "images": []
+}

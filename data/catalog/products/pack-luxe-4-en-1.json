@@ -1,0 +1,61 @@
+{
+  "id": 103,
+  "kind": "pack",
+  "categoryId": 11,
+  "status": "active",
+  "sort": 30,
+  "slug": {
+    "ar": "al-taqm-al-fakhir-4-fi-1",
+    "fr": "pack-luxe-4-en-1"
+  },
+  "name": {
+    "ar": "الطقم الفاخر 4 في 1 – الاستحمام والمغسلة والمطبخ والمرحاض",
+    "fr": "Pack luxe 4 en 1 – douche, lavabo, cuisine et toilette"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "عمود استحمام «بيانو» من الألومنيوم بشاشة وإضاءة LED، وخلّاط للمغسلة، وخلّاط للمطبخ، وحنفية للمرحاض.",
+    "fr": "Colonne de douche Piano en aluminium avec afficheur et LED, mitigeur de lavabo, mitigeur de cuisine et robinet de toilette."
+  },
+  "description": {
+    "ar": "الطقم الفاخر 4 في 1.\n\nعمود الاستحمام «بيانو» من الألومنيوم، بشاشة وإضاءة LED.\n\nخلّاط المغسلة.\n\nخلّاط المطبخ.\n\nحنفية المرحاض مع شطّاف.",
+    "fr": "Pack luxe 4 en 1.\n\nColonne de douche Piano en aluminium avec afficheur et LED.\n\nMitigeur de lavabo.\n\nMitigeur de cuisine.\n\nRobinet pour toilette."
+  },
+  "placeholder": false,
+  "translationPlaceholder": [
+    "ar"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 10301,
+      "sku": "HB-PACK-LUXE-4EN1",
+      "priceDzd": 16500,
+      "compareAtDzd": 19900,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [
+    {
+      "variantId": 11101,
+      "qty": 1
+    },
+    {
+      "variantId": 11201,
+      "qty": 1
+    },
+    {
+      "variantId": 11401,
+      "qty": 1
+    },
+    {
+      "variantId": 11301,
+      "qty": 1
+    }
+  ],
+  "images": []
+}

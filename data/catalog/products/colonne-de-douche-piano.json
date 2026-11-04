@@ -1,0 +1,89 @@
+{
+  "id": 111,
+  "kind": "variable",
+  "categoryId": 12,
+  "status": "draft",
+  "sort": 10,
+  "slug": {
+    "ar": "amoud-istihmam-piano",
+    "fr": "colonne-de-douche-piano"
+  },
+  "name": {
+    "ar": "عمود الاستحمام «بيانو»",
+    "fr": "Colonne de douche Piano"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "عمود استحمام «بيانو» بلوحة تحكّم، متوفّر بحجمين.",
+    "fr": "Colonne de douche Piano à panneau de commande, en deux modèles."
+  },
+  "description": {
+    "ar": "الحجم الكبير: شاشة رقمية لدرجة حرارة الماء وإضاءة LED، هيكل من الألومنيوم.\n\nالحجم الصغير: النسخة الأبسط من نفس العمود.\n\n[PLACEHOLDER] السعر المنفرد غير محدّد: القطعة تُباع حاليًا ضمن الأطقم فقط.",
+    "fr": "Grand modèle : afficheur digital de température et éclairage LED, en aluminium.\n\nPetit modèle : la version simple de la même colonne.\n\n[PLACEHOLDER] Prix à l’unité non fixé : la pièce est vendue aujourd’hui uniquement dans les packs."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar"
+  ],
+  "options": [
+    {
+      "id": 1111,
+      "type": "other",
+      "name": {
+        "ar": "الطراز",
+        "fr": "Modèle"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 111101,
+          "value": {
+            "ar": "كبير – شاشة وإضاءة LED",
+            "fr": "Grand modèle – afficheur et LED"
+          },
+          "swatchHex": null,
+          "position": 1
+        },
+        {
+          "id": 111102,
+          "value": {
+            "ar": "صغير",
+            "fr": "Petit modèle"
+          },
+          "swatchHex": null,
+          "position": 2
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 11101,
+      "sku": "HB-COL-PIANO-GM",
+      "priceDzd": 9000,
+      "compareAtDzd": null,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        111101
+      ]
+    },
+    {
+      "id": 11102,
+      "sku": "HB-COL-PIANO-PM",
+      "priceDzd": 7500,
+      "compareAtDzd": null,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        111102
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": []
+}
