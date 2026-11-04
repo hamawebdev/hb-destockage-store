@@ -1,0 +1,68 @@
+// Text enums stored in D1. Each one is enforced twice: as a TypeScript union (Drizzle `enum`)
+// and as a SQL CHECK constraint in the migration, so a raw `wrangler d1 execute` cannot write an
+// unknown value either.
+//
+// ORDER_STATUSES and ADMIN_ROLES must stay equal to the lists in `@hb/shared` (order-state.ts);
+// `packages/db/test/enums.test.ts` will assert that once SHARED-1 is on main.
+
+export const LANGS = ['ar', 'fr'] as const;
+export type DbLang = (typeof LANGS)[number];
+
+export const PRODUCT_KINDS = ['simple', 'variable', 'pack'] as const;
+export type ProductKind = (typeof PRODUCT_KINDS)[number];
+
+export const PRODUCT_STATUSES = ['draft', 'active', 'archived'] as const;
+export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
+
+export const OPTION_KINDS = ['size', 'colour', 'other'] as const;
+export type OptionKind = (typeof OPTION_KINDS)[number];
+
+export const ORDER_STATUSES = [
+  'new',
+  'called',
+  'confirmed',
+  'unreachable',
+  'cancelled',
+  'shipped',
+  'delivered',
+  'returned',
+] as const;
+export type DbOrderStatus = (typeof ORDER_STATUSES)[number];
+
+export const ORDER_EVENT_TYPES = ['created', 'status_change', 'call_attempt', 'note'] as const;
+export type OrderEventType = (typeof ORDER_EVENT_TYPES)[number];
+
+/** Who caused an order event or an audit row. `admin` rows carry `actor_user_id`. */
+export const ACTOR_TYPES = ['customer', 'system', 'admin'] as const;
+export type ActorType = (typeof ACTOR_TYPES)[number];
+
+export const ADMIN_ROLES = ['owner', 'confirmer', 'logistics', 'content'] as const;
+export type DbAdminRole = (typeof ADMIN_ROLES)[number];
+
+/** Result of the server-side Turnstile check. Missing/invalid ⇒ order accepted and flagged. */
+export const TURNSTILE_RESULTS = ['ok', 'missing', 'invalid', 'error'] as const;
+export type TurnstileResult = (typeof TURNSTILE_RESULTS)[number];
+
+export const PUBLISH_STATUSES = ['queued', 'running', 'succeeded', 'failed'] as const;
+export type PublishStatus = (typeof PUBLISH_STATUSES)[number];
+
+export const CONTENT_PAGE_KEYS = ['about', 'delivery', 'returns', 'contact', 'legal', 'privacy'] as const;
+export type ContentPageKey = (typeof CONTENT_PAGE_KEYS)[number];
+
+/** Shape of one element of `content_pages.body_*` (CAT-1 `ContentBlock`). */
+export type ContentBlockJson =
+  | { readonly type: 'h2'; readonly text: string }
+  | { readonly type: 'p'; readonly text: string }
+  | { readonly type: 'ul'; readonly items: readonly string[] }
+  | { readonly type: 'ol'; readonly items: readonly string[] }
+  | { readonly type: 'link'; readonly text: string; readonly href: string };
+
+/** Web Vitals + navigation-timing phases (DNS, CONNECT, TLS). One row per metric per beacon. */
+export const RUM_METRICS = ['LCP', 'INP', 'CLS', 'FCP', 'TTFB', 'DNS', 'CONNECT', 'TLS'] as const;
+export type RumMetric = (typeof RUM_METRICS)[number];
+
+export const RUM_RATINGS = ['good', 'needs-improvement', 'poor'] as const;
+export type RumRating = (typeof RUM_RATINGS)[number];
+
+export const DELIVERY_STATUSES = ['sending', 'sent'] as const;
+export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
