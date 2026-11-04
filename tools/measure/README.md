@@ -7,7 +7,7 @@ it fails when it should (`test/`).
 | Command | What | Status |
 |---|---|---|
 | `npm run budget` | Static byte-budget checker over the built site (`apps/storefront/dist`) | MEAS-1 |
-| `npm run lh` | Lighthouse 13.6.0, median of 5, every template in `/ar/` and `/fr/` | MEAS-2 (todo) |
+| `npm run lh` | Lighthouse 13.6.0, median of 5, every template in `/ar/` and `/fr/` | MEAS-2 |
 | `npm run shots` / `npm run axe` | Screenshots 360/768/1440 × ar/fr, axe WCAG 2.2 AA, keyboard pass | MEAS-3 (todo) |
 | `npm run e2e` | Playwright end-to-end specs in `tests/e2e/` | MEAS-4 (todo) |
 
@@ -133,6 +133,63 @@ it); `<template>` content is not.
 
 Allowed: navigation and submission targets (`<a href>`, `<area href>`, `<form action>`, e.g.
 `https://wa.me/213779942022`), `<link rel=canonical|alternate>` with absolute URLs, JSON-LD.
+
+## `npm run lh`
+
+```
+npm run lh                                    # every template in /ar/ and /fr/ of apps/storefront/dist, 5 runs each
+npm run lh -- --template product --runs 5     # one template
+npm run lh -- --url /ar/ --url /fr/p/x/       # explicit paths (or --urls <file>, one per line)
+npm run lh -- --base-url http://127.0.0.1:4270 --urls my-urls.txt   # an already running server (QA)
+npm run lh -- --serve static --port 4114      # server choice / port (measure block 4110–4119)
+# without the root script: node tools/measure/src/lh/cli.ts [same flags]
+```
+
+- **Lighthouse:** exactly 13.6.0 (`node_modules/lighthouse`, checked before running and in every
+  result), mobile defaults only: formFactor mobile, screen 412 × 823 @ 1.75, simulated throttling
+  150 ms RTT / 1,638.4 kbps / 4× CPU. Any result with another version, preset, throttling or a
+  redirect is a failure, not a data point. Categories: performance and accessibility. System
+  Chrome (`/usr/bin/google-chrome`, headless).
+- **Lock:** runs under the machine-wide exclusive `lighthouse` lock (`scripts/lib/locks.sh`,
+  flock fallback). If the root script already wraps it, the CLI sees its ancestor holds the lock;
+  otherwise it re-executes itself under the lock. Waits up to an hour for the lock.
+- **Server:** `--serve auto` = `wrangler dev` of `apps/web` (Workers static assets + the Worker,
+  brotli, production-like) when it exists and the dist is the default one; otherwise a Node static
+  server over `--dist` (brotli q11, `_headers` applied, trailing-slash redirects, nearest
+  `404.html` with status 404). `--base-url` skips starting a server. The server is stopped at the
+  end, even on failure. Reusable: `node tools/measure/src/serve.ts [--mode] [--dist] [--port]`.
+- **Templates:** discovered from the built site (`src/templates.ts`): every page is classified by
+  `<html data-tpl>` (else the CAT-1 URL scheme). One URL per template and language (the shortest
+  path, so page 1 of a category), and **every** content page. A page whose template cannot be
+  told, an unknown `data-tpl`, a `data-tpl` that contradicts its URL, or a template missing in one
+  language **fails the run** (never silently skipped). Pages not measured are listed in the
+  summary with the reason. MEAS-5 adds product kinds (simple/variable/pack) and sub-categories.
+- **Machine load (lead's rule, 2026-11-05):** before every run the CLI waits (up to
+  `--quiet-wait`, default 900 s) for the 1-minute load average to drop to `--max-load` (default 4).
+  A run is **contended** if it started with load > 4 or its `benchmarkIndex` is < 1,500 (this
+  machine's quiet spike runs: 1,843–2,347; loaded: 117–1,505). A contended run is retried once,
+  and the summary records both attempts with their load and benchmarkIndex.
+- **Rules per URL** (5 runs, `--runs` only for manual checks):
+  - every run must produce a valid result: a crash, runtime error or missing score is a
+    **failure** (never "median of 4");
+  - the main document returns the expected status (200);
+  - **Performance 100**: the median run by performance score (Lighthouse rounding,
+    `Math.round(score × 100)`) must be 100;
+  - **Accessibility 100 in every run**;
+  - **Arabic pages: median Speed Index < 1,950 ms**, else fail with the CLAUDE.md font fallback
+    message (switch to the system Arabic font, record it in DECISIONS.md).
+  - Medians of FCP, LCP, TBT, CLS and SI are reported for every URL.
+- **Verdict:** `pass`; `fail`; or `inconclusive` = it failed and at least one of its runs was
+  contended after the retry (load only worsens simulated metrics, so a pass under load stands;
+  errors and configuration problems are failures whatever the load).
+- **Exit code:** `0` all pass · `1` any failure or registry error · `2` setup error (Lighthouse
+  version, Chrome, server, flags) · `3` inconclusive only (rerun when the machine is quiet). The
+  gate treats every non-zero code as red.
+- **Output** (`--out`, default `<main checkout>/artifacts/lh/`): `runs/<template>-<lang>-<n>[-retry].json`
+  (raw Lighthouse JSON, re-created on every invocation), `summary.json` (per-URL verdict,
+  failures, notes, median run, per-metric medians, benchmarkIndex and load per run, every run
+  record, skipped pages, server mode), `summary.txt` (the printed table), `server.log` (wrangler).
+- Time: about 30–50 s per run on this machine, so 16 URLs × 5 runs ≈ 45–70 min without retries.
 
 ### Adding or changing a rule
 
