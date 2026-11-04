@@ -2,7 +2,7 @@
 // Verifies every contrastPairs entry in brand/tokens.json against WCAG 2.2 relative luminance.
 // Usage: node brand/scripts/contrast.mjs [--out <file>]
 // Exit 1 if any pair is below its minimum, or references an unknown / non-hex colour.
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -59,7 +59,8 @@ export function report(rows) {
   return { text: lines.join("\n") + "\n", failed };
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// realpath on both sides so the CLI still runs when invoked through a symlink (e.g. an npm bin link).
+if (process.argv[1] && realpathSync(resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url))) {
   const tokens = JSON.parse(readFileSync(resolve(here, "../tokens.json"), "utf8"));
   const { text, failed } = report(checkTokens(tokens));
   process.stdout.write(text);

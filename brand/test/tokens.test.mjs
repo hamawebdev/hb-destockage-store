@@ -93,3 +93,16 @@ test("spacing is on the 4px grid", () => {
     assert.equal(parseInt(v.$value, 10) % 4, 0, k);
   }
 });
+
+test("contrast CLI runs when invoked through a symlink", async () => {
+  const { mkdtempSync, symlinkSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const dir = mkdtempSync(join(tmpdir(), "brand-contrast-"));
+  const link = join(dir, "c.mjs");
+  symlinkSync(fileURLToPath(new URL("../scripts/contrast.mjs", import.meta.url)), link);
+  const out = execFileSync(process.execPath, [link], { encoding: "utf8" });
+  assert.match(out, /pairs, \d+ pass, 0 fail/);
+});
