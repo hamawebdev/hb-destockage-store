@@ -135,6 +135,9 @@ export function checkPage(html, opts) {
     if (/^(?:https?:)?\/\//i.test(url)) at(`cross-origin resource in <head>: ${tag.slice(0, 100)}`);
   }
 
+  const orphan = orphanImagePreload(html);
+  if (orphan) at(`image preload matches no <img>/<source> srcset on the page (wasted critical-path download; pass Base lcp only when rendering <Picture image={layout.lcpImage}>): ${orphan.slice(0, 60)}…`);
+
   if (!/<html\b[^>]*\blang=["']?(ar|fr)\b/i.test(html)) at('<html> lacks lang="ar|fr"');
   else {
     const lang = /<html\b[^>]*\blang=["']?(ar|fr)/i.exec(html)?.[1];
@@ -142,4 +145,19 @@ export function checkPage(html, opts) {
     if (dir !== (lang === 'ar' ? 'rtl' : 'ltr')) at(`<html lang="${lang}"> needs dir="${lang === 'ar' ? 'rtl' : 'ltr'}", got ${dir}`);
   }
   return errors;
+}
+
+/**
+ * <link rel=preload as=image imagesrcset> must match an <img>/<source> srcset on the page,
+ * otherwise it is a wasted high-priority download on the critical path.
+ * @param {string} html @returns {string | null} the orphan imagesrcset, or null
+ */
+export function orphanImagePreload(html) {
+  for (const m of html.matchAll(/<link\b[^>]*\brel=["']?preload["']?[^>]*>/gi)) {
+    const set = /\bimagesrcset=["']([^"']+)["']/i.exec(m[0])?.[1];
+    if (!set) continue;
+    const have = [...html.matchAll(/(?<![\w-])srcset=["']([^"']+)["']/gi)].some((x) => x[1] === set);
+    if (!have) return set;
+  }
+  return null;
 }

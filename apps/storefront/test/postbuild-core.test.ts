@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { checkPage, findPhysicalProperty, mergeStyles, pruneCustomProperties, removeEmptyRules } from '../integrations/postbuild-core.mjs';
+import { checkPage, findPhysicalProperty, mergeStyles, orphanImagePreload, pruneCustomProperties, removeEmptyRules } from '../integrations/postbuild-core.mjs';
 import { ALLOWED_INLINE_SCRIPTS, LOADER } from '../src/lib/inline-scripts.mjs';
 
 const page = (head: string, body = '', html = '<html lang="fr" dir="ltr">') =>
@@ -74,6 +74,11 @@ describe('checkPage', () => {
     expect(ok(page('<style>p{}</style><script type="application/ld+json">{"a":1}</script>'))).toEqual([]);
     expect(ok(page('<style>p{}</style><script type="application/ld+json">{"a":"<script"}</script>')).join()).toMatch(/ld\+json/);
   });
+  test('an image preload must match an <img>/<source> srcset', () => {
+    const pre = '<link rel="preload" as="image" imagesrcset="/a-360.avif 360w" imagesizes="100vw">';
+    expect(ok(page(`<style>p{}</style>${pre}`)).join()).toMatch(/image preload matches no/);
+    expect(ok(page(`<style>p{}</style>${pre}`, '<img srcset="/a-360.avif 360w" src="/a-360.avif" alt="">'))).toEqual([]);
+  });
   test('no cross-origin resource in <head>', () => {
     expect(ok(page('<style>p{}</style><link rel="preconnect" href="https://challenges.cloudflare.com">')).join()).toMatch(/cross-origin/);
     expect(ok(page('<style>p{}</style><link rel="alternate" hreflang="ar" href="https://x.dz/ar/">'))).toEqual([]);
@@ -93,4 +98,12 @@ describe('LOADER', () => {
     expect(rx.test('https://evil.example/js/a.js')).toBe(false);
     expect(rx.test('//evil.example/js/a.js')).toBe(false);
   });
+});
+
+describe('orphanImagePreload', () => {
+  const pre = '<link rel="preload" as="image" imagesrcset="/a-360.avif 360w" imagesizes="100vw">';
+  test('matched by an <img srcset>', () => expect(orphanImagePreload(`${pre}<img srcset="/a-360.avif 360w">`)).toBeNull());
+  test("the preload's own imagesrcset does not count", () => expect(orphanImagePreload(pre)).toBe('/a-360.avif 360w'));
+  test('a different srcset does not count', () => expect(orphanImagePreload(`${pre}<img srcset="/b-360.avif 360w">`)).toBe('/a-360.avif 360w'));
+  test('font preloads are ignored', () => expect(orphanImagePreload('<link rel="preload" as="font" href="/f.woff2">')).toBeNull());
 });
