@@ -8,6 +8,7 @@
 import { Hono } from 'hono';
 import { ConfigError, readConfig, type Env } from './env.ts';
 import { apiError, apiHeaders, log } from './http.ts';
+import { registerQuote } from './routes/quote.ts';
 
 export const app = new Hono<{ Bindings: Env }>();
 
@@ -28,6 +29,9 @@ app.get('/api/health', async (c) => {
   }
 });
 app.all('/api/health', (c) => apiError(c, 405, 'method_not_allowed', {}, { Allow: 'GET, HEAD' }));
+
+// --- /api/quote (WEB-2) -------------------------------------------------------------------------
+registerQuote(app);
 
 // --- Order confirmation page (WEB-3 fills the ref with HTMLRewriter; no D1 here, ever) ----------
 app.get('/:lang{ar|fr}/order/confirmation/*', async (c) => {

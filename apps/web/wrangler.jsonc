@@ -39,6 +39,7 @@
     "MIN_REVIEW_MS": "1500",
     "RUM_SAMPLE": "1"
   },
+  "minify": true,
   "observability": { "enabled": true },
   "dev": { "port": 4210, "inspector_port": 4211 },
   "env": {

@@ -52,3 +52,14 @@ Rules:
 - Evidence: client requirement, 2026-11-04 (team/BRIEF.md §2 "Fees are swappable"). Quote latency
   to be measured by `web` in WEB-2 and linked here as an appended note entry.
 - Status: active
+
+## D-002 addendum — `/api/quote` latency and no fee cache (WEB-2)
+- Date: 2026-11-05 · Author: web · Task: WEB-2
+- Report says: §2 "Data" — D1 latency 22–28 ms p50 per read from Marseille to Paris.
+- We do instead: `/api/quote` makes 2 sequential D1 round trips (variants + commune `batch()`, then the
+  `delivery_fees` read through the FeeProvider) with **no in-isolate cache**, so a fee, price or stock edit applies
+  to the next quote. Expected production server time ≈ 50–60 ms p50; quotes run after LCP on user input.
+- Why: a cache would save one round trip (≈ 25 ms p50, below user perception off the LCP path) at the cost of up to
+  60 s of stale fees; `/api/order` recomputes from D1 anyway and answers `total_changed` on drift.
+- Evidence: artifacts/WEB-2/latency.md (local p50/p90 with load average), research-evidence/team-reports/research_backend.md row 6.
+- Status: active

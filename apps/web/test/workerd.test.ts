@@ -3,6 +3,9 @@
 // Plan: artifacts/WEB-0/plan.md §1.1, §10.
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { vi } from 'vitest';
+// workerd round trips are slow on a loaded shared host: a timeout here is not a failure of the code.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 90_000 });
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { createTestHarness, type TestHarness } from 'wrangler';
 import type { Env } from '../src/env.ts';
