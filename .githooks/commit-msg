@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Commit message format (team/BRIEF.md §6, CLAUDE.md):
+#   <ID>: <title>
+#   <blank>
+#   What changed: …
+#   Testing: …
+#   Risk tier: low|high
+#   Revert: …
+#   [trailers, e.g. Co-Authored-By]
+# Merge commits are allowed as they are.
+set -euo pipefail
+msg_file="$1"
+gitdir="$(git rev-parse --git-dir)"
+[[ -f "$gitdir/MERGE_HEAD" ]] && exit 0
+
+# Drop comment lines (git's default cleanup) and trailing blank lines.
+mapfile -t lines < <(grep -v '^#' "$msg_file" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
+subject="${lines[0]:-}"
+[[ "$subject" =~ ^Merge\  ]] && exit 0
+
+fail() {
+  cat >&2 <<MSG
+commit-msg: refused — $1
+Expected:
+  <ID>: <title>                (ID like DB-1, AORD-2, BUG-14, TOOL-1)
+
+  What changed: …
+  Testing: …
+  Risk tier: low|high
+  Revert: …
+
+  Co-Authored-By: …            (optional trailers)
+MSG
+  exit 1
+}
+
+[[ "$subject" =~ ^[A-Z]+(-[A-Z]+)?-[0-9]+:\ .+ ]] || fail "subject \"$subject\" does not match <ID>: <title>"
+[[ ${#lines[@]} -ge 2 && -z "${lines[1]}" ]] || fail "line 2 must be blank"
+
+want=("What changed:" "Testing:" "Risk tier:" "Revert:")
+next=0
+for ((i = 2; i < ${#lines[@]}; i++)); do
+  l="${lines[$i]}"
+  for ((k = 0; k < ${#want[@]}; k++)); do
+    if [[ "$l" == "${want[$k]}"* ]]; then
+      (( k == next )) || fail "\"${want[$k]}\" is out of order (expected \"${want[$next]}\" next)"
+      if [[ "${want[$k]}" == "Risk tier:" ]]; then
+        [[ "$l" =~ ^Risk\ tier:\ (low|high)[[:space:]]*$ ]] || fail "Risk tier must be exactly \"low\" or \"high\" (got \"$l\")"
+      fi
+      next=$((k + 1))
+    fi
+  done
+done
+(( next == ${#want[@]} )) || fail "missing \"${want[$next]}\" line"
+exit 0
