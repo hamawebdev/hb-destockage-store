@@ -1,10 +1,12 @@
 ---
-// Category listing (ar). SHELL-1 stub, owned by `pages` from here on (components in src/components/catalog/).
+// Category listing (ar). Owner: pages. Template body: src/components/catalog/CategoryView.astro.
 import Base from '../../../layouts/Base.astro';
+import CategoryView from '../../../components/catalog/CategoryView.astro';
 import { staticPaths, type PropsByTemplate } from '../../../lib/catalog.ts';
+
 export const getStaticPaths = () => staticPaths('category', 'ar');
 const props = Astro.props as PropsByTemplate['category'];
 ---
-<Base layout={props.layout}>
-  <div class="wrap"><h1>{props.category.name}</h1></div>
+<Base layout={props.layout} lcp={props.products.some((c) => c.image?.lcp)}>
+  <CategoryView {...props} />
 </Base>

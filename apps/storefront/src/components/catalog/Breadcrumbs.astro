@@ -1,0 +1,31 @@
+---
+/** Breadcrumb trail. Separators are CSS chevrons that mirror in RTL; the last crumb is the current page. */
+import type { Breadcrumb, StringTable } from '@hb/catalog';
+import { t } from './lib/i18n.ts';
+
+interface Props {
+  items: readonly Breadcrumb[];
+  strings: StringTable;
+}
+const { items, strings } = Astro.props;
+---
+{items.length > 0 && (
+  <nav class="cat-crumbs" aria-label={t(strings, 'catalog.breadcrumbs')}>
+    <ol>
+      {items.map((c) => (
+        <li>{c.href ? <a href={c.href}>{c.label}</a> : <span aria-current="page">{c.label}</span>}</li>
+      ))}
+    </ol>
+  </nav>
+)}
+
+<style is:global>
+  .cat-crumbs{font-size:var(--fs-small);line-height:var(--lh-ui);color:var(--color-text-secondary)}
+  .cat-crumbs ol{display:flex;flex-wrap:wrap;align-items:center;margin:0;padding:0;list-style:none}
+  .cat-crumbs li{display:flex;align-items:center;min-inline-size:0}
+  .cat-crumbs li+li::before{content:"";inline-size:6px;block-size:6px;margin-inline:var(--space-2);border-block-start:1.5px solid currentColor;border-inline-end:1.5px solid currentColor;transform:rotate(45deg);opacity:.7}
+  .cat-crumbs li+li:dir(rtl)::before{transform:rotate(-45deg)}
+  .cat-crumbs a{display:inline-flex;align-items:center;min-block-size:var(--tap-min);color:var(--color-accent-text);text-decoration:none}
+  .cat-crumbs a:hover{text-decoration:underline}
+  .cat-crumbs [aria-current]{color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-inline-size:60vw}
+</style>
