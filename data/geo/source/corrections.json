@@ -2,7 +2,7 @@
  "_about": "Every change applied on top of the pinned Algeria-Cities rows to produce data/geo/wilayas.json and communes.json. Moves make the composition match the JO lists in jo/official-lists.json; name overrides fix upstream errors (see artifacts/GEO-1/decision.md). Apart from these, upstream spellings are kept.",
  "rules": [
   "French names: \"-\" replaced by a space, runs of spaces collapsed, trimmed (upstream mixes \"Beni-Ounif\" and \"Beni Ounif\").",
-  "Arabic names: trimmed, runs of spaces collapsed.",
+  "Arabic names: tatweel (U+0640, decorative, 22 upstream names) removed, trimmed, runs of spaces collapsed.",
   "Commune id = upstream \"id\" as an integer (stable: we own it from now on). Upstream code_commune is not used (pre-reform ONS codes; 7003 for Branis is an upstream typo of 703).",
   "Wilaya names: upstream wilaya_name_fr / wilaya_name, except wilaya_names below. Upstream labels 11 Touggourt communes with wilaya_code 30; the code follows the JO (moves)."
  ],
