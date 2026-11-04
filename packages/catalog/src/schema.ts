@@ -6,7 +6,7 @@
  *  - `validateSnapshot` / `parseSnapshot`: both together.
  */
 import * as v from 'valibot';
-import { RESERVED_SEGMENTS, SNAPSHOT_VERSION, type CatalogSnapshot, type Id } from './types.ts';
+import { RESERVED_SEGMENTS, SNAPSHOT_VERSION, type CatalogSnapshot, type Id, type ProductKind, type SnapshotProduct } from './types.ts';
 
 const id = v.pipe(v.number(), v.integer(), v.minValue(1));
 const nonEmpty = v.pipe(v.string(), v.trim(), v.minLength(1));
@@ -14,7 +14,8 @@ const text = v.string();
 const dzd = v.pipe(v.number(), v.integer(), v.minValue(1));
 const sortKey = v.pipe(v.number(), v.integer());
 const epochMs = v.pipe(v.number(), v.integer(), v.minValue(0));
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** Per-language slug: ASCII kebab-case. */
+export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const slug = v.pipe(
   v.string(),
   v.regex(SLUG, 'slug must be ASCII kebab-case'),
@@ -108,13 +109,10 @@ const ProductSchema = v.strictObject({
   images: v.array(ImageSchema),
 });
 
-const linkHref = v.pipe(
-  v.string(),
-  v.check(
-    (h) => /^\/(?!\/)/.test(h) || /^tel:\+?\d+$/.test(h) || /^https:\/\/wa\.me\/\d+$/.test(h),
-    'link href must be a same-origin path, tel: or https://wa.me/',
-  ),
-);
+/** Content link targets: same-origin path, `tel:` or `https://wa.me/<digits>`. */
+export const isContentLinkHref = (h: string): boolean =>
+  /^\/(?!\/)/.test(h) || /^tel:\+?\d+$/.test(h) || /^https:\/\/wa\.me\/\d+$/.test(h);
+const linkHref = v.pipe(v.string(), v.check(isContentLinkHref, 'link href must be a same-origin path, tel: or https://wa.me/'));
 
 const ContentBlockSchema = v.variant('type', [
   v.strictObject({ type: v.literal('h2'), text: nonEmpty }),
@@ -184,6 +182,83 @@ function duplicates<T>(items: readonly T[]): T[] {
   return [...dup];
 }
 
+export interface ProductIntegrityContext {
+  /** Kind of the product owning each variant id (pack items may only reference non-pack ones). */
+  readonly variantKindById: ReadonlyMap<Id, ProductKind>;
+  /** Category ids that exist. */
+  readonly categoryIds: ReadonlySet<Id>;
+}
+
+/**
+ * Per-product invariants (see `SnapshotProduct`). Pure, no I/O: the admin calls it before a
+ * product is activated, so nothing it saves can break `validateSnapshot` at publish.
+ * `at` prefixes issue paths.
+ */
+export function checkProductIntegrity(p: SnapshotProduct, ctx: ProductIntegrityContext, at = 'product'): SnapshotIssue[] {
+  const issues: SnapshotIssue[] = [];
+  const add = (path: string, message: string): void => void issues.push({ path, message });
+  
+  if (!ctx.categoryIds.has(p.categoryId)) add(`${at}.categoryId`, `unknown category ${p.categoryId}`);
+
+  const active = p.variants.filter((x) => x.active);
+  const defaults = active.filter((x) => x.isDefault);
+  if (p.status === 'active' && active.length === 0) add(`${at}.variants`, 'active product has no active variant');
+  if (active.length > 0 && defaults.length !== 1) add(`${at}.variants`, `expected exactly one default active variant, found ${defaults.length}`);
+  if (p.variants.some((x) => x.isDefault && !x.active)) add(`${at}.variants`, 'default variant is inactive');
+
+  p.variants.forEach((x, j) => {
+    if (x.compareAtDzd !== null && x.compareAtDzd <= x.priceDzd) add(`${at}.variants[${j}].compareAtDzd`, 'must be greater than priceDzd');
+  });
+
+  if (p.kind !== 'variable') {
+    if (p.variants.length !== 1) add(`${at}.variants`, `${p.kind} product must have exactly 1 variant`);
+    if (p.options.length > 0) add(`${at}.options`, `${p.kind} product must have no options`);
+    p.variants.forEach((x, j) => {
+      if (x.optionValueIds.length > 0) add(`${at}.variants[${j}].optionValueIds`, `${p.kind} variant must have no option values`);
+    });
+  } else {
+    if (p.options.length === 0) add(`${at}.options`, 'variable product needs ≥ 1 option');
+    const valueToOption = new Map<Id, Id>();
+    for (const o of p.options) for (const x of o.values) valueToOption.set(x.id, o.id);
+    const combos: string[] = [];
+    p.variants.forEach((x, j) => {
+      const vat = `${at}.variants[${j}].optionValueIds`;
+      const optionsHit = x.optionValueIds.map((vid) => valueToOption.get(vid));
+      if (optionsHit.some((o) => o === undefined)) return add(vat, 'references a value not in this product');
+      if (x.optionValueIds.length !== p.options.length || new Set(optionsHit).size !== p.options.length) {
+        return add(vat, 'must hold exactly one value of each option');
+      }
+      combos.push([...x.optionValueIds].sort((a, b) => a - b).join('-'));
+    });
+    for (const d of duplicates(combos)) add(`${at}.variants`, `two variants share option combination ${d}`);
+  }
+
+  p.options.forEach((o, j) => {
+    if (o.type !== 'colour' && o.values.some((x) => x.swatchHex !== null)) add(`${at}.options[${j}]`, 'swatchHex only on colour options');
+  });
+
+  if (p.kind === 'pack') {
+    if (p.packItems.length === 0) add(`${at}.packItems`, 'pack needs ≥ 1 item');
+  } else if (p.packItems.length > 0) {
+    add(`${at}.packItems`, 'only packs have pack items');
+  }
+  p.packItems.forEach((it, j) => {
+    const kind = ctx.variantKindById.get(it.variantId);
+    if (kind === undefined) add(`${at}.packItems[${j}].variantId`, `unknown variant ${it.variantId}`);
+    else if (kind === 'pack') add(`${at}.packItems[${j}].variantId`, 'a pack cannot contain a pack');
+  });
+  for (const d of duplicates(p.packItems.map((it) => it.variantId))) add(`${at}.packItems`, `variant ${d} listed twice`);
+
+  const ownVariants = new Set(p.variants.map((x) => x.id));
+  p.images.forEach((img, j) => {
+    if (img.variantId !== null && !ownVariants.has(img.variantId)) add(`${at}.images[${j}].variantId`, `variant ${img.variantId} is not in this product`);
+  });
+  if (p.status === 'active' && !p.images.some((img) => img.variantId === null)) {
+    add(`${at}.images`, 'active product needs ≥ 1 product-level image');
+  }
+  return issues;
+}
+
 /** Cross-reference checks on a structurally valid snapshot. Empty array = valid. */
 export function checkSnapshotIntegrity(s: CatalogSnapshot): SnapshotIssue[] {
   const issues: SnapshotIssue[] = [];
@@ -227,70 +302,10 @@ export function checkSnapshotIntegrity(s: CatalogSnapshot): SnapshotIssue[] {
   });
 
   // Products.
-  const variantOwner = new Map<Id, { productId: Id; kind: string }>();
-  for (const p of s.products) for (const x of p.variants) variantOwner.set(x.id, { productId: p.id, kind: p.kind });
-
-  s.products.forEach((p, i) => {
-    const at = `products[${i}]`;
-    if (!catById.has(p.categoryId)) add(`${at}.categoryId`, `unknown category ${p.categoryId}`);
-
-    const active = p.variants.filter((x) => x.active);
-    const defaults = active.filter((x) => x.isDefault);
-    if (p.status === 'active' && active.length === 0) add(`${at}.variants`, 'active product has no active variant');
-    if (active.length > 0 && defaults.length !== 1) add(`${at}.variants`, `expected exactly one default active variant, found ${defaults.length}`);
-    if (p.variants.some((x) => x.isDefault && !x.active)) add(`${at}.variants`, 'default variant is inactive');
-
-    p.variants.forEach((x, j) => {
-      if (x.compareAtDzd !== null && x.compareAtDzd <= x.priceDzd) add(`${at}.variants[${j}].compareAtDzd`, 'must be greater than priceDzd');
-    });
-
-    if (p.kind !== 'variable') {
-      if (p.variants.length !== 1) add(`${at}.variants`, `${p.kind} product must have exactly 1 variant`);
-      if (p.options.length > 0) add(`${at}.options`, `${p.kind} product must have no options`);
-      p.variants.forEach((x, j) => {
-        if (x.optionValueIds.length > 0) add(`${at}.variants[${j}].optionValueIds`, `${p.kind} variant must have no option values`);
-      });
-    } else {
-      if (p.options.length === 0) add(`${at}.options`, 'variable product needs ≥ 1 option');
-      const valueToOption = new Map<Id, Id>();
-      for (const o of p.options) for (const x of o.values) valueToOption.set(x.id, o.id);
-      const combos: string[] = [];
-      p.variants.forEach((x, j) => {
-        const vat = `${at}.variants[${j}].optionValueIds`;
-        const optionsHit = x.optionValueIds.map((vid) => valueToOption.get(vid));
-        if (optionsHit.some((o) => o === undefined)) return add(vat, 'references a value not in this product');
-        if (x.optionValueIds.length !== p.options.length || new Set(optionsHit).size !== p.options.length) {
-          return add(vat, 'must hold exactly one value of each option');
-        }
-        combos.push([...x.optionValueIds].sort((a, b) => a - b).join('-'));
-      });
-      for (const d of duplicates(combos)) add(`${at}.variants`, `two variants share option combination ${d}`);
-    }
-
-    p.options.forEach((o, j) => {
-      if (o.type !== 'colour' && o.values.some((x) => x.swatchHex !== null)) add(`${at}.options[${j}]`, 'swatchHex only on colour options');
-    });
-
-    if (p.kind === 'pack') {
-      if (p.packItems.length === 0) add(`${at}.packItems`, 'pack needs ≥ 1 item');
-    } else if (p.packItems.length > 0) {
-      add(`${at}.packItems`, 'only packs have pack items');
-    }
-    p.packItems.forEach((it, j) => {
-      const owner = variantOwner.get(it.variantId);
-      if (!owner) add(`${at}.packItems[${j}].variantId`, `unknown variant ${it.variantId}`);
-      else if (owner.kind === 'pack') add(`${at}.packItems[${j}].variantId`, 'a pack cannot contain a pack');
-    });
-    for (const d of duplicates(p.packItems.map((it) => it.variantId))) add(`${at}.packItems`, `variant ${d} listed twice`);
-
-    const ownVariants = new Set(p.variants.map((x) => x.id));
-    p.images.forEach((img, j) => {
-      if (img.variantId !== null && !ownVariants.has(img.variantId)) add(`${at}.images[${j}].variantId`, `variant ${img.variantId} is not in this product`);
-    });
-    if (p.status === 'active' && !p.images.some((img) => img.variantId === null)) {
-      add(`${at}.images`, 'active product needs ≥ 1 product-level image');
-    }
-  });
+  const variantKindById = new Map<Id, ProductKind>();
+  for (const p of s.products) for (const x of p.variants) variantKindById.set(x.id, p.kind);
+  const ctx: ProductIntegrityContext = { variantKindById, categoryIds: new Set(s.categories.map((c) => c.id)) };
+  s.products.forEach((p, i) => issues.push(...checkProductIntegrity(p, ctx, `products[${i}]`)));
 
   // Settings references.
   const productIds = new Set(s.products.map((p) => p.id));

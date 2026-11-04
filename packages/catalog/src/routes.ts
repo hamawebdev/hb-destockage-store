@@ -30,10 +30,14 @@ export const notFoundPath = (lang: Lang): string => `/${lang}/404.html`;
 
 /** Per-language search index (CAT-5). */
 export const searchIndexPath = (lang: Lang): string => `/search/${lang}.json`;
-/** Per-wilaya commune JSON (CAT-5, from geo's `buildGeoAssets`); `{code}` = wilaya code. */
-export const COMMUNES_URL_TEMPLATE = '/geo/communes/{code}.json';
-export const communesPath = (wilayaCode: number): string =>
-  COMMUNES_URL_TEMPLATE.replace('{code}', String(wilayaCode));
+/**
+ * Per-wilaya, per-language commune JSON (CAT-5, written by geo's `buildGeoAssets`):
+ * `/geo/communes/<lang>/<code>.json`, body `[[communeId, "name"], …]` sorted with `Intl.Collator(lang)`.
+ * One language per file: about 210 B br median, 582 B max (artifacts/ORDER-0/geo-bytes.txt, artifacts/GEO-3/sizes.md).
+ */
+export const communesUrlTemplate = (lang: Lang): string => `/geo/communes/${lang}/{code}.json`;
+export const communesPath = (lang: Lang, wilayaCode: number): string =>
+  communesUrlTemplate(lang).replace('{code}', String(wilayaCode));
 
 export const dirOf = (lang: Lang): 'rtl' | 'ltr' => (lang === 'ar' ? 'rtl' : 'ltr');
 export const otherLang = (lang: Lang): Lang => (lang === 'ar' ? 'fr' : 'ar');
