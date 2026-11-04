@@ -310,6 +310,19 @@ describe('gate.sh', () => {
     expect(r2.stdout).toContain('RED   budget (script missing or a stub');
   });
 
+  test('storefront diff with only the placeholder page and a stub lh → SKIP, not RED', () => {
+    const root = makeRepo({ budget: "echo 'budget: not wired yet' && exit 0", lh: "echo 'lh: not wired yet' && exit 0" });
+    prepNodeModules(root);
+    branch(root, 'team/shell');
+    write(root, 'apps/storefront/src/pages/index.astro', '---\n// Placeholder (TOOL-2). Owner: shell.\n---\n<html></html>\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'SHELL-9: placeholder'));
+    const r = gate(root, '--no-cache');
+    expect(r.status, r.stdout).toBe(0);
+    expect(r.stdout).toContain('steps = typecheck test build lh');
+    expect(r.stdout).toContain('SKIP  lh (not wired yet');
+  });
+
   test('lh runs when the diff vs main touches storefront paths', () => {
     const root = makeRepo({ budget: 'true', lh: 'echo LH-RAN' });
     prepNodeModules(root);
