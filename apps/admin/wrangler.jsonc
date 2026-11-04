@@ -1,0 +1,8 @@
+// Placeholder (TOOL-2). Owner: admin-core.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "hb-admin",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "dev": { "port": 4240 }
+}

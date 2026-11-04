@@ -1,0 +1,13 @@
+// Placeholder (TOOL-2). Owner: web.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "hb-web",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "../storefront/dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "dev": { "port": 4210 }
+}
