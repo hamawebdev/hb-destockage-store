@@ -13,13 +13,13 @@ const pluralBase = (k) => {
   return m ? m[1] : null;
 };
 
-// Copied from packages/shared/src/order-schema.ts ORDER_ERROR_CODES (SHARED-1) + client-only codes.
+// Copied from packages/shared/src/order-schema.ts ORDER_ERROR_CODES (SHARED-1 f76df3d) + client-only codes.
 const ERROR_CODES = [
   "invalid_request", "lang_invalid", "name_invalid", "phone_required", "phone_invalid", "phone_not_mobile",
   "wilaya_invalid", "commune_invalid", "items_empty", "items_invalid", "qty_invalid", "variant_unavailable",
   "out_of_stock", "delivery_unavailable", "idempotency_key_invalid", "rate_limited", "server_error",
   // client-side only (orderform JS):
-  "network_error", "quote_failed", "variant_required", "name_required", "wilaya_required", "commune_required", "total_changed",
+  "network_error", "quote_failed", "variant_required", "name_required", "wilaya_required", "commune_required", "total_changed", "validation", "forbidden_origin", "payload_too_large", "unsupported_media_type",
 ];
 
 test("both files have identical key sets", () => {
@@ -117,5 +117,11 @@ test("no message lets the customer confirm without a total or promises the fee b
   for (const k of ["order.errors.quote_failed", "order.errors.rate_limited", "order.errors.delivery_unavailable"]) {
     assert.match(fr[k], /\{phone\}.*WhatsApp/, k);
     assert.match(ar[k], /\{phone\}.*واتساب/, k);
+  }
+});
+
+test("server error messages render without variables except {phone}/{max} (no-JS review step has no option name)", () => {
+  for (const k of ["order.errors.variant_required", "order.errors.validation", "order.errors.total_changed", "order.errors.name_required"]) {
+    assert.deepEqual([...vars(fr[k])], [], k);
   }
 });
