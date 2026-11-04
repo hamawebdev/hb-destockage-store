@@ -2,6 +2,26 @@
   "name": "hb-destockage",
   "private": true,
   "type": "module",
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p tsconfig.json",
+    "test": "npm run test --workspaces --if-present && vitest run --config scripts/vitest.config.ts && npm run test:data",
+    "build": "npm run build --workspaces --if-present",
+    "budget": "node tools/measure/src/budget/cli.ts",
+    "lh": "echo 'lh: not wired yet' && exit 0",
+    "shots": "echo 'shots: not wired yet' && exit 0",
+    "axe": "echo 'axe: not wired yet' && exit 0",
+    "e2e": "echo 'e2e: not wired yet' && exit 0",
+    "test:data": "scripts/test-data.sh"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261104.1",
+    "@types/node": "24.19.2",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "vitest": "4.1.12",
+    "wrangler": "4.157.0"
+  },
   "engines": {
     "node": ">=24 <25",
     "npm": ">=11"
@@ -16,22 +36,5 @@
     "apps/admin",
     "apps/jobs",
     "tools/measure"
-  ],
-  "scripts": {
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present",
-    "budget": "echo 'budget: not wired yet' && exit 0",
-    "lh": "echo 'lh: not wired yet' && exit 0",
-    "shots": "echo 'shots: not wired yet' && exit 0",
-    "axe": "echo 'axe: not wired yet' && exit 0",
-    "e2e": "echo 'e2e: not wired yet' && exit 0"
-  },
-  "devDependencies": {
-    "@types/node": "24.19.2",
-    "esbuild": "0.28.2",
-    "typescript": "6.0.3",
-    "vite": "8.3.5",
-    "vitest": "4.1.12"
-  }
+  ]
 }
