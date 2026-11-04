@@ -17,13 +17,15 @@ const GOOD_BODY = 'What changed: x\nTesting: y\nRisk tier: low\nRevert: git reve
 const msg = (subject: string, body = GOOD_BODY) => `${subject}\n\n${body}`;
 
 type Run = { status: number; stdout: string; stderr: string };
+// Never let an inherited GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE / GIT_CONFIG_* point a test at the real repo.
+const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
 function sh(cwd: string, cmd: string, args: string[], env: Record<string, string> = {}, input?: string): Run {
   const r = spawnSync(cmd, args, {
     cwd,
     input,
     encoding: 'utf8',
     env: {
-      ...process.env,
+      ...cleanEnv,
       GIT_AUTHOR_NAME: 't',
       GIT_AUTHOR_EMAIL: 't@example.com',
       GIT_COMMITTER_NAME: 't',
@@ -51,6 +53,9 @@ function makeRepo(pkgScripts: Record<string, string> = {}): string {
   const root = mkdtempSync(join(tmpdir(), 'hb-tooling-test-'));
   tmpRoots.push(root);
   ok(git(root, 'init', '-q', '-b', 'main'));
+  // Guard: every config write below must land in this throwaway repo, never the project's .git.
+  const gitDir = ok(git(root, 'rev-parse', '--path-format=absolute', '--git-common-dir')).stdout.trim();
+  if (gitDir !== join(root, '.git')) throw new Error(`test repo resolved to ${gitDir}, refusing to configure it`);
   cpSync(join(src, '.githooks'), join(root, '.githooks'), { recursive: true });
   cpSync(join(src, 'scripts/lib'), join(root, 'scripts/lib'), { recursive: true });
   cpSync(join(src, 'scripts/team'), join(root, 'scripts/team'), { recursive: true });
