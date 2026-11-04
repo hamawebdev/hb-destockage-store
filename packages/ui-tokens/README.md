@@ -9,13 +9,14 @@ Values come from `brand/tokens.json` (owner `brand`); this package only transcri
 |---|---|---|
 | `tokens.css` | CSS custom properties. **Generated**, do not edit. | storefront (inlined), admin |
 | `src/tokens.generated.ts` | Same values as a typed object + `tokensCss` string. **Generated**. | admin, build scripts |
-| `src/index.ts` | Public TS entry: `tokens`, `tokensCss`, `tokensSource`, `arabicFont`, `IconEntry`. | admin |
+| `src/index.ts` | Public TS entry: `tokens`, `tokensCss`, `tokensSource`, `arabicFontFace`, `fontFaceCss`, `IconEntry`. | admin |
 | `src/gen/` | Generator (`build-tokens.ts` pure, `cli.ts` writes files, `source.ts` finds the JSON). | tokens |
-| `fonts/` | Noto Sans Arabic 400 subset + OFL (TOKENS-2). | storefront |
+| `fonts/` | Noto Sans Arabic 400 subset, OFL, `subset.py` + `subset.json`. | storefront |
+| `font-face.css` | The Arabic `@font-face`. **Generated**. | storefront |
 | `icons/<name>.svg` | Icon set (TOKENS-3), see below. | storefront, admin |
 | `base.css` | Reset, typography, primitives, components (TOKENS-4). | storefront |
 
-Regenerate after any change to `brand/tokens.json`:
+Regenerate after any change to `brand/tokens.json` or the font:
 
 ```sh
 node packages/ui-tokens/src/gen/cli.ts
@@ -53,12 +54,19 @@ French page).
 base 360 (no query), `md` 768px, `lg` 1024px, `xl` 1440px (`tokens.breakpoint` in TS; also in the
 `tokens.css` header comment).
 
-## Arabic font slot
+## Arabic font
 
-Family name `"HB Noto Sans Arabic"` (`arabicFont.family`), first in `--font-arabic`. TOKENS-2 adds
-`fonts/noto-sans-arabic-400.woff2` and its `@font-face` (`font-display: optional`, `unicode-range`
-= the subset). The storefront preloads it on `/ar/` only. On `/fr/` no element's font-family names
-it, so it is never fetched.
+`fonts/noto-sans-arabic-400.woff2` — Noto Sans Arabic 400 (notofonts NotoSansArabic-v2.013, static,
+unhinted) subset to Arabic + ڨ ڢ ڧ ڤ + digits/punctuation, 9,992 B. `font-face.css` (generated):
+family `"HB Noto Sans Arabic"` (first entry of brand's `--font-arabic`), `font-display: optional`,
+`unicode-range` read from the file's own cmap, `src: url("./fonts/noto-sans-arabic-400.woff2")`
+relative so the bundler hashes it. TS: `arabicFontFace` (`file`, `bytes`, `sha256`,
+`unicodeRange`), `fontFaceCss`. The storefront preloads it on `/ar/` only. On `/fr/` no element's
+font-family names it, so it is never fetched.
+
+Rebuild: `python3 -I packages/ui-tokens/fonts/subset.py` (pinned URL + sha256s and fontTools/brotli
+versions in `fonts/subset.json`; byte-identical output), then `node packages/ui-tokens/src/gen/cli.ts`.
+Licence: `fonts/OFL.txt`.
 
 ## Icon convention
 

@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { FontInput } from './build-font.ts';
 import type { BrandTokens } from './build-tokens.ts';
 
 export const PKG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -13,6 +14,9 @@ export const BRAND_PATH = join(REPO_DIR, 'brand', 'tokens.json');
 export const PROVISIONAL_PATH = join(PKG_DIR, 'src', 'gen', 'provisional.tokens.json');
 export const CSS_OUT = join(PKG_DIR, 'tokens.css');
 export const TS_OUT = join(PKG_DIR, 'src', 'tokens.generated.ts');
+export const FONT_CSS_OUT = join(PKG_DIR, 'font-face.css');
+export const FONT_TS_OUT = join(PKG_DIR, 'src', 'font.generated.ts');
+export const SUBSET_CONFIG = join(PKG_DIR, 'fonts', 'subset.json');
 
 export interface Source {
   tokens: BrandTokens;
@@ -31,4 +35,15 @@ export function readSource(path: string): Source {
 
 export function resolveSource(): Source {
   return readSource(existsSync(BRAND_PATH) ? BRAND_PATH : PROVISIONAL_PATH);
+}
+
+export function readFontInput(src: Source): FontInput {
+  const cfg = JSON.parse(readFileSync(SUBSET_CONFIG, 'utf8')) as { output: string; source: { release: string } };
+  const file = `fonts/${cfg.output}`;
+  return {
+    woff2: readFileSync(join(PKG_DIR, file)),
+    file,
+    arabicStack: String(src.tokens.font.family.arabic.$value),
+    release: cfg.source.release,
+  };
 }
