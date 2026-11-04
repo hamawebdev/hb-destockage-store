@@ -34,3 +34,10 @@ them from the URLs and compare the hashes.
 some are suspected (for example «سيد عبد اللى» for Sidi Abdelli). Final ى is printed for ي in several names (سيدى, بنى). So the
 `ar` strings here are evidence for matching, **not display data**. Display Arabic names come from
 upstream unless `corrections.json` overrides them. The French text layer is clean.
+
+## Arabic (GEO-7)
+
+`law-84-09-1984-ar.json` compares the Arabic name of every commune in the 31 Law 84-09 wilayas with the Arabic
+original edition of JO 1984 n°6 (scan, read by eye; pp. 139–153). Only differences are listed, by category; every
+other item matches. Arabic of the 38 other wilayas is compared with the `ar` text of `official-lists.json`.
+Fix policy and per-wilaya results: `artifacts/GEO-7/report.md`.
