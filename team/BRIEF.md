@@ -34,7 +34,7 @@ customer confirms**.
   `FeeProvider` interface (`packages/shared/src/fees.ts`). Today's implementation reads the
   admin-set fee per wilaya from D1; a courier-API provider replaces it later without touching the
   storefront or the order flow. `/api/order` recomputes everything server-side and never trusts a
-  client total. (Deviation from "D1 only on order POST": recorded in DECISIONS.md as D-003 by tooling.)
+  client total. (Deviation from "D1 only on order POST": recorded in DECISIONS.md as D-002 by tooling. D-001 = courier wilaya codes move to the courier integration. Later entries take the next free number.)
 - **Every product has ≥ 1 variant.** A simple product has one default variant. Order lines always
   reference `variantId`. A pack is a product (`kind='pack'`) with its own variant/price/stock and a
   list of contained variants (`pack_items`) shown on the page.
@@ -69,11 +69,11 @@ customer confirms**.
 | `tooling` | `package.json`, `package-lock.json`, `**/package.json`, `tsconfig*.json` (root + workspaces), `.githooks/`, `scripts/`, `.claude/settings.json`, `.claude/agents/`, `team/owners.json`, `CLAUDE.md`, `REVIEW.md`, `DECISIONS.md` (create + structure; anyone may append an entry via their own commit — see §6), `.gitignore`, `.nvmrc`, `vitest.workspace.*` | `rev-a` |
 | `measure` | `tools/measure/`, `tests/e2e/` | `rev-a` |
 | `jobs` | `apps/jobs/` (except package.json) | `rev-a` |
-| `brand` | `brand/` | `rev-b` |
+| `brand` | `brand/`, `data/content/` (content-page copy) | `rev-b` |
 | `tokens` | `packages/ui-tokens/` | `rev-b` |
 | `shell` | `apps/storefront/` **except** the paths owned by `pages` and `orderform` | `rev-b` |
 | `geo` | `data/geo/` | `rev-c` |
-| `seed` | `data/catalog/`, `data/photos/`, `data/content/` | `rev-c` |
+| `seed` | `data/catalog/`, `data/photos/` | `rev-c` |
 | `pagedata` | `packages/catalog/` | `rev-c` |
 | `db` | `packages/db/` | `rev-d` |
 | `shared` | `packages/shared/` | `rev-d` |
