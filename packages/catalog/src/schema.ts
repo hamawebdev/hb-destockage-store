@@ -7,10 +7,31 @@
  */
 import * as v from 'valibot';
 import { RESERVED_SEGMENTS, SNAPSHOT_VERSION, type CatalogSnapshot, type Id, type ProductKind, type SnapshotProduct } from './types.ts';
+import { isContentLinkHref, isImageKey } from './url.ts';
 
 const id = v.pipe(v.number(), v.integer(), v.minValue(1));
-const nonEmpty = v.pipe(v.string(), v.trim(), v.minLength(1));
-const text = v.string();
+
+/**
+ * Text safety: no C0/C1 control characters and no bidi embedding/override/isolate controls
+ * (U+202A–U+202E, U+2066–U+2069: they can visually reorder names, prices or refs). Newlines are
+ * allowed only in multi-line fields. ZWJ/ZWNJ and LRM/RLM stay allowed (legitimate in Arabic).
+ */
+// eslint-disable-next-line no-control-regex
+const UNSAFE_LINE = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
+// eslint-disable-next-line no-control-regex
+const UNSAFE_MULTILINE = /[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
+export const isSafeLine = (s: string): boolean => !UNSAFE_LINE.test(s);
+export const isSafeMultiline = (s: string): boolean => !UNSAFE_MULTILINE.test(s);
+/** One-line text, may be empty. */
+const line = (max: number) =>
+  v.pipe(v.string(), v.maxLength(max), v.check(isSafeLine, 'control or bidi-override character in text'));
+/** One-line text, non-empty after trimming. */
+const label = (max = 200) => v.pipe(line(max), v.check((s) => s.trim().length > 0, 'must not be empty'));
+/** Multi-line plain text (paragraphs separated by blank lines). */
+const multiline = (max: number) =>
+  v.pipe(v.string(), v.maxLength(max), v.check(isSafeMultiline, 'control or bidi-override character in text'));
+const nonEmpty = label();
+const text = line(500);
 const dzd = v.pipe(v.number(), v.integer(), v.minValue(1));
 const sortKey = v.pipe(v.number(), v.integer());
 const epochMs = v.pipe(v.number(), v.integer(), v.minValue(0));
@@ -52,7 +73,7 @@ const OptionSchema = v.strictObject({
 
 const VariantSchema = v.strictObject({
   id,
-  sku: v.pipe(v.string(), v.regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/, 'sku must be ASCII')),
+  sku: v.pipe(v.string(), v.maxLength(64), v.regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/, 'sku must be ASCII')),
   priceDzd: dzd,
   compareAtDzd: v.nullable(dzd),
   stock: v.nullable(v.pipe(v.number(), v.integer(), v.minValue(0))),
@@ -70,10 +91,10 @@ const PackItemSchema = v.strictObject({
 const ImageSchema = v.strictObject({
   id,
   variantId: v.nullable(id),
-  key: nonEmpty,
+  key: v.pipe(v.string(), v.check(isImageKey, 'image key must be a relative path of lowercase [a-z0-9._-] segments')),
   width: v.pipe(v.number(), v.integer(), v.minValue(1)),
   height: v.pipe(v.number(), v.integer(), v.minValue(1)),
-  alt: localized(text),
+  alt: localized(line(300)),
   position: sortKey,
   placeholder: v.boolean(),
 });
@@ -83,7 +104,7 @@ const CategorySchema = v.strictObject({
   parentId: v.nullable(id),
   slug: localized(slug),
   name: localized(nonEmpty),
-  description: v.nullable(localized(text)),
+  description: v.nullable(localized(multiline(2000))),
   sort: sortKey,
   active: v.boolean(),
   placeholder: v.boolean(),
@@ -98,8 +119,8 @@ const ProductSchema = v.strictObject({
   slug: localized(slug),
   name: localized(nonEmpty),
   brandLatin: v.nullable(nonEmpty),
-  summary: localized(text),
-  description: localized(text),
+  summary: localized(line(500)),
+  description: localized(multiline(10_000)),
   status: v.picklist(['draft', 'active', 'archived']),
   placeholder: v.boolean(),
   translationPlaceholder: langs,
@@ -110,16 +131,14 @@ const ProductSchema = v.strictObject({
   images: v.array(ImageSchema),
 });
 
-/** Content link targets: same-origin path, `tel:` or `https://wa.me/<digits>`. */
-export const isContentLinkHref = (h: string): boolean =>
-  /^\/(?!\/)/.test(h) || /^tel:\+?\d+$/.test(h) || /^https:\/\/wa\.me\/\d+$/.test(h);
+/** Content links go through the shared allow-list (`url.ts`). */
 const linkHref = v.pipe(v.string(), v.check(isContentLinkHref, 'link href must be a same-origin path, tel: or https://wa.me/'));
 
 const ContentBlockSchema = v.variant('type', [
   v.strictObject({ type: v.literal('h2'), text: nonEmpty }),
-  v.strictObject({ type: v.literal('p'), text: nonEmpty }),
-  v.strictObject({ type: v.literal('ul'), items: v.pipe(v.array(nonEmpty), v.minLength(1)) }),
-  v.strictObject({ type: v.literal('ol'), items: v.pipe(v.array(nonEmpty), v.minLength(1)) }),
+  v.strictObject({ type: v.literal('p'), text: label(5000) }),
+  v.strictObject({ type: v.literal('ul'), items: v.pipe(v.array(label(1000)), v.minLength(1)) }),
+  v.strictObject({ type: v.literal('ol'), items: v.pipe(v.array(label(1000)), v.minLength(1)) }),
   v.strictObject({ type: v.literal('link'), text: nonEmpty, href: linkHref }),
 ]);
 
@@ -143,13 +162,13 @@ const SettingsSchema = v.strictObject({
   contactEmail: v.nullable(v.pipe(v.string(), v.email())),
   homeFeaturedProductIds: v.array(id),
   homeHeroProductId: v.nullable(id),
-  turnstileSiteKey: v.nullable(nonEmpty),
+  turnstileSiteKey: v.nullable(v.pipe(v.string(), v.regex(/^[0-9A-Za-z_-]{1,64}$/, 'turnstileSiteKey must be [0-9A-Za-z_-]{1,64}'))),
 });
 
 const WilayaSchema = v.strictObject({
   code: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(69)),
   name: localized(nonEmpty),
-  courierCode: v.nullable(nonEmpty),
+  courierCode: v.nullable(v.pipe(v.string(), v.regex(/^[0-9A-Za-z_-]{1,16}$/, 'courierCode must be [0-9A-Za-z_-]{1,16}'))),
 });
 
 export const CatalogSnapshotSchema = v.strictObject({
@@ -161,10 +180,18 @@ export const CatalogSnapshotSchema = v.strictObject({
   wilayas: v.array(WilayaSchema),
 });
 
-// Compile-time guarantee: whatever the schema accepts satisfies the hand-written contract.
+// Compile-time guarantee, both directions: whatever the schema accepts satisfies the hand-written
+// contract, and the contract has no field or wider union the schema does not have.
 type Parsed = v.InferOutput<typeof CatalogSnapshotSchema>;
+type DeepReadonly<T> = T extends readonly (infer U)[]
+  ? readonly DeepReadonly<U>[]
+  : T extends object
+    ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+    : T;
 const _contractCheck = (p: Parsed): CatalogSnapshot => p;
+const _reverseCheck = (s: CatalogSnapshot): DeepReadonly<Parsed> => s;
 void _contractCheck;
+void _reverseCheck;
 
 // ---------------------------------------------------------------------------------------------
 // Integrity
@@ -261,7 +288,18 @@ export function checkProductIntegrity(p: SnapshotProduct, ctx: ProductIntegrityC
 }
 
 /** Cross-reference checks on a structurally valid snapshot. Empty array = valid. */
-export function checkSnapshotIntegrity(s: CatalogSnapshot): SnapshotIssue[] {
+export interface IntegrityOptions {
+  /**
+   * Require exactly the 69 wilayas, codes 1–69 (the order form's picker comes from this list).
+   * Default true. False only for partial snapshots: fixtures, seed-only validation, `partial` dev
+   * builds.
+   */
+  readonly requireAllWilayas?: boolean;
+}
+
+export const WILAYA_COUNT = 69;
+
+export function checkSnapshotIntegrity(s: CatalogSnapshot, opts: IntegrityOptions = {}): SnapshotIssue[] {
   const issues: SnapshotIssue[] = [];
   const add = (path: string, message: string): void => void issues.push({ path, message });
 
@@ -285,6 +323,11 @@ export function checkSnapshotIntegrity(s: CatalogSnapshot): SnapshotIssue[] {
   uniq('contentPages', s.contentPages.map((c) => c.id));
   uniq('contentPages[].key', s.contentPages.map((c) => c.key));
   uniq('wilayas', s.wilayas.map((w) => w.code));
+  if (opts.requireAllWilayas !== false) {
+    const codes = new Set(s.wilayas.map((w) => w.code));
+    const missing = Array.from({ length: WILAYA_COUNT }, (_, i) => i + 1).filter((c) => !codes.has(c));
+    if (missing.length) add('wilayas', `missing wilaya codes ${missing.join(', ')} (all ${WILAYA_COUNT} are required)`);
+  }
 
   // Unique slugs per entity type and language. Content slugs live at /<lang>/<slug>/ and must not
   // collide with each other; categories and products have their own prefixes.
@@ -331,7 +374,7 @@ export type SnapshotResult =
   | { readonly ok: false; readonly issues: readonly SnapshotIssue[] };
 
 /** Structure + integrity. Never throws. */
-export function validateSnapshot(input: unknown): SnapshotResult {
+export function validateSnapshot(input: unknown, opts: IntegrityOptions = {}): SnapshotResult {
   const parsed = v.safeParse(CatalogSnapshotSchema, input);
   if (!parsed.success) {
     return {
@@ -339,7 +382,7 @@ export function validateSnapshot(input: unknown): SnapshotResult {
       issues: parsed.issues.map((i) => ({ path: v.getDotPath(i) ?? '', message: i.message })),
     };
   }
-  const issues = checkSnapshotIntegrity(parsed.output);
+  const issues = checkSnapshotIntegrity(parsed.output, opts);
   return issues.length ? { ok: false, issues } : { ok: true, snapshot: parsed.output };
 }
 
@@ -356,8 +399,8 @@ export class SnapshotError extends Error {
 }
 
 /** Structure + integrity; throws `SnapshotError` listing every issue. */
-export function parseSnapshot(input: unknown, source?: string): CatalogSnapshot {
-  const r = validateSnapshot(input);
+export function parseSnapshot(input: unknown, source?: string, opts: IntegrityOptions = {}): CatalogSnapshot {
+  const r = validateSnapshot(input, opts);
   if (!r.ok) throw new SnapshotError(r.issues, source);
   return r.snapshot;
 }

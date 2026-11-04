@@ -3,6 +3,9 @@
  * Base layout for every storefront page. Contract (SHELL-1):
  *   <Base layout={props.layout} scripts={['/js/x.js']}> …page content… <Fragment slot="head">…</Fragment></Base>
  * - `layout`: CAT-1 LayoutProps (lang, dir, SEO, nav, contact, strings, lcpImage, preloadArabicFont).
+ * - `lcp`: set it when the page renders <Picture image={layout.lcpImage}> above the fold; only then
+ *   is the LCP image preloaded (imagesrcset/imagesizes identical to the <img>). hb-postbuild fails
+ *   the build on an image preload that matches no <img>/<source> srcset on the page.
  * - `scripts`: same-origin /js/*.js modules (optional ?v=<hash>), imported after `load` (or on first
  *   focusin/pointerdown) by the constant inline LOADER. Components may also carry their own data-js.
  * - default slot: rendered inside <main id="main">.
@@ -20,16 +23,18 @@ import arabicFontUrl from '@hb/ui-tokens/fonts/noto-sans-arabic-400.woff2?url';
 
 interface Props {
   layout: LayoutProps;
+  /** The page renders layout.lcpImage with <Picture>: preload it. */
+  lcp?: boolean;
   scripts?: readonly string[];
 }
-const { layout: l, scripts = [] } = Astro.props;
+const { layout: l, lcp = false, scripts = [] } = Astro.props;
 
 for (const s of scripts) {
   if (!/^\/js\/[\w.-]+\.js(\?v=[\w-]+)?$/.test(s)) throw new Error(`Base: script "${s}" must be a same-origin /js/*.js path`);
 }
 
 // Same file as the @font-face in @hb/ui-tokens/font-face.css → same hashed URL for the preload.
-const img = l.lcpImage;
+const img = lcp ? l.lcpImage : null;
 ---
 <!doctype html>
 <html lang={l.lang} dir={l.dir} data-tpl={l.template}>

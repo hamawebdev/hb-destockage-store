@@ -55,7 +55,8 @@ export interface CatalogSnapshot {
   readonly products: readonly SnapshotProduct[];
   readonly contentPages: readonly SnapshotContentPage[];
   readonly settings: SnapshotSettings;
-  /** All 69 wilayas (code 1–69). Communes are not here: geo assets come from `data/geo` (CAT-5). */
+  /** All 69 wilayas (code 1–69); `validateSnapshot` requires all 69 unless `requireAllWilayas: false`
+   *  (fixtures, partial dev builds). Communes are not here: geo assets come from `data/geo` (CAT-5). */
   readonly wilayas: readonly SnapshotWilaya[];
 }
 
@@ -225,9 +226,13 @@ export interface SnapshotSettings {
   /** E.164 without `+`, e.g. `213779942022` (used in `https://wa.me/<this>`). */
   readonly whatsapp: string;
   readonly contactEmail: string | null;
-  /** Product ids featured on the home page, in order. Empty ⇒ builder picks by `sort`. */
+  /**
+   * Product ids featured on the home page, in order. Ids must exist (validator); ids of products
+   * that are not published (draft/archived, inactive category) are skipped by the builders, so
+   * archiving a featured product never fails a publish. None published ⇒ first products by `sort`.
+   */
   readonly homeFeaturedProductIds: readonly Id[];
-  /** Product whose main image is the home hero (LCP). Null ⇒ first featured product. */
+  /** Product whose main image is the home hero (LCP). Null or unpublished ⇒ first featured product. */
   readonly homeHeroProductId: Id | null;
   /** Public Turnstile site key; null ⇒ the form does not load Turnstile (orders are flagged). */
   readonly turnstileSiteKey: string | null;
@@ -432,8 +437,8 @@ export type StockState = 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export interface StockProps {
   readonly state: StockState;
-  /** Units at snapshot time; null when untracked. Stale by design: the order POST re-checks. */
-  /** Null = untracked: always orderable (state is `in_stock`). */
+  /** Units at snapshot time. Stale by design: the order POST re-checks. Null = untracked: always
+   *  orderable (state is `in_stock`). */
   readonly qty: number | null;
 }
 

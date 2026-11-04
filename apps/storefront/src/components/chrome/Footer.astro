@@ -7,14 +7,16 @@ import { t } from '../../lib/strings.ts';
 interface Props { layout: LayoutProps }
 const { layout: l } = Astro.props;
 const c = l.contact;
+// French puts a narrow no-break space before ':' (brand VOICE.md); Arabic does not.
+const colon = l.lang === 'fr' ? '\u202f:' : ':';
 ---
 <footer class="ft">
   <div class="wrap ft-in">
     <ul class="ft-links">
       {l.footerLinks.map((f) => <li><a href={f.href}>{f.label}</a></li>)}
     </ul>
-    <p>{t(l.strings, 'footer.phone')}: <a href={c.phoneHref}><bdi dir="ltr">{c.phoneDisplay}</bdi></a></p>
-    <p>{t(l.strings, 'footer.whatsapp')}: <a href={c.whatsappHref} rel="noopener"><bdi dir="ltr">{c.whatsappDisplay}</bdi></a></p>
+    <p>{t(l.strings, 'footer.phone')}{colon} <a href={c.phoneHref}><bdi dir="ltr">{c.phoneDisplay}</bdi></a></p>
+    <p>{t(l.strings, 'footer.whatsapp')}{colon} <a href={c.whatsappHref} rel="noopener"><bdi dir="ltr">{c.whatsappDisplay}</bdi></a></p>
   </div>
 </footer>
 

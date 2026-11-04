@@ -22,8 +22,11 @@ export function publishedCategories(snapshot: CatalogSnapshot): SnapshotCategory
   return snapshot.categories.filter((c) => isPublished(c)).sort(bySortThenId);
 }
 
-export function publishedProducts(snapshot: CatalogSnapshot): SnapshotProduct[] {
-  const cats = new Set(publishedCategories(snapshot).map((c) => c.id));
+export function publishedProducts(
+  snapshot: CatalogSnapshot,
+  categories: readonly SnapshotCategory[] = publishedCategories(snapshot),
+): SnapshotProduct[] {
+  const cats = new Set(categories.map((c) => c.id));
   return snapshot.products
     .filter((p) => p.status === 'active' && cats.has(p.categoryId) && p.variants.some((v) => v.active))
     .sort(bySortThenId);

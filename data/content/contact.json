@@ -1,0 +1,118 @@
+{
+  "id": 4,
+  "key": "contact",
+  "slug": {
+    "ar": "ittasil-bina",
+    "fr": "contact"
+  },
+  "title": {
+    "ar": "اتصل بنا",
+    "fr": "Contact"
+  },
+  "summary": {
+    "ar": "اتصل بـ HB Destockage عبر الهاتف أو واتساب. نجيبك بالعربية أو بالفرنسية.",
+    "fr": "Contactez HB Destockage par téléphone ou sur WhatsApp. Nous répondons en arabe et en français."
+  },
+  "body": {
+    "ar": [
+      {
+        "type": "p",
+        "text": "سؤال عن منتج أو طلب أو توصيل؟ فريقنا يجيبك بالعربية أو بالفرنسية."
+      },
+      {
+        "type": "h2",
+        "text": "عبر الهاتف"
+      },
+      {
+        "type": "link",
+        "text": "0560 41 74 03",
+        "href": "tel:+213560417403"
+      },
+      {
+        "type": "p",
+        "text": "كل يوم، من 9 صباحاً إلى 6 مساءً. [PLACEHOLDER: أوقات العمل في انتظار التأكيد]"
+      },
+      {
+        "type": "h2",
+        "text": "عبر واتساب"
+      },
+      {
+        "type": "link",
+        "text": "+213 779 942 022",
+        "href": "https://wa.me/213779942022"
+      },
+      {
+        "type": "p",
+        "text": "راسلنا في أي وقت، ونجيبك خلال أوقات العمل. اذكر رقم طلبك إن وُجد."
+      },
+      {
+        "type": "h2",
+        "text": "بعد الطلب"
+      },
+      {
+        "type": "p",
+        "text": "نتصل بك لتأكيد طلبك. إذا فاتك اتصالنا، اتصل بنا على الرقم نفسه."
+      },
+      {
+        "type": "h2",
+        "text": "العنوان"
+      },
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER: عنوان المحل أو المستودع، إذا أرادت HB Destockage نشره]"
+      }
+    ],
+    "fr": [
+      {
+        "type": "p",
+        "text": "Une question sur un produit, une commande ou une livraison ? Notre équipe vous répond en arabe et en français."
+      },
+      {
+        "type": "h2",
+        "text": "Par téléphone"
+      },
+      {
+        "type": "link",
+        "text": "0560 41 74 03",
+        "href": "tel:+213560417403"
+      },
+      {
+        "type": "p",
+        "text": "Tous les jours, de 9 h à 18 h. [PLACEHOLDER : horaires à confirmer]"
+      },
+      {
+        "type": "h2",
+        "text": "Sur WhatsApp"
+      },
+      {
+        "type": "link",
+        "text": "+213 779 942 022",
+        "href": "https://wa.me/213779942022"
+      },
+      {
+        "type": "p",
+        "text": "Écrivez-nous à tout moment : nous répondons pendant les horaires d'ouverture. Indiquez votre numéro de commande si vous en avez un."
+      },
+      {
+        "type": "h2",
+        "text": "Après une commande"
+      },
+      {
+        "type": "p",
+        "text": "Nous vous appelons pour confirmer votre commande. Si vous avez manqué notre appel, rappelez-nous au même numéro."
+      },
+      {
+        "type": "h2",
+        "text": "Adresse"
+      },
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER : adresse du magasin ou de l'entrepôt, si HB Destockage souhaite la publier]"
+      }
+    ]
+  },
+  "sort": 40,
+  "active": true,
+  "placeholder": true,
+  "updatedAt": 1793750400000
+}

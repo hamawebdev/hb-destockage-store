@@ -2,10 +2,11 @@
 // main this package carries a verbatim copy of brand's committed file (provisional.tokens.json).
 // Once brand/tokens.json exists in the checkout the provisional copy is ignored (and deleted).
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { FontInput } from './build-font.ts';
+import type { IconFile } from './build-icons.ts';
 import type { BrandTokens } from './build-tokens.ts';
 
 export const PKG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -16,6 +17,9 @@ export const CSS_OUT = join(PKG_DIR, 'tokens.css');
 export const TS_OUT = join(PKG_DIR, 'src', 'tokens.generated.ts');
 export const FONT_CSS_OUT = join(PKG_DIR, 'font-face.css');
 export const FONT_TS_OUT = join(PKG_DIR, 'src', 'font.generated.ts');
+export const ICONS_DIR = join(PKG_DIR, 'icons');
+export const ICONS_MANIFEST_OUT = join(ICONS_DIR, 'manifest.json');
+export const ICONS_TS_OUT = join(PKG_DIR, 'src', 'icons.generated.ts');
 export const SUBSET_CONFIG = join(PKG_DIR, 'fonts', 'subset.json');
 
 export interface Source {
@@ -46,4 +50,10 @@ export function readFontInput(src: Source): FontInput {
     arabicStack: String(src.tokens.font.family.arabic.$value),
     release: cfg.source.release,
   };
+}
+
+export function readIconFiles(): IconFile[] {
+  return readdirSync(ICONS_DIR)
+    .filter((f) => f.endsWith('.svg'))
+    .map((f) => ({ name: f.slice(0, -4), svg: readFileSync(join(ICONS_DIR, f), 'utf8') }));
 }

@@ -1,0 +1,62 @@
+/* @hb/ui-tokens forms.css — form fields, radios, variant chips/swatches, notes. Include it only on
+   templates that render a form (product page with the order form, search, order confirmation).
+   Same layers and rules as base.css: logical properties only, values from tokens.css. */
+@layer reset, tokens, base, layout, components, utilities;
+
+@layer components {
+  /* Form fields */
+  .field { display: grid; gap: var(--space-1); }
+  .label { font-weight: var(--fw-emphasis); line-height: var(--lh-ui); }
+  .hint { font-size: var(--fs-small); color: var(--color-text-secondary); }
+  .error { display: flex; gap: var(--space-1); align-items: center; font-size: var(--fs-small); color: var(--color-danger); }
+  .input {
+    inline-size: 100%;
+    min-block-size: var(--tap-min);
+    padding-block: var(--space-2);
+    padding-inline: var(--space-3);
+    border: var(--bw-control) solid var(--color-border-control);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: max(1rem, var(--fs-body));
+    line-height: var(--lh-ui);
+  }
+  .input[aria-invalid="true"] { border-color: var(--color-danger); box-shadow: inset 0 0 0 1px var(--color-danger); }
+  .input:disabled { background: var(--color-surface-alt); color: var(--color-text-secondary); }
+
+  /* Radios / checkboxes: native control, accent colour, >= 44px row */
+  .choice { display: flex; align-items: center; gap: var(--space-3); min-block-size: var(--tap-min); cursor: pointer; }
+  .choice input { inline-size: 1.25rem; block-size: 1.25rem; accent-color: var(--color-accent); margin: 0; }
+
+  /* Variant chips and colour swatches: label wraps a visually hidden radio.
+     Selected = 2px accent ring (shape cue, not colour alone).
+     Swatch colour = an inline SVG presentation attribute (CSP-safe, no page-specific CSS):
+     <label class="chip swatch"><input type="radio" …><svg viewBox="0 0 1 1" aria-hidden="true"><rect width="1" height="1" fill="#hex"/></svg><span class="visually-hidden">name</span></label> */
+  .chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-block-size: var(--tap-min);
+    min-inline-size: var(--tap-min);
+    padding-inline: var(--space-4);
+    border: var(--bw-control) solid var(--color-border-control);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    line-height: var(--lh-ui);
+    cursor: pointer;
+  }
+  .chip input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .chip:has(:checked) { border-color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); background: var(--color-accent-surface); }
+  .chip:has(:focus-visible) { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--focus-offset); }
+  .chip:has(:disabled) { color: var(--color-text-secondary); text-decoration: line-through; cursor: not-allowed; }
+  .swatch { padding-inline: 0; border-radius: var(--radius-round); }
+  .swatch svg { inline-size: 1.75rem; block-size: 1.75rem; border-radius: var(--radius-round); box-shadow: 0 0 0 1px rgb(0 0 0 / 0.15); }
+
+  /* Notes (info / success / warning / error summary): icon + text, never colour alone */
+  .note { display: flex; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-accent-surface); }
+  .note-success { background: var(--color-success-surface); color: var(--color-success); }
+  .note-warning { background: var(--color-warning-surface); color: var(--color-warning); }
+  .note-danger { background: var(--color-danger-surface); color: var(--color-danger); }
+}
