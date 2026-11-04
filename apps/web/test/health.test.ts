@@ -70,11 +70,11 @@ describe('/api/health', () => {
     expectApiHeaders(res);
   });
 
-  test('a bad var fails loudly: 500 server_error, no stack in the body', async () => {
+  test('a bad var fails loudly: 500 server_error, no stack in the body, API headers kept', async () => {
     const res = await app.request('/api/health', {}, fakeEnv({ MIN_FILL_MS: 'soon' }));
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ ok: false, code: 'server_error' });
-    expect(res.headers.get('cache-control')).toBe('no-store');
+    expectApiHeaders(res);
   });
 });
 
@@ -115,14 +115,20 @@ describe('readConfig', () => {
   });
 
   test.each([
-    ['ENV', 'prod'],
+    ['ENV', 'staging'],
     ['SITE_HOSTS', ' , '],
     ['MIN_FILL_MS', '-1'],
     ['MIN_FILL_MS', '1e3'],
     ['MIN_REVIEW_MS', '999999'],
     ['RUM_SAMPLE', '2'],
     ['RUM_SAMPLE', 'x'],
-  ] as const)('%s=%j is rejected', (key, value) => {
+  ] as const)('%s=%j is rejected, without echoing the value', (key, value) => {
     expect(() => readConfig(fakeEnv({ [key]: value }))).toThrow(ConfigError);
+    try {
+      readConfig(fakeEnv({ [key]: value }));
+    } catch (err) {
+      expect((err as Error).message).toContain(key);
+      if (value.trim() !== '') expect((err as Error).message).not.toContain(value);
+    }
   });
 });

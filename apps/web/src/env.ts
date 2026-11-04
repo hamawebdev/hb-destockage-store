@@ -45,16 +45,19 @@ export class ConfigError extends Error {
 const ENV_NAMES: readonly EnvName[] = ['development', 'test', 'production'];
 
 function intVar(name: string, raw: string, min: number, max: number): number {
-  if (!/^\d+$/.test(raw)) throw new ConfigError(`${name} must be an integer, got ${JSON.stringify(raw)}`);
+  if (!/^\d+$/.test(raw)) throw new ConfigError(`${name} must be an integer`);
   const n = Number(raw);
-  if (n < min || n > max) throw new ConfigError(`${name} must be in [${min}, ${max}], got ${n}`);
+  if (n < min || n > max) throw new ConfigError(`${name} must be in [${min}, ${max}]`);
   return n;
 }
 
-/** Parses and validates the vars. Throws `ConfigError` on a bad value (fail loudly, not silently). */
+/**
+ * Parses and validates the vars. Throws `ConfigError` on a bad value (fail loudly, not silently).
+ * Messages name the variable, never its value (they reach the log line).
+ */
 export function readConfig(env: Env): Config {
   if (!ENV_NAMES.includes(env.ENV as EnvName)) {
-    throw new ConfigError(`ENV must be one of ${ENV_NAMES.join('|')}, got ${JSON.stringify(env.ENV)}`);
+    throw new ConfigError(`ENV must be one of ${ENV_NAMES.join('|')}`);
   }
   const siteHosts = String(env.SITE_HOSTS ?? '')
     .split(',')
@@ -63,7 +66,7 @@ export function readConfig(env: Env): Config {
   if (siteHosts.length === 0) throw new ConfigError('SITE_HOSTS must list at least one hostname');
   const rumSample = Number(env.RUM_SAMPLE);
   if (!Number.isFinite(rumSample) || rumSample < 0 || rumSample > 1) {
-    throw new ConfigError(`RUM_SAMPLE must be a number in [0, 1], got ${JSON.stringify(env.RUM_SAMPLE)}`);
+    throw new ConfigError('RUM_SAMPLE must be a number in [0, 1]');
   }
   return {
     env: env.ENV as EnvName,

@@ -54,11 +54,8 @@ app.onError((err, c) => {
   log('unhandled_error', { path: c.req.path, error: errorName(err) });
   const status = err instanceof ConfigError ? 500 : 503;
   if (c.req.path.startsWith('/api/')) {
-    // The apiHeaders middleware does not run on this path: set the same headers here.
-    const res = apiError(c, status, 'server_error', {}, status === 503 ? { 'Retry-After': '5' } : {});
-    res.headers.set('Cache-Control', 'no-store');
-    res.headers.set('X-Content-Type-Options', 'nosniff');
-    return res;
+    // The apiHeaders middleware still wraps this response (Hono runs onError inside the chain).
+    return apiError(c, status, 'server_error', {}, status === 503 ? { 'Retry-After': '5' } : {});
   }
   return c.text('Server error', status, { 'Cache-Control': 'no-store' });
 });
