@@ -41,7 +41,7 @@ describe('logical properties only', () => {
 
 describe('base.css uses the token contract', () => {
   const defined = new Set([...read('tokens.css').matchAll(/(--[\w-]+):/g)].map((m) => m[1]));
-  const HOOKS = new Set(['--stack-gap', '--cluster-gap', '--swatch']); // per-use hooks with fallbacks
+  const HOOKS = new Set(['--stack-gap', '--cluster-gap']); // per-use hooks with fallbacks
 
   test('every var() it reads is defined in tokens.css (or is a documented hook)', () => {
     const used = [...new Set([...both.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1] as string))];
@@ -86,6 +86,11 @@ describe('base.css uses the token contract', () => {
 
   test('directional icons flip in RTL with the exported rule', () => {
     expect(flat(base).replace(/ /g, '').replace(/;\}/g, '}')).toContain(ICON_MIRROR_RULE.replace(/ /g, ''));
+  });
+
+  test('no rule depends on page data: swatch colour is an SVG fill, not a custom property', () => {
+    expect(both).not.toContain('--swatch');
+    expect(rule(forms, '.swatch svg')).toContain('border-radius: var(--radius-round)');
   });
 
   test('same layer order statement as the storefront', () => {
