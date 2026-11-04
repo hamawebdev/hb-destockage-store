@@ -212,13 +212,21 @@ def main():
     write("wordmark.svg", wordmark(TEXT, ACCENT, extra=' role="img" aria-label="HB Destockage"'))
     write("wordmark-inverse.svg", wordmark(INVERSE_TEXT, INVERSE_ACCENT, extra=' role="img" aria-label="HB Destockage"'))
     write("wordmark-mono.svg", wordmark("currentColor", "currentColor", extra=' role="img" aria-label="HB Destockage"'))
-    # Header version: inline in the storefront header. Letters follow currentColor (text token),
+    # Header version: integer coordinates (1 unit = 1 % of cap height = 0.18 px at an 18 px header
+    # cap — invisible) to keep the inline bytes down.
+    global PRECISION
+    keep = PRECISION
+    PRECISION = 0
+    hpaths, (hcx, hcy, hr), _ = build_wordmark(hb, word)
+    hd = join(hpaths)
+    PRECISION = keep
+    # Inline in the storefront header. Letters follow currentColor (text token),
     # dot uses the accent custom property with a hex fallback. aria handled by the <a> around it.
     write(
         "wordmark-header.svg",
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}" aria-hidden="true" focusable="false">'
-        f'<path fill="currentColor" d="{hb_d}{word_d}"/>'
-        f'<circle fill="var(--color-accent,{ACCENT})" cx="{fmt(cx)}" cy="{fmt(cy)}" r="{fmt(r)}"/></svg>\n',
+        f'<path fill="currentColor" d="{hd}"/>'
+        f'<circle fill="var(--color-accent,{ACCENT})" cx="{fmt(hcx)}" cy="{fmt(hcy)}" r="{fmt(hr)}"/></svg>\n',
     )
 
     mp, tx, ty, size = build_monogram(hb)
