@@ -1,0 +1,127 @@
+// Form parsing and validation (Valibot). Handlers:
+//
+//   const Schema = v.object({ name: vText(120), price: vMoneyDzd(), active: vCheckbox() });
+//   const f = await parseForm(c, Schema);
+//   if (!f.ok) return c.render(<EditForm values={f.values} errors={f.errors} />, { title }), 422 …
+//   // f.data is typed
+//
+// Use `v.object` (unknown fields are dropped) or `v.strictObject` (rejected). `_csrf` is removed
+// before validation. Messages are dictionary keys (`form.*`), translated here.
+import type { Context } from 'hono';
+import * as v from 'valibot';
+import type { AppEnv } from '../env.ts';
+import type { MessageKey } from '../i18n/index.ts';
+import { toAsciiDigits } from './digits.ts';
+
+export type FormSchema = v.GenericSchema<Record<string, unknown>, Record<string, unknown>>;
+
+export type ParsedForm<S extends FormSchema> =
+  | { ok: true; data: v.InferOutput<S>; values: Record<string, string> }
+  | { ok: false; errors: Record<string, string>; values: Record<string, string> };
+
+const MSG = {
+  required: 'form.required',
+  invalid: 'form.invalid',
+  tooLong: (max: number) => `form.tooLong|${max}`,
+} as const;
+
+/** Reads the urlencoded/multipart body. Files are not included in `values` (read them yourself). */
+export async function readForm(c: Context<AppEnv>): Promise<Record<string, string>> {
+  const body = await c.req.parseBody({ all: false });
+  const out: Record<string, string> = {};
+  for (const [k, val] of Object.entries(body)) {
+    if (k === '_csrf') continue;
+    if (typeof val === 'string') out[k] = val;
+  }
+  return out;
+}
+
+export function validateForm<S extends FormSchema>(c: Context<AppEnv>, schema: S, values: Record<string, string>): ParsedForm<S> {
+  const r = v.safeParse(schema, values, { abortPipeEarly: true });
+  if (r.success) return { ok: true, data: r.output, values };
+  const errors: Record<string, string> = {};
+  for (const issue of r.issues) {
+    const key = v.getDotPath(issue) ?? '_form';
+    if (errors[key] !== undefined) continue;
+    errors[key] = translateIssue(c, issue.message);
+  }
+  return { ok: false, errors, values };
+}
+
+export async function parseForm<S extends FormSchema>(c: Context<AppEnv>, schema: S): Promise<ParsedForm<S>> {
+  return validateForm(c, schema, await readForm(c));
+}
+
+function translateIssue(c: Context<AppEnv>, message: string): string {
+  const [key, arg] = message.split('|') as [string, string?];
+  if (key.startsWith('form.')) {
+    return c.var.t(key as MessageKey, arg !== undefined ? { max: Number(arg) } : undefined);
+  }
+  return c.var.t('form.invalid');
+}
+
+// ---------------------------------------------------------------------------------------------
+// Field schemas (input is always a string or absent).
+// ---------------------------------------------------------------------------------------------
+
+/** Required trimmed text, 1..max chars. */
+export const vText = (max: number) =>
+  v.pipe(v.optional(v.string(), ''), v.trim(), v.minLength(1, MSG.required), v.maxLength(max, MSG.tooLong(max)));
+
+/** Optional trimmed text; '' → null. */
+export const vOptionalText = (max: number) =>
+  v.pipe(
+    v.optional(v.string(), ''),
+    v.trim(),
+    v.maxLength(max, MSG.tooLong(max)),
+    v.transform((s) => (s === '' ? null : s)),
+  );
+
+/** Integer within [min, max]; accepts Eastern-Arabic digits. */
+export const vInt = (min: number, max: number) =>
+  v.pipe(
+    v.optional(v.string(), ''),
+    v.transform((s) => toAsciiDigits(s).trim()),
+    v.minLength(1, MSG.required),
+    v.regex(/^-?\d+$/, MSG.invalid),
+    v.transform(Number),
+    v.integer(MSG.invalid),
+    v.minValue(min, MSG.invalid),
+    v.maxValue(max, MSG.invalid),
+  );
+
+/** Optional integer; '' → null. */
+export const vOptionalInt = (min: number, max: number) =>
+  v.union([v.pipe(v.optional(v.string(), ''), v.trim(), v.length(0), v.transform(() => null)), vInt(min, max)], MSG.invalid);
+
+/**
+ * Integer DZD ≥ 0. Accepts Eastern-Arabic digits and spaces / NBSP / dots / commas as thousands
+ * separators (no decimals: prices are whole dinars).
+ */
+export const vMoneyDzd = (max = 100_000_000) =>
+  v.pipe(
+    v.optional(v.string(), ''),
+    v.transform((s) => toAsciiDigits(s).replace(/[\s  .,'’]/g, '')),
+    v.minLength(1, MSG.required),
+    v.regex(/^\d+$/, MSG.invalid),
+    v.transform(Number),
+    v.maxValue(max, MSG.invalid),
+  );
+
+/** HTML checkbox: present (any value) → true, absent → false. */
+export const vCheckbox = () => v.pipe(v.optional(v.string()), v.transform((s) => s !== undefined));
+
+export const vPicklist = <const T extends readonly [string, ...string[]]>(values: T) =>
+  v.pipe(v.optional(v.string(), ''), v.picklist(values, MSG.invalid));
+
+export const vEmail = () =>
+  v.pipe(v.optional(v.string(), ''), v.trim(), v.toLowerCase(), v.minLength(1, MSG.required), v.maxLength(254, MSG.tooLong(254)), v.email(MSG.invalid));
+
+/** Positive integer id from a route param or field. */
+export const vId = () => vInt(1, Number.MAX_SAFE_INTEGER);
+
+/** Route param → positive integer id, or null (→ 404). */
+export function paramId(c: Context<AppEnv>, name = 'id'): number | null {
+  const raw = c.req.param(name);
+  return raw !== undefined && /^[1-9]\d{0,15}$/.test(raw) && Number.isSafeInteger(Number(raw)) ? Number(raw) : null;
+}

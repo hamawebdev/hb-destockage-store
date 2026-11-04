@@ -1,0 +1,92 @@
+// Worker bindings, Hono generics and environment validation for the admin Worker.
+// Owner: admin-core (ADMIN-1 contract). Other admin builders import `AppEnv` and nothing else
+// from here.
+
+import * as v from 'valibot';
+import type { AdminUser, Db, DbAdminRole } from '@hb/db';
+import type { Lang, Translator } from './i18n/index.ts';
+
+/** Runtime environment. Defaults to `production` in wrangler.jsonc (fail-safe). */
+export type RuntimeEnv = 'production' | 'development' | 'test';
+
+/** Bindings and vars declared in `apps/admin/wrangler.jsonc` (secrets via `.dev.vars` / `wrangler secret`). */
+export interface Env {
+  /** Shared D1 database (same database as `apps/web`). */
+  DB: D1Database;
+  /** Product media (R2). */
+  MEDIA: R2Bucket;
+  /** Workers static assets (`public/`), fetched by the Worker after auth (`run_worker_first`). */
+  ASSETS: Fetcher;
+  ENV: RuntimeEnv;
+  /** `https://<team>.cloudflareaccess.com` — exact JWT `iss`. */
+  ACCESS_TEAM_DOMAIN: string;
+  /** Access application AUD tag. */
+  ACCESS_AUD: string;
+  /** HMAC key for CSRF tokens (secret, ≥ 32 chars). */
+  CSRF_SECRET: string;
+  /** HMAC key for the dev-login cookie. Development only; absent in production. */
+  DEV_SESSION_SECRET?: string;
+}
+
+export type Role = DbAdminRole;
+
+/** The authenticated admin, as handlers see it. */
+export interface CurrentUser {
+  id: number;
+  email: string;
+  name: string;
+  role: Role;
+  uiLang: Lang;
+}
+
+export function toCurrentUser(row: Pick<AdminUser, 'id' | 'email' | 'name' | 'role' | 'uiLang'>): CurrentUser {
+  return { id: row.id, email: row.email, name: row.name, role: row.role, uiLang: row.uiLang };
+}
+
+/** Per-request variables (`c.var.*`). */
+export interface Variables {
+  requestId: string;
+  db: Db;
+  user: CurrentUser;
+  lang: Lang;
+  dir: 'ltr' | 'rtl';
+  t: Translator;
+  csrfToken: string;
+  /** Set by `requireRole`. `roleGuard` turns a response without it into a 500. */
+  roleChecked: boolean;
+  /** Set by `audit()` / `withAudit()` / `noAudit()`. `auditGuard` (ADMIN-3) enforces it on POST. */
+  audited: boolean;
+}
+
+/** Hono generics for every admin router: `new Hono<AppEnv>()` (use `createRouter`). */
+export interface AppEnv {
+  Bindings: Env;
+  Variables: Variables;
+}
+
+const nonEmpty = v.pipe(v.string(), v.trim(), v.minLength(1));
+
+const EnvSchema = v.variant('ENV', [
+  v.object({
+    ENV: v.literal('production'),
+    ACCESS_TEAM_DOMAIN: v.pipe(nonEmpty, v.regex(/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/)),
+    ACCESS_AUD: v.pipe(nonEmpty, v.regex(/^[a-f0-9]{64}$/)),
+    CSRF_SECRET: v.pipe(v.string(), v.minLength(32)),
+  }),
+  v.object({
+    ENV: v.picklist(['development', 'test']),
+    ACCESS_TEAM_DOMAIN: v.optional(v.string()),
+    ACCESS_AUD: v.optional(v.string()),
+    CSRF_SECRET: v.pipe(v.string(), v.minLength(32)),
+  }),
+]);
+
+/**
+ * Validates the configuration. Returns the list of problems (empty = valid). Values are never
+ * echoed, only the names of the offending keys.
+ */
+export function checkEnv(env: Partial<Env>): string[] {
+  const r = v.safeParse(EnvSchema, env);
+  if (r.success) return [];
+  return [...new Set(r.issues.map((i) => v.getDotPath(i) ?? 'ENV'))];
+}
