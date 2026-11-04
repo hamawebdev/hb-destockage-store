@@ -1,0 +1,213 @@
+{
+  "id": 207,
+  "kind": "variable",
+  "categoryId": 31,
+  "status": "active",
+  "sort": 20,
+  "slug": {
+    "ar": "sutra-bi-qubba",
+    "fr": "sweat-a-capuche"
+  },
+  "name": {
+    "ar": "سترة بقبعة",
+    "fr": "Sweat à capuche"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "سترة دافئة من القطن المبطّن بجيب أمامي.",
+    "fr": "Sweat chaud en molleton avec poche kangourou."
+  },
+  "description": {
+    "ar": "قطن 80% وبوليستر 20%.\n\nالمقاس XL بسعر مختلف.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "80 % coton, 20 % polyester.\n\nLa taille XL a un prix différent.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2071,
+      "type": "size",
+      "name": {
+        "ar": "المقاس",
+        "fr": "Taille"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 207101,
+          "value": {
+            "ar": "M",
+            "fr": "M"
+          },
+          "swatchHex": null,
+          "position": 1
+        },
+        {
+          "id": 207102,
+          "value": {
+            "ar": "L",
+            "fr": "L"
+          },
+          "swatchHex": null,
+          "position": 2
+        },
+        {
+          "id": 207103,
+          "value": {
+            "ar": "XL",
+            "fr": "XL"
+          },
+          "swatchHex": null,
+          "position": 3
+        }
+      ]
+    },
+    {
+      "id": 2072,
+      "type": "colour",
+      "name": {
+        "ar": "اللون",
+        "fr": "Couleur"
+      },
+      "position": 2,
+      "values": [
+        {
+          "id": 207201,
+          "value": {
+            "ar": "رمادي مُبرقش",
+            "fr": "Gris chiné"
+          },
+          "swatchHex": "#9e9e9e",
+          "position": 1
+        },
+        {
+          "id": 207202,
+          "value": {
+            "ar": "أسود",
+            "fr": "Noir"
+          },
+          "swatchHex": "#1f1f1f",
+          "position": 2
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 20701,
+      "sku": "PH-HOOD-M-GRIS",
+      "priceDzd": 3200,
+      "compareAtDzd": null,
+      "stock": 6,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        207101,
+        207201
+      ]
+    },
+    {
+      "id": 20702,
+      "sku": "PH-HOOD-L-GRIS",
+      "priceDzd": 3200,
+      "compareAtDzd": null,
+      "stock": 6,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        207102,
+        207201
+      ]
+    },
+    {
+      "id": 20703,
+      "sku": "PH-HOOD-XL-GRIS",
+      "priceDzd": 3400,
+      "compareAtDzd": null,
+      "stock": 6,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        207103,
+        207201
+      ]
+    },
+    {
+      "id": 20704,
+      "sku": "PH-HOOD-M-NOIR",
+      "priceDzd": 3200,
+      "compareAtDzd": null,
+      "stock": 6,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        207101,
+        207202
+      ]
+    },
+    {
+      "id": 20705,
+      "sku": "PH-HOOD-L-NOIR",
+      "priceDzd": 3200,
+      "compareAtDzd": null,
+      "stock": 6,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        207102,
+        207202
+      ]
+    },
+    {
+      "id": 20706,
+      "sku": "PH-HOOD-XL-NOIR",
+      "priceDzd": 3400,
+      "compareAtDzd": null,
+      "stock": 6,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        207103,
+        207202
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2071,
+      "variantId": null,
+      "key": "sweat-a-capuche/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: سترة بقبعة رمادية",
+        "fr": "Image provisoire : sweat à capuche gris"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2072,
+      "variantId": 20704,
+      "key": "sweat-a-capuche/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: السترة، اللون الأسود",
+        "fr": "Image provisoire : sweat, coloris noir"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

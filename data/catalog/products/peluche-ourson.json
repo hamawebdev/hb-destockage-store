@@ -1,0 +1,139 @@
+{
+  "id": 219,
+  "kind": "variable",
+  "categoryId": 52,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "dabdub-mahshu",
+    "fr": "peluche-ourson"
+  },
+  "name": {
+    "ar": "دبدوب محشو",
+    "fr": "Peluche ourson"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "دبدوب ناعم جدًا، متوفّر بثلاثة أحجام.",
+    "fr": "Ourson tout doux, en trois tailles."
+  },
+  "description": {
+    "ar": "قابل للغسل في الغسالة على 30°.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Lavable en machine à 30 °C.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2191,
+      "type": "size",
+      "name": {
+        "ar": "الحجم",
+        "fr": "Taille"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 219101,
+          "value": {
+            "ar": "30 سم",
+            "fr": "30 cm"
+          },
+          "swatchHex": null,
+          "position": 1
+        },
+        {
+          "id": 219102,
+          "value": {
+            "ar": "50 سم",
+            "fr": "50 cm"
+          },
+          "swatchHex": null,
+          "position": 2
+        },
+        {
+          "id": 219103,
+          "value": {
+            "ar": "80 سم",
+            "fr": "80 cm"
+          },
+          "swatchHex": null,
+          "position": 3
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 21901,
+      "sku": "PH-TED-30",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 20,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        219101
+      ]
+    },
+    {
+      "id": 21902,
+      "sku": "PH-TED-50",
+      "priceDzd": 2600,
+      "compareAtDzd": null,
+      "stock": 10,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        219102
+      ]
+    },
+    {
+      "id": 21903,
+      "sku": "PH-TED-80",
+      "priceDzd": 4200,
+      "compareAtDzd": null,
+      "stock": 3,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        219103
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2191,
+      "variantId": null,
+      "key": "peluche-ourson/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: دبدوب بنّي",
+        "fr": "Image provisoire : ourson brun"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2192,
+      "variantId": null,
+      "key": "peluche-ourson/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: وجه الدبدوب",
+        "fr": "Image provisoire : visage de l’ourson"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

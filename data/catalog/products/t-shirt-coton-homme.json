@@ -1,0 +1,341 @@
+{
+  "id": 206,
+  "kind": "variable",
+  "categoryId": 31,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "qamis-qutni-rijali",
+    "fr": "t-shirt-coton-homme"
+  },
+  "name": {
+    "ar": "تيشيرت قطني رجالي",
+    "fr": "T-shirt coton homme"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "تيشيرت بياقة دائرية من القطن 100%.",
+    "fr": "T-shirt col rond 100 % coton."
+  },
+  "description": {
+    "ar": "قطن ممشّط 180 غ/م².\n\nقصّة عادية.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Coton peigné 180 g/m².\n\nCoupe droite.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2061,
+      "type": "size",
+      "name": {
+        "ar": "المقاس",
+        "fr": "Taille"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 206101,
+          "value": {
+            "ar": "S",
+            "fr": "S"
+          },
+          "swatchHex": null,
+          "position": 1
+        },
+        {
+          "id": 206102,
+          "value": {
+            "ar": "M",
+            "fr": "M"
+          },
+          "swatchHex": null,
+          "position": 2
+        },
+        {
+          "id": 206103,
+          "value": {
+            "ar": "L",
+            "fr": "L"
+          },
+          "swatchHex": null,
+          "position": 3
+        },
+        {
+          "id": 206104,
+          "value": {
+            "ar": "XL",
+            "fr": "XL"
+          },
+          "swatchHex": null,
+          "position": 4
+        }
+      ]
+    },
+    {
+      "id": 2062,
+      "type": "colour",
+      "name": {
+        "ar": "اللون",
+        "fr": "Couleur"
+      },
+      "position": 2,
+      "values": [
+        {
+          "id": 206201,
+          "value": {
+            "ar": "أبيض",
+            "fr": "Blanc"
+          },
+          "swatchHex": "#f4f4f2",
+          "position": 1
+        },
+        {
+          "id": 206202,
+          "value": {
+            "ar": "أسود",
+            "fr": "Noir"
+          },
+          "swatchHex": "#1f1f1f",
+          "position": 2
+        },
+        {
+          "id": 206203,
+          "value": {
+            "ar": "كحلي",
+            "fr": "Bleu marine"
+          },
+          "swatchHex": "#1f2a44",
+          "position": 3
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 20601,
+      "sku": "PH-TSH-S-BLANC",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 10,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206101,
+        206201
+      ]
+    },
+    {
+      "id": 20602,
+      "sku": "PH-TSH-M-BLANC",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 14,
+      "weightG": 180,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        206102,
+        206201
+      ]
+    },
+    {
+      "id": 20603,
+      "sku": "PH-TSH-L-BLANC",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 12,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206103,
+        206201
+      ]
+    },
+    {
+      "id": 20604,
+      "sku": "PH-TSH-XL-BLANC",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 6,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206104,
+        206201
+      ]
+    },
+    {
+      "id": 20605,
+      "sku": "PH-TSH-S-NOIR",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 8,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206101,
+        206202
+      ]
+    },
+    {
+      "id": 20606,
+      "sku": "PH-TSH-M-NOIR",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 2,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206102,
+        206202
+      ]
+    },
+    {
+      "id": 20607,
+      "sku": "PH-TSH-L-NOIR",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206103,
+        206202
+      ]
+    },
+    {
+      "id": 20608,
+      "sku": "PH-TSH-XL-NOIR",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 5,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206104,
+        206202
+      ]
+    },
+    {
+      "id": 20609,
+      "sku": "PH-TSH-S-MARINE",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 7,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206101,
+        206203
+      ]
+    },
+    {
+      "id": 20610,
+      "sku": "PH-TSH-M-MARINE",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 11,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206102,
+        206203
+      ]
+    },
+    {
+      "id": 20611,
+      "sku": "PH-TSH-L-MARINE",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 10,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206103,
+        206203
+      ]
+    },
+    {
+      "id": 20612,
+      "sku": "PH-TSH-XL-MARINE",
+      "priceDzd": 1500,
+      "compareAtDzd": null,
+      "stock": 4,
+      "weightG": 180,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        206104,
+        206203
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2061,
+      "variantId": null,
+      "key": "t-shirt-coton-homme/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: تيشيرت رجالي",
+        "fr": "Image provisoire : t-shirt homme"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2062,
+      "variantId": 20606,
+      "key": "t-shirt-coton-homme/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: التيشيرت، اللون الأسود",
+        "fr": "Image provisoire : t-shirt, coloris noir"
+      },
+      "position": 2,
+      "placeholder": true
+    },
+    {
+      "id": 2063,
+      "variantId": 20610,
+      "key": "t-shirt-coton-homme/3.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: التيشيرت، اللون الكحلي",
+        "fr": "Image provisoire : t-shirt, coloris bleu marine"
+      },
+      "position": 3,
+      "placeholder": true
+    },
+    {
+      "id": 2064,
+      "variantId": null,
+      "key": "t-shirt-coton-homme/4.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: تفاصيل نسيج التيشيرت",
+        "fr": "Image provisoire : détail du tissu"
+      },
+      "position": 4,
+      "placeholder": true
+    }
+  ]
+}

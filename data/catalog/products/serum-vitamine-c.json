@@ -1,0 +1,72 @@
+{
+  "id": 212,
+  "kind": "simple",
+  "categoryId": 41,
+  "status": "active",
+  "sort": 20,
+  "slug": {
+    "ar": "sirum-vitamin-c",
+    "fr": "serum-vitamine-c"
+  },
+  "name": {
+    "ar": "سيروم فيتامين C ‏30 مل",
+    "fr": "Sérum vitamine C 30 ml"
+  },
+  "brandLatin": "DemoCare",
+  "summary": {
+    "ar": "سيروم مضيء بفيتامين C.",
+    "fr": "Sérum éclat à la vitamine C."
+  },
+  "description": {
+    "ar": "بضع قطرات على بشرة نظيفة.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Quelques gouttes sur peau propre.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 21201,
+      "sku": "PH-SER-30",
+      "priceDzd": 2200,
+      "compareAtDzd": null,
+      "stock": 15,
+      "weightG": 70,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2121,
+      "variantId": null,
+      "key": "serum-vitamine-c/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: قارورة سيروم بقطّارة",
+        "fr": "Image provisoire : flacon de sérum compte-gouttes"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2122,
+      "variantId": null,
+      "key": "serum-vitamine-c/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: قطّارة السيروم",
+        "fr": "Image provisoire : pipette du sérum"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

@@ -52,3 +52,11 @@ packs. Duplicates are stored once.
   client published is lost. The catalogue never references them.
 - Alt text (ar/fr) describes what is actually in each picture, including any printed price. The
   Arabic alt text is our translation (`translationPlaceholder: ["ar"]` on the product).
+
+## Placeholder photos (SEED-4)
+
+All the other folders (`ecouteurs-sans-fil/`, `t-shirt-coton-homme/`, …) hold **generated
+placeholders**, not photographs. Each is a 1200×1200 sRGB JPEG with a flat shape on a light surface,
+labelled "PLACEHOLDER" at the top, with the product name (ar/fr) and "not a real product" at the
+bottom. They come from `data/catalog/placeholders/build.py` + `render.mjs`, and nothing in them is
+copied from another website. Every one has `placeholder: true` in its image row.

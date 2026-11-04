@@ -1,0 +1,139 @@
+{
+  "id": 208,
+  "kind": "variable",
+  "categoryId": 32,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "fustan-sayfi",
+    "fr": "robe-ete-fleurie"
+  },
+  "name": {
+    "ar": "فستان صيفي مزهر",
+    "fr": "Robe d’été fleurie"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "فستان خفيف بطبعة زهور.",
+    "fr": "Robe légère à imprimé fleuri."
+  },
+  "description": {
+    "ar": "فسكوز 100%.\n\nطول متوسّط.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "100 % viscose.\n\nLongueur midi.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2081,
+      "type": "size",
+      "name": {
+        "ar": "المقاس",
+        "fr": "Taille"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 208101,
+          "value": {
+            "ar": "S",
+            "fr": "S"
+          },
+          "swatchHex": null,
+          "position": 1
+        },
+        {
+          "id": 208102,
+          "value": {
+            "ar": "M",
+            "fr": "M"
+          },
+          "swatchHex": null,
+          "position": 2
+        },
+        {
+          "id": 208103,
+          "value": {
+            "ar": "L",
+            "fr": "L"
+          },
+          "swatchHex": null,
+          "position": 3
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 20801,
+      "sku": "PH-DRS-S",
+      "priceDzd": 2800,
+      "compareAtDzd": 3500,
+      "stock": 5,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        208101
+      ]
+    },
+    {
+      "id": 20802,
+      "sku": "PH-DRS-M",
+      "priceDzd": 2800,
+      "compareAtDzd": 3500,
+      "stock": 8,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        208102
+      ]
+    },
+    {
+      "id": 20803,
+      "sku": "PH-DRS-L",
+      "priceDzd": 2800,
+      "compareAtDzd": 3500,
+      "stock": 3,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        208103
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2081,
+      "variantId": null,
+      "key": "robe-ete-fleurie/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: فستان صيفي",
+        "fr": "Image provisoire : robe d’été"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2082,
+      "variantId": null,
+      "key": "robe-ete-fleurie/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: تفاصيل الطبعة",
+        "fr": "Image provisoire : détail de l’imprimé"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

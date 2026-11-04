@@ -178,7 +178,9 @@ os.makedirs(os.path.join(OUT, 'products'), exist_ok=True)
 def dump(path, obj):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(obj, f, ensure_ascii=False, indent=2); f.write('\n')
-dump(os.path.join(OUT, 'categories.json'), categories)
+cats_path = os.path.join(OUT, 'categories.json')
+keep = [c for c in json.load(open(cats_path, encoding='utf-8')) if c['placeholder']] if os.path.exists(cats_path) else []
+dump(cats_path, categories + keep)  # placeholder categories (placeholders/build.py) are kept
 for p in P:
     dump(os.path.join(OUT, 'products', p['slug']['fr'] + '.json'), p)
 dump(os.path.join(OUT, 'settings.json'), dict(

@@ -67,5 +67,357 @@
       "ar",
       "fr"
     ]
+  },
+  {
+    "id": 2,
+    "parentId": null,
+    "slug": {
+      "ar": "al-iliktruniyat",
+      "fr": "electronique-accessoires"
+    },
+    "name": {
+      "ar": "الإلكترونيات والإكسسوارات",
+      "fr": "Électronique & accessoires"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم تجريبي: هواتف وملحقاتها وصوتيات.",
+      "fr": "[PLACEHOLDER] Rayon de démonstration : téléphonie et audio."
+    },
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 21,
+    "parentId": 2,
+    "slug": {
+      "ar": "al-hawatif",
+      "fr": "telephonie"
+    },
+    "name": {
+      "ar": "الهواتف وملحقاتها",
+      "fr": "Téléphonie"
+    },
+    "description": null,
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 211,
+    "parentId": 21,
+    "slug": {
+      "ar": "al-shawahin-wal-kawabil",
+      "fr": "chargeurs-cables"
+    },
+    "name": {
+      "ar": "الشواحن والكوابل",
+      "fr": "Chargeurs & câbles"
+    },
+    "description": null,
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 212,
+    "parentId": 21,
+    "slug": {
+      "ar": "al-aghtiya-wal-himaya",
+      "fr": "coques-protections"
+    },
+    "name": {
+      "ar": "الأغطية والحماية",
+      "fr": "Coques & protections"
+    },
+    "description": null,
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 22,
+    "parentId": 2,
+    "slug": {
+      "ar": "al-sawtiyat",
+      "fr": "audio"
+    },
+    "name": {
+      "ar": "الصوتيات",
+      "fr": "Audio"
+    },
+    "description": null,
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 3,
+    "parentId": null,
+    "slug": {
+      "ar": "al-moda",
+      "fr": "mode"
+    },
+    "name": {
+      "ar": "الموضة",
+      "fr": "Mode"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم تجريبي: ملابس رجالية ونسائية وأحذية.",
+      "fr": "[PLACEHOLDER] Rayon de démonstration : homme, femme et chaussures."
+    },
+    "sort": 30,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 31,
+    "parentId": 3,
+    "slug": {
+      "ar": "rijal",
+      "fr": "homme"
+    },
+    "name": {
+      "ar": "رجال",
+      "fr": "Homme"
+    },
+    "description": null,
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 32,
+    "parentId": 3,
+    "slug": {
+      "ar": "nisaa",
+      "fr": "femme"
+    },
+    "name": {
+      "ar": "نساء",
+      "fr": "Femme"
+    },
+    "description": null,
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 33,
+    "parentId": 3,
+    "slug": {
+      "ar": "ahdhiya",
+      "fr": "chaussures"
+    },
+    "name": {
+      "ar": "أحذية",
+      "fr": "Chaussures"
+    },
+    "description": null,
+    "sort": 30,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 4,
+    "parentId": null,
+    "slug": {
+      "ar": "al-jamal-wal-inaya",
+      "fr": "beaute-soins"
+    },
+    "name": {
+      "ar": "الجمال والعناية",
+      "fr": "Beauté & soins"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم تجريبي: العناية بالوجه والشعر وعلب الهدايا.",
+      "fr": "[PLACEHOLDER] Rayon de démonstration : visage, cheveux et coffrets."
+    },
+    "sort": 40,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 41,
+    "parentId": 4,
+    "slug": {
+      "ar": "al-inaya-bil-wajh",
+      "fr": "soins-visage"
+    },
+    "name": {
+      "ar": "العناية بالوجه",
+      "fr": "Soins du visage"
+    },
+    "description": null,
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 42,
+    "parentId": 4,
+    "slug": {
+      "ar": "al-inaya-bil-shaar",
+      "fr": "soins-cheveux"
+    },
+    "name": {
+      "ar": "العناية بالشعر",
+      "fr": "Soins des cheveux"
+    },
+    "description": null,
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 43,
+    "parentId": 4,
+    "slug": {
+      "ar": "al-ulab",
+      "fr": "coffrets"
+    },
+    "name": {
+      "ar": "العلب والأطقم",
+      "fr": "Coffrets"
+    },
+    "description": null,
+    "sort": 30,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 5,
+    "parentId": null,
+    "slug": {
+      "ar": "al-alab-wal-atfal",
+      "fr": "jouets-enfants"
+    },
+    "name": {
+      "ar": "الألعاب والأطفال",
+      "fr": "Jouets & enfants"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم تجريبي: ألعاب التركيب والدمى والمركبات.",
+      "fr": "[PLACEHOLDER] Rayon de démonstration : construction, peluches et véhicules."
+    },
+    "sort": 50,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 51,
+    "parentId": 5,
+    "slug": {
+      "ar": "alab-al-tarkib",
+      "fr": "jeux-construction"
+    },
+    "name": {
+      "ar": "ألعاب التركيب",
+      "fr": "Jeux de construction"
+    },
+    "description": null,
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 52,
+    "parentId": 5,
+    "slug": {
+      "ar": "al-duma-al-mahshuwwa",
+      "fr": "peluches"
+    },
+    "name": {
+      "ar": "الدمى المحشوّة",
+      "fr": "Peluches"
+    },
+    "description": null,
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 53,
+    "parentId": 5,
+    "slug": {
+      "ar": "al-markabat",
+      "fr": "vehicules"
+    },
+    "name": {
+      "ar": "المركبات",
+      "fr": "Véhicules"
+    },
+    "description": null,
+    "sort": 30,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
   }
 ]

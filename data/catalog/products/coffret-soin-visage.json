@@ -1,0 +1,85 @@
+{
+  "id": 216,
+  "kind": "pack",
+  "categoryId": 43,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "ulbat-al-inaya-bil-wajh",
+    "fr": "coffret-soin-visage"
+  },
+  "name": {
+    "ar": "علبة العناية بالوجه",
+    "fr": "Coffret soin visage"
+  },
+  "brandLatin": "DemoCare",
+  "summary": {
+    "ar": "الكريم والسيروم والجل المنظّف في علبة واحدة.",
+    "fr": "La crème, le sérum et le gel nettoyant réunis en coffret."
+  },
+  "description": {
+    "ar": "روتين كامل من 3 منتجات.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Une routine complète en 3 produits.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 21601,
+      "sku": "PH-BOX-VISAGE",
+      "priceDzd": 4400,
+      "compareAtDzd": 4900,
+      "stock": 6,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [
+    {
+      "variantId": 21101,
+      "qty": 1
+    },
+    {
+      "variantId": 21201,
+      "qty": 1
+    },
+    {
+      "variantId": 21301,
+      "qty": 1
+    }
+  ],
+  "images": [
+    {
+      "id": 2161,
+      "variantId": null,
+      "key": "coffret-soin-visage/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة هدية العناية بالوجه",
+        "fr": "Image provisoire : coffret cadeau soin visage"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2162,
+      "variantId": null,
+      "key": "coffret-soin-visage/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: العلبة مفتوحة ومنتجاتها الثلاثة",
+        "fr": "Image provisoire : coffret ouvert et ses trois produits"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}
