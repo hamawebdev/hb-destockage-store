@@ -68,3 +68,9 @@ test('alternatesFor: reciprocal + x-default → Arabic page', () => {
     { hreflang: 'x-default', href: 'https://example.dz/ar/p/a/' },
   ]);
 });
+
+test('commune URLs are per language', async () => {
+  const { communesUrlTemplate, communesPath } = await import('../src/routes.ts');
+  expect(communesUrlTemplate('ar')).toBe('/geo/communes/ar/{code}.json');
+  expect(communesPath('fr', 16)).toBe('/geo/communes/fr/16.json');
+});

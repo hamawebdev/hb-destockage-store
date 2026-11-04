@@ -82,6 +82,9 @@ export interface SnapshotCategory {
   readonly placeholder: boolean;
   /** Languages whose text (name, description, slug) is our translation, not the client's. `[]` when none. */
   readonly translationPlaceholder: readonly Lang[];
+  /** Category's own image (DB-1 `images.category_id`; `variantId` null). Absent/null ⇒ builders use
+   *  the first product image in the category's subtree. */
+  readonly image?: SnapshotImage | null;
 }
 
 export type ProductKind = 'simple' | 'variable' | 'pack';
@@ -170,8 +173,8 @@ export interface SnapshotImage {
   /** Null = product-level image; else the variant it illustrates. */
   readonly variantId: Id | null;
   /**
-   * Where the original lives. `seed`: path relative to `data/photos/`. `d1`: the R2 object key.
-   * The image pipeline (CAT-4) resolves it according to `meta.source`.
+   * The original's key: its path relative to `data/photos/`. `db`'s seed uploads `data/photos/*`
+   * to R2 under the same keys, so a `d1` snapshot's key is also the R2 object key.
    */
   readonly key: string;
   /** Intrinsic size of the original, px. */
@@ -203,7 +206,9 @@ export type ContentPageKey = 'about' | 'delivery' | 'returns' | 'contact' | 'leg
 
 /**
  * Structured body, no HTML in data (no sanitiser, no Markdown parser, nothing to escape wrong).
- * Text is plain; templates escape it. Links are same-origin paths, `tel:`, or `https://wa.me/…`.
+ * Text is plain; templates escape it. Links are same-origin paths, `tel:`, or `https://wa.me/…`;
+ * render the text of `tel:`/`wa.me` links in `<bdi dir="ltr">` (brand puts phone numbers in link
+ * blocks, never inside running text).
  */
 export type ContentBlock =
   | { readonly type: 'h2'; readonly text: string }
@@ -303,6 +308,28 @@ export interface SrcsetCandidate {
 }
 
 export const IMAGE_WIDTHS: readonly number[] = [360, 480, 720, 960, 1200];
+
+/**
+ * CAT-4 output, CAT-3 input: the encoded files for each original, keyed by `SnapshotImage.key`.
+ * JSON-serialisable (`dist/image-manifest.json`). Builders combine an entry with the image's alt,
+ * the slot's `sizes` and the LCP flag into `ImageProps`.
+ */
+export type ImageManifest = Readonly<Record<string, ImageManifestEntry>>;
+
+export interface ImageManifestEntry {
+  readonly key: string;
+  /** Content hash of the original (hex), the file-name stem. */
+  readonly hash: string;
+  /** Ascending width. Never wider than the original. */
+  readonly candidates: readonly SrcsetCandidate[];
+  /** 1200×630 JPEG for `og:image`; null when not generated. */
+  readonly og: { readonly url: string; readonly bytes: number } | null;
+  /** True when the entry is a stand-in (no encoded files; fixtures/tests only). */
+  readonly stub: boolean;
+}
+
+/** Where an image is shown; decides `sizes`. Templates may override `sizes` for other uses. */
+export type ImageSlot = 'hero' | 'gallery' | 'card' | 'thumb';
 export const IMAGE_MAX_BYTES_UP_TO_960 = 25_000;
 
 export interface ImageProps {
@@ -578,7 +605,8 @@ export interface OrderFormProps {
   readonly variants: readonly VariantProps[];
   readonly options: readonly OptionProps[];
   readonly wilayas: readonly WilayaOption[];
-  /** Per-wilaya commune JSON, `{code}` replaced by the wilaya code: `/geo/communes/{code}.json`. */
+  /** This page's language already filled in; replace `{code}` with the wilaya code:
+   *  `/geo/communes/ar/{code}.json`. Body: `[[communeId, "name"], …]`, collated for that language. */
   readonly communesUrlTemplate: string;
   readonly quoteEndpoint: '/api/quote';
   /** Form `action` (POST, works without JS: the Worker renders the review step). */
@@ -710,4 +738,6 @@ export interface BuildOptions {
   readonly lowStockThreshold?: number;
   /** Related products per product page. Default 4. */
   readonly relatedCount?: number;
+  /** Featured products on the home page when settings name none. Default 8. */
+  readonly featuredCount?: number;
 }

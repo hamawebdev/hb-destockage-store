@@ -35,18 +35,6 @@ const MetaSchema = v.strictObject({
   publishRunId: v.nullable(id),
 });
 
-const CategorySchema = v.strictObject({
-  id,
-  parentId: v.nullable(id),
-  slug: localized(slug),
-  name: localized(nonEmpty),
-  description: v.nullable(localized(text)),
-  sort: sortKey,
-  active: v.boolean(),
-  placeholder: v.boolean(),
-  translationPlaceholder: langs,
-});
-
 const OptionValueSchema = v.strictObject({
   id,
   value: localized(nonEmpty),
@@ -88,6 +76,19 @@ const ImageSchema = v.strictObject({
   alt: localized(text),
   position: sortKey,
   placeholder: v.boolean(),
+});
+
+const CategorySchema = v.strictObject({
+  id,
+  parentId: v.nullable(id),
+  slug: localized(slug),
+  name: localized(nonEmpty),
+  description: v.nullable(localized(text)),
+  sort: sortKey,
+  active: v.boolean(),
+  placeholder: v.boolean(),
+  translationPlaceholder: langs,
+  image: v.exactOptional(v.nullable(ImageSchema)),
 });
 
 const ProductSchema = v.strictObject({
@@ -274,7 +275,13 @@ export function checkSnapshotIntegrity(s: CatalogSnapshot): SnapshotIssue[] {
   uniq('products[].options[].values', s.products.flatMap((p) => p.options.flatMap((o) => o.values.map((x) => x.id))));
   uniq('products[].variants', s.products.flatMap((p) => p.variants.map((x) => x.id)));
   uniq('products[].variants[].sku', s.products.flatMap((p) => p.variants.map((x) => x.sku)));
-  uniq('products[].images', s.products.flatMap((p) => p.images.map((x) => x.id)));
+  uniq('images', [
+    ...s.products.flatMap((p) => p.images.map((x) => x.id)),
+    ...s.categories.flatMap((c) => (c.image ? [c.image.id] : [])),
+  ]);
+  s.categories.forEach((c, i) => {
+    if (c.image && c.image.variantId !== null) add(`categories[${i}].image.variantId`, 'category image cannot belong to a variant');
+  });
   uniq('contentPages', s.contentPages.map((c) => c.id));
   uniq('contentPages[].key', s.contentPages.map((c) => c.key));
   uniq('wilayas', s.wilayas.map((w) => w.code));
