@@ -1,0 +1,76 @@
+---
+/**
+ * Base layout for every storefront page. Contract (SHELL-1):
+ *   <Base layout={props.layout} scripts={['/js/x.js']}> …page content… <Fragment slot="head">…</Fragment></Base>
+ * - `layout`: CAT-1 LayoutProps (lang, dir, SEO, nav, contact, strings, lcpImage, preloadArabicFont).
+ * - `scripts`: same-origin /js/*.js modules (optional ?v=<hash>), imported after `load` (or on first
+ *   focusin/pointerdown) by the constant inline LOADER. Components may also carry their own data-js.
+ * - default slot: rendered inside <main id="main">.
+ * - `head` slot: end of <head>. Only <script type="application/ld+json"> and nothing data-driven
+ *   in <style> (one inline CSS hash per template, see hb-postbuild).
+ * Owner: shell. Plan: artifacts/SHELL-0/plan.md.
+ */
+import type { LayoutProps } from '@hb/catalog';
+import '../styles/global.css';
+import Header from '../components/chrome/Header.astro';
+import Footer from '../components/chrome/Footer.astro';
+import { LOADER } from '../lib/inline-scripts.mjs';
+import { t } from '../lib/strings.ts';
+import arabicFontUrl from '@hb/ui-tokens/fonts/noto-sans-arabic-400.woff2?url';
+
+interface Props {
+  layout: LayoutProps;
+  scripts?: readonly string[];
+}
+const { layout: l, scripts = [] } = Astro.props;
+
+for (const s of scripts) {
+  if (!/^\/js\/[\w.-]+\.js(\?v=[\w-]+)?$/.test(s)) throw new Error(`Base: script "${s}" must be a same-origin /js/*.js path`);
+}
+
+// Same file as the @font-face in @hb/ui-tokens/font-face.css → same hashed URL for the preload.
+const img = l.lcpImage;
+---
+<!doctype html>
+<html lang={l.lang} dir={l.dir} data-tpl={l.template}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{l.title}</title>
+    <meta name="description" content={l.description} />
+    {l.noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={l.canonicalUrl} />}
+    {l.alternates.map((a) => <link rel="alternate" hreflang={a.hreflang} href={a.href} />)}
+    {l.preloadArabicFont && <link rel="preload" href={arabicFontUrl} as="font" type="font/woff2" crossorigin />}
+    {img && <link rel="preload" as="image" type={img.type} imagesrcset={img.srcset} imagesizes={img.sizes} fetchpriority="high" />}
+    <slot name="head" />
+  </head>
+  <body data-js={scripts.length ? scripts.join(' ') : undefined}>
+    <a class="skip" href="#main">{t(l.strings, 'chrome.skip')}</a>
+    <Header layout={l} />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer layout={l} />
+    <script is:inline set:html={LOADER} />
+  </body>
+</html>
+
+<style is:global>
+  @layer components {
+    .skip {
+      position: absolute;
+      inset-inline-start: var(--space-2);
+      inset-block-start: calc(-1 * var(--tap-min) - var(--space-4));
+      z-index: var(--z-skip);
+      display: inline-flex;
+      align-items: center;
+      min-block-size: var(--tap-min);
+      padding-inline: var(--space-4);
+      background: var(--color-surface-inverse);
+      color: var(--color-text-inverse);
+      border-radius: var(--radius-pill);
+    }
+    .skip:focus { inset-block-start: var(--space-2); }
+    main:focus { outline: none; }
+  }
+</style>

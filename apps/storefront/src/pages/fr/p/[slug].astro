@@ -1,0 +1,10 @@
+---
+// Product page with order form (fr). SHELL-1 stub, owned by `pages` from here on (order form: `orderform`, src/components/order/).
+import Base from '../../../layouts/Base.astro';
+import { staticPaths, type PropsByTemplate } from '../../../lib/catalog.ts';
+export const getStaticPaths = () => staticPaths('product', 'fr');
+const props = Astro.props as PropsByTemplate['product'];
+---
+<Base layout={props.layout}>
+  <div class="wrap"><h1>{props.product.name}</h1></div>
+</Base>

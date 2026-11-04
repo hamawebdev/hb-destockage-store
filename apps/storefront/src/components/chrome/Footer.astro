@@ -1,0 +1,28 @@
+---
+/** Site footer. SHELL-1 skeleton: content links, phone, WhatsApp (plain link). SHELL-2 styles it.
+ *  Owner: shell. */
+import type { LayoutProps } from '@hb/catalog';
+import { t } from '../../lib/strings.ts';
+
+interface Props { layout: LayoutProps }
+const { layout: l } = Astro.props;
+const c = l.contact;
+---
+<footer class="ft">
+  <div class="wrap ft-in">
+    <ul class="ft-links">
+      {l.footerLinks.map((f) => <li><a href={f.href}>{f.label}</a></li>)}
+    </ul>
+    <p>{t(l.strings, 'footer.phone')}: <a href={c.phoneHref}><bdi dir="ltr">{c.phoneDisplay}</bdi></a></p>
+    <p>{t(l.strings, 'footer.whatsapp')}: <a href={c.whatsappHref} rel="noopener"><bdi dir="ltr">{c.whatsappDisplay}</bdi></a></p>
+  </div>
+</footer>
+
+<style is:global>
+  @layer components {
+    .ft { margin-block-start: var(--section-block); padding-block: var(--space-10); background: var(--color-surface-alt); color: var(--color-text-secondary); font-size: var(--fs-small); }
+    .ft-in { display: grid; gap: var(--space-3); }
+    .ft-links { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); padding: 0; list-style: none; }
+    .ft a { display: inline-flex; align-items: center; min-block-size: var(--tap-min); color: var(--color-accent-text); }
+  }
+</style>

@@ -1,0 +1,9 @@
+---
+// Home (fr). SHELL-3 builds the page. Owner: shell.
+import Base from '../../layouts/Base.astro';
+import { pageProps } from '../../lib/catalog.ts';
+const props = pageProps('home', 'fr');
+---
+<Base layout={props.layout}>
+  <div class="wrap"><h1>{props.layout.storeName}</h1></div>
+</Base>

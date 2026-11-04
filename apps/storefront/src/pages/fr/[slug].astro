@@ -1,0 +1,10 @@
+---
+// Content page (fr): about, delivery, returns, contact, legal. SHELL-4 builds the page. Owner: shell.
+import Base from '../../layouts/Base.astro';
+import { staticPaths, type PropsByTemplate } from '../../lib/catalog.ts';
+export const getStaticPaths = () => staticPaths('content', 'fr');
+const props = Astro.props as PropsByTemplate['content'];
+---
+<Base layout={props.layout}>
+  <div class="wrap"><h1>{props.page.title}</h1></div>
+</Base>
