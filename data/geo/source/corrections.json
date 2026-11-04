@@ -1,0 +1,625 @@
+{
+ "_about": "Every change applied on top of the pinned Algeria-Cities rows to produce data/geo/wilayas.json and communes.json. Moves make the composition match the JO lists in jo/official-lists.json; name overrides fix upstream errors (see artifacts/GEO-1/decision.md). Apart from these, upstream spellings are kept.",
+ "rules": [
+  "French names: \"-\" replaced by a space, runs of spaces collapsed, trimmed (upstream mixes \"Beni-Ounif\" and \"Beni Ounif\").",
+  "Arabic names: trimmed, runs of spaces collapsed.",
+  "Commune id = upstream \"id\" as an integer (stable: we own it from now on). Upstream code_commune is not used (pre-reform ONS codes; 7003 for Branis is an upstream typo of 703).",
+  "Wilaya names: upstream wilaya_name_fr / wilaya_name, except wilaya_names below. Upstream labels 11 Touggourt communes with wilaya_code 30; the code follows the JO (moves)."
+ ],
+ "commune_moves": [
+  {
+   "id": 1536,
+   "name_fr": "Sebdou",
+   "from": 63,
+   "to": 13,
+   "source": "Law 26-06 Art. 17 item 33 (JO p.5)"
+  },
+  {
+   "id": 1539,
+   "name_fr": "Beni Bahdel",
+   "from": 63,
+   "to": 13,
+   "source": "Law 26-06 Art. 17 item 39 (JO p.5)"
+  },
+  {
+   "id": 1540,
+   "name_fr": "Beni Snous",
+   "from": 63,
+   "to": 13,
+   "source": "Law 26-06 Art. 17 item 16 (JO p.5)"
+  },
+  {
+   "id": 1541,
+   "name_fr": "Azail",
+   "from": 63,
+   "to": 13,
+   "source": "Law 26-06 Art. 17 item 20 (JO p.5)"
+  },
+  {
+   "id": 1521,
+   "name_fr": "Souagui",
+   "from": 67,
+   "to": 26,
+   "source": "Law 26-06 Art. 30 item 22 (JO p.7)"
+  },
+  {
+   "id": 1531,
+   "name_fr": "Djouab",
+   "from": 67,
+   "to": 26,
+   "source": "Law 26-06 Art. 30 item 25 (JO p.7)"
+  },
+  {
+   "id": 1532,
+   "name_fr": "Sidi Zahar",
+   "from": 67,
+   "to": 26,
+   "source": "Law 26-06 Art. 30 item 19 (JO p.7)"
+  },
+  {
+   "id": 1533,
+   "name_fr": "Sidi Ziane",
+   "from": 67,
+   "to": 26,
+   "source": "Law 26-06 Art. 30 item 10 (JO p.7)"
+  },
+  {
+   "id": 1505,
+   "name_fr": "Krakda",
+   "from": 69,
+   "to": 32,
+   "source": "Law 26-06 Art. 36 item 10 (JO p.7)"
+  },
+  {
+   "id": 1507,
+   "name_fr": "Brezina",
+   "from": 69,
+   "to": 32,
+   "source": "Law 26-06 Art. 36 item 4 (JO p.7)"
+  },
+  {
+   "id": 1508,
+   "name_fr": "Ghassoul",
+   "from": 69,
+   "to": 32,
+   "source": "Law 26-06 Art. 36 item 5 (JO p.7)"
+  },
+  {
+   "id": 233,
+   "name_fr": "Tabelbala",
+   "from": 8,
+   "to": 52,
+   "source": "Law 19-12 Art. 52 bis 3 item 7 (JO p.14)"
+  },
+  {
+   "id": 978,
+   "name_fr": "El Borma",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 14 (JO p.15)"
+  },
+  {
+   "id": 1425,
+   "name_fr": "Sidi Slimane",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 11 (JO p.15)"
+  },
+  {
+   "id": 1426,
+   "name_fr": "Megarine",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 7 (JO p.15)"
+  },
+  {
+   "id": 1427,
+   "name_fr": "Nezla",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 2 (JO p.15)"
+  },
+  {
+   "id": 1429,
+   "name_fr": "Tebesbest",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 3 (JO p.15)"
+  },
+  {
+   "id": 1430,
+   "name_fr": "Touggourt",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 1 (JO p.15)"
+  },
+  {
+   "id": 1431,
+   "name_fr": "Taibet",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 9 (JO p.15)"
+  },
+  {
+   "id": 1432,
+   "name_fr": "El Alia",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 13 (JO p.15)"
+  },
+  {
+   "id": 1433,
+   "name_fr": "El-Hadjira",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 12 (JO p.15)"
+  },
+  {
+   "id": 1434,
+   "name_fr": "Benaceur",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 10 (JO p.15)"
+  },
+  {
+   "id": 1435,
+   "name_fr": "M'naguer",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 8 (JO p.15)"
+  },
+  {
+   "id": 1436,
+   "name_fr": "Zaouia El Abidia",
+   "from": 30,
+   "to": 55,
+   "source": "Law 19-12 Art. 52 bis 6 item 4 (JO p.15)"
+  },
+  {
+   "id": 52,
+   "name_fr": "El Beidha",
+   "from": 3,
+   "to": 59,
+   "source": "Law 26-06 Art. 52 bis 10 item 4 (JO p.8)"
+  },
+  {
+   "id": 53,
+   "name_fr": "Gueltat Sidi Saad",
+   "from": 3,
+   "to": 59,
+   "source": "Law 26-06 Art. 52 bis 10 item 2 (JO p.8)"
+  },
+  {
+   "id": 54,
+   "name_fr": "Ain Sidi Ali",
+   "from": 3,
+   "to": 59,
+   "source": "Law 26-06 Art. 52 bis 10 item 3 (JO p.8)"
+  },
+  {
+   "id": 809,
+   "name_fr": "Ouled Hellal",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 8 (JO p.9)"
+  },
+  {
+   "id": 832,
+   "name_fr": "Boghar",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 10 (JO p.9)"
+  },
+  {
+   "id": 841,
+   "name_fr": "Ain Boucif",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 3 (JO p.9)"
+  },
+  {
+   "id": 842,
+   "name_fr": "El Ouinet",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 19 (JO p.9)"
+  },
+  {
+   "id": 843,
+   "name_fr": "Kef Lakhdar",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 6 (JO p.9)"
+  },
+  {
+   "id": 844,
+   "name_fr": "Ouled Emaaraf",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 2 (JO p.9)"
+  },
+  {
+   "id": 845,
+   "name_fr": "Sidi Demed",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 11 (JO p.9)"
+  },
+  {
+   "id": 852,
+   "name_fr": "Ain Ouksir",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 15 (JO p.9)"
+  },
+  {
+   "id": 853,
+   "name_fr": "Chelalet El Adhaoura",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 7 (JO p.9)"
+  },
+  {
+   "id": 854,
+   "name_fr": "Cheniguel",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 14 (JO p.9)"
+  },
+  {
+   "id": 855,
+   "name_fr": "Tafraout",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 9 (JO p.9)"
+  },
+  {
+   "id": 859,
+   "name_fr": "Ouled Antar",
+   "from": 26,
+   "to": 67,
+   "source": "Law 26-06 Art. 52 bis 18 item 20 (JO p.9)"
+  },
+  {
+   "id": 905,
+   "name_fr": "El Hamel",
+   "from": 28,
+   "to": 68,
+   "source": "Law 26-06 Art. 52 bis 19 item 10 (JO p.9)"
+  },
+  {
+   "id": 906,
+   "name_fr": "Oulteme",
+   "from": 28,
+   "to": 68,
+   "source": "Law 26-06 Art. 52 bis 19 item 22 (JO p.9)"
+  },
+  {
+   "id": 907,
+   "name_fr": "Ain El Melh",
+   "from": 28,
+   "to": 68,
+   "source": "Law 26-06 Art. 52 bis 19 item 18 (JO p.9)"
+  },
+  {
+   "id": 908,
+   "name_fr": "Ain Fares",
+   "from": 28,
+   "to": 68,
+   "source": "Law 26-06 Art. 52 bis 19 item 15 (JO p.9)"
+  },
+  {
+   "id": 909,
+   "name_fr": "Ain Rich",
+   "from": 28,
+   "to": 68,
+   "source": "Law 26-06 Art. 52 bis 19 item 21 (JO p.9)"
+  },
+  {
+   "id": 910,
+   "name_fr": "Bir Foda",
+   "from": 28,
+   "to": 68,
+   "source": "Law 26-06 Art. 52 bis 19 item 14 (JO p.9)"
+  },
+  {
+   "id": 911,
+   "name_fr": "Sidi M'hamed",
+   "from": 28,
+   "to": 68,
+   "source": "Law 26-06 Art. 52 bis 19 item 16 (JO p.9)"
+  },
+  {
+   "id": 912,
+   "name_fr": "Medjedel",
+   "from": 28,
+   "to": 68,
+   "source": "Law 26-06 Art. 52 bis 19 item 19 (JO p.9)"
+  },
+  {
+   "id": 913,
+   "name_fr": "Menaa",
+   "from": 28,
+   "to": 68,
+   "source": "Law 26-06 Art. 52 bis 19 item 17 (JO p.9)"
+  },
+  {
+   "id": 1017,
+   "name_fr": "El Mehara",
+   "from": 32,
+   "to": 69,
+   "source": "Law 26-06 Art. 52 bis 20 item 7 (JO p.9)"
+  },
+  {
+   "id": 1020,
+   "name_fr": "Chellala",
+   "from": 32,
+   "to": 69,
+   "source": "Law 26-06 Art. 52 bis 20 item 5 (JO p.9)"
+  }
+ ],
+ "commune_names": [
+  {
+   "id": 1405,
+   "was_fr": "El Bachir",
+   "was_ar": "بسباس",
+   "name_fr": "Besbes",
+   "reason": "Upstream French \"El Bachir\" does not match its own Arabic بسباس; JO spells Besbes",
+   "source": "Law 19-12 Art. 52 bis 2 item 4 (JO p.14)"
+  },
+  {
+   "id": 1469,
+   "was_fr": "Zmalet El Emir Abdelkade",
+   "was_ar": "زمالة الأمير عبد القادر",
+   "name_fr": "Zmalet El Emir Abdelkader",
+   "reason": "Upstream French name truncated (\"…Abdelkade\")",
+   "source": "Law 26-06 Art. 52 bis 15 item 2 (JO p.8)"
+  },
+  {
+   "id": 830,
+   "was_fr": "Mezerana",
+   "was_ar": "مزغنة",
+   "name_fr": "Mezghenna",
+   "reason": "Upstream \"Mezerana\" does not match its own Arabic مزغنة; JO spells Mezghenna",
+   "source": "Law 26-06 Art. 30 item 7 (JO p.7)"
+  },
+  {
+   "id": 1464,
+   "was_fr": "Azil Abedelkader",
+   "was_ar": "عزيل عبد القادر",
+   "name_fr": "Abdelkader Azil",
+   "name_ar": "عبد القادر عزيل",
+   "reason": "Upstream inverts the person name (\"Azil Abedelkader\"); JO: Abdelkader Azil",
+   "source": "Law 26-06 Art. 52 bis 11 item 3 (JO p.8)"
+  },
+  {
+   "id": 383,
+   "was_fr": "Si Abdelghani",
+   "was_ar": "سي عبد الغني",
+   "name_fr": "Sidi Abdelghani",
+   "name_ar": "سيدي عبد الغني",
+   "reason": "Upstream \"Si Abdelghani\"; JO: Sidi Abdelghani",
+   "source": "Law 26-06 Art. 18 item 16 (JO p.6)"
+  },
+  {
+   "id": 826,
+   "was_fr": "Tletat Ed Douair",
+   "was_ar": "ثلاث دوائر",
+   "name_fr": "Eddouair",
+   "name_ar": "الدواير",
+   "reason": "Upstream \"Tletat Ed Douair\"/ثلاث دوائر; Law 26-06 (2026) lists the commune as Eddouair/الدواير",
+   "source": "Law 26-06 Art. 30 item 29 (JO p.7)"
+  },
+  {
+   "id": 1149,
+   "was_fr": "Ben Guecha",
+   "was_ar": "بن قشة",
+   "name_fr": "Beni Guecha",
+   "name_ar": "بني قشة",
+   "reason": "Upstream \"Ben Guecha\"/بن قشة; JO: Beni Guecha/بني قشة",
+   "source": "Law 19-12 Art. 43 item 8 (JO p.13)"
+  },
+  {
+   "id": 1418,
+   "was_fr": "Beni-Ikhlef",
+   "was_ar": "بن يخلف",
+   "name_ar": "بني يخلف",
+   "reason": "Upstream Arabic بن يخلف contradicts its own French \"Beni Ikhlef\" and the JO (بني يخلف)",
+   "source": "Law 19-12 Art. 52 bis 3 item 5 (JO p.14)"
+  },
+  {
+   "id": 1421,
+   "was_fr": "Foggaret Ezzoua",
+   "was_ar": "فقارة الزوى",
+   "name_fr": "Foggaret Ezzaouia",
+   "name_ar": "فقارت الزاوية",
+   "reason": "Upstream \"Foggaret Ezzoua\"/فقارة الزوى; JO: Foggaret Ezzaouia/فقارت الزاوية",
+   "source": "Law 19-12 Art. 52 bis 4 item 2 (JO p.14)"
+  },
+  {
+   "id": 6,
+   "was_fr": "Ain Zghmir",
+   "was_ar": "عين زغمير",
+   "name_fr": "In Zghmir",
+   "name_ar": "إن زغمير",
+   "reason": "Official name uses \"In\" (Tamasheq), not \"Ain\"",
+   "source": "Law 19-12 Art. 5 item 6 (JO p.12)"
+  },
+  {
+   "id": 308,
+   "was_fr": "Ain Amguel",
+   "was_ar": "عين امقل",
+   "name_fr": "In Amguel",
+   "name_ar": "إن أمقل",
+   "reason": "Official name uses \"In\", not \"Ain\"",
+   "source": "Law 19-12 Art. 15 item 5 (JO p.13)"
+  },
+  {
+   "id": 1419,
+   "was_fr": "Ain Ghar",
+   "was_ar": "عين غار",
+   "name_fr": "In Ghar",
+   "name_ar": "إن غار",
+   "reason": "Official name uses \"In\", not \"Ain\"",
+   "source": "Law 19-12 Art. 52 bis 4 item 3 (JO p.14)"
+  },
+  {
+   "id": 1420,
+   "was_fr": "Ain Salah",
+   "was_ar": "عين صالح",
+   "name_fr": "In Salah",
+   "name_ar": "إن صالح",
+   "reason": "Official name uses \"In\", not \"Ain\" (chef-lieu of wilaya 53)",
+   "source": "Law 19-12 Art. 52 bis 4 item 1 (JO p.14)"
+  },
+  {
+   "id": 1423,
+   "was_fr": "Ain Guezzam",
+   "was_ar": "عين قزام",
+   "name_fr": "In Guezzam",
+   "name_ar": "إن قزام",
+   "reason": "Official name uses \"In\", not \"Ain\" (chef-lieu of wilaya 54)",
+   "source": "Law 19-12 Art. 52 bis 5 item 1 (JO p.14)"
+  },
+  {
+   "id": 1023,
+   "was_fr": "Ain Amenas",
+   "was_ar": "عين أمناس",
+   "name_fr": "In Amenas",
+   "name_ar": "إن اميناس",
+   "reason": "Official name uses \"In\", not \"Ain\"",
+   "source": "Law 19-12 Art. 37 item 4 (JO p.13)"
+  },
+  {
+   "id": 1489,
+   "was_fr": "Ain Oussera",
+   "was_ar": "عين وسارة",
+   "name_fr": "Aïn Ouessara",
+   "reason": "Chef-lieu of wilaya 65: spelling of Decree 26-206 (upstream \"Ain Oussera\")",
+   "source": "Law 26-06 Art. 52 bis 16 item 1 (JO p.8)"
+  },
+  {
+   "id": 904,
+   "was_fr": "Bou Saada",
+   "was_ar": "بوسعادة",
+   "name_fr": "Bou Saâda",
+   "reason": "Chef-lieu of wilaya 68: spelling of Decree 26-206 (upstream \"Bou Saada\")",
+   "source": "Law 26-06 Art. 52 bis 19 item 1 (JO p.9)"
+  },
+  {
+   "id": 1509,
+   "was_fr": "Labiodh Sidi Cheikh",
+   "was_ar": "الأبيض سيدي الشيخ",
+   "name_fr": "El Abiodh Sidi Cheikh",
+   "reason": "Chef-lieu of wilaya 69: spelling of Decree 26-206 (upstream \"Labiodh Sidi Cheikh\")",
+   "source": "Law 26-06 Art. 52 bis 20 item 1 (JO p.9)"
+  },
+  {
+   "id": 303,
+   "was_fr": "Z'barbar (El Isseri )",
+   "was_ar": "زبربر",
+   "name_fr": "Z'barbar (El Isseri)",
+   "reason": "Stray space inside the parenthesis"
+  },
+  {
+   "id": 862,
+   "was_fr": "Hassiane",
+   "was_ar": "الحسيان (بني ياحي",
+   "name_ar": "الحسيان (بني ياحي)",
+   "reason": "Missing closing parenthesis"
+  }
+ ],
+ "wilaya_names": [
+  {
+   "code": 53,
+   "name_fr": "In Salah",
+   "name_ar": "إن صالح",
+   "was": "Ain Salah / عين صالح",
+   "source": "Name of its chef-lieu in Law 19-12 art. 52 bis 4 (JO 2019 n°78 p.14)"
+  },
+  {
+   "code": 54,
+   "name_fr": "In Guezzam",
+   "name_ar": "إن قزام",
+   "was": "Ain Guezzam / عين قزام",
+   "source": "Name of its chef-lieu in Law 19-12 art. 52 bis 5 (JO 2019 n°78 p.14)"
+  },
+  {
+   "code": 59,
+   "name_fr": "Aflou",
+   "name_ar": "أفلو",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya d'Aflou avec chef-lieu la ville d'Aflou» / «ولاية أفلو، مقرها مدينة أفلو»",
+   "was": "Aflou / أفلو"
+  },
+  {
+   "code": 60,
+   "name_fr": "Barika",
+   "name_ar": "بريكة",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya de Barika avec chef-lieu la ville de Barika» / «ولاية بريكة، مقرها مدينة بريكة»",
+   "was": "Barika / بريكة"
+  },
+  {
+   "code": 61,
+   "name_fr": "El Kantara",
+   "name_ar": "القنطرة",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya d'El Kantara avec chef-lieu la ville d'El Kantara» / «ولاية القنطرة، مقرها مدينة القنطرة»",
+   "was": "El Kantara / القنطرة"
+  },
+  {
+   "code": 62,
+   "name_fr": "Bir El Ater",
+   "name_ar": "بئر العاتر",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya de Bir El Ater avec chef-lieu la ville de Bir El Ater» / «ولاية بئر العاتر، مقرها مدينة بئر العاتر»",
+   "was": "Bir El Ater / بئر العاتر"
+  },
+  {
+   "code": 63,
+   "name_fr": "El Aricha",
+   "name_ar": "العريشة",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya d'El Aricha avec chef-lieu la ville d'El Aricha» / «ولاية العريشة، مقرها مدينة العريشة»",
+   "was": "El Aricha / العريشة"
+  },
+  {
+   "code": 64,
+   "name_fr": "Ksar Chellala",
+   "name_ar": "قصر الشلالة",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya de Ksar Chellala avec chef-lieu la ville de Ksar Chellala» / «ولاية قصر الشلالة، مقرها مدينة قصر الشلالة»",
+   "was": "Ksar Chellala / قصر الشلالة"
+  },
+  {
+   "code": 65,
+   "name_fr": "Aïn Ouessara",
+   "name_ar": "عين وسارة",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya de Aïn Ouessara avec chef-lieu la ville de Aïn Ouessara» / «ولاية عين وسارة، مقرها مدينة عين وسارة»",
+   "was": "Ain Oussera / عين وسارة"
+  },
+  {
+   "code": 66,
+   "name_fr": "Messaad",
+   "name_ar": "مسعد",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya de Messaad avec chef-lieu la ville de Messaad» / «ولاية مسعد، مقرها مدينة مسعد»",
+   "was": "Messaad / مسعد"
+  },
+  {
+   "code": 67,
+   "name_fr": "Ksar El Boukhari",
+   "name_ar": "قصر البخاري",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya de Ksar El Boukhari avec chef-lieu la ville de Ksar El Boukhari» / «ولاية قصر البخاري، مقرها مدينة قصر البخاري»",
+   "was": "Ksar El Boukhari / قصر البخاري"
+  },
+  {
+   "code": 68,
+   "name_fr": "Bou Saâda",
+   "name_ar": "بوسعادة",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya de Bou Saâda avec chef-lieu la ville de Bou Saâda» / «ولاية بوسعادة، مقرها مدينة بوسعادة»",
+   "was": "Boussaâda / بوسعادة"
+  },
+  {
+   "code": 69,
+   "name_fr": "El Abiodh Sidi Cheikh",
+   "name_ar": "الأبيض سيدي الشيخ",
+   "source": "Decree 26-206 art. 1 (JO 2026 n°40 p.5 FR / p.6 AR): «Wilaya d'El Abiodh Sidi Cheikh avec chef-lieu la ville d'El Abiodh Sidi Cheikh» / «ولاية الأبيض سيدي الشيخ، مقرها مدينة الأبيض سيدي الشيخ»",
+   "was": "El Abiodh Sidi Cheikh / الأبيض سيدي الشيخ"
+  }
+ ]
+}
