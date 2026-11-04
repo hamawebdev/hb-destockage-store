@@ -70,6 +70,13 @@ export const ORDER_ERROR_CODES = [
 ] as const;
 export type OrderErrorCode = (typeof ORDER_ERROR_CODES)[number];
 
+/**
+ * Every user-facing error code in @hb/shared (the phone codes are a subset), for brand's
+ * string-parity test: each needs `order.errors.<code>` in both languages.
+ */
+export const ERROR_CODES: readonly OrderErrorCode[] = ORDER_ERROR_CODES;
+export type ErrorCode = OrderErrorCode;
+
 export function isOrderErrorCode(value: unknown): value is OrderErrorCode {
   return typeof value === 'string' && (ORDER_ERROR_CODES as readonly string[]).includes(value);
 }
