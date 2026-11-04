@@ -137,7 +137,7 @@ export async function fromSeed(repoRoot: string, opts: SeedOptions = {}): Promis
     wilayas,
   };
   try {
-    return parseSnapshot(assembled, 'data/');
+    return parseSnapshot(assembled, 'data/', { requireAllWilayas: opts.partial !== true });
   } catch (e) {
     if (!(e instanceof SnapshotError)) throw e;
     // Point issues at the file they came from: products[3] → data/catalog/products/<file>.json.
@@ -166,7 +166,7 @@ export async function loadSnapshot(
   const env = opts.env ?? process.env;
   const repoRoot = opts.repoRoot ?? findRepoRoot(process.cwd());
   const which = env['HB_SNAPSHOT'] ?? 'fixture';
-  if (which === 'fixture') return parseSnapshot(fixtureSnapshot, 'fixture');
+  if (which === 'fixture') return parseSnapshot(fixtureSnapshot, 'fixture', { requireAllWilayas: false });
   if (which === 'seed') return fromSeed(repoRoot, { partial: env['HB_SNAPSHOT_PARTIAL'] === '1' });
   return fromExport(isAbsolute(which) ? which : join(repoRoot, which));
 }

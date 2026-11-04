@@ -1,22 +1,24 @@
 import { describe, expect, test } from 'vitest';
 import { fixtureSnapshot, parseSnapshot, SnapshotError, validateSnapshot, type CatalogSnapshot } from '../src/index.ts';
+import { OFF_SITE } from './url.test.ts';
 
 const clone = (): CatalogSnapshot => structuredClone(fixtureSnapshot) as CatalogSnapshot;
 type Mutable<T> = { -readonly [K in keyof T]: T[K] extends object ? Mutable<T[K]> : T[K] };
 const mut = (s: CatalogSnapshot) => s as unknown as Mutable<CatalogSnapshot>;
-const issuesOf = (s: unknown): string[] => {
-  const r = validateSnapshot(s);
+// The fixture carries 3 wilayas; completeness has its own test below.
+const issuesOf = (s: unknown, requireAllWilayas = false): string[] => {
+  const r = validateSnapshot(s, { requireAllWilayas });
   return r.ok ? [] : r.issues.map((i) => `${i.path}: ${i.message}`);
 };
 
 describe('validateSnapshot', () => {
   test('fixture is valid', () => {
     expect(issuesOf(fixtureSnapshot)).toEqual([]);
-    expect(parseSnapshot(fixtureSnapshot)).toEqual(fixtureSnapshot);
+    expect(parseSnapshot(fixtureSnapshot, 'fixture', { requireAllWilayas: false })).toEqual(fixtureSnapshot);
   });
 
   test('round-trips through JSON (snapshot is plain JSON)', () => {
-    expect(parseSnapshot(JSON.parse(JSON.stringify(fixtureSnapshot)))).toEqual(fixtureSnapshot);
+    expect(parseSnapshot(JSON.parse(JSON.stringify(fixtureSnapshot)), 'fixture', { requireAllWilayas: false })).toEqual(fixtureSnapshot);
   });
 
   test('rejects unknown keys (strict objects)', () => {
@@ -107,10 +109,72 @@ describe('validateSnapshot', () => {
     expect(issuesOf(b).join()).toMatch(/national format/);
   });
 
-  test('content link hrefs are same-origin, tel: or wa.me only', () => {
+  test.each(OFF_SITE)('content link href rejected: %j', (href) => {
     const s = mut(clone()) as unknown as { contentPages: { body: { fr: { type: string; href?: string }[] } }[] };
-    s.contentPages[0]!.body.fr[3]!.href = 'https://evil.example/';
+    s.contentPages[0]!.body.fr[3]!.href = href;
     expect(issuesOf(s).join()).toMatch(/link href/);
+  });
+
+  test.each(['/fr/livraison/', '/fr/livraison/#frais', '/', 'tel:+213560417403', 'tel:0560417403', 'https://wa.me/213779942022'])(
+    'content link href accepted: %j',
+    (href) => {
+      const s = mut(clone()) as unknown as { contentPages: { body: { fr: { type: string; href?: string }[] } }[] };
+      s.contentPages[0]!.body.fr[3]!.href = href;
+      expect(issuesOf(s)).toEqual([]);
+    },
+  );
+
+  test.each(['../../etc/passwd', '/etc/passwd', 'https://evil.example/x.jpg', 'a/../../b.jpg', 'a\\b.jpg', 'A/B.JPG', 'a b.jpg', '.hidden/x.jpg'])(
+    'image key rejected: %j',
+    (key) => {
+      const s = mut(clone());
+      s.products[1]!.images[0]!.key = key;
+      expect(issuesOf(s).join()).toMatch(/image key/);
+    },
+  );
+
+  test('text: bidi overrides and control characters rejected, newlines only in descriptions', () => {
+    const a = mut(clone());
+    a.products[1]!.name = { fr: 'Poêle \u202e82 mc', ar: 'x' };
+    expect(issuesOf(a).join()).toMatch(/bidi-override/);
+    const b = mut(clone());
+    b.products[1]!.name = { fr: 'Poêle\n28', ar: 'x' };
+    expect(issuesOf(b).join()).toMatch(/control or bidi/);
+    const c = mut(clone());
+    c.products[1]!.description = { fr: 'a\n\nb', ar: 'مقلاة\u200c' };
+    expect(issuesOf(c)).toEqual([]);
+    const d = mut(clone());
+    d.products[1]!.name = { fr: 'x'.repeat(201), ar: 'x' };
+    expect(issuesOf(d).length).toBeGreaterThan(0);
+    const e = mut(clone());
+    e.settings.turnstileSiteKey = '"><script>';
+    expect(issuesOf(e).join()).toMatch(/turnstileSiteKey/);
+  });
+
+  test('all 69 wilayas required unless disabled', () => {
+    expect(issuesOf(fixtureSnapshot, true).join()).toMatch(/missing wilaya codes 1, 2, 3, 4, 5, 6, 8/);
+    const s = mut(clone());
+    s.wilayas = Array.from({ length: 69 }, (_, i) => ({ code: i + 1, name: { ar: `و${i + 1}`, fr: `W${i + 1}` }, courierCode: null }));
+    expect(issuesOf(s, true)).toEqual([]);
+  });
+
+  // Nit 4 (CAT-1 r1): each check below had no test.
+  test('duplicate SKUs rejected', () => {
+    const s = mut(clone());
+    s.products[2]!.variants[0]!.sku = 'POE-28';
+    expect(issuesOf(s).join()).toMatch(/duplicate id POE-28/);
+  });
+
+  test("image variantId must belong to the product", () => {
+    const s = mut(clone());
+    s.products[1]!.images.push({ ...s.products[1]!.images[0]!, id: 5999, variantId: 1011 });
+    expect(issuesOf(s).join()).toMatch(/variant 1011 is not in this product/);
+  });
+
+  test('active product needs a product-level image', () => {
+    const s = mut(clone());
+    s.products[1]!.images = [];
+    expect(issuesOf(s).join()).toMatch(/needs ≥ 1 product-level image/);
   });
 
   test('parseSnapshot throws SnapshotError listing issues', () => {
@@ -120,7 +184,8 @@ describe('validateSnapshot', () => {
 
 describe('exports for admin (pure)', () => {
   test('checkProductIntegrity on one product', async () => {
-    const { checkProductIntegrity, SLUG, isContentLinkHref } = await import('../src/schema.ts');
+    const { checkProductIntegrity, SLUG } = await import('../src/schema.ts');
+    const { isContentLinkHref } = await import('../src/url.ts');
     const s = clone();
     const variantKindById = new Map(s.products.flatMap((p) => p.variants.map((x) => [x.id, p.kind] as const)));
     const ctx = { variantKindById, categoryIds: new Set(s.categories.map((c) => c.id)) };

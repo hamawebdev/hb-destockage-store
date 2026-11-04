@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { formatPrice } from '@hb/shared/format';
-import { BuildError, buildAllPages, buildCategoryProps, buildContentProps, buildHomeProps, buildNotFoundProps, buildOrderConfirmationProps, buildProductProps, buildSearchProps, createBuildContext, paragraphs } from '../src/build.ts';
+import { assertPropsUrls, BuildError, buildAllPages, buildCategoryProps, buildContentProps, buildHomeProps, buildNotFoundProps, buildOrderConfirmationProps, buildProductProps, buildSearchProps, createBuildContext, paragraphs } from '../src/build.ts';
 import { fixtureContext, FIXTURE_SITE_URL } from '../src/fixtures/props.ts';
 import stringsAr from '../src/fixtures/strings.ar.json' with { type: 'json' };
 import stringsFr from '../src/fixtures/strings.fr.json' with { type: 'json' };
@@ -212,4 +212,24 @@ describe('failures', () => {
 test('paragraphs', () => {
   expect(paragraphs('a\n\n  b \n\n\n\nc\n')).toEqual(['a', 'b', 'c']);
   expect(paragraphs('')).toEqual([]);
+});
+
+describe('URL allow-list on built props', () => {
+  test('every URL in every fixture page passes', () => {
+    for (const { page } of buildAllPages(ctx)) expect(() => assertPropsUrls(page.props, FIXTURE_SITE_URL)).not.toThrow();
+  });
+  test.each([
+    [{ href: '//evil.example/' }],
+    [{ layout: { canonicalUrl: 'https://evil.example/ar/' } }],
+    [{ alternates: [{ hreflang: 'ar', href: 'https://hbdestockage.example//evil.example/' }] }],
+    [{ image: { src: '/img/x-360.avif', srcset: '/img/x-360.avif 360w, //evil.example/x.avif 720w' } }],
+    [{ items: [{ url: 'javascript:alert(1)' }] }],
+  ])('rejects %j', (props) => {
+    expect(() => assertPropsUrls(props, FIXTURE_SITE_URL)).toThrow(/props/);
+  });
+  test('manifest URLs are checked at context creation', () => {
+    const images = stubImageManifest(fixtureSnapshot);
+    const bad = { ...images, 'fixture/poele.jpg': { ...images['fixture/poele.jpg']!, og: { url: '//evil.example/og.jpg', bytes: 0 } } };
+    expect(() => createBuildContext(fixtureSnapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: bad })).toThrow(/og image/);
+  });
 });
