@@ -1,0 +1,26 @@
+// Local-only wrangler config for @hb/db: applies migrations to (and seeds) the shared local D1.
+// Never deployed. Production database_id is set by the client at deploy time (non-goal here).
+//
+// SHARED LOCAL D1 CONVENTION (every Worker config in this repo must match it):
+//   binding        "DB"
+//   database_name  "hb-destockage"
+//   database_id    "00000000-0000-4000-8000-000000000d1b"   (local placeholder; local state is keyed by it)
+//   migrations_dir "<repo>/packages/db/migrations"
+//   persist path   "<worktree>/.wrangler/hb-local"  → from apps/<x>/: --persist-to ../../.wrangler/hb-local
+//                                                  → from packages/db/: --persist-to ../../.wrangler/hb-local
+// Local R2 (binding MEDIA) lives under the same persist path, so web, admin, jobs, seed and e2e all
+// see one seeded database and one bucket per worktree. Verified: two configs with this
+// database_id and persist path read the same SQLite file (artifacts/DB-1/d1-smoke.log).
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "hb-db-local",
+  "compatibility_date": "2026-11-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hb-destockage",
+      "database_id": "00000000-0000-4000-8000-000000000d1b",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
