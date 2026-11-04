@@ -92,6 +92,12 @@ describe('parseOrderInput', () => {
     [{ name: '12345' }, [{ field: 'name', code: 'name_invalid' }]],
     [{ name: 'x'.repeat(81) }, [{ field: 'name', code: 'name_invalid' }]],
     [{ name: 'ab\u0000' }, [{ field: 'name', code: 'name_invalid' }]],
+    // review r1 I-2: invisible-only names; leftover format characters
+    [{ name: '\u200B\u200B' }, [{ field: 'name', code: 'name_required' }]],
+    [{ name: '\u2060\uFEFF\u202E' }, [{ field: 'name', code: 'name_required' }]],
+    [{ name: '\u200C\u200D' }, [{ field: 'name', code: 'name_invalid' }]],
+    [{ name: 'ab\u00AD' }, [{ field: 'name', code: 'name_invalid' }]],
+    [{ name: 'ab\u{E0041}' }, [{ field: 'name', code: 'name_invalid' }]],
     [{ phone: '' }, [{ field: 'phone', code: 'phone_required' }]],
     [{ phone: undefined }, [{ field: 'phone', code: 'phone_required' }]],
     [{ phone: '0501234567' }, [{ field: 'phone', code: 'phone_not_mobile' }]],
@@ -128,6 +134,22 @@ describe('parseOrderInput', () => {
 
   test.each([null, 'x', 42, []])('non-object body %j → invalid_request', (body) => {
     expect(parseOrderInput(body)).toEqual({ ok: false, errors: [{ field: 'form', code: 'invalid_request' }] });
+  });
+
+  test('review r1 I-2: bidi controls and zero-width characters are stripped, ZWNJ/ZWJ kept', () => {
+    const cases: [string, string][] = [
+      ['a\u202Eb', 'ab'],
+      ['x\u2066y\u2069', 'xy'],
+      ['\u200FAmine\u200E', 'Amine'],
+      ['Ami\u200Bne', 'Amine'],
+      ['\u202Bمحمد\u202C', 'محمد'],
+      ['می\u200Cخواهم', 'می\u200Cخواهم'],
+      ['ab\u200D', 'ab\u200D'],
+    ];
+    for (const [name, stored] of cases) {
+      const r = parseOrderInput({ ...valid, name });
+      expect(r.ok && r.value.name, JSON.stringify(name)).toBe(stored);
+    }
   });
 
   test('honeypot never fails validation', () => {
@@ -217,6 +239,13 @@ describe('parseOrderDraft (no-JS step 1)', () => {
     });
   });
 
+  test('review r2 nit: options that the schema drops leave no selection', () => {
+    expect(parseOrderDraft(formFieldsToBody({ ...base, productId: '7', 'opt.__proto__': '3', qty: '1' }))).toEqual({
+      ok: false,
+      errors: [{ field: 'items', code: 'variant_required' }],
+    });
+  });
+
   test('bad option ids and quantities', () => {
     expect(parseOrderDraft(formFieldsToBody({ ...base, productId: '7', 'opt.x': '1', qty: '1' }))).toEqual({
       ok: false,
@@ -281,7 +310,7 @@ test('order ref', () => {
 
 describe('submissionFlags', () => {
   test('clean submission', () => {
-    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 30_000 }, 'valid')).toEqual([]);
+    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 30_000 }, 'ok')).toEqual([]);
   });
   test('every signal', () => {
     expect(submissionFlags({ [HONEYPOT_FIELD]: 'x', fillMs: 500 }, 'invalid')).toEqual(['honeypot', 'fast_fill', 'turnstile_invalid']);
@@ -292,7 +321,7 @@ describe('submissionFlags', () => {
     expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 2_499 }, 'error')).toEqual(['fast_fill', 'turnstile_invalid']);
   });
   test('no-JS threshold', () => {
-    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 2_000 }, 'valid', MIN_REVIEW_MS)).toEqual([]);
-    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 1_000 }, 'valid', MIN_REVIEW_MS)).toEqual(['fast_fill']);
+    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 2_000 }, 'ok', MIN_REVIEW_MS)).toEqual([]);
+    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 1_000 }, 'ok', MIN_REVIEW_MS)).toEqual(['fast_fill']);
   });
 });
