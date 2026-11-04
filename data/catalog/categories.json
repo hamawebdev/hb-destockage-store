@@ -16,7 +16,7 @@
     },
     "sort": 10,
     "active": true,
-    "placeholder": false,
+    "placeholder": true,
     "translationPlaceholder": [
       "ar",
       "fr"
@@ -39,7 +39,7 @@
     },
     "sort": 10,
     "active": true,
-    "placeholder": false,
+    "placeholder": true,
     "translationPlaceholder": [
       "ar",
       "fr"
@@ -62,7 +62,7 @@
     },
     "sort": 20,
     "active": false,
-    "placeholder": false,
+    "placeholder": true,
     "translationPlaceholder": [
       "ar",
       "fr"

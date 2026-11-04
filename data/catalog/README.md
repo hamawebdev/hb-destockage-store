@@ -34,6 +34,12 @@ Array order matters for `variants` and `packItems`, which have no position field
 - `placeholder: true` means invented content: a product, category or image the client never
   published, or a real component whose **price** we invented. Text placeholders inside a
   real description are also tagged `[PLACEHOLDER]`.
+- **Every category is `placeholder: true`**, including Salle de bain › Packs salle de bain /
+  Robinetterie, because the client's site has a single "Non classé" category. The category tree
+  and its names are our proposal.
+- A product is **real** if, and only if, `provenance.json` → `products` lists it. Any other
+  product is invented, so it must be `placeholder: true` and so must all its images. The validator
+  enforces this.
 - `translationPlaceholder: ["ar"]` means the Arabic text (name, summary, description, option
   names/values, alts) is our translation, not the client's. The client publishes product text in
   French only. A value of `["ar","fr"]` means we wrote both languages, for example category names

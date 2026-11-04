@@ -5,7 +5,7 @@
 #   node data/catalog/placeholders/render.mjs <svg out dir> <repo root>/data/photos   # SVG -> JPEG
 #
 # Writes data/catalog/products/<fr-slug>.json for each placeholder product and merges the
-# placeholder categories into data/catalog/categories.json (real categories, ids < 2 or 11/12, kept).
+# placeholder categories into data/catalog/categories.json (build_real.py's categories 1/11/12 are kept).
 import json, os, sys, html
 
 ROOT, SVG_OUT = sys.argv[1], sys.argv[2]
@@ -364,7 +364,8 @@ for prod in PRODUCTS:
     dump(os.path.join(CAT, 'products', slug + '.json'), prod.d)
 
 cats_path = os.path.join(CAT, 'categories.json')
-existing = [c for c in json.load(open(cats_path, encoding='utf-8')) if not c['placeholder']]
+own = {c['id'] for c in CATS}
+existing = [c for c in json.load(open(cats_path, encoding='utf-8')) if c['id'] not in own]  # build_real.py's
 dump(cats_path, existing + CATS)
 print(f'{len(CATS)} placeholder categories, {len(PRODUCTS)} placeholder products, '
       f'{sum(len(p.images) for p in PRODUCTS)} photos, {sum(len(p.d["variants"]) for p in PRODUCTS)} variants')

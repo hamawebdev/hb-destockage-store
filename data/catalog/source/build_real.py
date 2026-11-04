@@ -10,19 +10,20 @@ SRC = 'https://hbdestockagedz.com/produit/'
 
 def L(ar, fr): return {'ar': ar, 'fr': fr}
 
+# All categories are ours (the client only had "Non classé"), hence placeholder: True.
 categories = [
     dict(id=1, parentId=None, slug=L('al-hammam', 'salle-de-bain'), name=L('الحمّام', 'Salle de bain'),
          description=L('كل ما يلزم لحمّام عصري: أطقم الاستحمام والخلّاطات والحنفيات.',
                        'Tout pour une salle de bain moderne : packs de douche, mitigeurs et robinetterie.'),
-         sort=10, active=True, placeholder=False, translationPlaceholder=['ar', 'fr']),
+         sort=10, active=True, placeholder=True, translationPlaceholder=['ar', 'fr']),
     dict(id=11, parentId=1, slug=L('atqum-al-hammam', 'packs-salle-de-bain'), name=L('أطقم الحمّام', 'Packs salle de bain'),
          description=L('أطقم كاملة: عمود استحمام وخلّاط مغسلة وحنفية مرحاض بسعر واحد.',
                        'Packs complets : colonne de douche, mitigeur de lavabo et robinet de toilette à prix unique.'),
-         sort=10, active=True, placeholder=False, translationPlaceholder=['ar', 'fr']),
+         sort=10, active=True, placeholder=True, translationPlaceholder=['ar', 'fr']),
     dict(id=12, parentId=1, slug=L('al-hanafiyat', 'robinetterie'), name=L('الحنفيات والخلّاطات', 'Robinetterie'),
          description=L('القطع الموجودة في الأطقم. غير معروضة للبيع منفردة حاليًا.',
                        'Les pièces contenues dans les packs. Pas encore vendues à l’unité.'),
-         sort=20, active=False, placeholder=False, translationPlaceholder=['ar', 'fr']),
+         sort=20, active=False, placeholder=True, translationPlaceholder=['ar', 'fr']),
 ]
 
 def variant(pid, n, sku, price, compare=None, stock=None, default=True, opts=()):
@@ -103,10 +104,10 @@ P.append(product(
     id=102, kind='pack', categoryId=11, status='active', sort=20,
     slug=L('taqm-al-hammam-b-3-fi-1-piano', 'pack-b-3-en-1-colonne-piano'),
     name=L('طقم الحمّام B 3 في 1 – عمود «بيانو» صغير', 'Pack B 3 en 1 – colonne de douche Piano petit modèle'),
-    summary=L('عمود استحمام «بيانو» بالحجم الصغير، وخلّاط للمغسلة، وحنفية للمرحاض مع شطّاف.',
-              'Colonne de douche Piano petit modèle, mitigeur de lavabo et robinet de toilette avec douchette.'),
-    description=L('طقم 3 قطع بسعر أقل.\n\nعمود الاستحمام «بيانو» (الحجم الصغير).\n\nخلّاط المغسلة.\n\nحنفية المرحاض مع شطّاف.',
-                  'Pack 3 pièces à petit prix.\n\nColonne de douche Piano (petit modèle).\n\nMitigeur de lavabo.\n\nRobinet de toilette avec douchette.'),
+    summary=L('عمود استحمام «بيانو» بالحجم الصغير، وخلّاط للمغسلة، وحنفية للمرحاض.',
+              'Colonne de douche Piano petit modèle, mitigeur de lavabo et robinet de toilette.'),
+    description=L('الطقم B.\n\nعمود الاستحمام «بيانو» (الحجم الصغير).\n\nخلّاط المغسلة.\n\nحنفية المرحاض.',
+                  'Pack B.\n\nColonne de douche Piano (petit modèle).\n\nMitigeur de lavabo.\n\nRobinet de toilette.'),
     variants=[variant(102, 1, 'HB-PACK-B', 13600)],
     packItems=[dict(variantId=11102, qty=1), dict(variantId=11201, qty=1), dict(variantId=11301, qty=1)],
     source=dict(urls=[SRC + 'pack-a-et-b/', SRC + 'pack/'], fetchedAt=FETCH,
@@ -118,7 +119,7 @@ P.append(product(
     name=L('الطقم الفاخر 4 في 1 – الاستحمام والمغسلة والمطبخ والمرحاض', 'Pack luxe 4 en 1 – douche, lavabo, cuisine et toilette'),
     summary=L('عمود استحمام «بيانو» من الألومنيوم بشاشة وإضاءة LED، وخلّاط للمغسلة، وخلّاط للمطبخ، وحنفية للمرحاض.',
               'Colonne de douche Piano en aluminium avec afficheur et LED, mitigeur de lavabo, mitigeur de cuisine et robinet de toilette.'),
-    description=L('الطقم الفاخر 4 في 1.\n\nعمود الاستحمام «بيانو» من الألومنيوم، بشاشة وإضاءة LED.\n\nخلّاط المغسلة.\n\nخلّاط المطبخ.\n\nحنفية المرحاض مع شطّاف.',
+    description=L('الطقم الفاخر 4 في 1.\n\nعمود الاستحمام «بيانو» من الألومنيوم، بشاشة وإضاءة LED.\n\nخلّاط المغسلة.\n\nخلّاط المطبخ.\n\nحنفية المرحاض.',
                   'Pack luxe 4 en 1.\n\nColonne de douche Piano en aluminium avec afficheur et LED.\n\nMitigeur de lavabo.\n\nMitigeur de cuisine.\n\nRobinet pour toilette.'),
     variants=[variant(103, 1, 'HB-PACK-LUXE-4EN1', 16500, 19900)],
     packItems=[dict(variantId=11101, qty=1), dict(variantId=11201, qty=1), dict(variantId=11401, qty=1), dict(variantId=11301, qty=1)],
@@ -179,8 +180,9 @@ def dump(path, obj):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(obj, f, ensure_ascii=False, indent=2); f.write('\n')
 cats_path = os.path.join(OUT, 'categories.json')
-keep = [c for c in json.load(open(cats_path, encoding='utf-8')) if c['placeholder']] if os.path.exists(cats_path) else []
-dump(cats_path, categories + keep)  # placeholder categories (placeholders/build.py) are kept
+own = {c['id'] for c in categories}
+keep = [c for c in json.load(open(cats_path, encoding='utf-8')) if c['id'] not in own] if os.path.exists(cats_path) else []
+dump(cats_path, categories + keep)  # categories written by placeholders/build.py are kept
 for p in P:
     dump(os.path.join(OUT, 'products', p['slug']['fr'] + '.json'), p)
 dump(os.path.join(OUT, 'settings.json'), dict(
