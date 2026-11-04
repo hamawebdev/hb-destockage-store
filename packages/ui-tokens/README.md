@@ -14,7 +14,9 @@ Values come from `brand/tokens.json` (owner `brand`); this package only transcri
 | `fonts/` | Noto Sans Arabic 400 subset, OFL, `subset.py` + `subset.json`. | storefront |
 | `font-face.css` | The Arabic `@font-face`. **Generated**. | storefront |
 | `icons/<name>.svg`, `icons/manifest.json` | Icon set; manifest **generated**. See Icons. | storefront, admin |
-| `base.css` | Reset, typography, primitives, components (TOKENS-4). | storefront |
+| `base.css` | Reset, typography, layout primitives, buttons, icons, a11y helpers, motion. Every template. | storefront |
+| `forms.css` | Fields, radios/checkboxes, variant chips/swatches, notes. Templates with a form only. | storefront |
+| `src/lint.ts` | `physicalProperties(css)`: lists direction-specific declarations (for tests). | any workspace |
 
 Regenerate after any change to `brand/tokens.json`, the font or `icons/` (also `npm run generate -w @hb/ui-tokens`):
 
@@ -110,10 +112,32 @@ padding, only geometry inside, ≤ 300 B as a file and as the inline string.
    `filter` = listing filters; `home` = home.
 6. New icons follow the same grid/stroke and go through `node packages/ui-tokens/src/gen/cli.ts`.
 
+## base.css and forms.css
+
+Layer order (same statement as the storefront's global.css):
+`@layer reset, tokens, base, layout, components, utilities;` — `tokens.css` itself is unlayered.
+
+| Layer | What |
+|---|---|
+| `reset` | box-sizing, margins, media `display:block; max-inline-size:100%`, form font inheritance, `[hidden]` |
+| `base` | `html`: `--font-body`, `--lh-body`, text/surface colours, `scroll-padding-block-start: var(--scroll-pad-start)` (+ `-end` when a `.bottom-bar` exists); `:where([lang\|=ar])` re-applies the Arabic stack + line-height; h1–h4, `a` (accent-text), `strong`, `:focus-visible` ring, `dialog` + backdrop |
+| `layout` | `.container` (max `--container-max` + gutters), `.reading`, `.section`, `.stack` (`--stack-gap`), `.cluster` (`--cluster-gap`), `.grid` (2 → 3 @768 → 4 @1024 columns) |
+| `components` | `.display`, `.hero-title`, `.lead`, `.caption`, `.muted`, `.eyebrow`, `.nums`; `.icon`/`.icon-sm`/`.icon-lg` + RTL mirror rule; `.btn` + `.btn-primary`/`-secondary`/`-block`/`-icon`; `.visually-hidden`, `.skip-link`; dialog/popover entrance via `@starting-style` |
+| forms.css `components` | `.field`, `.label`, `.hint`, `.error`, `.input` (also on `<select>`; `aria-invalid="true"` = 2px danger), `.choice` (native radio/checkbox, accent-color), `.chip` (label wrapping a hidden radio; checked = 2px accent ring + tint; `.swatch` uses `--swatch`), `.note` + `-success`/`-warning`/`-danger` |
+
+Rules: every interactive component is ≥ 44px (`--tap-min`); letter-spacing and line-height only
+through `--ls-*`/`--lh-*`; logical properties only (`test/base.test.ts` runs `physicalProperties`
+on all four sheets). Motion: cross-document View Transitions (`@view-transition { navigation: auto }`)
+and `@starting-style`, both only under `prefers-reduced-motion: no-preference`; under `reduce` all
+animations/transitions are 0.01ms. A swatch colour cannot come from a `style` attribute (hash-based
+CSP): emit a page rule such as `.sw-red{--swatch:#c33}`. The «العربية» switch label needs a
+component rule `font-family: var(--font-switcher)` (beats the zero-specificity `:where` rule).
+
+Size (minified, brotli): tokens 1,151 B + font-face 204 B + base 1,530 B = 2,745 B together;
++ forms 598 B → 3,088 B. Before the storefront drops unused custom properties.
+
 ## CSS approach
 
-Hand-written CSS in cascade layers, one sheet for both directions, inlined:
-`tokens.css` (unlayered custom properties) → `base.css` (`@layer base`) → page/component CSS.
-Logical properties only (a test fails on any physical property). `tokens.css` alone is about
-1.1 KiB brotli; unused custom properties should be dropped at build so the inlined sheet stays
-near 4 KiB br total.
+Hand-written CSS in cascade layers, one sheet for both directions, inlined (agreed with `shell`):
+`tokens.css` + `font-face.css` + `base.css` (+ `forms.css`) → page/component CSS. The storefront
+build drops custom properties that nothing reads, per page.
