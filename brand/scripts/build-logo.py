@@ -24,9 +24,10 @@ from fontTools.varLib import instancer
 
 FONT_URL = "https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
 # sha256 of the file the committed SVGs were built from (google/fonts main, fetched 2026-11-04).
-# If upstream changes, the build still runs but warns: compare the output before committing.
+# If upstream changes, the build stops unless --allow-font-change is passed.
 FONT_SHA256 = "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
 
+ALLOW_FONT_CHANGE = False
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.normpath(os.path.join(HERE, "..", "logo"))
 
@@ -56,8 +57,11 @@ def get_font(path):
     else:
         data = urllib.request.urlopen(FONT_URL, timeout=60).read()
     digest = hashlib.sha256(data).hexdigest()
-    if digest != FONT_SHA256:
-        print(f"WARNING: Inter sha256 {digest} != pinned {FONT_SHA256}", file=sys.stderr)
+    if digest != FONT_SHA256 and not ALLOW_FONT_CHANGE:
+        sys.exit(
+            f"Inter sha256 {digest} != pinned {FONT_SHA256}. Upstream changed: pass --font <the pinned file> "
+            "or --allow-font-change, compare the output visually, then update FONT_SHA256."
+        )
     return data
 
 
@@ -189,7 +193,10 @@ def write(name, svg):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--font")
+    ap.add_argument("--allow-font-change", action="store_true")
     args = ap.parse_args()
+    global ALLOW_FONT_CHANGE
+    ALLOW_FONT_CHANGE = args.allow_font_change
     data = get_font(args.font)
     hb = instance(data, HB_WGHT)
     word = instance(data, WORD_WGHT)
