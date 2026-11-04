@@ -14,9 +14,10 @@
 //  2. Seed-only rules below: product file named after its French slug; exactly one default variant
 //     overall; every image key is a lowercase relative path to an existing JPEG/PNG ≤ 3 MB whose real
 //     size matches width/height; no key twice per product; unique image positions; placeholder
-//     marking (placeholder categories/products/images, "[PLACEHOLDER]" in placeholder
-//     descriptions); home products are active; provenance.json covers every real product and
-//     real image (supplier renders flagged needsClientConfirmation).
+//     marking (a product not listed in provenance.json is invented: placeholder: true and all its
+//     images placeholder; "[PLACEHOLDER]" in placeholder descriptions); home products are active;
+//     provenance.json entries exist and cover every real image (supplier renders flagged
+//     needsClientConfirmation).
 // Used by `db` (seed loader, before loading D1) and `pagedata` (fromSeed, before the build).
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -100,15 +101,11 @@ export function validateLoadedSeed(seed) {
     return issues;
   }
   // CAT-1 integrity.
-  for (const i of checkSnapshotIntegrity(parsed.output)) add(where(i.path), i.message);
+  for (const i of checkSnapshotIntegrity(parsed.output, { requireAllWilayas: false })) add(where(i.path), i.message);
 
-  const catById = new Map(seed.categories.map((c) => [c.id, c]));
-
-  // 2a. Categories: placeholder marking.
-  seed.categories.forEach((c, i) => {
-    const parent = c.parentId === null ? null : catById.get(c.parentId);
-    if (parent && parent.placeholder && !c.placeholder) add(`categories[${i}]`, `real category ${c.id} under placeholder parent ${parent.id}`);
-  });
+  // A product is *real* (the client's) iff provenance.json lists it; everything else is invented.
+  // Categories are all ours (the client had only "Non classé"), so they say nothing about realness.
+  const provProducts = new Set((seed.provenance?.products ?? []).map((x) => x.productId));
 
   // 2b. Products.
   for (const { file, product: p } of seed.products) {
@@ -120,24 +117,18 @@ export function validateLoadedSeed(seed) {
     if (defaults.length !== 1) add(`${at}.variants`, `expected exactly one default variant, found ${defaults.length}`);
 
     // Placeholder marking (CLAUDE.md: every placeholder is marked).
+    const isReal = provProducts.has(p.id);
+    if (!isReal && !p.placeholder) add(at, `product ${p.id} is not in provenance.json, so it is invented and must be placeholder: true`);
     if (p.placeholder) {
       for (const lang of ['ar', 'fr']) {
         if (!p.description[lang].includes(PLACEHOLDER_TAG)) add(`${at}.description.${lang}`, `placeholder product: description must contain "${PLACEHOLDER_TAG}"`);
       }
-      // Invented products have invented photos. (A real component with a placeholder price may
-      // show a real photo, so this only applies inside placeholder categories.)
-      if (catById.get(p.categoryId)?.placeholder) p.images.forEach((img, j) => {
-        if (!img.placeholder) add(`${at}.images[${j}]`, 'image of a placeholder product must be placeholder: true');
-      });
-      const cat = catById.get(p.categoryId);
-      if (cat && !cat.placeholder && p.status === 'active') {
-        // In a real category only drafts may be placeholders (real components with invented prices).
-        add(`${at}.categoryId`, 'active placeholder product in a real (non-placeholder) category');
-      }
-    } else {
-      const cat = catById.get(p.categoryId);
-      if (cat?.placeholder) add(`${at}.categoryId`, `real product in placeholder category ${cat.id}`);
     }
+    // Invented products have invented photos (a real component with a placeholder price may show a
+    // real photo).
+    if (!isReal) p.images.forEach((img, j) => {
+      if (!img.placeholder) add(`${at}.images[${j}]`, 'image of an invented product must be placeholder: true');
+    });
 
     // Images: keys, files, sizes.
     const keys = new Set();
@@ -173,12 +164,6 @@ export function validateLoadedSeed(seed) {
   if (!prov) {
     add('provenance.json', 'missing');
   } else {
-    const provProducts = new Set((prov.products ?? []).map((x) => x.productId));
-    for (const { file, product: p } of seed.products) {
-      // Real = lives in a real category (incl. draft components whose price is a placeholder).
-      const isReal = catById.get(p.categoryId)?.placeholder === false;
-      if (isReal && !provProducts.has(p.id)) add(`products/${file}`, `real product ${p.id} has no provenance.json entry`);
-    }
     for (const x of prov.products ?? []) if (!productById.has(x.productId)) add('provenance.json', `product ${x.productId} does not exist`);
     const imageById = new Map();
     for (const { product } of seed.products) for (const img of product.images) imageById.set(img.id, img);

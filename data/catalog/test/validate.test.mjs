@@ -100,19 +100,23 @@ test('placeholders are marked', () => {
   expectIssue(s, /huile-argan\.json\.description\.fr: placeholder product: description must contain/);
   s = seed();
   product(s, 'huile-argan').images[1].placeholder = false;
-  expectIssue(s, /huile-argan\.json\.images\[1\]: image of a placeholder product must be placeholder: true/);
+  expectIssue(s, /huile-argan\.json\.images\[1\]: image of an invented product must be placeholder: true/);
   s = seed();
   product(s, 'huile-argan').placeholder = false;
-  expectIssue(s, /huile-argan\.json\.categoryId: real product in placeholder category 42/);
+  expectIssue(s, /huile-argan\.json: product 215 is not in provenance\.json, so it is invented and must be placeholder: true/);
 });
 
 test('real products and real images have provenance', () => {
   let s = seed();
   s.provenance.products = s.provenance.products.filter((x) => x.productId !== 103);
-  expectIssue(s, /pack-luxe-4-en-1\.json: real product 103 has no provenance\.json entry/);
+  expectIssue(s, /pack-luxe-4-en-1\.json: product 103 is not in provenance\.json/);
+  expectIssue(s, /pack-luxe-4-en-1\.json\.images\[0\]: image of an invented product must be placeholder: true/);
   s = seed();
   s.provenance.images = s.provenance.images.filter((x) => x.imageId !== 1031);
   expectIssue(s, /provenance\.json: real image 1031 .* has no provenance entry/);
+  s = seed();
+  s.provenance.products.push({ productId: 999 });
+  expectIssue(s, /provenance\.json: product 999 does not exist/);
   s = seed();
   s.provenance.images.find((x) => x.source === 'supplier_render').needsClientConfirmation = false;
   expectIssue(s, /supplier_render needs needsClientConfirmation: true/);
