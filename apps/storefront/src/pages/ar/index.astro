@@ -5,5 +5,5 @@ import { pageProps } from '../../lib/catalog.ts';
 const props = pageProps('home', 'ar');
 ---
 <Base layout={props.layout}>
-  <div class="wrap"><h1>{props.layout.storeName}</h1></div>
+  <div class="wrap"><h1><bdi lang="fr" dir="ltr">{props.layout.storeName}</bdi></h1></div>
 </Base>
