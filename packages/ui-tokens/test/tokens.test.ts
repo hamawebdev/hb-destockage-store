@@ -34,7 +34,7 @@ describe('generated files never drift from brand/tokens.json', () => {
 
 describe('contract', () => {
   const rootBlock = /:root\{([^}]*)\}/.exec(css)?.[1] ?? '';
-  const arBlock = /\[lang\|=ar\]\{([^}]*)\}/.exec(css)?.[1] ?? '';
+  const arBlock = /:lang\(ar\)\{([^}]*)\}/.exec(css)?.[1] ?? '';
   const names = (block: string): string[] => [...block.matchAll(/--([\w-]+):/g)].map((m) => m[1] as string);
 
   test('exposes the custom properties consumers build against', () => {
@@ -49,6 +49,14 @@ describe('contract', () => {
     ]) {
       expect(have, n).toContain(n);
     }
+  });
+
+  test('Arabic elements get the real invariants, not only variables (review TOKENS-1 r1 F1/N1)', () => {
+    // Inherited computed values: a lang="ar" span in a French h1 must not keep the h1's letter-spacing.
+    expect(arBlock).toContain('letter-spacing:0!important;');
+    expect(arBlock).toContain('font-weight:400!important;');
+    expect(arBlock).toContain('font-synthesis:none!important;');
+    expect(tokens.font.synthesis).toBe('none');
   });
 
   test('Arabic: webfont stack, one weight, line-height 1.6–1.8, zero letter-spacing', () => {

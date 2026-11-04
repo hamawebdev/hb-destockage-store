@@ -31,15 +31,23 @@ letter-spacing.
 
 ## Custom properties
 
-All on `:root`. Language-dependent ones are re-declared on `[lang|=ar]`, so components just use
-`var(--lh-body)` etc. and get the right value in either language (including an Arabic span on a
-French page).
+All on `:root`. Language-dependent ones are re-declared on `:lang(ar)` (every Arabic element), so a
+rule written with `var(--lh-heading)`, `var(--ls-caps)`, `var(--fw-emphasis)` gets the Arabic value
+when **that rule's element** is Arabic.
+
+Variables do not reach an Arabic *child* of a French element: `letter-spacing`, `line-height` and
+`font-weight` inherit as computed values, so `<h1>Promo <span lang="ar">…</span></h1>` on `/fr/`
+would hand the span the French values. Therefore `:lang(ar)` in `tokens.css` also sets the three
+invariants as real, unlayered `!important` properties — `letter-spacing: 0`, `font-weight: 400`,
+`font-synthesis: none` — which no component rule can override. `font-family` and `line-height` are
+not forced there (the «العربية» switch must keep `--font-switcher`, headings keep their own
+line-height); `base.css` (TOKENS-4) re-applies `--font-body` / `--lh-*` on Arabic elements.
 
 | Group | Names |
 |---|---|
 | Colour roles | `--color-<role>` (surface, surface-alt, text, text-secondary, accent, accent-text, focus, border, border-control, success, warning, danger, price, sale, …). Use pairs listed in `brand/tokens.json` `contrastPairs` only. Links: `accent-text`. Form outlines: `border-control`. |
 | Font stacks | `--font-latin`, `--font-arabic`, `--font-switcher` (the «العربية» label: never names the webfont), `--font-body` (resolved per language) |
-| Weight | `--fw-regular`, `--fw-emphasis` (600 Latin, **400 under Arabic**) |
+| Weight | `--fw-regular`, `--fw-emphasis` (600 Latin, **400 under Arabic**; Arabic elements are forced to 400 with `font-synthesis: none`) |
 | Line-height (unitless, per language) | `--lh-body`, `--lh-heading`, `--lh-display`, `--lh-ui` |
 | Letter-spacing (per language, **0 under Arabic**) | `--ls-display`, `--ls-heading`, `--ls-body`, `--ls-caps` |
 | Type scale (fluid 360→1440) | `--fs-caption`, `--fs-small`, `--fs-body`, `--fs-lead`, `--fs-h3`, `--fs-h2`, `--fs-h1`, `--fs-display`, `--fs-hero`; `--measure` |
