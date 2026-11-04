@@ -45,6 +45,34 @@ test("Arabic rules: single weight 400, letter-spacing 0, line-heights unitless 1
   assert.ok(!/Noto|webfont/i.test(tokens.font.family.latin.$value.split(",")[0]), "Latin stack starts with a system font");
 });
 
+// Evaluates "clamp(Arem, Brem + Cvw, Drem)" (or a bare "Arem") at a viewport width, in px.
+function evalFluid(expr, vw) {
+  const rems = [...expr.matchAll(/(-?[\d.]+)rem/g)].map((m) => parseFloat(m[1]) * 16);
+  if (rems.length === 1) return rems[0];
+  const slope = parseFloat(/(-?[\d.]+)vw/.exec(expr)[1]);
+  return Math.min(Math.max(rems[1] + (slope * vw) / 100, rems[0]), rems[2]);
+}
+
+test("every fluid value (type scale and layout) equals its px at each stated viewport", () => {
+  const entries = [
+    ...Object.entries(tokens.typeScale.steps).map(([k, v]) => [`typeScale.${k}`, v]),
+    ...Object.entries(tokens.layout).filter(([, v]) => v && v.fluid).map(([k, v]) => [`layout.${k}`, v]),
+  ];
+  assert.ok(entries.length >= 11);
+  for (const [name, v] of entries) {
+    for (const vw of [360, 768, 1440]) {
+      const px = v[`px${vw}`];
+      if (px === undefined) continue;
+      assert.ok(Math.abs(evalFluid(v.fluid, vw) - px) < 0.55, `${name} @${vw}: ${evalFluid(v.fluid, vw).toFixed(2)} != ${px}`);
+    }
+  }
+});
+
+test("breakpoints match the 360/768/1024/1440 contract", () => {
+  const bp = Object.fromEntries(Object.entries(tokens.breakpoint).filter(([k]) => !k.startsWith("$")).map(([k, v]) => [k, v.$value]));
+  assert.deepEqual(bp, { base: "360px", md: "768px", lg: "1024px", xl: "1440px" });
+});
+
 test("type scale: px at 360/1440 match the fluid clamp endpoints", () => {
   for (const [step, s] of Object.entries(tokens.typeScale.steps)) {
     const nums = [...s.fluid.matchAll(/([\d.]+)rem/g)].map((m) => parseFloat(m[1]) * 16);
