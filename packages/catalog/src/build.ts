@@ -7,6 +7,7 @@
  *   buildPageProps(ctx, entry)                          // one page
  */
 import { formatPrice } from '@hb/shared/format';
+import { assertSameOriginPath, isAllowedExternalHref, isSameOriginPath, isSiteOrigin, isSiteUrl, UnsafeUrlError } from './url.ts';
 import { categoryDescendantIds, publishedCategories, publishedContentPages, publishedProducts } from './publication.ts';
 import {
   absoluteUrl,
@@ -136,10 +137,10 @@ export function createBuildContext(snapshot: CatalogSnapshot, input: BuildInput)
     const missing = REQUIRED_STRING_KEYS.filter((k) => typeof input.strings[lang][k] !== 'string');
     if (missing.length) throw new BuildError(`strings.${lang}: missing ${missing.join(', ')}`);
   }
-  if (!/^https?:\/\/[^/]+$/.test(input.siteUrl.replace(/\/+$/, ''))) throw new BuildError(`siteUrl must be an origin: ${input.siteUrl}`);
+  if (!isSiteOrigin(input.siteUrl.replace(/\/+$/, ''))) throw new BuildError(`siteUrl must be an origin (https://host[:port]): ${input.siteUrl}`);
   const router = createRouter(snapshot, input.pageSize);
-  const products = publishedProducts(snapshot);
   const categories = publishedCategories(snapshot);
+  const products = publishedProducts(snapshot, categories);
   const subtreeProducts = new Map<Id, SnapshotProduct[]>();
   for (const c of categories) {
     const ids = categoryDescendantIds(snapshot, c.id);
@@ -194,6 +195,9 @@ export const paragraphs = (text: string): string[] =>
 function imageEntry(ctx: BuildContext, img: SnapshotImage) {
   const e = ctx.images[img.key];
   if (!e || e.candidates.length === 0) throw new BuildError(`image manifest has no entry for "${img.key}" (image ${img.id})`);
+  // The manifest is loaded from disk: its URLs go through the same allow-list as everything else.
+  for (const c of e.candidates) assertSameOriginPath(c.url, `image ${img.key}`);
+  if (e.og) assertSameOriginPath(e.og.url, `og image ${img.key}`);
   return e;
 }
 
@@ -710,7 +714,39 @@ export type PageProps =
   | { readonly template: 'order-confirmed'; readonly props: OrderConfirmationProps }
   | { readonly template: 'not-found'; readonly props: NotFoundProps };
 
+/** Prop keys that carry a URL (checked on every built page). */
+const URL_KEY = /(?:^|[a-z])(?:href|Href|url|Url|src)$|^canonicalUrl$/;
+
+/**
+ * Walks built props and checks every URL against the allow-list (`url.ts`): same-origin path,
+ * `tel:`/`wa.me` (content links, contact), or an absolute URL on `siteUrl` (canonical,
+ * alternates). `srcset` entries are checked one by one. Throws `UnsafeUrlError`.
+ */
+export function assertPropsUrls(value: unknown, siteUrl: string, path = 'props'): void {
+  if (Array.isArray(value)) return value.forEach((v, i) => assertPropsUrls(v, siteUrl, `${path}[${i}]`));
+  if (typeof value !== 'object' || value === null) return;
+  for (const [k, v] of Object.entries(value)) {
+    const at = `${path}.${k}`;
+    if (typeof v === 'string' && URL_KEY.test(k)) {
+      if (!(isSameOriginPath(v) || isAllowedExternalHref(v) || isSiteUrl(v, siteUrl))) throw new UnsafeUrlError(`${at}: ${JSON.stringify(v)}`);
+    } else if (typeof v === 'string' && k === 'srcset') {
+      for (const part of v.split(', ')) {
+        const m = /^(\S+) \d+w$/.exec(part);
+        if (!m || !isSameOriginPath(m[1]!)) throw new UnsafeUrlError(`${at}: ${JSON.stringify(part)}`);
+      }
+    } else if (k !== 'strings') {
+      assertPropsUrls(v, siteUrl, at);
+    }
+  }
+}
+
 export function buildPageProps(ctx: BuildContext, entry: RouteEntry): PageProps {
+  const page = buildPagePropsUnchecked(ctx, entry);
+  assertPropsUrls(page.props, ctx.siteUrl, entry.path);
+  return page;
+}
+
+function buildPagePropsUnchecked(ctx: BuildContext, entry: RouteEntry): PageProps {
   const { lang, entityId: id } = entry;
   switch (entry.template) {
     case 'home':
