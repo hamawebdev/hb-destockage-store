@@ -16,7 +16,10 @@ time; it is kept so every value in the seed can be traced to what the client pub
 - `products.json` — the five products extracted from the Store API (prices converted from minor
   units to integer DZD, description HTML + plain text, de-duplicated images, fetch times) and a
   manifest of all 10 media files (largest size available = the unscaled original, dimensions, bytes,
-  md5). Image files themselves are stored under `data/photos/` (SEED-3).
+  md5, and what each image is). Image files themselves are stored under `data/photos/` (SEED-3).
+  Regenerate with `python3 -I data/catalog/source/extract.py data/catalog/source <dir of the
+  downloaded originals>` (the originals are byte-identical to the files in `data/photos/`, see the
+  md5 column).
 
 ## What the store actually contains (2026-11-04)
 
@@ -42,7 +45,10 @@ Findings that shape SEED-2:
   but can only be ordered at 14 600 DA (no variation exists).
 - **Prices are burned into every product photo** ("14600 da", "16500 Da"); the photos go stale if a
   price changes.
-- 5 media uploads are **not attached to any current product**: two real photos of Pack A + Pack B
-  side by side (`IMG_7696`, prices 13 600 / 14 600 on paper signs) and of the two control panels
-  (`IMG_7689`), a 13 600 DA pack B photo, and two "14500 Da" photos (an older price / "Pack nova").
+- **The 5 attached product images are Instagram screenshots of collages of product renders**
+  (EXIF `software=Instagram`, `description=Screenshot`), probably supplier/marketplace material.
+  Only three uploads are the client's own photographs (iPhone EXIF): media 497 (`IMG_7696`, Pack A
+  + Pack B side by side with paper price signs 13 600 / 14 600), 498 (`IMG_7689`, the two control
+  panels) and 150 (Pack B, "13600 Da"). All three are orphan uploads (not attached to a product).
+  Two more orphans (409 "Pack nova 14500 DA", 410) are render collages with an old "14500 Da" price.
 - Delivery: the order form charges a flat **600 DA** in every wilaya (see order-form.md).
