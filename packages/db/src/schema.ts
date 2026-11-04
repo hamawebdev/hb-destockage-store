@@ -288,8 +288,13 @@ export const images = sqliteTable(
     /** Exactly one of `product_id` / `category_id` is set. */
     productId: integer('product_id').references(() => products.id, { onDelete: 'cascade' }),
     categoryId: integer('category_id').references(() => categories.id, { onDelete: 'cascade' }),
-    /** Set when the photo shows one specific variant (e.g. a colour). Product images only. */
+    /** Set when the photo shows one specific variant. Product images only. */
     variantId: integer('variant_id').references(() => variants.id, { onDelete: 'set null' }),
+    /**
+     * Set when the photo shows one option value (e.g. the red colour, for every red variant).
+     * Never together with `variant_id` (trigger in 0003; added after DB-1, so no CHECK rebuild).
+     */
+    optionValueId: integer('option_value_id').references(() => optionValues.id, { onDelete: 'set null' }),
     /**
      * Key of the original in R2 = its path relative to `data/photos/` for seeded photos. Not unique:
      * two products may show the same photo; delete the R2 object only when no row references it.
@@ -308,6 +313,7 @@ export const images = sqliteTable(
     index('images_product_idx').on(t.productId, t.position),
     index('images_category_idx').on(t.categoryId, t.position),
     index('images_variant_idx').on(t.variantId),
+    index('images_option_value_idx').on(t.optionValueId),
     check('images_one_owner', sql`(${c(t.productId)} is null) <> (${c(t.categoryId)} is null)`),
     check('images_variant_needs_product', sql`${c(t.variantId)} is null or ${c(t.productId)} is not null`),
     check('images_dims_pos', sql`${c(t.width)} > 0 and ${c(t.height)} > 0`),
@@ -361,6 +367,11 @@ export const deliveryFees = sqliteTable(
       .references(() => wilayas.code, { onDelete: 'restrict' }),
     feeDzd: integer('fee_dzd').notNull(),
     available: bool('available', true),
+    /**
+     * True for invented seed fees (data/geo/fees.seed.json). Only the local seed writes true; a fee
+     * saved by the owner in the admin is real (false). Production never runs the seed.
+     */
+    placeholder: bool('placeholder', false),
     updatedBy: integer('updated_by').references(() => adminUsers.id, { onDelete: 'set null' }),
     updatedAt: updatedAt(),
   },
@@ -825,6 +836,7 @@ export const productOptionsRelations = relations(productOptions, ({ one, many })
 export const optionValuesRelations = relations(optionValues, ({ one, many }) => ({
   option: one(productOptions, { fields: [optionValues.optionId], references: [productOptions.id] }),
   variantLinks: many(variantOptionValues),
+  images: many(images),
 }));
 
 export const variantsRelations = relations(variants, ({ one, many }) => ({
@@ -850,6 +862,7 @@ export const packItemsRelations = relations(packItems, ({ one }) => ({
 export const imagesRelations = relations(images, ({ one }) => ({
   product: one(products, { fields: [images.productId], references: [products.id] }),
   category: one(categories, { fields: [images.categoryId], references: [categories.id] }),
+  optionValue: one(optionValues, { fields: [images.optionValueId], references: [optionValues.id] }),
   variant: one(variants, { fields: [images.variantId], references: [variants.id] }),
 }));
 

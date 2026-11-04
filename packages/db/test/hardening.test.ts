@@ -251,6 +251,9 @@ describe('DB-2 storage types and formats (rev-d DB-1 r1 nits)', () => {
     ['customer flags string', `update customers set flags = '"x"' where id = 1`, /customers.flags must be a JSON array/],
     ['fee_source free text', "update orders set fee_source = 'admin-table' where id = 1", /fee_source must be/],
     ['fee_source courier without name', "update orders set fee_source = 'courier:' where id = 1", /fee_source must be/],
+    ['fee_source courier with empty-looking name', "update orders set fee_source = 'courier::' where id = 1", /fee_source must be/],
+    ['fee_source courier with a second colon', "update orders set fee_source = 'courier:a:b' where id = 1", /fee_source must be/],
+    ['fee_source courier upper case', "update orders set fee_source = 'courier:Yalidine' where id = 1", /fee_source must be/],
   ];
   test.each(refused)('refuses %s', (_n, stmt, err) => {
     const { sqlite } = withOrder();
@@ -271,6 +274,47 @@ describe('DB-2 storage types and formats (rev-d DB-1 r1 nits)', () => {
     expect(() =>
       sqlite.prepare("insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd) values (1, 100, 10, 'a', 'b', 'S1', 1000, 1.5, 1500)").run(),
     ).toThrow(/order_items: money\/quantity/);
+  });
+});
+
+describe('DB-2 images.option_value_id (lead ruling)', () => {
+  function withColour() {
+    const ctx = withOrder();
+    ctx.sqlite.exec(`
+      insert into product_options (id, product_id, kind, name_fr, name_ar) values (1, 10, 'colour', 'Couleur', 'اللون');
+      insert into option_values (id, option_id, value_fr, value_ar, swatch_hex) values (11, 1, 'Rouge', 'أحمر', '#ff0000');`);
+    return ctx;
+  }
+  const img = (v: string, ov: string) =>
+    `insert into images (product_id, variant_id, option_value_id, r2_key, width, height, alt_fr, alt_ar) values (10, ${v}, ${ov}, 'p/1.jpg', 1, 1, 'a', 'b')`;
+
+  test('an image may point at an option value', () => {
+    const { sqlite } = withColour();
+    expect(sqlite.prepare(img('null', '11')).run().changes).toBe(1);
+  });
+
+  test('variant_id and option_value_id are exclusive (insert and update)', () => {
+    const { sqlite } = withColour();
+    expect(() => sqlite.prepare(img('100', '11')).run()).toThrow(/exclusive/);
+    sqlite.prepare(img('100', 'null')).run();
+    expect(() => sqlite.prepare('update images set option_value_id = 11').run()).toThrow(/exclusive/);
+  });
+
+  test('deleting the option value sets the image link to NULL', () => {
+    const { sqlite } = withColour();
+    sqlite.prepare(img('null', '11')).run();
+    sqlite.prepare('delete from option_values where id = 11').run();
+    expect(sqlite.prepare('select option_value_id from images').get()).toEqual({ option_value_id: null });
+  });
+});
+
+describe('DB-2 delivery_fees.placeholder (lead ruling)', () => {
+  test('defaults to false (an owner-saved fee is real); the seed sets true explicitly', () => {
+    const { sqlite } = withOrder();
+    sqlite.prepare('insert into delivery_fees (wilaya_code, fee_dzd) values (16, 400)').run();
+    expect(sqlite.prepare('select placeholder from delivery_fees where wilaya_code = 16').get()).toEqual({ placeholder: 0 });
+    sqlite.prepare('update delivery_fees set placeholder = 1 where wilaya_code = 16').run();
+    expect(sqlite.prepare('select placeholder from delivery_fees where wilaya_code = 16').get()).toEqual({ placeholder: 1 });
   });
 });
 
@@ -296,6 +340,8 @@ describe('DB-2 triggers exist with the expected names', () => {
       'customers_flags_array_upd',
       'orders_fee_source_fmt_ins',
       'orders_fee_source_fmt_upd',
+      'images_variant_or_option_value_ins',
+      'images_variant_or_option_value_upd',
     ].sort());
   });
 });
