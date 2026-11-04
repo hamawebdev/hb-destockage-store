@@ -1,5 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "types": ["@cloudflare/workers-types/index.d.ts"] },
-  "include": ["src/**/*.ts"]
+  "compilerOptions": {
+    "types": [
+      "@cloudflare/workers-types/index.d.ts"
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ]
 }
