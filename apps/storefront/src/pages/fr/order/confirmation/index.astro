@@ -1,0 +1,9 @@
+---
+// Order confirmation (fr). SHELL-1 stub, owned by `orderform` from here on (components in src/components/order/).
+import Base from '../../../../layouts/Base.astro';
+import { pageProps } from '../../../../lib/catalog.ts';
+const props = pageProps('order-confirmed', 'fr');
+---
+<Base layout={props.layout}>
+  <div class="wrap"><h1>{props.layout.title}</h1></div>
+</Base>
