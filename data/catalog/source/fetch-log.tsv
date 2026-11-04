@@ -1,0 +1,37 @@
+fetched_at_utc	url	http_status	content_type	bytes	file
+2026-11-04T17:37:17Z	https://hbdestockagedz.com/wp-json/wc/store/v1/products?per_page=100&page=1	200	application/json; charset=UTF-8	25603	wc-store-products-p1.json
+2026-11-04T17:37:25Z	https://hbdestockagedz.com/wp-json/wc/store/v1/products?per_page=100&page=2	200	application/json; charset=UTF-8	2	wc-store-products-p2.json
+2026-11-04T17:37:27Z	https://hbdestockagedz.com/wp-json/wc/store/v1/products/categories?per_page=100	200	application/json; charset=UTF-8	200	wc-store-categories.json
+2026-11-04T17:37:29Z	https://hbdestockagedz.com/wp-json/wc/store/v1/products/attributes	200	application/json; charset=UTF-8	2	wc-store-attributes.json
+2026-11-04T17:37:33Z	https://hbdestockagedz.com/wp-json/wp/v2/product?per_page=100	200	application/json; charset=UTF-8	17894	wp-v2-product.json
+2026-11-04T17:38:46Z	https://hbdestockagedz.com/wp-json/wp/v2/product_cat?per_page=100	000	(curl timeout after 60 s, no bytes)	0	(none; category data taken from Store API + product_cat sitemap)
+2026-11-04T17:38:49Z	https://hbdestockagedz.com/wp-json/wp/v2/pages?per_page=100	200	application/json; charset=UTF-8	28253	wp-v2-pages.json
+2026-11-04T17:38:52Z	https://hbdestockagedz.com/wp-json/wp/v2/media?per_page=100	200	application/json; charset=UTF-8	53728	wp-v2-media.json
+2026-11-04T17:38:54Z	https://hbdestockagedz.com/robots.txt	200	text/plain; charset=utf-8	321	robots.txt
+2026-11-04T17:38:56Z	https://hbdestockagedz.com/wp-sitemap.xml	200	application/xml; charset=UTF-8	828	wp-sitemap.xml
+2026-11-04T17:38:59Z	https://hbdestockagedz.com/sitemap_index.xml	404	text/html; charset=UTF-8	36892	sitemap_index.xml	(404 page discarded)
+2026-11-04T17:39:01Z	https://hbdestockagedz.com/	200	text/html; charset=UTF-8	80389	home.html
+2026-11-04T17:39:09Z	https://hbdestockagedz.com/wp-sitemap-posts-product-1.xml	200	application/xml; charset=UTF-8	803	wp-sitemap-posts-product-1.xml
+2026-11-04T17:39:11Z	https://hbdestockagedz.com/wp-sitemap-taxonomies-product_cat-1.xml	200	application/xml; charset=UTF-8	272	wp-sitemap-taxonomies-product_cat-1.xml
+2026-11-04T17:39:13Z	https://hbdestockagedz.com/wp-sitemap-posts-page-1.xml	200	application/xml; charset=UTF-8	804	wp-sitemap-posts-page-1.xml
+2026-11-04T17:39:25Z	https://hbdestockagedz.com/produit/pack/	200	text/html; charset=UTF-8	61308	product-pack.html
+2026-11-04T17:39:27Z	https://hbdestockagedz.com/produit/pack-a-et-b/	200	text/html; charset=UTF-8	57141	product-pack-a-et-b.html
+2026-11-04T17:39:29Z	https://hbdestockagedz.com/produit/sans-titre/	200	text/html; charset=UTF-8	56971	product-sans-titre.html
+2026-11-04T17:39:32Z	https://hbdestockagedz.com/produit/pack-3-en-1/	200	text/html; charset=UTF-8	62198	product-pack-3-en-1.html
+2026-11-04T17:39:34Z	https://hbdestockagedz.com/produit/nouvelle-pack-luxury-4en1-douche-prix-16500-da-livraison-60-alf/	200	text/html; charset=UTF-8	58441	product-nouvelle-pack-luxury-4en1-douche-prix-16500-da-livraison-60-alf.html
+2026-11-04T17:39:38Z	https://hbdestockagedz.com/boutique/	200	text/html; charset=UTF-8	80389	boutique.html
+2026-11-04T17:39:43Z	https://hbdestockagedz.com/categorie-produit/non-classe/	200	text/html; charset=UTF-8	80389	category-non-classe.html
+2026-11-04T17:39:48Z	https://hbdestockagedz.com/commander/	200	text/html; charset=UTF-8	80389	commander.html
+2026-11-04T17:40:03Z	https://hbdestockagedz.com/wp-content/plugins/dz-catalogue-quick-order/assets/js/dzqo.js?ver=2.6.6	200	application/x-javascript	14116	dzqo.js.txt
+2026-11-04T17:40:05Z	https://hbdestockagedz.com/wp-content/plugins/dz-catalogue-quick-order/assets/css/dzqo.css?ver=2.6.6	200	text/css	22337	dzqo.css.txt
+2026-11-04T17:40:19Z	https://hbdestockagedz.com/wp-json/wp/v2/media/33	404	application/json; charset=UTF-8	107	wp-v2-media-33.json
+2026-11-04T17:40:33Z	https://hbdestockagedz.com/wp-content/uploads/2026/11/8944D590-457D-4B4D-B703-1B942A809EEF.jpeg	200	image/jpeg	353772	8944D590-457D-4B4D-B703-1B942A809EEF.jpeg
+2026-11-04T17:40:35Z	https://hbdestockagedz.com/wp-content/uploads/2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg	200	image/jpeg	235422	D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg
+2026-11-04T17:40:37Z	https://hbdestockagedz.com/wp-content/uploads/2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg	200	image/jpeg	205271	2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg
+2026-11-04T17:40:39Z	https://hbdestockagedz.com/wp-content/uploads/2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg	200	image/jpeg	219333	C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg
+2026-11-04T17:40:42Z	https://hbdestockagedz.com/wp-content/uploads/2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg	200	image/jpeg	272295	47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg
+2026-11-04T17:40:45Z	https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7689.jpeg	200	image/jpeg	1619180	IMG_7689.jpeg
+2026-11-04T17:40:48Z	https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7696.jpeg	200	image/jpeg	2217078	IMG_7696.jpeg
+2026-11-04T17:40:50Z	https://hbdestockagedz.com/wp-content/uploads/2026/08/DEFDDED5-446C-4E9E-A05A-0B0A55C4CF3A.jpeg	200	image/jpeg	293381	DEFDDED5-446C-4E9E-A05A-0B0A55C4CF3A.jpeg
+2026-11-04T17:40:52Z	https://hbdestockagedz.com/wp-content/uploads/2026/08/96856807-1630-4929-A89D-4BF7180D23D2.jpeg	200	image/jpeg	205187	96856807-1630-4929-A89D-4BF7180D23D2.jpeg
+2026-11-04T17:40:54Z	https://hbdestockagedz.com/wp-content/uploads/2026/08/0A57AC22-93A3-40EF-BAE4-CB9D03CD520E.jpeg	200	image/jpeg	491333	0A57AC22-93A3-40EF-BAE4-CB9D03CD520E.jpeg
