@@ -1,18 +1,18 @@
 # HB Destockage storefront — project rules
 
-Cash-on-delivery store for HB Destockage (home, kitchen and bathroom packs, ~14,600–16,500 DZD) for customers in Algeria.
+Cash-on-delivery store for HB Destockage, customers in Algeria. It sells **any kind of product**: categories and sub-categories, variants (size, colour…), multiple photos, stock, packs.
 Arabic (`/ar/`, RTL, primary) and French (`/fr/`). Hosted on Cloudflare. **The spec is [STACK-REPORT.md](STACK-REPORT.md).**
 Any deviation from it needs a measurement or a cited source, recorded in [DECISIONS.md](DECISIONS.md) before the change is reviewed.
 
 ## Stack (from the report, §2)
 - `apps/storefront` — **Astro 7 static output**. Pre-rendered HTML per language. 0 KB JS before LCP; ≤ 10 KB br JS after LCP (order-form enhancement, plain JS). Speculation Rules inline, cross-document View Transitions, CSS-only motion.
-- `apps/web` — **one TypeScript Worker (Hono)** serving the storefront's static assets (Workers static assets) plus `/api/order` and `/api/rum`. Valibot for validation, Drizzle for D1. Queues for order notifications.
+- `apps/web` — **one TypeScript Worker (Hono)** serving the storefront's static assets (Workers static assets) plus `/api/order`, `/api/quote` and `/api/rum`. Valibot for validation, Drizzle for D1. Queues for order notifications.
 - `apps/admin` — **custom server-rendered Hono Worker** on `admin.<domain>`, Cloudflare Access in production, local auth in development only. Drizzle + Valibot over the shared D1. Responses `private, no-store`.
 - `apps/jobs` — scheduled Worker: daily D1 → R2 export.
 - `packages/db` — Drizzle schema, D1 migrations, seed. `packages/shared` — phone rules, order schema, fee/total maths, `Intl` formatters, order state machine. `packages/ui-tokens` — brand tokens, icons, Arabic font.
-- `data/` — geo dataset (69 wilayas / 1,541 communes + 58-wilaya courier code), seed catalogue, original photos.
+- `data/` — geo dataset (69 wilayas / 1,541 communes), seed catalogue, original photos.
 - `brand/` — brand guide, logo, copy (tone of voice, FR/AR strings).
-- **One D1 database**, location hint `weur`. Never read while a visitor waits for a page: only on order POST and in the admin.
+- **One D1 database**, location hint `weur`. Never read while a visitor waits for a page: only on the order and quote POSTs and in the admin (D-002).
 - **No Rust in the runtime. No React/Next/SPA. No i18n runtime. No analytics or chat widgets.**
 - Versions measured in the report: Astro 7.4, Hono 4.13, Drizzle 0.45, Valibot 1.5, Tailwind 4.3, Wrangler 4.x, Lighthouse **13.6.0 (pinned)**.
 
@@ -37,23 +37,15 @@ Any deviation from it needs a measurement or a cited source, recorded in [DECISI
 - Contact: phone `0560417403`, WhatsApp `+213 779 942 022`.
 - Clearly mark every placeholder (content, photo, translation) with `placeholder: true` in data and `[PLACEHOLDER]` in copy files.
 
-## How work happens
-- Shared task list: `node scripts/team/task.mjs list` (state lives in `/mnt/data/ecom website/team/tasks.json`; never edit it by hand).
-- Each teammate works in its own git worktree under `/mnt/data/ecom website/.worktrees/<name>`, **one branch per task** `task/<ID>-<slug>`, editing **only the paths it owns** (`team/owners.json`; the pre-commit hook enforces it).
-- One task = one reviewable change. Commit message format (enforced by `commit-msg` hook):
-  ```
-  <ID>: <title>
-
-  What changed: …
-  Testing: …
-  Risk tier: low|high
-  Revert: …
-  ```
-- Mark a task done only with `node scripts/team/task.mjs complete <ID>`: it runs `scripts/gate.sh` (typecheck, tests, build, byte budget, Lighthouse when storefront files changed) and refuses if anything is red.
-- Durable outputs (screenshots, Lighthouse JSON, notes) go to `artifacts/<ID>/…`; send the lead paths, not summaries.
-- Review rules: [REVIEW.md](REVIEW.md). Only the lead merges to `main`, and only approved changes.
+## How work happens (detail: [team/BRIEF.md](team/BRIEF.md))
+- Agent-team task list, subjects `<AREA>-<n>: …` (`-0` = plan). The lead (`team-lead`) creates and closes tasks and routes reviews and requests.
+- One worktree + branch per teammate (`.worktrees/<name>`, `team/<name>`). Edit only your paths in `team/owners.json`, enforced by pre-commit (`git config core.hooksPath .githooks`). Dependencies: ask `tooling`.
+- One commit per task (`commit-msg` enforces `<ID>: <title>`, blank, `What changed:`, `Testing:`, `Risk tier: low|high`, `Revert:`). Review fixes = new commits; `git merge main`, never rebase.
+- `scripts/gate.sh` (typecheck, test, build, budget, Lighthouse on storefront changes) runs in the `TaskCompleted` hook; red ⇒ refused.
+- Review per [REVIEW.md](REVIEW.md) (`REV <ID> r<n>` tasks). Only the lead merges (`scripts/team/merge.sh`): approved commits only, high risk after client sign-off.
+- Outputs in `artifacts/<ID>/` (main checkout); report paths. Max 2 gates at once, Lighthouse exclusive (`scripts/lib/locks.sh`); ports: `scripts/team/port.sh <name>`.
 
 ## Non-goals
 - No deploy to the client's Cloudflare account and no Cloudflare login. Measure with local Wrangler and `wrangler deploy --temporary` only.
 - No Law 18-05 hosting/.dz analysis (client accepted Cloudflare). No Rust, no CMS (Payload etc.), no SPA, no KV catalogue, no page rendering from D1.
-- No SMS provider integration beyond a disabled stub (OTP only for flagged orders, later). No courier API integration beyond storing both wilaya codes.
+- No SMS provider integration beyond a disabled stub (OTP only for flagged orders, later). Courier API integration, **including the 58-wilaya courier codes**, comes later (D-001).

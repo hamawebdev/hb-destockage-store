@@ -78,11 +78,11 @@ customer confirms**.
 | `db` | `packages/db/` | `rev-d` |
 | `shared` | `packages/shared/` | `rev-d` |
 | `web` | `apps/web/` | `rev-d` |
-| `pages` | `apps/storefront/src/pages/{ar,fr}/{category,search,product}/**` (actual slugs per shell's route map), `apps/storefront/src/components/catalog/**`, `apps/storefront/public/js/search*.js` | `rev-e` |
+| `pages` | `apps/storefront/src/pages/{ar,fr}/{c,p,search}/**`, `apps/storefront/src/components/catalog/**`, `apps/storefront/public/js/search*.js` | `rev-e` |
 | `orderform` | `apps/storefront/src/components/order/**`, `apps/storefront/src/pages/{ar,fr}/order/**` (confirmation), `apps/storefront/public/js/order*.js` | `rev-e` |
-| `admin-core` | `apps/admin/src/{app.ts,index.ts,env.ts}`, `apps/admin/src/{auth,audit,ui,i18n,lib}/**`, `apps/admin/src/routes/{dashboard,users,settings}/**`, `apps/admin/wrangler.jsonc` | `rev-f` |
-| `admin-orders` | `apps/admin/src/routes/{orders,customers}/**` | `rev-f` |
-| `admin-catalog` | `apps/admin/src/routes/{products,categories,fees,content,media,publish}/**` | `rev-f` |
+| `admin-core` | `apps/admin/src/{app.ts,index.ts,env.ts}`, `apps/admin/src/{auth,audit,ui,i18n,lib}/**`, `apps/admin/src/routes/{dashboard,users,settings}/**`, `apps/admin/wrangler.jsonc`, `apps/admin/public/**`, `apps/admin/test/**` except `test/{orders,catalog}/**`, `apps/admin/.dev.vars.example` | `rev-f` |
+| `admin-orders` | `apps/admin/src/routes/{orders,customers}/**`, `apps/admin/test/orders/**` | `rev-f` |
+| `admin-catalog` | `apps/admin/src/routes/{products,categories,fees,content,media,publish}/**`, `apps/admin/test/catalog/**` | `rev-f` |
 | `qa` | nothing in source; writes `artifacts/QA-*/` and files tasks | — |
 | reviewers `rev-a`…`rev-f` | nothing in source; write `artifacts/<ID>/review-r<n>.md` | — |
 | `lead` | `team/BRIEF.md`; merges to `main` | — |
