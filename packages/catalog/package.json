@@ -1,0 +1,16 @@
+{
+  "name": "@hb/catalog",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hb/shared": "*",
+    "sharp": "0.35.5",
+    "valibot": "1.5.0"
+  },
+  "devDependencies": {}
+}

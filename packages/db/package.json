@@ -1,0 +1,9 @@
+{
+  "name": "@hb/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "typecheck": "tsc --noEmit -p .", "test": "vitest run" },
+  "dependencies": { "drizzle-orm": "0.45.4" },
+  "devDependencies": { "@types/better-sqlite3": "9.6.0", "better-sqlite3": "13.0.3", "drizzle-kit": "0.31.11", "wrangler": "4.157.0" }
+}

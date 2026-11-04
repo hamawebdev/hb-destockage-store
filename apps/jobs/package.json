@@ -1,0 +1,22 @@
+{
+  "name": "@hb/jobs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "build": "wrangler deploy --dry-run --outdir dist"
+  },
+  "dependencies": {
+    "@hb/catalog": "*",
+    "@hb/db": "*",
+    "@hb/shared": "*",
+    "drizzle-orm": "0.45.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261104.1",
+    "miniflare": "5.20261103.0-beta",
+    "wrangler": "4.157.0"
+  }
+}
