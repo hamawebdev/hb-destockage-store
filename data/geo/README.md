@@ -7,6 +7,7 @@
 | `index.mjs` | `loadWilayas()`, `loadCommunes()` (types: `index.d.mts`) | Node build steps |
 | `build.mjs` | `buildGeoAssets(outDir, {lang})` → `geo/communes/<lang>/<code>.json` = `[[id,"name"],…]` collator-sorted; returns wilaya options `{code, label}` (types: `build.d.mts`). Sizes: `artifacts/GEO-3/sizes.md`. | `pagedata` → storefront; `orderform` fetches after LCP |
 | `fees.seed.json` | 69 × `{wilaya_code, fee_dzd, available, placeholder: true}` | `db` seed |
+| `search.mjs` | `normalizeForSearch(s, lang)` (types: `search.d.mts`), 521 B minified; match with `key.includes(query)`. Parity corpus for ports: `search.corpus.json` (regenerate: `node data/geo/scripts/make-search-corpus.mjs`). | `pages`, `orderform`, `pagedata` |
 | `source/` | Pinned upstream dataset, Journal officiel lists, `corrections.json` (see `source/README.md`) | `scripts/normalize.mjs` |
 
 Regenerate `wilayas.json`/`communes.json` after editing `source/corrections.json`:
