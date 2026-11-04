@@ -1,0 +1,110 @@
+# Admin, Security, Anti-Fraud & Compliance: Teammate Report
+
+## 1. Position
+
+- **The legal risk is real, and it sits with the client. It does not rule out the stack.** Article 8 of Law 18-05, read in the primary Journal Officiel text, requires registration in the commercial register and "*la publication d'un site ou d'une page web hébergé en Algérie avec une extension « .com.dz »*". The penalty chapter (Arts. 37–48) has no fine aimed at Art. 8 hosting. The domain sanctions (Arts. 42–43) cover a missing commercial-register entry and offences that can close a shop. I checked how a sample of well-known Algerian brands host their sites: several sit abroad (FR/DE, or behind Cloudflare). **Recommendation:** register a `.com.dz` domain, register with the CNRC (the national commercial register), and serve the site through Cloudflare. Algerian counsel must sign off before launch, and the client must accept the remaining hosting risk in writing. A ready fallback exists if counsel wants it: "**hybrid residency**", where order and customer records sit on an Algerian host and Cloudflare serves the storefront. The order POST is not on the LCP path, so this costs nothing on Lighthouse.
+- **Personal data (Laws 18-07 and 25-11) is the harder obligation.** Every processing operation needs a **prior declaration** to the ANPDP (the national data protection authority; Art. 12, criminal penalty in Art. 56). A transfer abroad needs ANPDP **authorisation** (Art. 44, penalty in Art. 67), unless an Art. 45 derogation applies, such as express consent or performance of the contract. D1 cannot be placed in Africa or the Middle East. Law 25-11 (July 2025) adds a DPO, a register of processing, and an **automated log of operations** (*carnet automatisé*). The admin must have an audit log no matter which stack is chosen.
+- **Admin:** I recommend a **custom, server-rendered admin on a separate Worker and hostname** (`admin.<domain>`), behind **Cloudflare Access** (free up to 50 users) with security-key or TOTP MFA. It shares the database with the storefront and ships **zero admin code to the storefront**. I rejected Payload-on-Workers because the evidence shows open production bugs (see §3). The COD confirmation workflow (call attempts, statuses) is custom work on every option anyway.
+- **Anti-fraud, layered from free to paid:**
+  1. A honeypot field plus a minimum fill time.
+  2. Server-side phone validation against the real numbering ranges.
+  3. Dedup on phone + product + time window, plus a per-phone rate limit in the Worker.
+  4. Turnstile in invisible ("interaction-only") mode, **loaded only when the visitor first touches the order form**.
+  5. One coarse WAF rate-limit rule on the order endpoint.
+  6. The human confirmation call, which is the real filter.
+
+  SMS OTP is optional and runs **after** submission, only for orders flagged risky. **Bot Fight Mode stays OFF**: it injects JavaScript into every HTML page and cannot be bypassed by WAF rules.
+- **Measured: loaded eagerly, Turnstile adds about 245–256 KB of transfer and 4 requests, and lowered the Lighthouse score in all 5 paired runs. Loaded on interaction, it adds 0 bytes at page load.**
+- **Wilayas:** use the **69 wilayas and 1,541 communes** of Law 26-06 (JO n°25, 5 April 2026). Codes 59–69 come from Decree 26-206 (JO n°40, 2026). Courier APIs may still return 58, so map between the two.
+- **Delivery:** Yalidine, ZR Express (legacy Procolis API and the new API) and Ecotrack-based couriers have **live, authenticated APIs**. I confirmed the endpoints exist. Public documentation is mostly behind a login or reached through third parties, so treat the field-level details as unverified.
+- **Storefront security headers** (HSTS, a hash-based CSP, nosniff, Referrer-Policy, Permissions-Policy, COOP) total about 650 bytes raw and are HPACK-indexed after the first response, so the performance cost is negligible. The CSP must be **hash-based, not nonce-based**, so the HTML can stay cached at the edge.
+
+## 2. Evidence table
+
+| # | Claim | Evidence (numbers) | Source URL / measurement | Source type | Date | Algeria-specific? | Confidence |
+|---|---|---|---|---|---|---|---|
+| 1 | Art. 8 requires commercial-register registration plus a site "hébergé en Algérie" on `.com.dz` | Verbatim JO text | https://www.joradp.dz/FTP/jo-francais/2018/F2018028.pdf (JO n°28, p.6), read with `pdftotext` | Primary law | 16 May 2018 | yes | High |
+| 2 | No dedicated penalty for Art. 8 hosting. Art. 42: automatic domain suspension if not in the register. Art. 43: suspension of up to 30 days for offences that can close a shop. Art. 39: 50k–500k DA for breaching Arts. 11–12 | Arts. 37–48 read in full | same PDF, pp.8–9 | Primary law | 2018 | yes | High (reading); legal interpretation needs counsel |
+| 3 | Art. 12: the order must go through **3 mandatory steps** (conditions shown, review/correct the order, explicit confirmation), and fields must not be pre-filled to steer the choice | Verbatim | same PDF, Art. 12 | Primary law | 2018 | yes | High |
+| 4 | Law 18-05 is under review. No amendment found as of Nov 2026 | A ministry official announced a multisector review commission | https://algerie-eco.com/?p=203216 | Press | 21 Oct 2024 | yes | Medium |
+| 5 | Leading Algerian brands host abroad | condor.dz → Hostinger FR (AS47583); yalidine.com → Contabo FR; temtem.one → Hetzner DE; batolis.com → Cloudflare; ouedkniss.com → Algérie Télécom DZ; anpdp.dz / commerce.gov.dz → AT DZ | My measurement: `dig +short A <d> @1.1.1.1` + `curl ipinfo.io/<ip>/json`, 2026-11-04 | Measurement | 2026-11-04 | yes | High (fact); it shows common practice, not legality |
+| 6 | Every processing operation needs a prior declaration; the receipt arrives within 48h; the declaration must list data to be transferred abroad | Arts. 12–14. Penalty Art. 56: 2–5 yrs + 200k–500k DA | https://www.joradp.dz/FTP/jo-francais/2018/F2018034.pdf | Primary law | 10 Jun 2018 | yes | High |
+| 7 | A transfer abroad needs ANPDP authorisation plus adequacy. Derogations: express consent, performance of the contract, etc. | Arts. 44–45. Penalty Art. 67: 1–5 yrs + 500k–1M DA | same PDF | Primary law | 2018 | yes | High (text); scope of the derogations is untested |
+| 8 | Law 25-11 leaves Arts. 44/45 (commercial transfers) unchanged. It adds a DPO (41 bis), a register of processing (41 bis 2) and an **automated log of operations** (41 bis 3), and repeals Arts. 10–11 | Verbatim | https://www.joradp.dz/FTP/jo-francais/2025/F2025048.pdf | Primary law | 24 Jul 2025 | yes | High |
+| 9 | The 5-day breach notification (Art. 45 bis 8) sits inside Title V bis (criminal-justice processing). Base Art. 43 says "sans délai" | Verbatim. DLA Piper applies the 5 days generally | same PDF; https://www.dlapiperdataprotection.com/?c=DZ | Primary law + law firm | 2025 / 20 Mar 2026 | yes | Medium (scope ambiguous) |
+| 10 | ANPDP is operational: online declaration portal, 228 files received by Oct 2023, inspections announced Feb 2024. No public sanction found | — | DLA Piper (above) | Law-firm summary | Mar 2026 | yes | Medium |
+| 11 | D1 has no Africa or Middle East location. Hints: wnam, enam, weur, eeur, apac, oc. Jurisdictions: eu, us, fedramp | — | https://developers.cloudflare.com/d1/configuration/data-location/ | Official docs (fact) | fetched 2026-11-04 | global | High |
+| 12 | Cloudflare lists 4 Algerian PoPs: ALG and ORN (operational), CZL (operational), AAE (major outage at time of check) | — | `curl https://www.cloudflarestatus.com/api/v2/components.json` | Measurement | 2026-11-04 | yes | High (that they exist); does not show that traffic actually goes there |
+| 13 | 69 wilayas, 1,541 communes | "soixante-neuf (69) wilayas et … (1541) communes" | https://www.joradp.dz/FTP/jo-francais/2026/F2026025.pdf (Law 26-06 of 4 Apr 2026) | Primary law | 5 Apr 2026 | yes | High |
+| 14 | Codes 59 (Aflou) to 69, with chefs-lieux | Decree 26-206 | https://www.joradp.dz/FTP/jo-francais/2026/F2026040.pdf | Primary | 25 May 2026 | yes | High |
+| 15 | Valid mobile national numbers are 9 digits after the trunk "0": `5(4[0-29]|6[0-4])\d{6}`, `(55|6\d|7[7-9])\d{7}`. A naive `^0[567]\d{8}$` accepts invalid ranges such as 050–053 and 070–076 | — | libphonenumber `PhoneNumberMetadata.xml` (commit 2026-11-04) | Maintained dataset | 2026-11-04 | yes | High |
+| 16 | Turnstile api.js: 86,756 B raw, 28,034 B br, 27,592 B gzip, plus a 302 redirect (max-age=300) | — | `curl -D h.txt -o api.js https://challenges.cloudflare.com/turnstile/v0/g/5c2e6b612edd/api.js` and `-H 'Accept-Encoding: br'` | Measurement | 2026-11-04 | global | High |
+| 17 | Eager Turnstile adds **245–256 KB** total transfer (including a ~223 KB challenge iframe document) and 4 requests. Lazy-on-interaction adds 0 third-party bytes at load | Paired Lighthouse, 5 rounds: base median 99, eager median 76, lazy median 99; eager scored lower than base in every round | Lighthouse 12.6.1, `--form-factor=mobile --throttling-method=simulate`, local pages; files under `/tmp/claude-1000/-mnt-data-ecom-website/7c4de3cb-26c7-4c11-ad65-446883326dd9/scratchpad/adminsec/` | Measurement | 2026-11-04 | global | **Bytes: high. Scores: low**, because the host was loaded (benchmarkIndex 212–2072, load avg 18) and absolute TBT values are inflated |
+| 18 | Turnstile api.js must not be proxied or self-hosted. Tokens are valid 300 s, single use. `render=explicit` and `execution:"execute"` let the challenge be deferred | — | https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/ and …/server-side-validation/ | Official docs | fetched 2026-11-04 | global | High |
+| 19 | Turnstile free plan: 20 widgets, 10 hostnames per widget, unlimited verifications | — | https://developers.cloudflare.com/turnstile/plans/ | Official docs | 2026-11-04 | global | High |
+| 20 | Bot Fight Mode injects JS into every HTML page, cannot be skipped by WAF rules, and applies to API routes | Quote: "You cannot bypass or skip Bot Fight Mode using WAF custom rules" | https://developers.cloudflare.com/bots/get-started/bot-fight-mode/ and …/javascript-detections/ | Official docs | 2026-11-04 | global | High |
+| 21 | Free-plan WAF rate limiting: 1 rule, counts by IP only, 10 s period, 10 s timeout | — | https://developers.cloudflare.com/waf/rate-limiting-rules/ | Official docs | 2026-11-04 | global | High |
+| 22 | The Workers Rate Limiting binding: any string key, 10 or 60 s, approximate and counted per location | — | https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/ | Official docs | 2026-11-04 | global | High |
+| 23 | Africa has among the highest users-per-IP ratios (CGNAT), so IP-only limits cause collateral blocks | Map-level only, no figure for Algeria | https://blog.cloudflare.com/detecting-cgn-to-reduce-collateral-damage/ | Measurement study | 29 Oct 2025 | proxy (Africa) | Medium |
+| 24 | Free plan WAF: only the Free Managed Ruleset | — | https://developers.cloudflare.com/waf/managed-rules/ | Official docs | 2026-11-04 | global | High |
+| 25 | Zero Trust free tier: up to 50 users. Access supports independent MFA (TOTP, security keys, biometrics) | Whether MFA is on the free plan is not stated | https://blog.cloudflare.com/zero-trust-week-setting-up-cloudflare-one-as-a-small-business/ ; https://developers.cloudflare.com/changelog/post/2026-04-15-independent-mfa/ | Vendor blog (fact) / docs | 2026-04 | global | Medium |
+| 26 | Payload's Workers template needs the paid plan (3 MB bundle) and runs Next.js through OpenNext. Turbopack is disabled because drizzle-kit is Node-only | — | https://github.com/payloadcms/payload/blob/main/templates/with-cloudflare-d1/README.md ; PR #17577 | Official repo | Aug 2026 | global | High |
+| 27 | Payload on Workers: the first admin user could not be created because Workers caps PBKDF2 at 100k iterations against Payload's 600k. Fixed on main but **"not in a release yet"** | — | https://github.com/payloadcms/payload/issues/18274 (comment 2026-10-29) | Issue tracker | Oct 2026 | global | High |
+| 28 | Payload D1 adapter: DELETE silently does nothing on Workers. **Open** | — | https://github.com/payloadcms/payload/issues/15070 | Issue tracker | open since Dec 2025 | global | High |
+| 29 | Payload on Workers + D1: 2–6 s TTFB, traced to the D1 instance; recreating it with a location hint brought it to ~50 ms | — | https://github.com/payloadcms/payload/issues/15012 | Issue tracker | Dec 2025 | global | Medium (one reporter) |
+| 30 | Medusa needs a Node server, PostgreSQL, Redis and ≥2 GB RAM | — | https://docs.medusajs.com/learn/deployment | Official docs | 2026-11-04 | global | High |
+| 31 | D1 Time Travel: 30 days (paid) or 7 days (free). Longer retention needs an export to R2 | — | https://developers.cloudflare.com/d1/reference/time-travel/ | Official docs | 2026-11-04 | global | High |
+| 32 | SMS to Algeria (Twilio): $0.273 per segment. Alphanumeric sender IDs need about 2 weeks of pre-registration. Mobilis rejects generic sender IDs. Numeric sender IDs are not fully supported | — | https://www.twilio.com/en-us/sms/pricing/dz ; https://www.twilio.com/en-us/guidelines/dz/sms | Official pricing/docs | 2026-11-04 | yes | High |
+| 33 | WhatsApp authentication messages, "Rest of Africa" (includes Algeria): ~$0.004 | Third-party tables. Meta's rate card was not readable | https://zernio.com/blog/whatsapp-business-api-pricing | Secondary | Jul 2026 rates | yes | Low–Medium |
+| 34 | Courier APIs are live and require auth: Yalidine returns 401 "API ID and/or Token must be specified"; Procolis (ZR legacy) returns 200 "Clé non détectée"; ZR new API returns 401 Bearer | — | `curl https://api.yalidine.app/v1/wilayas/` ; `curl https://procolis.com/api_v1/token` ; `curl -D - https://api.zrexpress.app` | Measurement | 2026-11-04 | yes | High (that they exist); fields are third-party (dzbuild.com) |
+| 35 | COD refusal / return rate in Algeria: **no peer-reviewed or courier-published figure**. Vendor blogs give 8–40% | — | https://dz-ecom.com/en/blog/paiement-livraison-cod-algerie-reduire-taux-retour ; https://www.igi-global.com/viewtitle.aspx?titleid=288344 (57% of respondents used COD, no refusal data) | Vendor / academic | 2021–2026 | yes | **Low** |
+| 36 | Shared courier blacklists: none found at Yalidine. Merchant-network blacklists exist only as vendor features | — | search results (Colisify / Ecommaps marketing) | Vendor marketing | 2026 | yes | Low |
+| 37 | Hash-based CSP for static or cached HTML, nonce-based for HTML rendered per request | Quote | https://web.dev/articles/strict-csp | Official guidance | undated | global | High |
+| 38 | The proposed header set is 652 bytes raw | — | `printf … | wc -c` | Measurement | 2026-11-04 | global | High |
+
+## 3. Alternatives considered and rejected
+
+- **Payload CMS on Workers + D1.** It has good field-level FR/AR localization, but:
+  - one integrity bug is still open (DELETE silently no-ops, #15070);
+  - an auth bug broke first-user creation and logins, and the fix is not released yet (#18274, Oct 2026);
+  - it needs the paid plan for its 3 MB bundle and runs Next.js through OpenNext;
+  - there are reports of multi-second TTFB (#15012).
+
+  The order-confirmation workflow would still be custom code. Revisit if #15070 closes and a stable release survives a spike.
+- **Directus, Strapi, Medusa, Saleor, Vendure.** Each needs a Node or Python server, plus Postgres and in some cases Redis (Medusa: ≥2 GB RAM). None runs on Workers, so each adds an off-Cloudflare origin to run and patch. The one argument for them: if counsel requires order data in Algeria, an Algerian-hosted server is needed anyway. That would make **Directus on an Algerian VPS** the most credible hybrid admin. I have no performance evidence for this; it would need a spike.
+- **Sanity or other headless SaaS.** Fine for content only, not orders or customers. It is also another foreign processor, which means another Art. 44 transfer.
+- **Shopify, YouCan or Algerian COD SaaS (benchmark only).** These are foreign-hosted. COD flows need third-party form apps. You get little control over the JS shipped to the storefront, so they fail the "speed wins" rule. I found no Algeria-specific performance data for them; the performance teammate should check CrUX.
+- **Hosting everything in Algeria.** This fully satisfies Art. 8 but drops Cloudflare edge compute, which conflicts with the brief. Kept as the legal fallback.
+- **Eager Turnstile or Bot Fight Mode on the storefront.** Rejected on the measured ~250 KB cost and the JS injection on every HTML page.
+- **SMS OTP on every order.** At $0.273 per SMS it would be affordable for high-ticket orders, but it adds a step and depends on sender-ID registration with Mobilis. The confirmation call already verifies the phone number. Keep OTP as a risk-triggered fallback only.
+- **IP-only rate limiting.** CGNAT evidence (#23) shows it would block legitimate Algerian mobile users. Key limits on phone number and combine them with IP instead.
+
+## 4. Interface assumptions (for the other teammates to challenge)
+
+1. **Frontend / performance:** The order form is HTML on the product page, with no framework JS needed to submit it. Turnstile loads on `focusin` or `pointerdown` on the form. The Art. 12 three-step flow (show conditions, show a review summary, then an explicit confirm button) fits on one page or a two-step page, with no extra round trip before the user interacts. HTML is cached at the edge, so the **CSP is hash-based**.
+2. **Data layer:** One SQL store (D1 or another) is shared by the storefront Worker (insert-only for orders) and the admin Worker. Customer records live in the database, not in KV or a cache. If the data teammate picks D1, its region is **weur** (no Africa option), which makes this an Art. 44 transfer.
+3. **Edge / CDN:** The `.com.dz` zone can be fully delegated to Cloudflare nameservers (the free plan needs a full NS setup). I did not verify NIC.dz's delegation process. Bot Fight Mode is off, and courier webhooks hit a path that no challenge touches.
+4. **i18n:** Product and content records carry `fr` and `ar` fields side by side. The admin renders Arabic fields `dir="rtl"`.
+5. **Rust hypothesis:** Nothing in admin, security or anti-fraud needs Rust. Validation and dedup are trivial in JS or TS. Workers' WebCrypto limits (e.g., PBKDF2 ≤100k iterations) apply to Rust/WASM too unless the hash is done in WASM. Since Cloudflare Access handles admin auth, we store no admin passwords.
+
+## 5. Risks and open questions (thin evidence flagged)
+
+- **Legal interpretation (high impact, thin evidence).** I found no law-firm analysis or regulator statement on whether a CDN or edge host counts as "hébergé en Algérie". I found no enforcement case under Art. 8 and no public ANPDP sanction. Algerian counsel must rule on four points:
+  - Art. 8 hosting;
+  - whether the Art. 45 consent or contract derogations cover storing data in D1 in the EU without authorisation;
+  - whether the 5-day breach rule applies to commercial controllers;
+  - the declaration timeline, which must be filed **before launch**.
+
+  Also, the Law 18-05 revision started in 2024 could change Art. 8 at any time.
+- **Art. 12 order flow.** A one-click "Commander" form may breach the three-step rule (fines of 50k–500k DA). This affects the frontend teammate's UX and conversion.
+- **Shared blacklists.** Sharing customers' phone numbers with other merchants or couriers is "communication to a third party" and needs prior consent (18-07 Art. 7). Use only the client's own blacklist.
+- **COD fraud and refusal rates.** No credible Algerian data exists (all sources are vendor blogs, 8–40%). Measure it from the client's own order log after launch.
+- **Turnstile in Algeria.** I have no field data on its solve rate, latency or false positives on Algerian networks, nor on how it performs on WCAG 2.2 AA. It also fetches ~250 KB while the user fills the form, which may matter on 3G. The cheap checks (honeypot, phone, dedup, call) must stand on their own if Turnstile fails, so fail open and flag the order.
+- **My Lighthouse scores are noisy.** The host was CPU-contended. Trust the byte counts and the direction of the paired results, not the absolute scores. Re-run on a quiet machine or WebPageTest from a North African vantage point.
+- **Wilaya transition.** Courier APIs may still use 58 wilayas until the transfer of responsibilities ends on 31 Dec 2026. Store both the official code and the courier's code. Load the commune list from the JO text or a dataset checked against it; the GitHub datasets are unofficial.
+- **Courier APIs.** The schemas, rate limits and webhooks of Yalidine, Ecotrack, Noest and Maystro were not verifiable from public docs: Yalidine's docs page sits behind a Cloudflare challenge, and Maystro and Noest have none public. Get credentials and docs from the client's chosen courier before committing.
+- **SMS from Algerian providers** (local aggregators) may be cheaper than Twilio. I found no verifiable pricing.
+- **Cloudflare Access on the free plan.** I could not confirm that independent MFA is included free, or the log retention. Check in the dashboard.
+- **Maintenance.** A custom admin means the team owns the CRUD screens, RBAC (roles: owner, confirmer, logistics, content), the audit log (append-only, which also covers 25-11 Art. 41 bis 3), daily D1 export to R2, and a secrets rotation runbook (Workers secrets). OWASP ASVS Level 2 is the right target for the admin; L1 plus the anti-automation controls fits the storefront. The legal setup also needs a named DPO and a register of processing.
+
+All primary legal texts are downloaded and extracted to `/tmp/claude-1000/-mnt-data-ecom-website/7c4de3cb-26c7-4c11-ad65-446883326dd9/scratchpad/adminsec/`. The Lighthouse JSON outputs (`lh2_*.json`, `lhout_*.json`) and the test pages (`site/base.html`, `site/eager.html`, `site/lazy.html`) are in the same folder.

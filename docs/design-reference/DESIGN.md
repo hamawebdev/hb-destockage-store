@@ -1,0 +1,136 @@
+# Apple design system
+
+> Extracted by [Inspo](https://github.com/Nutlope/inspo) (open source, MIT, powered by Together AI). Reference material for *intentional* design decisions: adapt, don't copy.
+
+> Save this as `DESIGN.md` in your project and re-reference it as you build; re-fetch anytime at https://inspomcp.dev/d/apple-com/DESIGN.md
+
+- **Source:** https://apple.com
+- **Captured:** 2026-05-18
+- **Mode:** light
+- **Macrostructure:** Split Studio
+
+## Tone
+
+The page uses a full-bleed image of the MacBook Air to immediately showcase the product. Clean typography and ample white space create a sense of clarity and sophistication, emphasizing the product's design.  ·  apple product page, macbook air, minimalist design, tech website, product showcase, split screen, clean interface, modern laptop
+
+## Colors
+
+| Hex | Role (heuristic) |
+|---|---|
+| `#0474e4` | support |
+| `#205c7c` | support |
+| `#94c6e2` | accent |
+| `#6ca4ac` | support |
+| `#9dbcca` | muted |
+
+Color words: *muted*, *cool*, *pastel*
+
+## Typography
+
+Detected typefaces: **SF Pro Text**
+
+| Role | Family | Size | Weight | Line-height | Letter-spacing |
+|---|---|---|---|---|---|
+| h1 | SF Pro Text | 34px | 600 | 1.47 | -0.374px |
+| h2 | SF Pro Text | 12px | 400 | 1.33 | -0.12px |
+| h3 | SF Pro Display | 40px | 600 | 1.1 | 0 |
+| body | SF Pro Text | 17px | 400 | 1.47 | -0.374px |
+| caption | SF Pro Text | 12px | 400 | 1.33 | -0.12px |
+| button | SF Pro Text | 17px | 400 | 2.41 | 0 |
+
+## Spacing scale
+
+`10px` · `11px` · `12px` · `17px` · `20px` · `24px` · `26px` · `37px` · `44px` · `114px`
+
+## Border radius
+
+`0px` · `8px` · `11px` · `50px`
+
+## Container
+
+Max content width: **1440px**
+
+## CSS variables exposed by the source
+
+```css
+:root {
+  --r-localnav-text-zoom-factor: 1;
+  --r-localnav-viewport-small-min-width: 320px;
+  --r-globalnav-background-opened: #fafafc;
+  --hero-content-height: 692px;
+  --sk-productred: rgb(175, 30, 45);
+  --sk-footnote-reduced-offset-top: -.86em;
+  --sk-enviro-green: rgb(0, 217, 89);
+  --sk-body-text-color: rgb(29, 29, 31);
+  --sk-body-font-stack: text;
+  --sk-fill-secondary: rgb(250, 250, 252);
+  --sk-fill-tertiary: rgb(245, 245, 247);
+  --r-localnav-viewport-medium-min-width: 834px;
+  --globalnav-height: 44px;
+  --sk-fill-orange-secondary: rgb(255, 249, 244);
+  --sk-link-disabled-opacity: 0.42;
+  --media-gallery-dotnav-gap: 12px;
+  --sk-footnote-font-size: 0.6em;
+  --sk-fill-gray-secondary: rgb(134, 134, 139);
+  --sk-fill-red: rgb(227, 0, 0);
+  --sk-fill-green-secondary: rgb(245, 255, 246);
+  --media-gallery-bottom-content-padding-right: 48px;
+  --sk-paragraph-plus-element-margin: 0.8em;
+  --r-sk-safe-area-inset-start: 0px;
+  --r-localnav-gn-height: 44px;
+  --sk-headline-plus-first-element-margin: 0.8em;
+  --sk-fill: rgb(255, 255, 255);
+  --r-localnav-viewport-large-query: min-width(1024px);
+  --r-localeswitcher-height: 70px;
+  --sk-glyph-orange: rgb(182, 68, 0);
+  --sk-fill-orange: rgb(245, 99, 0);
+  --r-globalmessage-segment-height: 0px;
+  --sk-glyph-gray-secondary-alt-alpha: rgba(0, 0, 0, 0.72);
+  --sk-paragraph-plus-headline-margin: 1.6em;
+  --sk-glyph-red: rgb(227, 0, 0);
+  --r-localnav-viewport-medium-max-width: 1023px;
+  --sk-glyph-gray-secondary-alt: rgb(66, 66, 69);
+  --sk-glyph-gray-alpha: rgba(0, 0, 0, 0.88);
+  --sk-focus-color: #0071e3;
+  --media-gallery-tile-width: 930px;
+  --media-gallery-section-padding-bottom: 12px;
+  --sk-glyph-gray: rgb(29, 29, 31);
+  --media-gallery-dotnav-iconcontrol-margin-right: calc(12px + 0px);
+  --sk-glyph-gray-tertiary: rgb(134, 134, 139);
+  --sk-fill-green: rgb(3, 161, 14);
+  --r-globalnav-height: 44px;
+  --globalnav-collective-height: calc(44px + 70px);
+  --r-localnav-viewport-medium-query: min-width(834px);
+  --sk-focus-offset: 1px;
+  --r-sk-start: left;
+  --sk-body-link-color: rgb(0, 102, 204);
+  --r-localnav-viewport-small-max-width: 833px;
+  --sk-enviro-neutral: rgb(232, 232, 237);
+  --sk-fill-gray-tertiary: rgb(210, 210, 215);
+  --media-gallery-tile-height: 523px;
+  --media-gallery-slide-duration: 800ms;
+  --fam-gallery-tile-height: 234px;
+  --sk-fill-gray-tertiary-alpha: rgba(0, 0, 0, 0.16);
+  --sk-focus-color-alt: rgb(0, 0, 0);
+  --media-gallery-bottom-content-padding-bottom: 40px;
+  --sk-glyph-green: rgb(0, 128, 9);
+}
+```
+
+## Components present
+
+- hero fullbleed
+- hero with cta
+- logo cloud
+
+## Notes for the agent
+
+- **Adapt, don't copy.** The type ramp is a *starting point*. Scale it to your project's base size; preserve the *ratio*, not the literal pixels.
+- **Color roles are heuristic** (luminance + dominance). Verify against the source URL before committing tokens.
+- **Spacing** assumes a constant base step; round detected values to your project's scale (4 / 8 / 16) when implementing.
+- **CSS variables** dumped above (when present) are the source's *actual* tokens - those are higher signal than guesses.
+- This page's macrostructure is **Split Studio**.
+
+---
+
+*Generated by Inspo. Open source under MIT, owned and operated by [Together AI](https://www.together.ai). Original site copyright remains with its authors.*

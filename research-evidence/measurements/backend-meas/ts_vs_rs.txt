@@ -1,0 +1,80 @@
+cf-ray: a553c7fcb8bf0c79-MRS XX dz-backend-spike plain 4.919159 7.948585 
+server-timing: d1;dur=60.0, total;dur=60.0 cf-ray: a553c8256eeb0b96-MRS XX dz-backend-spike render?cat=3 3.257174 4.231311 
+cf-ray: a553c847cde761ee-MRS XX dz-rs-spike plain 4.174529 4.344601 
+server-timing: d1;dur=30 cf-ray: a553c85249dd4821-MRS XX dz-rs-spike render?cat=3 1.296176 1.530753 
+cf-ray: a553c85fc9afebe8-MRS XX dz-backend-spike plain 1.626263 1.865348 
+server-timing: d1;dur=26.0, total;dur=26.0 cf-ray: a553c8674c6ce243-MRS XX dz-backend-spike render?cat=3 0.779794 0.990035 
+cf-ray: a553c877fce4e9e9-MRS XX dz-rs-spike plain 2.177444 2.587774 
+server-timing: d1;dur=25 cf-ray: a553c883c8aa7b1f-MRS XX dz-rs-spike render?cat=3 1.208990 1.422426 
+cf-ray: a553c88ecde8ad93-MRS XX dz-backend-spike plain 1.002753 1.455610 
+server-timing: d1;dur=25.0, total;dur=25.0 cf-ray: a553c8afefbe4dfe-MRS XX dz-backend-spike render?cat=3 4.471303 7.529348 
+cf-ray: a553c8db6beae1d4-MRS XX dz-rs-spike plain 3.521662 8.345272 
+server-timing: d1;dur=29 cf-ray: a553c9513dd3ae2d-MRS XX dz-rs-spike render?cat=3 13.091523 14.917095 
+cf-ray: a553c96ddd321a5e-MRS XX dz-backend-spike plain 3.396841 3.639663 
+server-timing: d1;dur=23.0, total;dur=23.0 cf-ray: a553c980d982e27e-MRS XX dz-backend-spike render?cat=3 2.353593 3.308394 
+cf-ray: a553c98969113391-MRS XX dz-rs-spike plain 0.577268 0.727123 
+server-timing: d1;dur=32 cf-ray: a553c98e0c7d2d04-MRS XX dz-rs-spike render?cat=3 0.385958 0.578440 
+cf-ray: a553c9926df56dcc-MRS XX dz-backend-spike plain 0.408409 0.577286 
+server-timing: d1;dur=22.0, total;dur=22.0 cf-ray: a553c99f7dbdd2ad-MRS XX dz-backend-spike render?cat=3 1.588413 2.333088 
+cf-ray: a553c9b379ee57f8-MRS XX dz-rs-spike plain 2.273964 2.731614 
+server-timing: d1;dur=28 cf-ray: a553c9c05f60b6c4-MRS XX dz-rs-spike render?cat=3 1.435170 1.581178 
+cf-ray: a553c9c99cc3e232-MRS XX dz-backend-spike plain 0.949204 1.117882 
+server-timing: d1;dur=29.0, total;dur=29.0 cf-ray: a553c9d06f84bae0-MRS XX dz-backend-spike render?cat=3 0.763162 0.959657 
+cf-ray: a553c9d4795a353b-MRS XX dz-rs-spike plain 0.346156 0.497794 
+server-timing: d1;dur=28 cf-ray: a553c9dfc822e27a-MRS XX dz-rs-spike render?cat=3 1.629070 1.872948 
+cf-ray: a553ca07be31169b-MRS XX dz-backend-spike plain 5.778889 6.088884 
+server-timing: d1;dur=29.0, total;dur=29.0 cf-ray: a553ca0e4a43e22d-MRS XX dz-backend-spike render?cat=3 0.565991 0.877092 
+cf-ray: a553ca37b90115d7-MRS XX dz-rs-spike plain 6.162374 6.289326 
+server-timing: d1;dur=19 cf-ray: a553ca3d3e4ce160-MRS XX dz-rs-spike render?cat=3 0.524955 0.702341 
+cf-ray: a553ca647ad0e195-MRS XX dz-backend-spike plain 5.886271 6.305342 
+server-timing: d1;dur=22.0, total;dur=22.0 cf-ray: a553ca717ba611b2-MRS XX dz-backend-spike render?cat=3 1.370688 1.689847 
+cf-ray: a553ca81bec7c570-MRS XX dz-rs-spike plain 2.031592 2.363998 
+server-timing: d1;dur=22 cf-ray: a553ca8c3d6c1b3e-MRS XX dz-rs-spike render?cat=3 1.155313 1.459322 
+cf-ray: a553caba5f6938b8-MRS XX dz-backend-spike plain 6.758766 6.889756 
+server-timing: d1;dur=24.0, total;dur=24.0 cf-ray: a553cac86c10bae0-MRS XX dz-backend-spike render?cat=3 1.649568 2.179432 
+cf-ray: a553caceba0ee27a-MRS XX dz-rs-spike plain 0.663044 0.819009 
+server-timing: d1;dur=30 cf-ray: a553cad5cc6293a1-MRS XX dz-rs-spike render?cat=3 0.859217 1.040045 
+cf-ray: a553cada7f85e22d-MRS XX dz-backend-spike plain 0.449620 0.622475 
+server-timing: d1;dur=37.0, total;dur=37.0 cf-ray: a553caea6de507ea-MRS XX dz-backend-spike render?cat=3 2.030977 2.182955 
+cf-ray: a553caeeca23e238-MRS XX dz-rs-spike plain 0.431250 0.693932 
+server-timing: d1;dur=36 cf-ray: a553caf3aca32d04-MRS XX dz-rs-spike render?cat=3 0.465505 0.667862 
+cf-ray: a553cafd9a53e229-MRS XX dz-backend-spike plain 0.955879 1.300410 
+server-timing: d1;dur=24.0, total;dur=24.0 cf-ray: a553cb0caf4e11a6-MRS XX dz-backend-spike render?cat=3 1.487482 2.125630 
+cf-ray: a553cb194c0ae243-MRS XX dz-rs-spike plain 1.146893 1.632246 
+server-timing: d1;dur=33 cf-ray: a553cb257d13da11-MRS XX dz-rs-spike render?cat=3 1.697242 1.872462 
+cf-ray: a553cb2fabf1e232-MRS XX dz-backend-spike plain 1.124005 1.257518 
+server-timing: d1;dur=22.0, total;dur=22.0 cf-ray: a553cb359cc8da75-MRS XX dz-backend-spike render?cat=3 0.448787 0.806533 
+cf-ray: a553cb441bb4f0de-MRS XX dz-rs-spike plain 1.878254 2.065563 
+server-timing: d1;dur=25 cf-ray: a553cb47bc26e1e0-MRS XX dz-rs-spike render?cat=3 0.340809 0.461125 
+cf-ray: a553cb4cec5da60e-MRS XX dz-backend-spike plain 0.600365 0.764844 
+server-timing: d1;dur=32.0, total;dur=32.0 cf-ray: a553cb565a9eb684-MRS XX dz-backend-spike render?cat=3 1.095371 1.373452 
+cf-ray: a553cb5c2c2de161-MRS XX dz-rs-spike plain 0.565246 0.684517 
+server-timing: d1;dur=29 cf-ray: a553cb5fdf58e1f8-MRS XX dz-rs-spike render?cat=3 0.390783 0.543534 
+cf-ray: a553cb65dbef2438-MRS XX dz-backend-spike plain 0.621705 0.750246 
+server-timing: d1;dur=34.0, total;dur=34.0 cf-ray: a553cb694d2ce27d-MRS XX dz-backend-spike render?cat=3 0.296526 0.448415 
+cf-ray: a553cb6e8e0fe1c4-MRS XX dz-rs-spike plain 0.432240 0.579191 
+server-timing: d1;dur=22 cf-ray: a553cb757d84d82a-MRS XX dz-rs-spike render?cat=3 0.861099 1.034297 
+cf-ray: a553cb7c78dfe1c1-MRS XX dz-backend-spike plain 0.681442 1.045132 
+server-timing: d1;dur=32.0, total;dur=32.0 cf-ray: a553cb8e0b0be22d-MRS XX dz-backend-spike render?cat=3 1.966585 2.404892 
+cf-ray: a553cbb4bcd04591-MRS XX dz-rs-spike plain 5.703989 5.832692 
+server-timing: d1;dur=30 cf-ray: a553cbbcb8d8e1f8-MRS XX dz-rs-spike render?cat=3 0.668367 1.188574 
+cf-ray: a553cbc36ab23391-MRS XX dz-backend-spike plain 0.791308 1.156653 
+server-timing: d1;dur=24.0, total;dur=24.0 cf-ray: a553cbcb79cce1e9-MRS XX dz-backend-spike render?cat=3 0.825388 1.046501 
+cf-ray: a553cbf2bec24b90-MRS XX dz-rs-spike plain 5.836734 5.951232 
+server-timing: d1;dur=20 cf-ray: a553cc1638ece1ec-MRS XX dz-rs-spike render?cat=3 5.452888 5.600907 
+cf-ray: a553cc3ff8e0e229-MRS XX dz-backend-spike plain 6.210317 6.438478 
+server-timing: d1;dur=26.0, total;dur=26.0 cf-ray: a553cc44ab8b4821-MRS XX dz-backend-spike render?cat=3 0.382617 0.564036 
+cf-ray: a553cc491814e17f-MRS XX dz-rs-spike plain 0.424658 0.551210 
+server-timing: d1;dur=24 cf-ray: a553cc53094ada75-MRS XX dz-rs-spike render?cat=3 0.914102 1.222551 
+cf-ray: a553cc615eadac32-MRS XX dz-backend-spike plain 1.419974 2.081344 
+server-timing: d1;dur=29.0, total;dur=29.0 cf-ray: a553cc855a82e1a4-MRS XX dz-backend-spike render?cat=3 2.968522 5.659036 
+cf-ray: a553cc93f99e70eb-MRS XX dz-rs-spike plain 1.678350 2.413526 
+server-timing: d1;dur=22 cf-ray: a553cca03f4ee15d-MRS XX dz-rs-spike render?cat=3 1.337187 1.895425 
+cf-ray: a553ccae3f6dae2d-MRS XX dz-backend-spike plain 1.493832 1.789378 
+server-timing: d1;dur=13.0, total;dur=13.0 cf-ray: a553ccb99b0c647c-ORN XX dz-backend-spike render?cat=3 1.288040 1.669586 
+cf-ray: a553cceb68a1225f-MRS XX dz-rs-spike plain 7.109406 7.409113 
+server-timing: d1;dur=73 cf-ray: a553cd13bc3e2980-ORN XX dz-rs-spike render?cat=3 5.941541 6.186934 
+cf-ray: a553cd3d682ae1f0-MRS XX dz-backend-spike plain 6.127186 7.123597 
+server-timing: d1;dur=30.0, total;dur=30.0 cf-ray: a553cd4d7ed2c913-MRS XX dz-backend-spike render?cat=3 1.422624 2.121890 
+cf-ray: a553cd767e95e1b7-MRS XX dz-rs-spike plain 5.687387 5.819592 
+server-timing: d1;dur=24 cf-ray: a553cd7becaf34b8-MRS XX dz-rs-spike render?cat=3 0.585443 0.821974 

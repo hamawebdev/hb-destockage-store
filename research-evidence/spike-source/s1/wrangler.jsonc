@@ -1,0 +1,2 @@
+{ "name": "dz-spike-s1-static", "main": "src/index.js", "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./public", "binding": "ASSETS", "html_handling": "auto-trailing-slash", "not_found_handling": "404-page" } }

@@ -1,0 +1,18 @@
+d1?n=10 rep1 MRS min 20 p50 28 max 32 first 20 CDG 
+d1?n=10 rep2 MRS min 18 p50 22 max 28 first 18 CDG 
+d1?n=10 rep3 MRS min 20 p50 26 max 41 first 20 CDG 
+d1?n=10&mode=first-unconstrained rep1 MRS min 21 p50 25 max 36 first 23 CDG 
+d1?n=10&mode=first-unconstrained rep2 MRS min 20 p50 23 max 29 first 20 CDG 
+d1?n=10&mode=first-unconstrained rep3 MRS min 19 p50 24 max 29 first 20 CDG 
+d1list?n=10 rep1 MRS min 10 p50 11 max 12 first 10  
+d1list?n=10 rep2 MRS min 19 p50 27 max 31 first 19  
+d1list?n=10 rep3 MRS min 24 p50 30 max 39 first 24  
+d1write?n=10 rep1 MRS min 19 p50 21 max 23 first 20 CDG 
+d1write?n=10 rep2 MRS min 32 p50 37 max 44 first 37 CDG 
+d1write?n=10 rep3 MRS min 31 p50 39 max 102 first 36 CDG 
+do?n=10 rep1 MRS min 10 p50 11 max 372 first 372  
+do?n=10 rep2 MRS min 19 p50 22 max 225 first 225  
+do?n=10 rep3 MRS min 26 p50 28 max 38 first 38  
+kv?n=10 rep1 MRS min 4 p50 7 max 36 first 36  
+kv?n=10 rep2 MRS min 3 p50 4 max 8 first 5  
+kv?n=10 rep3 MRS min 3 p50 6 max 8 first 6  
