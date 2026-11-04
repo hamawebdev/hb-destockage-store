@@ -132,5 +132,108 @@
       "fetchedAt": "2026-11-04",
       "note": "Component of the 4-in-1 pack (\"mitigeur cuisine\"). Price is a placeholder."
     }
+  ],
+  "imagesNote": "source: client_own = the client's own photograph (iPhone EXIF); supplier_render = Instagram screenshot of a collage of product renders, rights to be confirmed by the client. burnedInPrice = price printed in the image (stale if the price changes). Unreferenced files: data/photos/_unreferenced/ (see data/photos/README.md).",
+  "images": [
+    {
+      "imageId": 1111,
+      "productId": 111,
+      "key": "colonne-de-douche-piano/1.jpg",
+      "wpMediaId": 498,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7689.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": null
+    },
+    {
+      "imageId": 1011,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/1.jpg",
+      "wpMediaId": 497,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7696.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": "13600 / 14600 (paper signs)"
+    },
+    {
+      "imageId": 1012,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/2.jpg",
+      "wpMediaId": 4272,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "14600"
+    },
+    {
+      "imageId": 1013,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/3.jpg",
+      "wpMediaId": 4436,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "14600"
+    },
+    {
+      "imageId": 1014,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/4.jpg",
+      "wpMediaId": 4441,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "14600"
+    },
+    {
+      "imageId": 1015,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/5.jpg",
+      "wpMediaId": 4466,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/11/8944D590-457D-4B4D-B703-1B942A809EEF.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "14600"
+    },
+    {
+      "imageId": 1021,
+      "productId": 102,
+      "key": "pack-b-3-en-1-colonne-piano/1.jpg",
+      "wpMediaId": 150,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/0A57AC22-93A3-40EF-BAE4-CB9D03CD520E.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": "13600"
+    },
+    {
+      "imageId": 1022,
+      "productId": 102,
+      "key": "pack-a-3-en-1-colonne-piano-led/1.jpg",
+      "wpMediaId": 497,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7696.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": "13600 / 14600 (paper signs)"
+    },
+    {
+      "imageId": 1023,
+      "productId": 102,
+      "key": "colonne-de-douche-piano/1.jpg",
+      "wpMediaId": 498,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7689.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": null
+    },
+    {
+      "imageId": 1031,
+      "productId": 103,
+      "key": "pack-luxe-4-en-1/1.jpg",
+      "wpMediaId": 147,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "16500"
+    }
   ]
 }

@@ -53,5 +53,45 @@
       "qty": 1
     }
   ],
-  "images": []
+  "images": [
+    {
+      "id": 1021,
+      "variantId": null,
+      "key": "pack-b-3-en-1-colonne-piano/1.jpg",
+      "width": 1320,
+      "height": 1701,
+      "alt": {
+        "ar": "يد تمسك لوحة التحكّم السوداء لعمود الاستحمام برأس دش مربّع، وبجانبه خلّاط المغسلة وحنفية المرحاض، مع ملصق «13600 Da».",
+        "fr": "Une main tient le panneau de commande noir de la colonne de douche à pommeau carré, à côté le mitigeur de lavabo et le robinet de toilette ; étiquette « 13600 Da »."
+      },
+      "position": 1,
+      "placeholder": false
+    },
+    {
+      "id": 1022,
+      "variantId": null,
+      "key": "pack-a-3-en-1-colonne-piano-led/1.jpg",
+      "width": 3190,
+      "height": 3511,
+      "alt": {
+        "ar": "طقمان من عمود استحمام وخلّاط مغسلة وحنفية مرحاض باللون الأسود، موضوعان على صناديق، مع لافتتين مكتوب عليهما «13600 DA» و«14600 DA».",
+        "fr": "Deux packs noirs posés sur des cartons, chacun avec colonne de douche, mitigeur de lavabo et robinet de toilette, avec deux pancartes « 13600 DA » et « 14600 DA »."
+      },
+      "position": 2,
+      "placeholder": false
+    },
+    {
+      "id": 1023,
+      "variantId": null,
+      "key": "colonne-de-douche-piano/1.jpg",
+      "width": 3716,
+      "height": 2287,
+      "alt": {
+        "ar": "لوحتا تحكّم لعمود الاستحمام على طاولة: لوحة سوداء مستديرة بأزرار جانبية، ولوحة رمادية مصقولة بأربعة أزرار وشاشة.",
+        "fr": "Deux panneaux de commande de colonne de douche sur une table : un panneau noir arrondi à boutons latéraux et un panneau gris brossé à quatre touches et afficheur."
+      },
+      "position": 3,
+      "placeholder": false
+    }
+  ]
 }

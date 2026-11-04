@@ -85,5 +85,19 @@
     }
   ],
   "packItems": [],
-  "images": []
+  "images": [
+    {
+      "id": 1111,
+      "variantId": null,
+      "key": "colonne-de-douche-piano/1.jpg",
+      "width": 3716,
+      "height": 2287,
+      "alt": {
+        "ar": "لوحتا تحكّم لعمود الاستحمام على طاولة: لوحة سوداء مستديرة بأزرار جانبية، ولوحة رمادية مصقولة بأربعة أزرار وشاشة.",
+        "fr": "Deux panneaux de commande de colonne de douche sur une table : un panneau noir arrondi à boutons latéraux et un panneau gris brossé à quatre touches et afficheur."
+      },
+      "position": 1,
+      "placeholder": false
+    }
+  ]
 }

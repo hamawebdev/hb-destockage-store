@@ -57,5 +57,19 @@
       "qty": 1
     }
   ],
-  "images": []
+  "images": [
+    {
+      "id": 1031,
+      "variantId": null,
+      "key": "pack-luxe-4-en-1/1.jpg",
+      "width": 1284,
+      "height": 1533,
+      "alt": {
+        "ar": "لوحة عمود الاستحمام السوداء بإضاءة LED، وتحتها حنفية المرحاض وخلّاط المغسلة وخلّاط المطبخ، مع ملصق «16500 Da».",
+        "fr": "Panneau noir de la colonne de douche avec LED, au-dessous le robinet de toilette, le mitigeur de lavabo et le mitigeur de cuisine ; étiquette « 16500 Da »."
+      },
+      "position": 1,
+      "placeholder": false
+    }
+  ]
 }
