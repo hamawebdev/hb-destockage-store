@@ -1,8 +1,8 @@
-// GEO-5: regenerate data/geo/search.corpus.json (golden input → output pairs for ports of
-// normalizeForSearch). Usage: node data/geo/scripts/make-search-corpus.mjs
+// GEO-5: regenerate data/geo/search.corpus.json (golden input → {out: normalizeForSearch,
+// key: searchKey} for ports). Usage: node data/geo/scripts/make-search-corpus.mjs
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { normalizeForSearch } from '../search.mjs';
+import { normalizeForSearch, searchKey } from '../search.mjs';
 import { loadWilayas, loadCommunes } from '../index.mjs';
 
 export const EDGE_CASES = [
@@ -15,11 +15,12 @@ export const EDGE_CASES = [
   ['مُسْتَغَانِم', 'ar'], ['قسنطينـــة', 'ar'], ['قسنطينة', 'ar'], ['قسنطينه', 'ar'], ['سيدى بلعباس', 'ar'], ['سيدي بلعباس', 'ar'],
   ['مؤسسة', 'ar'], ['بئر العاتر', 'ar'], ['آفلو', 'ar'], ['أفلو', 'ar'], ['إليزي', 'ar'],
   ['٠١٦', 'ar'], ['۱۶', 'ar'], ['16 - الجزائر', 'ar'], ['16 - Alger', 'fr'], ['', 'fr'], ['   ', 'ar'],
+  ['Cuiseur à œufs', 'fr'], ['Æ', 'fr'], ['ß', 'fr'], ['ورڨلة', 'ar'], ['ڢ', 'ar'], ['بسکرة', 'ar'], ['سیدی', 'ar'],
 ];
 
 export function corpus() {
   const out = [];
-  const add = (input, lang) => out.push({ in: input, lang, out: normalizeForSearch(input, lang) });
+  const add = (input, lang) => out.push({ in: input, lang, out: normalizeForSearch(input, lang), key: searchKey(input, lang) });
   for (const [s, l] of EDGE_CASES) add(s, l);
   for (const w of loadWilayas()) { add(w.name_ar, 'ar'); add(w.name_fr, 'fr'); }
   // Every 10th commune: a spread over all wilayas and spelling styles.
