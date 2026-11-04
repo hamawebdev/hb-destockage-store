@@ -115,8 +115,14 @@ describe('product', () => {
       ['Taille', [['M', true], ['L', true]]],
       ['Couleur', [['Rouge', true], ['Bleu', true]]],
     ]);
-    expect(p.variants.find((v) => v.sku === 'TAB-M-BLU')!.imageIndex).toBe(1);
-    expect(p.variants[0]!.imageIndex).toBeNull();
+    // Gallery: general, then colour-value (Bleu), then variant (L/Bleu).
+    expect(p.images.map((i) => [i.variantId, i.optionValueId])).toEqual([[null, null], [null, 304], [1014, null]]);
+    expect(p.variants.map((v) => [v.sku, v.imageIndex, v.imageIndexes])).toEqual([
+      ['TAB-M-RGE', null, [0]],
+      ['TAB-M-BLU', 1, [1, 0]],
+      ['TAB-L-BLU', 2, [2, 1, 0]],
+    ]);
+    expect(p.options[1]!.values.map((x) => [x.label, x.imageIndexes])).toEqual([['Rouge', []], ['Bleu', [1]]]);
     expect(p.price.amountDzd).toBe(1900);
     expect(p.price.from).toBe(false);
     expect(p.price.discountPercent).toBe(21);

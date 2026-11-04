@@ -5,7 +5,8 @@
  * Cases covered (use `pageSize: 2` to get a paginated category):
  *  - categories: Cuisine (top, active) > Ustensiles (sub-category); Salle de bain (top, empty);
  *    Archive (inactive, not published).
- *  - 101 variable size × colour: one combination out of stock, one inactive, one low stock.
+ *  - 101 variable size × colour: one combination out of stock, one inactive, one low stock;
+ *    images: one general, one bound to the colour value Bleu, one bound to variant L/Bleu.
  *  - 102 simple, out of stock.   103 simple, low stock.   104 simple, untracked stock, brand.
  *  - 105 simple, placeholder product with Arabic translation placeholder.
  *  - 106 pack of 3 items (102, 103 and draft component 107 → item without its own page).
@@ -14,9 +15,18 @@
  */
 import type { CatalogSnapshot, SnapshotImage, SnapshotVariant } from '../types.ts';
 
-const img = (id: number, key: string, fr: string, ar: string, position = 0, variantId: number | null = null): SnapshotImage => ({
+const img = (
+  id: number,
+  key: string,
+  fr: string,
+  ar: string,
+  position = 0,
+  variantId: number | null = null,
+  optionValueId: number | null = null,
+): SnapshotImage => ({
   id,
   variantId,
+  ...(optionValueId === null ? {} : { optionValueId }),
   key,
   width: 1600,
   height: 1600,
@@ -133,7 +143,8 @@ export const fixtureSnapshot: CatalogSnapshot = {
       packItems: [],
       images: [
         img(5011, 'fixture/tablier.jpg', 'Tablier de cuisine rouge', 'مريلة مطبخ حمراء', 0),
-        img(5012, 'fixture/tablier-bleu.jpg', 'Tablier de cuisine bleu', 'مريلة مطبخ زرقاء', 1, 1012),
+        img(5012, 'fixture/tablier-bleu.jpg', 'Tablier de cuisine bleu', 'مريلة مطبخ زرقاء', 1, null, 304),
+        img(5013, 'fixture/tablier-l-bleu.jpg', 'Tablier de cuisine bleu, taille L', 'مريلة مطبخ زرقاء، مقاس L', 2, 1014),
       ],
     },
     {

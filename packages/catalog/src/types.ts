@@ -83,7 +83,7 @@ export interface SnapshotCategory {
   readonly placeholder: boolean;
   /** Languages whose text (name, description, slug) is our translation, not the client's. `[]` when none. */
   readonly translationPlaceholder: readonly Lang[];
-  /** Category's own image (DB-1 `images.category_id`; `variantId` null). Absent/null ⇒ builders use
+  /** Category's own image (DB-1 `images.category_id`; no binding). Absent/null ⇒ builders use
    *  the first product image in the category's subtree. */
   readonly image?: SnapshotImage | null;
 }
@@ -171,8 +171,13 @@ export interface SnapshotPackItem {
 /** DB-1 `images`. */
 export interface SnapshotImage {
   readonly id: Id;
-  /** Null = product-level image; else the variant it illustrates. */
+  /**
+   * Binding. Both null = general (whole product). `variantId` = one variant. `optionValueId` = every
+   * variant with that option value (e.g. colour = red on a size × colour product). At most one of
+   * the two is set. `optionValueId` is optional in data (absent = null).
+   */
   readonly variantId: Id | null;
+  readonly optionValueId?: Id | null;
   /**
    * The original's key: its path relative to `data/photos/`. `db`'s seed uploads `data/photos/*`
    * to R2 under the same keys, so a `d1` snapshot's key is also the R2 object key.
@@ -545,6 +550,8 @@ export interface CategoryProps {
 export interface OptionValueProps {
   readonly id: Id;
   readonly label: string;
+  /** Indexes into `ProductProps.images` bound to this value (e.g. the red photos), position order. */
+  readonly imageIndexes: readonly number[];
   readonly swatchHex: string | null;
   /** At least one `available` variant has this value. */
   readonly available: boolean;
@@ -570,6 +577,9 @@ export interface VariantProps {
   readonly stock: StockProps;
   /** Index into `ProductProps.images` to show when selected; null ⇒ keep current. */
   readonly imageIndex: number | null;
+  /** Gallery for this variant, as indexes into `ProductProps.images`: images bound to the variant,
+   *  then images bound to any of its option values (option order), then the general images. */
+  readonly imageIndexes: readonly number[];
   readonly isDefault: boolean;
   /** `active && stock.state !== 'out_of_stock'`. Inactive variants are not in `variants` at all,
    *  so a combination with no entry in `variants` is unavailable too. */
@@ -623,6 +633,12 @@ export interface OrderFormProps {
   readonly orderable: boolean;
 }
 
+/** A gallery image with its binding (see `SnapshotImage`). */
+export interface ProductImageProps extends ImageProps {
+  readonly variantId: Id | null;
+  readonly optionValueId: Id | null;
+}
+
 export interface ProductProps {
   readonly layout: LayoutProps;
   readonly product: {
@@ -641,7 +657,7 @@ export interface ProductProps {
   readonly category: { readonly id: Id; readonly name: string; readonly href: string };
   readonly breadcrumbs: readonly Breadcrumb[];
   /** All images in order; `images[0]` is the LCP image (`lcp: true`). */
-  readonly images: readonly ImageProps[];
+  readonly images: readonly ProductImageProps[];
   /** The default variant's price (`from` false). The picker swaps in `variants[i].price`. */
   readonly price: PriceProps;
   /** The default variant's stock. Whole-product availability: `orderForm.orderable`. */

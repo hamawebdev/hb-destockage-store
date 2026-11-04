@@ -47,6 +47,7 @@ import {
   type PaginationProps,
   type PriceProps,
   type ProductCard,
+  type ProductImageProps,
   type ProductProps,
   type RouteEntry,
   type SearchProps,
@@ -218,10 +219,26 @@ export function toImageProps(ctx: BuildContext, img: SnapshotImage, lang: Lang, 
   };
 }
 
-/** Product-level images by position, then variant images by position. */
+const optionValueOf = (i: SnapshotImage): Id | null => i.optionValueId ?? null;
+const isGeneral = (i: SnapshotImage): boolean => i.variantId === null && optionValueOf(i) === null;
+
+/**
+ * Gallery order: general images, then option-value images (option position, value position),
+ * then variant images; each group by image position. `[0]` is the main/LCP image.
+ */
 function orderedImages(p: SnapshotProduct): SnapshotImage[] {
   const byPos = (a: SnapshotImage, b: SnapshotImage): number => a.position - b.position || a.id - b.id;
-  return [...p.images.filter((i) => i.variantId === null).sort(byPos), ...p.images.filter((i) => i.variantId !== null).sort(byPos)];
+  const valueRank = new Map<Id, number>();
+  [...p.options]
+    .sort((a, b) => a.position - b.position || a.id - b.id)
+    .forEach((o, oi) => [...o.values].sort((a, b) => a.position - b.position || a.id - b.id).forEach((x, xi) => valueRank.set(x.id, oi * 10_000 + xi)));
+  const byValue = (a: SnapshotImage, b: SnapshotImage): number =>
+    (valueRank.get(optionValueOf(a)!) ?? 0) - (valueRank.get(optionValueOf(b)!) ?? 0) || byPos(a, b);
+  return [
+    ...p.images.filter(isGeneral).sort(byPos),
+    ...p.images.filter((i) => optionValueOf(i) !== null).sort(byValue),
+    ...p.images.filter((i) => i.variantId !== null).sort(byPos),
+  ];
 }
 
 const mainImage = (p: SnapshotProduct): SnapshotImage | undefined => orderedImages(p)[0];
@@ -526,13 +543,24 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
   const entry = entryFor(ctx, lang, ref('product', productId));
   const p = ctx.productById.get(productId)!;
   const imgs = orderedImages(p);
-  const images = imgs.map((img, i) => toImageProps(ctx, img, lang, 'gallery', i === 0));
+  const images: ProductImageProps[] = imgs.map((img, i) => ({
+    ...toImageProps(ctx, img, lang, 'gallery', i === 0),
+    variantId: img.variantId,
+    optionValueId: optionValueOf(img),
+  }));
+  const indexesWhere = (pred: (img: SnapshotImage) => boolean): number[] => imgs.flatMap((img, i) => (pred(img) ? [i] : []));
+  const generalIdx = indexesWhere(isGeneral);
+  const optionPos = new Map(p.options.flatMap((o) => o.values.map((x) => [x.id, o.position * 10_000 + o.id] as const)));
   const vs = activeVariants(p);
   const def = defaultVariant(p);
 
   const variants: VariantProps[] = vs.map((v) => {
     const stock = variantStock(ctx, v);
-    const idx = imgs.findIndex((img) => img.variantId === v.id);
+    const own = indexesWhere((img) => img.variantId === v.id);
+    const byValue = [...v.optionValueIds]
+      .sort((a, b) => (optionPos.get(a) ?? 0) - (optionPos.get(b) ?? 0))
+      .flatMap((vid) => indexesWhere((img) => optionValueOf(img) === vid));
+    const specific = [...own, ...byValue];
     return {
       id: v.id,
       sku: v.sku,
@@ -541,7 +569,8 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
       label: variantLabel(p, v, lang),
       price: price(lang, v.priceDzd, v.compareAtDzd, false),
       stock,
-      imageIndex: idx === -1 ? null : idx,
+      imageIndex: specific[0] ?? null,
+      imageIndexes: [...specific, ...generalIdx],
       isDefault: v.id === def.id,
       available: stock.state !== 'out_of_stock',
       maxQty: stock.state === 'out_of_stock' ? 0 : Math.min(stock.qty ?? ORDER_MAX_QTY, ORDER_MAX_QTY),
@@ -556,7 +585,13 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
       name: o.name[lang],
       values: [...o.values]
         .sort((a, b) => a.position - b.position || a.id - b.id)
-        .map((x) => ({ id: x.id, label: x.value[lang], swatchHex: x.swatchHex, available: availableValues.has(x.id) })),
+        .map((x) => ({
+          id: x.id,
+          label: x.value[lang],
+          imageIndexes: indexesWhere((img) => optionValueOf(img) === x.id),
+          swatchHex: x.swatchHex,
+          available: availableValues.has(x.id),
+        })),
     }));
 
   const packItems: PackItemProps[] = p.packItems.map((it) => {
