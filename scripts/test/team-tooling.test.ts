@@ -268,6 +268,40 @@ describe('gate.sh', () => {
     write(root, 'node_modules/.hb-lock-hash', `${hash}\n`);
   };
 
+  test('locks: a gate takes a heavy slot shared with `locks.sh heavy`; a full heavy pool blocks both', () => {
+    const root = makeRepo();
+    prepNodeModules(root);
+    const dir = mkdtempSync(join(tmpdir(), 'hb-locks-pool-'));
+    tmpRoots.push(dir);
+    const env = { HB_LOCK_DIR: dir, HB_HEAVY_SLOTS: '1', HB_GATE_WAIT: '2' };
+    const g = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
+    expect(g.status, g.stdout + g.stderr).toBe(0);
+    expect(g.stdout).toContain('heavy slot 1');
+    // hold the only heavy slot from outside (as /tmp/hb-locks/heavy.sh would)
+    const holder = spawnSync('bash', ['-c', `exec 9>"${dir}/heavy-1.lock"; flock -n 9 || exit 9; ` +
+      `"${join(root, 'scripts/lib/locks.sh')}" heavy --wait 1 -- true; a=$?; ` +
+      `"${join(root, 'scripts/gate.sh')}" "${root}" --no-cache >/dev/null 2>&1; b=$?; echo "$a $b"`],
+      { encoding: 'utf8', env: { ...process.env, ...env } });
+    expect(holder.stdout.trim()).toBe('75 1');
+  });
+
+  test('data/ checks are named steps that can go RED', () => {
+    const root = makeRepo();
+    prepNodeModules(root);
+    write(root, 'data/geo/test/geo.test.mjs', "import test from 'node:test';\ntest('ok', () => {});\n");
+    write(root, 'data/catalog/validate.mjs', 'process.exit(0);\n');
+    write(root, 'data/catalog/test/cat.test.mjs', "import test from 'node:test';\nimport assert from 'node:assert';\ntest('bad', () => assert.equal(1, 2));\n");
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-6: data', { HB_ROLE: 'lead' }));
+    const r = gate(root, '--no-cache');
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('steps = typecheck test data-geo data-catalog-validate data-catalog-test build');
+    expect(r.stdout).toContain('GREEN data-geo');
+    expect(r.stdout).toContain('GREEN data-catalog-validate');
+    expect(r.stdout).toContain('RED   data-catalog-test');
+    expect(r.stdout).toContain('SKIP  build');
+  });
+
   test('a failing step is RED, exits non-zero, and later steps are skipped', () => {
     const root = makeRepo({ test: 'echo boom >&2; exit 3', build: 'echo SHOULD-NOT-RUN' });
     prepNodeModules(root);

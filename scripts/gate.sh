@@ -3,13 +3,17 @@
 #
 # The single gate. Green = every step below exits 0:
 #   npm ci            when node_modules is missing or package-lock.json changed since the last ci
-#   npm run typecheck, npm test, npm run build
+#   npm run typecheck, npm test
+#   data-geo / data-catalog-validate / data-catalog-test   node --test data/geo/**/*.test.mjs,
+#                     node data/catalog/validate.mjs, node --test data/catalog/test/*.test.mjs (when present)
+#   npm run build
 #   npm run budget    when apps/storefront/src/pages has a real (non-placeholder) page
 #   npm run lh        when the diff vs <base> (default: merge-base with main) touches a
 #                     storefront-affecting path, or with --full
 # Once apps/storefront has real pages, a missing or stub ("not wired yet") budget/lh script is RED.
 #
-# Machine-wide: at most HB_GATE_SLOTS (2) gates run at once (scripts/lib/locks.sh); waits up to
+# Machine-wide: at most HB_GATE_SLOTS (2) gates at once, each also holding one of the HB_HEAVY_SLOTS (3)
+# heavy slots shared with every other heavy job (scripts/lib/locks.sh); waits up to
 # HB_GATE_WAIT seconds (3600) for a slot. A green run on a clean tree is cached by HEAD^{tree}.
 # Log: <main checkout>/artifacts/gate/<branch>/<short-sha>[-dirty].log. Exit 0 green, 1 red, 2 usage.
 set -euo pipefail
@@ -68,7 +72,14 @@ changed_files() {
   { git diff --name-only "$b" HEAD; git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u
 }
 
-steps=(typecheck test build)
+# data/ is not a workspace: its checks are named gate steps of their own (each can go RED).
+data_files() { find "$1" -name '*.test.mjs' -not -path '*/node_modules/*' -print0 2>/dev/null | sort -z | tr '\0' '\n'; }
+data_steps=()
+[[ -d data/geo && -n "$(data_files data/geo)" ]] && data_steps+=(data-geo)
+[[ -f data/catalog/validate.mjs ]] && data_steps+=(data-catalog-validate)
+[[ -d data/catalog/test && -n "$(data_files data/catalog/test)" ]] && data_steps+=(data-catalog-test)
+
+steps=(typecheck test "${data_steps[@]}" build)
 real_pages=0 lh_needed=0
 if has_real_pages; then real_pages=1; steps+=(budget); fi
 if [[ $full -eq 1 ]] || changed_files | grep -Eq "$storefront_paths"; then lh_needed=1; steps+=(lh); fi
@@ -89,7 +100,7 @@ fi
 
 # --- run ----------------------------------------------------------------------------------
 hb_acquire_gate_slot "${HB_GATE_WAIT:-3600}" "gate $branch@$short $wt" || { say "gate: RED — could not get a gate slot"; exit 1; }
-say "gate: holding gate slot $HB_GATE_SLOT"
+say "gate: holding gate slot $HB_GATE_SLOT and heavy slot $HB_HEAVY_SLOT (shared with scripts/lib/locks.sh heavy and /tmp/hb-locks/heavy.sh)"
 
 summary=()
 red=""
@@ -128,7 +139,12 @@ for s in "${steps[@]}"; do
     fi
     continue
   fi
-  run_step "$s" npm run "$s"
+  case "$s" in
+    data-geo) mapfile -t f < <(data_files data/geo); run_step "$s" node --test "${f[@]}" ;;
+    data-catalog-validate) run_step "$s" node data/catalog/validate.mjs ;;
+    data-catalog-test) mapfile -t f < <(data_files data/catalog/test); run_step "$s" node --test "${f[@]}" ;;
+    *) run_step "$s" npm run "$s" ;;
+  esac
 done
 
 say "gate: summary"

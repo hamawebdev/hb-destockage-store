@@ -43,7 +43,7 @@ Any deviation from it needs a measurement or a cited source, recorded in [DECISI
 - One commit per task (`commit-msg` enforces `<ID>: <title>`, blank, `What changed:`, `Testing:`, `Risk tier: low|high`, `Revert:`). Review fixes = new commits; `git merge main`, never rebase.
 - `scripts/gate.sh` (typecheck, test, build, budget, Lighthouse on storefront changes) runs in the `TaskCompleted` hook; red ⇒ refused.
 - Review per [REVIEW.md](REVIEW.md) (`REV <ID> r<n>` tasks). Only the lead merges (`scripts/team/merge.sh`): approved commits only, high risk after client sign-off.
-- Outputs in `artifacts/<ID>/` (main checkout); report paths. Max 2 gates at once, Lighthouse exclusive (`scripts/lib/locks.sh`); ports: `scripts/team/port.sh <name>`.
+- Outputs in `artifacts/<ID>/` (main checkout); report paths. Heavy jobs (build, vitest, wrangler dev, Chrome) via `scripts/lib/locks.sh heavy -- <cmd>` (3 slots; a gate holds one, max 2 gates); Lighthouse exclusive; ports: `scripts/team/port.sh <name>`.
 
 ## Non-goals
 - No deploy to the client's Cloudflare account and no Cloudflare login. Measure with local Wrangler and `wrangler deploy --temporary` only.
