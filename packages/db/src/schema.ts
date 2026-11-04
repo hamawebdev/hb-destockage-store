@@ -307,6 +307,7 @@ export const images = sqliteTable(
     index('images_r2_key_idx').on(t.r2Key),
     index('images_product_idx').on(t.productId, t.position),
     index('images_category_idx').on(t.categoryId, t.position),
+    index('images_variant_idx').on(t.variantId),
     check('images_one_owner', sql`(${c(t.productId)} is null) <> (${c(t.categoryId)} is null)`),
     check('images_variant_needs_product', sql`${c(t.variantId)} is null or ${c(t.productId)} is not null`),
     check('images_dims_pos', sql`${c(t.width)} > 0 and ${c(t.height)} > 0`),
@@ -469,6 +470,7 @@ export const orders = sqliteTable(
     index('orders_wilaya_created_idx').on(t.wilayaCode, t.createdAt),
     index('orders_phone_created_idx').on(t.phoneE164, t.createdAt),
     index('orders_customer_created_idx').on(t.customerId, t.createdAt),
+    index('orders_commune_idx').on(t.communeId),
     index('orders_flagged_created_idx').on(t.createdAt, t.id).where(sql`${c(t.flags)} <> '[]'`),
     check('orders_phone_e164', phoneCheck(t.phoneE164)),
     check('orders_lang_enum', oneOf(t.lang, LANGS)),
@@ -510,6 +512,9 @@ export const orderItems = sqliteTable(
   },
   (t) => [
     index('order_items_order_idx').on(t.orderId),
+    // FK child indexes: SQLite scans the child table on parent DELETE/UPDATE without them.
+    index('order_items_variant_idx').on(t.variantId),
+    index('order_items_product_idx').on(t.productId),
     check('order_items_qty_pos', sql`${c(t.qty)} > 0`),
     check('order_items_unit_price_nonneg', nonNeg(t.unitPriceDzd)),
     check('order_items_line_total', sql`${c(t.lineTotalDzd)} = ${c(t.unitPriceDzd)} * ${c(t.qty)}`),
