@@ -29,7 +29,9 @@
   .choice input { inline-size: 1.25rem; block-size: 1.25rem; accent-color: var(--color-accent); margin: 0; }
 
   /* Variant chips and colour swatches: label wraps a visually hidden radio.
-     Selected = 2px accent ring (shape cue, not colour alone). Swatch colour: --swatch, set by a page rule. */
+     Selected = 2px accent ring (shape cue, not colour alone).
+     Swatch colour = an inline SVG presentation attribute (CSP-safe, no page-specific CSS):
+     <label class="chip swatch"><input type="radio" …><svg viewBox="0 0 1 1" aria-hidden="true"><rect width="1" height="1" fill="#hex"/></svg><span class="visually-hidden">name</span></label> */
   .chip {
     position: relative;
     display: inline-flex;
@@ -50,7 +52,7 @@
   .chip:has(:focus-visible) { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--focus-offset); }
   .chip:has(:disabled) { color: var(--color-text-secondary); text-decoration: line-through; cursor: not-allowed; }
   .swatch { padding-inline: 0; border-radius: var(--radius-round); }
-  .swatch::before { content: ""; inline-size: 1.75rem; block-size: 1.75rem; border-radius: var(--radius-round); background: var(--swatch, var(--color-surface-alt)); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.15); }
+  .swatch svg { inline-size: 1.75rem; block-size: 1.75rem; border-radius: var(--radius-round); box-shadow: 0 0 0 1px rgb(0 0 0 / 0.15); }
 
   /* Notes (info / success / warning / error summary): icon + text, never colour alone */
   .note { display: flex; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-accent-surface); }

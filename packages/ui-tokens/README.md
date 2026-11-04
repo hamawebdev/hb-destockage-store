@@ -123,14 +123,17 @@ Layer order (same statement as the storefront's global.css):
 | `base` | `html`: `--font-body`, `--lh-body`, text/surface colours, `scroll-padding-block-start: var(--scroll-pad-start)` (+ `-end` when a `.bottom-bar` exists); `:where([lang\|=ar])` re-applies the Arabic stack + line-height; h1–h4, `a` (accent-text), `strong`, `:focus-visible` ring, `dialog` + backdrop |
 | `layout` | `.container` (max `--container-max` + gutters), `.reading`, `.section`, `.stack` (`--stack-gap`), `.cluster` (`--cluster-gap`), `.grid` (2 → 3 @768 → 4 @1024 columns) |
 | `components` | `.display`, `.hero-title`, `.lead`, `.caption`, `.muted`, `.eyebrow`, `.nums`; `.icon`/`.icon-sm`/`.icon-lg` + RTL mirror rule; `.btn` + `.btn-primary`/`-secondary`/`-block`/`-icon`; `.visually-hidden`, `.skip-link`; dialog/popover entrance via `@starting-style` |
-| forms.css `components` | `.field`, `.label`, `.hint`, `.error`, `.input` (also on `<select>`; `aria-invalid="true"` = 2px danger), `.choice` (native radio/checkbox, accent-color), `.chip` (label wrapping a hidden radio; checked = 2px accent ring + tint; `.swatch` uses `--swatch`), `.note` + `-success`/`-warning`/`-danger` |
+| forms.css `components` | `.field`, `.label`, `.hint`, `.error`, `.input` (also on `<select>`; `aria-invalid="true"` = 2px danger), `.choice` (native radio/checkbox, accent-color), `.chip` (label wrapping a hidden radio; checked = 2px accent ring + tint; `.swatch` holds an inline SVG whose `fill` is the colour), `.note` + `-success`/`-warning`/`-danger` |
 
 Rules: every interactive component is ≥ 44px (`--tap-min`); letter-spacing and line-height only
 through `--ls-*`/`--lh-*`; logical properties only (`test/base.test.ts` runs `physicalProperties`
 on all four sheets). Motion: cross-document View Transitions (`@view-transition { navigation: auto }`)
 and `@starting-style`, both only under `prefers-reduced-motion: no-preference`; under `reduce` all
-animations/transitions are 0.01ms. A swatch colour cannot come from a `style` attribute (hash-based
-CSP): emit a page rule such as `.sw-red{--swatch:#c33}`. The «العربية» switch label needs a
+animations/transitions are 0.01ms. No CSS may depend on page data (one byte-identical inline `<style>` per template for the
+hash-based CSP), and no `style` attributes: a swatch colour is an SVG presentation attribute,
+`<svg viewBox="0 0 1 1" aria-hidden="true"><rect width="1" height="1" fill="#b4232c"/></svg>` inside
+`.chip.swatch`, with the colour name in `.visually-hidden` text. `--stack-gap`/`--cluster-gap` are set
+from component CSS, never inline. The «العربية» switch label needs a
 component rule `font-family: var(--font-switcher)` (beats the zero-specificity `:where` rule).
 
 Size (minified, brotli): tokens 1,151 B + font-face 204 B + base 1,530 B = 2,745 B together;
