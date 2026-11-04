@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Ownership + size rules (team/owners.json). Activate once per clone:
+#   git config core.hooksPath .githooks      (shared by every worktree)
+# Identity = branch team/<name>. On main only the lead commits, with HB_ROLE=lead.
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+branch="$(git symbolic-ref --short -q HEAD || true)"
+
+if [[ "$branch" == "main" ]]; then
+  if [[ "${HB_ROLE:-}" != "lead" ]]; then
+    echo "pre-commit: refused — only the lead commits on main (HB_ROLE=lead). Teammates commit on team/<name> in .worktrees/<name>." >&2
+    exit 1
+  fi
+  exec node "$root/scripts/lib/owners.mjs" check-staged lead --lead
+fi
+
+if [[ "$branch" != team/* ]]; then
+  echo "pre-commit: refused — commit from your branch team/<your-name> (current: ${branch:-detached HEAD}). See team/BRIEF.md §6." >&2
+  exit 1
+fi
+
+exec node "$root/scripts/lib/owners.mjs" check-staged "${branch#team/}"

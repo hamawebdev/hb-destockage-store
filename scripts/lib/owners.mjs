@@ -1,0 +1,239 @@
+#!/usr/bin/env node
+// Ownership rules from team/owners.json. No dependencies (node:path matchesGlob, Node 24).
+//
+//   node scripts/lib/owners.mjs check-staged <name> [--lead]   pre-commit checks on the index
+//   node scripts/lib/owners.mjs violations <name> [path…]      paths <name> may not write (args or stdin, one per line)
+//   node scripts/lib/owners.mjs port <name>                    print portBase
+//   node scripts/lib/owners.mjs owner-of <path>                print the owners allowed to write <path>
+//
+// Exit codes: 0 ok, 1 violation / unknown name, 2 usage or config error.
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, matchesGlob } from 'node:path';
+
+const repoRoot = () => git(['rev-parse', '--show-toplevel']).trim();
+
+function git(args, input) {
+  return execFileSync('git', args, {
+    encoding: 'utf8',
+    input,
+    maxBuffer: 64 * 1024 * 1024,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+}
+
+export function loadOwners() {
+  const file = process.env.HB_OWNERS_FILE || join(repoRoot(), 'team/owners.json');
+  if (!existsSync(file)) throw new Error(`owners file not found: ${file}`);
+  return JSON.parse(readFileSync(file, 'utf8'));
+}
+
+// matchesGlob never lets * or ** match a segment that starts with "." (dotfiles). Ownership must
+// cover dotfiles too (apps/admin/.dev.vars.example), so match a second time with every leading dot
+// rewritten in both path and glob: wildcards then match dot segments, literal dot segments still match.
+const undot = (s) => s.replace(/(^|\/)\./g, '$1\u0001dot');
+const match = (path, glob) => matchesGlob(path, glob) || matchesGlob(undot(path), undot(glob));
+const any = (path, globs = []) => globs.some((g) => match(path, g));
+
+/** Owner that a reserved glob pins this path to, or null. */
+export function reservedOwner(cfg, path) {
+  for (const [owner, globs] of Object.entries(cfg.reserved ?? {})) if (any(path, globs)) return owner;
+  return null;
+}
+
+export function mayWrite(cfg, name, path) {
+  const r = reservedOwner(cfg, path);
+  if (r) return r === name;
+  const o = cfg.owners[name];
+  if (!o) return false;
+  return any(path, o.paths) && !any(path, o.except);
+}
+
+export function ownersOf(cfg, path) {
+  return Object.keys(cfg.owners).filter((n) => mayWrite(cfg, n, path));
+}
+
+function explain(cfg, path) {
+  const who = ownersOf(cfg, path);
+  if (who.length === 0) return 'no owner in team/owners.json: ask the lead (team-lead) who should own it';
+  return who
+    .map((n) => {
+      const rev = cfg.owners[n]?.reviewer;
+      return `owned by ${n}${rev ? ` (reviewer ${rev})` : ''}`;
+    })
+    .join('; ');
+}
+
+/** Parse `git diff --cached --name-status -z -M`. Returns [{status, paths:[...]}]. */
+function stagedChanges() {
+  const out = git(['diff', '--cached', '--name-status', '-z', '-M', '--no-ext-diff']);
+  const f = out.split('\0');
+  const res = [];
+  for (let i = 0; i < f.length - 1; ) {
+    const status = f[i++];
+    if (!status) continue;
+    if (status[0] === 'R' || status[0] === 'C') res.push({ status: status[0], paths: [f[i++], f[i++]] });
+    else res.push({ status: status[0], paths: [f[i++]] });
+  }
+  return res;
+}
+
+/** Batch object lookup: returns Map spec -> {oid, size} or null when missing. */
+function batchCheck(specs) {
+  const m = new Map();
+  if (specs.length === 0) return m;
+  const out = git(['cat-file', '--batch-check=%(objectname) %(objecttype) %(objectsize)'], specs.join('\n') + '\n');
+  const lines = out.split('\n');
+  specs.forEach((s, i) => {
+    const l = lines[i] ?? '';
+    const [oid, type, size] = l.split(' ');
+    m.set(s, type && type !== 'missing' && oid && !l.endsWith('missing') ? { oid, size: Number(size) } : null);
+  });
+  return m;
+}
+
+function hasRef(ref) {
+  try {
+    git(['rev-parse', '-q', '--verify', ref]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function showOrEmpty(spec) {
+  try {
+    return git(['show', spec]);
+  } catch {
+    return '';
+  }
+}
+
+export function checkStaged(cfg, name, { lead = false } = {}) {
+  const problems = [];
+  if (!lead && !cfg.owners[name]) {
+    return [`"${name}" is not a teammate in team/owners.json; commit from your own branch team/<your-name>`];
+  }
+  const changes = stagedChanges();
+  const merging = hasRef('MERGE_HEAD');
+
+  let touched = []; // {path, deleted}
+  for (const c of changes) {
+    if (c.status === 'R') {
+      touched.push({ path: c.paths[0], deleted: true }, { path: c.paths[1], deleted: false });
+    } else if (c.status === 'C') {
+      touched.push({ path: c.paths[1], deleted: false });
+    } else {
+      touched.push({ path: c.paths[0], deleted: c.status === 'D' });
+    }
+  }
+
+  const specs = [];
+  for (const t of touched) specs.push(`:${t.path}`, `HEAD:${t.path}`, ...(merging ? [`MERGE_HEAD:${t.path}`] : []));
+  const objs = batchCheck(specs);
+
+  if (merging) {
+    // A merge commit only "authors" paths whose result differs from both parents (conflict resolutions, evil merges).
+    touched = touched.filter((t) => {
+      const st = objs.get(`:${t.path}`)?.oid ?? '';
+      const h = objs.get(`HEAD:${t.path}`)?.oid ?? '';
+      const m = objs.get(`MERGE_HEAD:${t.path}`)?.oid ?? '';
+      return st !== h && st !== m;
+    });
+  }
+
+  const max = cfg.maxFileBytes ?? 2 * 1024 * 1024;
+  for (const t of touched) {
+    // size rule (everyone, lead included)
+    if (!t.deleted) {
+      const o = objs.get(`:${t.path}`);
+      if (o && o.size > max && !any(t.path, cfg.largeFileGlobs)) {
+        problems.push(
+          `${t.path}: ${(o.size / 1048576).toFixed(1)} MB is over the ${(max / 1048576).toFixed(0)} MB limit; ` +
+            `large files are allowed only under: ${(cfg.largeFileGlobs ?? []).join(', ')} (ask tooling to add a directory)`,
+        );
+      }
+    }
+    if (lead) continue;
+    if (mayWrite(cfg, name, t.path)) continue;
+    if (any(t.path, cfg.appendOnlyForAll) && !t.deleted) {
+      const before = showOrEmpty(`HEAD:${t.path}`);
+      const after = showOrEmpty(`:${t.path}`);
+      if (after.startsWith(before) && after.length > before.length) continue;
+      problems.push(
+        `${t.path}: you may only append to it (add a new entry at the end; change nothing above). ` +
+          `To revise an entry, append a new one that supersedes it.`,
+      );
+      continue;
+    }
+    const r = reservedOwner(cfg, t.path);
+    const hint = r === 'tooling' ? ' Dependencies and tsconfig changes: message tooling with package, exact version, workspace and why.' : '';
+    problems.push(
+      `${t.path}: ${explain(cfg, t.path)}. Ask them to make this change, or unstage it: git restore --staged -- '${t.path}'.${hint}`,
+    );
+  }
+  return problems;
+}
+
+function readStdinLines() {
+  try {
+    return readFileSync(0, 'utf8').split('\n').filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function main(argv) {
+  const [cmd, ...rest] = argv;
+  try {
+    if (cmd === 'check-staged') {
+      const name = rest[0];
+      const lead = rest.includes('--lead');
+      if (!name) throw new Error('usage: check-staged <name> [--lead]');
+      const cfg = loadOwners();
+      const problems = checkStaged(cfg, name, { lead });
+      if (problems.length) {
+        process.stderr.write(
+          `pre-commit: refused for ${lead ? 'lead on main' : `team/${name}`} — ${problems.length} problem(s):\n` +
+            problems.map((p) => `  - ${p}`).join('\n') +
+            '\nRules: team/owners.json, team/BRIEF.md §3.\n',
+        );
+        return 1;
+      }
+      return 0;
+    }
+    if (cmd === 'violations') {
+      const [name, ...paths] = rest;
+      if (!name) throw new Error('usage: violations <name> [path…]');
+      const cfg = loadOwners();
+      const list = paths.length ? paths : readStdinLines();
+      const bad = list.filter((p) => !mayWrite(cfg, name, p) && !any(p, cfg.appendOnlyForAll));
+      if (bad.length) process.stdout.write(bad.join('\n') + '\n');
+      return bad.length ? 1 : 0;
+    }
+    if (cmd === 'port') {
+      const cfg = loadOwners();
+      const o = cfg.owners[rest[0] ?? ''];
+      if (!o || typeof o.portBase !== 'number') {
+        process.stderr.write(`port: unknown teammate "${rest[0] ?? ''}" (see team/owners.json)\n`);
+        return 1;
+      }
+      process.stdout.write(`${o.portBase}\n`);
+      return 0;
+    }
+    if (cmd === 'owner-of') {
+      const cfg = loadOwners();
+      const who = ownersOf(cfg, rest[0] ?? '');
+      process.stdout.write(who.join('\n') + (who.length ? '\n' : ''));
+      return who.length ? 0 : 1;
+    }
+    throw new Error('usage: owners.mjs check-staged|violations|port|owner-of …');
+  } catch (e) {
+    process.stderr.write(`owners.mjs: ${e instanceof Error ? e.message : String(e)}\n`);
+    return 2;
+  }
+}
+
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('owners.mjs')) {
+  process.exitCode = main(process.argv.slice(2));
+}
