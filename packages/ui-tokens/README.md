@@ -44,12 +44,16 @@ would hand the span the French values. Therefore `:lang(ar)` in `tokens.css` als
 invariants as real, unlayered `!important` properties — `letter-spacing: 0`, `font-weight: 400`,
 `font-synthesis: none` — which no component rule can override. `font-family` and `line-height` are
 not forced there (the «العربية» switch must keep `--font-switcher`, headings keep their own
-line-height); `base.css` (TOKENS-4) re-applies `--font-body` / `--lh-*` on Arabic elements.
+line-height); `base.css` (TOKENS-4) re-applies `--lh-body` on Arabic elements.
+
+**The webfont is only for Arabic pages.** `--font-body` becomes `--font-arabic` on `:root:lang(ar)`
+alone. Arabic content inside a French page (`html[lang=fr] [lang=ar]`, e.g. the «العربية» switch)
+gets `--font-switcher` (system Arabic) from base.css, so `/fr/` never requests the woff2.
 
 | Group | Names |
 |---|---|
 | Colour roles | `--color-<role>` (surface, surface-alt, text, text-secondary, accent, accent-text, focus, border, border-control, success, warning, danger, price, sale, …). Use pairs listed in `brand/tokens.json` `contrastPairs` only. Links: `accent-text`. Form outlines: `border-control`. |
-| Font stacks | `--font-latin`, `--font-arabic`, `--font-switcher` (the «العربية» label: never names the webfont), `--font-body` (resolved per language) |
+| Font stacks | `--font-latin`, `--font-arabic`, `--font-switcher` (the «العربية» label: never names the webfont), `--font-body` (Latin stack; Arabic webfont stack on `:root:lang(ar)` only) |
 | Weight | `--fw-regular`, `--fw-emphasis` (600 Latin, **400 under Arabic**; Arabic elements are forced to 400 with `font-synthesis: none`) |
 | Line-height (unitless, per language) | `--lh-body`, `--lh-heading`, `--lh-display`, `--lh-ui` |
 | Letter-spacing (per language, **0 under Arabic**) | `--ls-display`, `--ls-heading`, `--ls-body`, `--ls-caps` |
@@ -121,7 +125,7 @@ Layer order (same statement as the storefront's global.css):
 | Layer | What |
 |---|---|
 | `reset` | box-sizing, margins, media `display:block; max-inline-size:100%`, form font inheritance, `[hidden]` |
-| `base` | `html`: `--font-body`, `--lh-body`, text/surface colours, `scroll-padding-block-start: var(--scroll-pad-start)` (+ `-end` when a `.bottom-bar` exists); `:where([lang\|=ar])` re-applies the Arabic stack + line-height; h1–h4, `a` (accent-text), `strong`, `:focus-visible` ring, `dialog` + backdrop |
+| `base` | `html`: `--font-body`, `--lh-body`, text/surface colours, `scroll-padding-block-start: var(--scroll-pad-start)` (+ `-end` when a `.bottom-bar` exists); `:where([lang\|=ar])` re-applies the Arabic line-height, `:where(:root:not(:lang(ar)) [lang\|=ar])` the system Arabic stack; h1–h4, `a` (accent-text), `strong`, `:focus-visible` ring, `dialog` + backdrop |
 | `layout` | `.container` (max `--container-max` + gutters), `.reading`, `.section`, `.stack` (`--stack-gap`), `.cluster` (`--cluster-gap`), `.grid` (2 → 3 @768 → 4 @1024 columns) |
 | `components` | `.display`, `.hero-title`, `.lead`, `.caption`, `.muted`, `.eyebrow`, `.nums`; `.icon`/`.icon-sm`/`.icon-lg` + RTL mirror rule; `.btn` + `.btn-primary`/`-secondary`/`-block`/`-icon`; `.visually-hidden`, `.skip-link`; dialog/popover entrance via `@starting-style` |
 | forms.css `components` | `.field`, `.label`, `.hint`, `.error`, `.input` (also on `<select>`; `aria-invalid="true"` = 2px danger), `.choice` (native radio/checkbox, accent-color), `.chip` (label wrapping a hidden radio; checked = 2px accent ring + tint; `.swatch` holds an inline SVG whose `fill` is the colour), `.note` + `-success`/`-warning`/`-danger` |
@@ -134,8 +138,8 @@ animations/transitions are 0.01ms. No CSS may depend on page data (one byte-iden
 hash-based CSP), and no `style` attributes: a swatch colour is an SVG presentation attribute,
 `<svg viewBox="0 0 1 1" aria-hidden="true"><rect width="1" height="1" fill="#b4232c"/></svg>` inside
 `.chip.swatch`, with the colour name in `.visually-hidden` text. `--stack-gap`/`--cluster-gap` are set
-from component CSS, never inline. The «العربية» switch label needs a
-component rule `font-family: var(--font-switcher)` (beats the zero-specificity `:where` rule).
+from component CSS, never inline. Arabic text on French pages
+(including the «العربية» switch) gets `--font-switcher` automatically.
 
 Size (minified, brotli): tokens 1,151 B + font-face 204 B + base 1,530 B = 2,745 B together;
 + forms 598 B → 3,088 B. Before the storefront drops unused custom properties.

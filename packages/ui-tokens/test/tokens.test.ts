@@ -60,7 +60,8 @@ describe('contract', () => {
   });
 
   test('Arabic: webfont stack, one weight, line-height 1.6–1.8, zero letter-spacing', () => {
-    expect(arBlock).toContain('--font-body:var(--font-arabic)');
+    expect(arBlock).not.toContain('--font-body'); // per element would pull the webfont onto /fr/ spans
+    expect(css).toContain(':root:lang(ar){--font-body:var(--font-arabic)}');
     expect(arBlock).toContain('--fw-emphasis:400');
     for (const k of ['body', 'heading', 'display', 'ui']) {
       const v = Number(new RegExp(`--lh-${k}:([\\d.]+)`).exec(arBlock)?.[1]);

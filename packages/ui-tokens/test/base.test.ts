@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { ICON_MIRROR_RULE } from '../src/index.ts';
-import { PKG_DIR } from '../src/gen/source.ts';
+import { BRAND_PATH, PKG_DIR, PROVISIONAL_PATH, readSource } from '../src/gen/source.ts';
 import { physicalProperties } from '../src/lint.ts';
-import { tokens } from '../src/index.ts';
+import { tokens, tokensSource } from '../src/index.ts';
 
 const read = (f: string): string => readFileSync(join(PKG_DIR, f), 'utf8');
 const SHEETS = ['tokens.css', 'font-face.css', 'base.css', 'forms.css'] as const;
@@ -53,8 +53,48 @@ describe('base.css uses the token contract', () => {
     for (const m of flat(both).matchAll(/line-height: ([^;}]+)/g)) expect(m[1]).toMatch(/^var\(--lh-[\w-]+\)$/);
   });
 
-  test('an element switching to Arabic takes the Arabic stack and line-height at zero specificity', () => {
-    expect(rule(base, ':where([lang|="ar"])')).toMatch(/font-family: var\(--font-body\); line-height: var\(--lh-body\)/);
+  test('an element switching to Arabic takes the Arabic line-height at zero specificity', () => {
+    expect(rule(base, ':where([lang|="ar"])')).toBe(' line-height: var(--lh-body); ');
+  });
+
+  test('/fr/ with a lang="ar" span: nothing resolves to the webfont (review TOKENS-4 r1 F2, lead rule)', () => {
+    const sheets = SHEETS.map(read).join('\n');
+    // 1. The webfont family is named only by the --font-arabic definition and @font-face.
+    const naming = [...flat(sheets).matchAll(/([^{};]+)\{[^{}]*HB Noto Sans Arabic[^{}]*\}/g)].map((m) => (m[1] as string).trim());
+    expect(naming).toEqual([':root', '@font-face']);
+    // 2. --font-arabic is read in exactly one place, and that selector only matches an Arabic root.
+    const reads = [...flat(sheets).matchAll(/([^{};]+)\{[^{}]*var\(--font-arabic\)[^{}]*\}/g)].map((m) => (m[1] as string).trim());
+    expect(reads).toEqual([':root:lang(ar)']);
+    // 3. Every font-family uses the per-page --font-body, the system --font-switcher, or inherit.
+    for (const m of flat(sheets).matchAll(/font-family: ?([^;}]+)/g)) {
+      expect(m[1]).toMatch(/^(var\(--font-(body|switcher)\)|inherit|"HB Noto Sans Arabic")$/);
+    }
+    // 4. Arabic content inside a non-Arabic page gets the system Arabic stack.
+    expect(rule(base, ':where(:root:not(:lang(ar)) [lang|="ar"])')).toBe(' font-family: var(--font-switcher); ');
+    expect(tokens.font.family.switcher).not.toMatch(/HB Noto|Noto Sans Arabic/);
+  });
+
+  test('every component colour state is a brand contrast pair (review TOKENS-4 r1 F1)', () => {
+    const pairs = new Set(
+      (readSource(tokensSource.path.endsWith('provisional.tokens.json') ? PROVISIONAL_PATH : BRAND_PATH).tokens.contrastPairs?.pairs ?? [])
+        .filter((p) => p.min >= 4.5)
+        .map((p) => `${p.fg}/${p.bg}`),
+    );
+    const decl = (css: string, sel: string, prop: string): string | undefined =>
+      new RegExp(`(?:^ |; )${prop}: var\\(--color-([\\w-]+)\\)`).exec(rule(css, sel))?.[1];
+    // [state selector, fallback selector it inherits colour/background from]
+    const states: [string, string, string][] = [
+      [base, '.btn-primary', '.btn-primary'], [base, '.btn-primary:hover', '.btn-primary'],
+      [base, '.btn-secondary', '.btn-secondary'], [base, '.btn-secondary:hover', '.btn-secondary'],
+      [forms, '.input', '.input'], [forms, '.input:disabled', '.input'],
+      [forms, '.note', '.note'], [forms, '.note-success', '.note'], [forms, '.note-warning', '.note'], [forms, '.note-danger', '.note'],
+      [forms, '.chip:has(:checked)', '.chip'],
+    ];
+    for (const [css, sel, from] of states) {
+      const fg = decl(css, sel, 'color') ?? decl(css, from, 'color') ?? 'text';
+      const bg = decl(css, sel, 'background') ?? decl(css, from, 'background') ?? 'surface';
+      expect(pairs, `${sel}: ${fg} on ${bg}`).toContain(`${fg}/${bg}`);
+    }
   });
 
   test('tap targets ≥ 44px on every interactive component', () => {

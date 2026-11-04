@@ -29,10 +29,12 @@
   html:has(.bottom-bar) { scroll-padding-block-end: var(--scroll-pad-end); }
   body { font-size: var(--fs-body); }
 
-  /* An element that switches to Arabic (lang="ar" inside a French page, or the page itself) takes
-     the Arabic stack and line-height; zero specificity so headings/components keep their own.
-     letter-spacing 0 / weight 400 / no synthesis are forced in tokens.css. */
-  :where([lang|="ar"]) { font-family: var(--font-body); line-height: var(--lh-body); }
+  /* An element that switches to Arabic takes the Arabic line-height (zero specificity: headings and
+     components keep their own). The webfont is only for Arabic pages (tokens.css :root:lang(ar));
+     Arabic content on a French page (the «العربية» switch, a quote) uses the system stack, so /fr/
+     never requests the woff2. letter-spacing 0 / weight 400 / no synthesis: forced in tokens.css. */
+  :where([lang|="ar"]) { line-height: var(--lh-body); }
+  :where(:root:not(:lang(ar)) [lang|="ar"]) { font-family: var(--font-switcher); }
 
   h1, h2, h3, h4 {
     font-weight: var(--fw-emphasis);
@@ -110,7 +112,7 @@
   .btn-primary { background: var(--color-accent); color: var(--color-on-accent); }
   .btn-primary:hover { background: var(--color-accent-hover); }
   .btn-secondary { background: var(--color-surface); color: var(--color-accent); border-color: var(--color-accent); }
-  .btn-secondary:hover { background: var(--color-accent-surface); }
+  .btn-secondary:hover { background: var(--color-accent-surface); color: var(--color-accent-text); }
   .btn-block { inline-size: 100%; }
   .btn-icon { min-inline-size: var(--tap-min); padding-inline: 0; border-radius: var(--radius-round); color: inherit; }
   .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }

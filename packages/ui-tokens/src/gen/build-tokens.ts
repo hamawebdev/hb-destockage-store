@@ -259,7 +259,6 @@ export function buildTokens({ tokens: t, sourcePath, sourceSha256 }: BuildInput)
     'letter-spacing:0!important',
     `font-weight:${model.font.weight.regular}!important`,
     `font-synthesis:${model.font.synthesis}!important`,
-    '--font-body:var(--font-arabic)',
     `--fw-emphasis:${model.font.weight.regular}`,
     ...Object.entries(model.font.lineHeight.arabic).map(([k, v]) => `--lh-${k}:${v}`),
     ...Object.keys(model.font.letterSpacing.latin).map((k) => `--ls-${k}:0`),
@@ -275,6 +274,9 @@ export function buildTokens({ tokens: t, sourcePath, sourceSha256 }: BuildInput)
     `   Breakpoints (min-width; custom properties cannot be used in @media, write the literal): ${bp}. */\n` +
     `:root{\n${decl.map((d) => `  ${d};`).join('\n')}\n}\n` +
     `:lang(ar){\n${ar.map((d) => `  ${d};`).join('\n')}\n}\n` +
+    // The webfont only on Arabic pages (lead rule): Arabic content inside a French page keeps the
+    // system stack, so /fr/ never requests the woff2.
+    `:root:lang(ar){--font-body:var(--font-arabic)}\n` +
     `@media (prefers-reduced-motion:reduce){:root{${reduced.join(';')}}}\n`;
 
   const ts =
