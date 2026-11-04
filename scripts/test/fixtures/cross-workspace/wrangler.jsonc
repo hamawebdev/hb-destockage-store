@@ -1,0 +1,6 @@
+// Fixture (TOOL-2 r1): bundled with `wrangler deploy --dry-run` only.
+{
+  "name": "hb-cross-workspace-fixture",
+  "main": "worker.ts",
+  "compatibility_date": "2026-11-01"
+}

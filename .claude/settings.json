@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/team/on-task-completed.sh",
+            "timeout": 1800
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/team/on-teammate-idle.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
