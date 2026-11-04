@@ -1,0 +1,35 @@
+/* The storefront's single sheet (both directions), inlined into every page by Astro +
+   integrations/hb-postbuild.mjs. Component CSS lives in each component's <style is:global>
+   with a short class prefix; physical properties fail the build. Owner: shell. */
+@layer reset, tokens, base, layout, components, utilities;
+@import "@hb/ui-tokens/tokens.css";
+@import "@hb/ui-tokens/font-face.css";
+
+@layer reset {
+  *, ::before, ::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-padding-block-start: var(--scroll-pad-start); scroll-padding-block-end: var(--scroll-pad-end); }
+  body { margin: 0; }
+  img, svg { display: block; max-inline-size: 100%; block-size: auto; }
+  h1, h2, h3, p, ul, ol, figure { margin: 0; }
+}
+
+@layer base {
+  body {
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    letter-spacing: var(--ls-body);
+  }
+  a { color: var(--color-accent-text); }
+  :focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--focus-offset); }
+}
+
+@layer layout {
+  .wrap { inline-size: 100%; max-inline-size: calc(var(--container-max) + 2 * var(--gutter)); margin-inline: auto; padding-inline: var(--gutter); }
+}
+
+@layer utilities {
+  .sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}

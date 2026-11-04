@@ -1,0 +1,9 @@
+---
+// Root /404.html: unknown paths outside /ar/ and /fr/. Arabic (primary) with the language switch to /fr/. Owner: shell.
+import Base from '../layouts/Base.astro';
+import { pageProps } from '../lib/catalog.ts';
+const props = pageProps('not-found', 'ar');
+---
+<Base layout={props.layout}>
+  <div class="wrap"><h1>404</h1></div>
+</Base>

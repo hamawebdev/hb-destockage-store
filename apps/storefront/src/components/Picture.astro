@@ -1,0 +1,32 @@
+---
+/**
+ * Shared image (AVIF srcset, same origin). LCP image (image.lcp): eager + fetchpriority=high, and
+ * Base preloads the same srcset/sizes from layout.lcpImage — so its `sizes` must not be overridden.
+ * Others: lazy + async decoding. width/height always (no layout shift). SHELL-5 refines it.
+ * Owner: shell.
+ */
+import type { ImageProps } from '@hb/catalog';
+
+interface Props {
+  image: ImageProps;
+  /** Override the slot's sizes (e.g. thumbnails). Not allowed on the LCP image. */
+  sizes?: string;
+  class?: string;
+}
+const { image: i, sizes, class: cls } = Astro.props;
+if (i.lcp && sizes !== undefined && sizes !== i.sizes) {
+  throw new Error(`Picture: the LCP image's sizes must equal its preload (${i.sizes}), got ${sizes}`);
+}
+---
+<img
+  src={i.src}
+  srcset={i.srcset}
+  sizes={sizes ?? i.sizes}
+  width={i.width}
+  height={i.height}
+  alt={i.alt}
+  class={cls}
+  loading={i.lcp ? 'eager' : 'lazy'}
+  decoding={i.lcp ? undefined : 'async'}
+  fetchpriority={i.lcp ? 'high' : undefined}
+/>
