@@ -1,0 +1,9 @@
+{
+  "name": "@hb/ui-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "typecheck": "tsc --noEmit -p .", "test": "vitest run" },
+  "dependencies": {},
+  "devDependencies": { "subset-font": "2.9.0" }
+}
