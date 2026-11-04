@@ -7,7 +7,9 @@
     "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "build": "wrangler deploy --dry-run --outdir dist",
-    "dev": "wrangler dev --test-scheduled --port ${PORT:-4120} --inspector-port ${INSPECTOR_PORT:-4121} --ip 127.0.0.1 --persist-to ../../.wrangler/hb-local"
+    "dev": "wrangler dev --test-scheduled --port ${PORT:-4120} --inspector-port ${INSPECTOR_PORT:-4121} --ip 127.0.0.1 --persist-to ../../.wrangler/hb-local",
+    "restore:verify": "node scripts/restore-verify.ts",
+    "publish": "node scripts/publish.ts"
   },
   "dependencies": {
     "@hb/catalog": "*",
