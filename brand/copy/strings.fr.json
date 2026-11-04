@@ -220,7 +220,7 @@
   "order.errors.name_invalid": "Indiquez votre nom et prénom (2 à 80 caractères).",
   "order.errors.phone_required": "Indiquez votre numéro de téléphone mobile.",
   "order.errors.phone_invalid": "Ce numéro n'est pas valide. Saisissez un mobile algérien à 10 chiffres, par ex. 0550 12 34 56.",
-  "order.errors.phone_not_mobile": "Ce numéro n'est pas un mobile. Saisissez un numéro en 05, 06 ou 07 pour que nous puissions vous appeler.",
+  "order.errors.phone_not_mobile": "Ce numéro n'est pas un numéro de mobile. Saisissez votre numéro Mobilis, Djezzy ou Ooredoo pour que nous puissions vous appeler.",
   "order.errors.wilaya_invalid": "Choisissez votre wilaya dans la liste.",
   "order.errors.commune_invalid": "Choisissez une commune de la wilaya sélectionnée.",
   "order.errors.items_empty": "Choisissez un produit avant de commander.",

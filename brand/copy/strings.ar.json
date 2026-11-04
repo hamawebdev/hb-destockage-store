@@ -220,7 +220,7 @@
   "order.errors.name_invalid": "اكتب اسمك ولقبك (من 2 إلى 80 حرفاً).",
   "order.errors.phone_required": "اكتب رقم هاتفك المحمول.",
   "order.errors.phone_invalid": "رقم الهاتف غير صحيح. اكتب رقم هاتف محمول جزائري من 10 أرقام، مثل 0550123456.",
-  "order.errors.phone_not_mobile": "هذا الرقم ليس رقم هاتف محمول. اكتب رقماً يبدأ بـ 05 أو 06 أو 07 حتى نتمكن من الاتصال بك.",
+  "order.errors.phone_not_mobile": "هذا الرقم ليس رقم هاتف محمول. اكتب رقمك لدى موبيليس أو جيزي أو أوريدو حتى نتمكن من الاتصال بك.",
   "order.errors.wilaya_invalid": "اختر ولايتك من القائمة.",
   "order.errors.commune_invalid": "اختر بلدية تابعة للولاية المختارة.",
   "order.errors.items_empty": "اختر منتجاً قبل الطلب.",
