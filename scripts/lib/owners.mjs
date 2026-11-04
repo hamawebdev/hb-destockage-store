@@ -2,6 +2,7 @@
 // Ownership rules from team/owners.json. No dependencies (node:path matchesGlob, Node 24).
 //
 //   node scripts/lib/owners.mjs check-staged <name> [--lead]   pre-commit checks on the index
+//   node scripts/lib/owners.mjs check-commit <name> <sha>      same rules for one commit (merge.sh)
 //   node scripts/lib/owners.mjs violations <name> [path…]      paths <name> may not write (args or stdin, one per line)
 //   node scripts/lib/owners.mjs port <name>                    print portBase
 //   node scripts/lib/owners.mjs owner-of <path>                print the owners allowed to write <path>
@@ -64,9 +65,9 @@ function explain(cfg, path) {
     .join('; ');
 }
 
-/** Parse `git diff --cached --name-status -z -M`. Returns [{status, paths:[...]}]. */
-function stagedChanges() {
-  const out = git(['diff', '--cached', '--name-status', '-z', '-M', '--no-ext-diff']);
+/** Parse `git diff <args> --name-status -z -M`. Returns [{status, paths:[...]}]. */
+function diffChanges(args) {
+  const out = git(['diff', ...args, '--name-status', '-z', '-M', '--no-ext-diff']);
   const f = out.split('\0');
   const res = [];
   for (let i = 0; i < f.length - 1; ) {
@@ -110,12 +111,33 @@ function showOrEmpty(spec) {
 }
 
 export function checkStaged(cfg, name, { lead = false } = {}) {
+  return checkChanges(cfg, name, {
+    lead,
+    changes: diffChanges(['--cached']),
+    before: 'HEAD',
+    after: '', // index
+    merging: hasRef('MERGE_HEAD'),
+  });
+}
+
+/** Ownership/size/append rules for one existing commit (merge.sh backstop). Merge commits are not checked here. */
+export function checkCommit(cfg, name, sha) {
+  return checkChanges(cfg, name, {
+    lead: false,
+    changes: diffChanges([`${sha}^`, sha]),
+    before: `${sha}^`,
+    after: sha,
+    merging: false,
+  });
+}
+
+function checkChanges(cfg, name, { lead, changes, before, after, merging }) {
   const problems = [];
   if (!lead && !cfg.owners[name]) {
     return [`"${name}" is not a teammate in team/owners.json; commit from your own branch team/<your-name>`];
   }
-  const changes = stagedChanges();
-  const merging = hasRef('MERGE_HEAD');
+  const A = (p) => `${after}:${p}`;
+  const B = (p) => `${before}:${p}`;
 
   let touched = []; // {path, deleted}
   for (const c of changes) {
@@ -129,14 +151,14 @@ export function checkStaged(cfg, name, { lead = false } = {}) {
   }
 
   const specs = [];
-  for (const t of touched) specs.push(`:${t.path}`, `HEAD:${t.path}`, ...(merging ? [`MERGE_HEAD:${t.path}`] : []));
+  for (const t of touched) specs.push(A(t.path), B(t.path), ...(merging ? [`MERGE_HEAD:${t.path}`] : []));
   const objs = batchCheck(specs);
 
   if (merging) {
     // A merge commit only "authors" paths whose result differs from both parents (conflict resolutions, evil merges).
     touched = touched.filter((t) => {
-      const st = objs.get(`:${t.path}`)?.oid ?? '';
-      const h = objs.get(`HEAD:${t.path}`)?.oid ?? '';
+      const st = objs.get(A(t.path))?.oid ?? '';
+      const h = objs.get(B(t.path))?.oid ?? '';
       const m = objs.get(`MERGE_HEAD:${t.path}`)?.oid ?? '';
       return st !== h && st !== m;
     });
@@ -146,7 +168,7 @@ export function checkStaged(cfg, name, { lead = false } = {}) {
   for (const t of touched) {
     // size rule (everyone, lead included)
     if (!t.deleted) {
-      const o = objs.get(`:${t.path}`);
+      const o = objs.get(A(t.path));
       if (o && o.size > max && !any(t.path, cfg.largeFileGlobs)) {
         problems.push(
           `${t.path}: ${(o.size / 1048576).toFixed(1)} MB is over the ${(max / 1048576).toFixed(0)} MB limit; ` +
@@ -157,9 +179,9 @@ export function checkStaged(cfg, name, { lead = false } = {}) {
     if (lead) continue;
     if (mayWrite(cfg, name, t.path)) continue;
     if (any(t.path, cfg.appendOnlyForAll) && !t.deleted) {
-      const before = showOrEmpty(`HEAD:${t.path}`);
-      const after = showOrEmpty(`:${t.path}`);
-      if (after.startsWith(before) && after.length > before.length) continue;
+      const was = showOrEmpty(B(t.path));
+      const now = showOrEmpty(A(t.path));
+      if (now.startsWith(was) && now.length > was.length) continue;
       problems.push(
         `${t.path}: you may only append to it (add a new entry at the end; change nothing above). ` +
           `To revise an entry, append a new one that supersedes it.`,
@@ -198,6 +220,16 @@ function main(argv) {
             problems.map((p) => `  - ${p}`).join('\n') +
             '\nRules: team/owners.json, team/BRIEF.md §3.\n',
         );
+        return 1;
+      }
+      return 0;
+    }
+    if (cmd === 'check-commit') {
+      const [name, sha] = rest;
+      if (!name || !sha) throw new Error('usage: check-commit <name> <sha>');
+      const problems = checkCommit(loadOwners(), name, sha);
+      if (problems.length) {
+        process.stderr.write(problems.map((p) => `${p}`).join('\n') + '\n');
         return 1;
       }
       return 0;
