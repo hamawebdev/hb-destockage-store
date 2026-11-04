@@ -117,3 +117,20 @@ describe('validateSnapshot', () => {
     expect(() => parseSnapshot({}, 'test')).toThrow(SnapshotError);
   });
 });
+
+describe('exports for admin (pure)', () => {
+  test('checkProductIntegrity on one product', async () => {
+    const { checkProductIntegrity, SLUG, isContentLinkHref } = await import('../src/schema.ts');
+    const s = clone();
+    const variantKindById = new Map(s.products.flatMap((p) => p.variants.map((x) => [x.id, p.kind] as const)));
+    const ctx = { variantKindById, categoryIds: new Set(s.categories.map((c) => c.id)) };
+    for (const p of s.products) expect(checkProductIntegrity(p, ctx)).toEqual([]);
+    const bad = { ...s.products[0]!, variants: s.products[0]!.variants.map((x) => ({ ...x, isDefault: true })) };
+    expect(checkProductIntegrity(bad, ctx).map((i) => i.message).join()).toMatch(/exactly one default/);
+    expect(checkProductIntegrity({ ...s.products[0]!, categoryId: 99 }, ctx)[0]!.path).toBe('product.categoryId');
+    expect(SLUG.test('pack-luxe-4-en-1')).toBe(true);
+    expect(SLUG.test('Pack')).toBe(false);
+    expect(isContentLinkHref('//evil.example')).toBe(false);
+    expect(isContentLinkHref('tel:+213560417403')).toBe(true);
+  });
+});
