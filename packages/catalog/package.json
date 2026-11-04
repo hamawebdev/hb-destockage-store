@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run"
@@ -11,6 +16,5 @@
     "@hb/shared": "*",
     "sharp": "0.35.5",
     "valibot": "1.5.0"
-  },
-  "devDependencies": {}
+  }
 }

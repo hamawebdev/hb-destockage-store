@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "build": "wrangler deploy --dry-run --outdir dist",
-    "dev": "wrangler dev --port 4210"
+    "dev": "wrangler dev --port 4210 --inspector-port 4211 --ip 127.0.0.1"
   },
   "dependencies": {
     "@hb/db": "*",
@@ -17,8 +17,8 @@
     "valibot": "1.5.0"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.23.0",
     "@cloudflare/workers-types": "5.20261104.1",
-    "miniflare": "5.20261103.0-beta",
     "wrangler": "4.157.0"
   }
 }
