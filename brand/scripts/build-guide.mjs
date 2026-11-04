@@ -238,7 +238,11 @@ footer{margin-top:80px;color:var(--sec);font-size:13px}
   main{max-width:none;padding:0}
   h2{break-before:page;margin-top:0;border-top:0}
   h2:first-of-type{break-before:auto;margin-top:40px}
-  table,figure,.sw,.ts,.ic{break-inside:avoid}
+  .logos{grid-template-columns:repeat(3,1fr);gap:8px}
+  .tile{padding:16px 14px 8px;gap:8px}.mono svg{width:56px;height:56px}
+  li{margin:2px 0}
+  tr,figure,.sw,.ts,.ic{break-inside:avoid}
+  thead{display:table-header-group}
   a{color:inherit;text-decoration:none}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }

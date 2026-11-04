@@ -178,6 +178,10 @@ Products are the heroes; the photos must look like one family.
 - **Variants:** one photo per colour, same framing, so switching colour doesn't make the page jump.
 - **Never:** text, prices, logos or watermarks on the photo; stretched or low-resolution images;
   photos taken from other websites.
+- **Today's photos are a temporary exception.** Some current product photos (from the client's
+  existing site and suppliers) still carry burned-in prices or supplier renders whose rights are
+  being confirmed (see `data/photos/README.md`). They are flagged there and must be replaced by
+  photos that follow these rules before launch.
 - **Files:** originals at least 1600 px on the long side, JPEG or PNG. The build creates AVIF at
   360/480/720/960/1200 px automatically. Placeholder photos are marked `placeholder: true`.
 
