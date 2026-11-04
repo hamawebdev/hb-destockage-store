@@ -7,6 +7,7 @@ type Group = Record<string, unknown>;
 
 export interface BrandTokens {
   color: Record<string, Leaf>;
+  contrastPairs?: { pairs: { fg: string; bg: string; min: number; use: string }[] };
   font: {
     family: Record<'latin' | 'arabic' | 'switcher', Leaf> & Record<string, Leaf>;
     weight: Record<'regular' | 'emphasis', Leaf>;
@@ -40,6 +41,14 @@ export interface BuildInput {
 export interface BuildOutput {
   css: string;
   ts: string;
+  /** The resolved values (same object the TS export serialises). */
+  model: {
+    fontSize: Record<string, { css: string; px360: number; px1440: number }>;
+    space: Record<string, string>;
+    radius: Record<string, string>;
+    shadow: Record<string, string>;
+    motion: { duration: Record<string, string>; easing: Record<string, string>; distance: string };
+  };
 }
 
 /** Type-scale step index -> CSS name (`--fs-<name>`). A new brand step must be named here. */
@@ -277,5 +286,5 @@ export function buildTokens({ tokens: t, sourcePath, sourceSha256 }: BuildInput)
     `/** tokens.css as a string, for server-rendered pages (admin) that inline it. */\n` +
     `export const tokensCss = ${JSON.stringify(css)};\n`;
 
-  return { css, ts };
+  return { css, ts, model };
 }

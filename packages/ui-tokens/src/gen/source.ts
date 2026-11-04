@@ -20,6 +20,7 @@ export const FONT_TS_OUT = join(PKG_DIR, 'src', 'font.generated.ts');
 export const ICONS_DIR = join(PKG_DIR, 'icons');
 export const ICONS_MANIFEST_OUT = join(ICONS_DIR, 'manifest.json');
 export const ICONS_TS_OUT = join(PKG_DIR, 'src', 'icons.generated.ts');
+export const SPECIMEN_DIR = join(PKG_DIR, 'specimen');
 export const SUBSET_CONFIG = join(PKG_DIR, 'fonts', 'subset.json');
 
 export interface Source {

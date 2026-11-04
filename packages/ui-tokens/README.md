@@ -16,6 +16,7 @@ Values come from `brand/tokens.json` (owner `brand`); this package only transcri
 | `icons/<name>.svg`, `icons/manifest.json` | Icon set; manifest **generated**. See Icons. | storefront, admin |
 | `base.css` | Reset, typography, layout primitives, buttons, icons, a11y helpers, motion. Every template. | storefront |
 | `forms.css` | Fields, radios/checkboxes, variant chips/swatches, notes. Templates with a form only. | storefront |
+| `specimen/fr.html`, `specimen/ar.html` | Static specimen of every token, contrast pair, icon and component. **Generated**. `specimen/shoot.mjs` screenshots it. | brand, review |
 | `src/lint.ts` | `physicalProperties(css)`: lists direction-specific declarations (for tests). | any workspace |
 
 Regenerate after any change to `brand/tokens.json`, the font or `icons/` (also `npm run generate -w @hb/ui-tokens`):
@@ -138,6 +139,18 @@ component rule `font-family: var(--font-switcher)` (beats the zero-specificity `
 
 Size (minified, brotli): tokens 1,151 B + font-face 204 B + base 1,530 B = 2,745 B together;
 + forms 598 B → 3,088 B. Before the storefront drops unused custom properties.
+
+## Specimen
+
+`specimen/fr.html` and `specimen/ar.html` (open them directly, no server): colour roles, every
+`contrastPairs` entry with its computed WCAG ratio (text pairs as text, non-text pairs as a 3px ring),
+the type scale with sample copy, space, radius, shadow, motion values + a CSS-only popover, all icons
+(directional ones mirrored in RTL, plus a `dir="ltr"` island where they are not), and the
+base/forms components (buttons, field, invalid phone, select, chips, SVG swatches, radios, notes).
+Regenerated with everything else; a test fails if they are stale or a pair drops below its minimum.
+
+Screenshots (360/768/1440 × fr/ar) and axe:
+`node packages/ui-tokens/specimen/shoot.mjs "<out dir>"` → `specimen-<lang>-<width>.png` + `report.json`.
 
 ## CSS approach
 
