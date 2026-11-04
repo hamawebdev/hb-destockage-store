@@ -8,6 +8,7 @@ export * from './fees.ts';
 export * from './order-state.ts';
 export * from './order-schema.ts';
 export * from './format.ts';
+export * from './format-check.ts';
 export * from './messages.ts';
 export * from './quote.ts';
 export * from './fee-conformance.ts';

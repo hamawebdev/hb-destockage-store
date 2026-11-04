@@ -1,28 +1,34 @@
-import { expect, test } from 'vitest';
+/** SHARED-5 — Intl formatters. The pinned cases live in src/format-check.ts so web can run them in workerd. */
+import { describe, expect, test } from 'vitest';
+import { FORMAT_CASES, runFormatCases } from '../src/format-check.ts';
 import { formatDate, formatDateTime, formatNumber, formatPrice } from '../src/format.ts';
 
-// Exact strings from Node 24 / ICU 77.1. SHARED-5 records the same assertions under workerd.
-test('formatPrice', () => {
-  expect(formatPrice(189000, 'ar')).toBe('‏189.000 د.ج.‏');
-  expect(formatPrice(189000, 'fr')).toBe('189 000 DA');
-  expect(formatPrice(14600, 'ar')).toBe('‏14.600 د.ج.‏');
-  expect(formatPrice(500, 'fr')).toBe('500 DA');
+describe('pinned outputs (Node)', () => {
+  test.each(runFormatCases().map((r) => [`${r.fn} ${r.lang} ${r.input}`, r] as const))('%s', (_label, r) => {
+    expect(r.actual).toBe(r.expected);
+  });
+  test('covers every month in both languages', () => {
+    expect(FORMAT_CASES.filter((c) => c.fn === 'date').length).toBe(26);
+  });
 });
 
-test('formatNumber uses Western digits', () => {
-  expect(formatNumber(16500, 'ar')).toBe('16.500');
-  expect(formatNumber(16500, 'fr')).toBe('16 500');
+test('report string "189.000 د.ج." is the ar-DZ output once the bidi marks and NBSP are dropped', () => {
+  expect(formatPrice(189000, 'ar').replace(/‏/g, '').replace(/ /g, ' ')).toBe('189.000 د.ج.');
 });
 
-test('formatDate uses Algerian month names and Africa/Algiers', () => {
-  const jan15 = Date.UTC(2026, 0, 15, 12);
-  expect(formatDate(jan15, 'ar')).toBe('15 جانفي 2026');
-  expect(formatDate(jan15, 'fr')).toBe('15 janvier 2026');
-  // 23:30 UTC on 31 Dec is already 1 Jan in Algiers (UTC+1).
-  expect(formatDate(Date.UTC(2025, 11, 31, 23, 30), 'fr')).toBe('1 janvier 2026');
+test('Western digits only, never Eastern Arabic', () => {
+  for (const s of [formatPrice(1234567, 'ar'), formatNumber(16500, 'ar'), formatDate(Date.UTC(2026, 9, 25), 'ar'), formatDateTime(Date.UTC(2026, 9, 25), 'ar')])
+    expect(s).not.toMatch(/[٠-٩۰-۹]/);
 });
 
-test('formatDateTime is 24-hour in Algiers time', () => {
-  expect(formatDateTime(Date.UTC(2026, 6, 15, 12), 'fr')).toMatch(/13:00/);
-  expect(formatDateTime(Date.UTC(2026, 6, 15, 12), 'ar')).toMatch(/13:00/);
+test('Date objects and epoch ms give the same output; formatters are cached', () => {
+  const ms = Date.UTC(2026, 2, 1, 10);
+  expect(formatDate(new Date(ms), 'fr')).toBe(formatDate(ms, 'fr'));
+  expect(formatDateTime(new Date(ms), 'ar')).toBe(formatDateTime(ms, 'ar'));
+  expect(formatPrice(1, 'fr')).toBe(formatPrice(1, 'fr'));
+});
+
+test('runFormatCases reports mismatches instead of throwing', () => {
+  const [r] = runFormatCases([{ fn: 'price', lang: 'fr', input: 1, expected: 'nope' }]);
+  expect(r).toMatchObject({ ok: false, actual: '1 DA' });
 });
