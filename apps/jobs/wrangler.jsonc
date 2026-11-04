@@ -1,0 +1,9 @@
+// Placeholder (TOOL-2). Owner: jobs.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "hb-jobs",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "triggers": { "crons": ["0 2 * * *"] },
+  "dev": { "port": 4120 }
+}

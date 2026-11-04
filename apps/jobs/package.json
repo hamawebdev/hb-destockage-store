@@ -1,0 +1,23 @@
+{
+  "name": "@hb/jobs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "dev": "wrangler dev --test-scheduled --port ${PORT:-4120} --inspector-port ${INSPECTOR_PORT:-4121} --ip 127.0.0.1 --persist-to ../../.wrangler/hb-local"
+  },
+  "dependencies": {
+    "@hb/catalog": "*",
+    "@hb/db": "*",
+    "@hb/shared": "*",
+    "drizzle-orm": "0.45.4"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.23.0",
+    "@cloudflare/workers-types": "5.20261104.1",
+    "wrangler": "4.157.0"
+  }
+}

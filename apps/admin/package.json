@@ -1,0 +1,28 @@
+{
+  "name": "@hb/admin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "dev": "wrangler dev --port ${PORT:-4240} --inspector-port ${INSPECTOR_PORT:-4241} --ip 127.0.0.1 --var ENV:development --persist-to ../../.wrangler/hb-local"
+  },
+  "dependencies": {
+    "@hb/catalog": "*",
+    "@hb/db": "*",
+    "@hb/shared": "*",
+    "@hb/ui-tokens": "*",
+    "@hb/web": "*",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.16",
+    "jose": "6.2.15",
+    "valibot": "1.5.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.23.0",
+    "@cloudflare/workers-types": "5.20261104.1",
+    "wrangler": "4.157.0"
+  }
+}
