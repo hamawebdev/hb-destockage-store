@@ -17,3 +17,5 @@ export interface IconEntry {
   /** Directional icon: carries data-mirror and is flipped by `:dir(rtl) [data-mirror]` in base.css. */
   mirror: boolean;
 }
+
+export { ICON_MIRROR_RULE, icons, type IconName } from './icons.generated.ts';
