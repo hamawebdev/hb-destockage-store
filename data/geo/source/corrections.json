@@ -527,6 +527,38 @@
    "was_ar": "الحسيان (بني ياحي",
    "name_ar": "الحسيان (بني ياحي)",
    "reason": "Missing closing parenthesis"
+  },
+  {
+   "id": 68,
+   "was_fr": "El Fedjoudj Boughrara Sa",
+   "was_ar": "الفجوج بوغرارة سعودي",
+   "name_fr": "El Fedjoudj Boughrara Saoudi",
+   "reason": "Upstream French name truncated (\"…Sa\"); Law 84-09 art. 8 item 19 and the upstream Arabic الفجوج بوغرارة سعودي give the full name",
+   "source": "GEO-6: Law 84-09 (JO 1984 n°6), see source/jo/law-84-09-1984.json"
+  },
+  {
+   "id": 163,
+   "was_fr": "Benimaouche",
+   "was_ar": "بني معوش",
+   "name_fr": "Beni Maouche",
+   "reason": "Upstream \"Benimaouche\" lacks the space; Law 84-09 art. 10 item 50 \"Béni Maouch\", upstream daira name \"Beni Maouche\"",
+   "source": "GEO-6: Law 84-09 (JO 1984 n°6), see source/jo/law-84-09-1984.json"
+  },
+  {
+   "id": 1025,
+   "was_fr": "Elhammadia",
+   "was_ar": "الحمادية",
+   "name_fr": "El Hammadia",
+   "reason": "Upstream \"Elhammadia\" lacks the space; Law 84-09 art. 38 item 11 \"El Hamadia\"",
+   "source": "GEO-6: Law 84-09 (JO 1984 n°6), see source/jo/law-84-09-1984.json"
+  },
+  {
+   "id": 596,
+   "was_fr": "Hamam Soukhna",
+   "was_ar": "حمام السخنة",
+   "name_fr": "Hammam Sokhna",
+   "reason": "Upstream \"Hamam Soukhna\" misspells its own daira name \"Hammam Sokhna\" (Arabic حمام السخنة)",
+   "source": "GEO-6: Law 84-09 (JO 1984 n°6), see source/jo/law-84-09-1984.json"
   }
  ],
  "wilaya_names": [

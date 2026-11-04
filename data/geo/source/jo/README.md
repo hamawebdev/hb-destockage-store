@@ -5,6 +5,8 @@
 | **Law 26-06** of 4 April 2026, amending and completing Law 84-09 (territorial organisation): 69 wilayas, 1,541 communes; rewrites the lists of 10 wilayas; creates arts. 52 bis 10–20 (the 11 new wilayas) | n°25, 5 April 2026 | FR 4–9, AR 4–11 | FR https://www.joradp.dz/FTP/jo-francais/2026/F2026025.pdf `f6d7f526…e46f`; AR https://www.joradp.dz/FTP/jo-arabe/2026/A2026025.pdf `e2176036…8e87` |
 | **Presidential Decree 26-206** of 25 May 2026, completing Decree 84-79 (names and chefs-lieux of wilayas): items 59–69 | n°40, 3 June 2026 | FR 5, AR 6 | FR https://www.joradp.dz/FTP/jo-francais/2026/F2026040.pdf `7cc0cf26…b9b0`; AR https://www.joradp.dz/FTP/jo-arabe/2026/A2026040.pdf `a4552b3a…ab3f` |
 | Executive Decree 26-208 of 26 May 2026 (split of assets between mother and new wilayas; deadline 31 Dec 2026) | n°40, 3 June 2026 | FR 6 | same PDF |
+| **Law 84-09** of 4 February 1984 (territorial organisation): 48 wilayas, 1,540 communes; art. 5–52 list each wilaya (art. = code + 4). Scan, no text layer: transcribed by hand (GEO-6) | n°6, 7 Feb 1984 | FR 101–111 | https://www.joradp.dz/FTP/jo-francais/1984/F1984006.pdf `d14ebe0f…ab3ff` |
+| **Ordinance 97-14** of 31 May 1997 (territorial organisation of the wilaya of Alger): moves 6 communes of Boumerdès, 14 of Tipaza and 4 of Blida to Alger. Scan, read by hand | n°38, 4 Jun 1997 | FR 4–5 | https://www.joradp.dz/FTP/jo-francais/1997/F1997038.pdf (sha256 in `law-84-09-1984.json`) |
 | **Law 19-12** of 11 December 2019, amending Law 84-09: 58 wilayas, 1,541 communes; rewrites 8 wilaya lists; creates arts. 52 bis–52 bis 9 (wilayas 49–58) | n°78, 18 Dec 2019 | FR 12–15, AR 13–16 | FR https://www.joradp.dz/FTP/jo-francais/2019/F2019078.pdf `5a311597…669d`; AR https://www.joradp.dz/FTP/jo-arabe/2019/A2019078.pdf `4a135bc5…4054` |
 
 Full hashes are in `official-lists.json` → `sources`. The PDFs are not committed (about 2 MB); re-download
@@ -18,9 +20,7 @@ them from the URLs and compare the hashes.
 - Total 539 communes. Each list's length equals the count written in its article.
 - Law 84-09 numbers the wilaya articles `code + 4` (art. 7 = Laghouat, code 3), which ties each rewritten
   article to its wilaya code.
-- The other **31 wilayas (1,002 communes)** keep the 1984 composition (Law 84-09, JO 1984 n°6). That
-  PDF is a scan with no text layer and was not transcribed. Their lists are upstream, unverified
-  against the JO; only the total (1,541 − 539 = 1,002) is checked.
+- The other **31 wilayas (1,002 communes)** keep their 1984 composition (Law 84-09, JO 1984 n°6), except for Ordinance 97-14 (JO 1997 n°38), which moved 24 communes from Boumerdès, Tipaza and Blida to Alger. Both PDFs are scans without a text layer. Their lists are transcribed by hand in `law-84-09-1984.json` (GEO-6) and mapped to upstream ids, so all 1,541 communes are tied to a JO list. Per-wilaya results: `artifacts/GEO-6/report.md`.
 
 ## How it was extracted
 
