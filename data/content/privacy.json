@@ -30,7 +30,8 @@
           "رقم الهاتف المحمول.",
           "ولاية وبلدية التوصيل.",
           "المنتجات المطلوبة والكمية.",
-          "معلومات تقنية محدودة لمكافحة الطلبات المزيفة، منها عنوان IP محفوظ في شكل مشفّر."
+          "معلومات تقنية محدودة لمكافحة الطلبات المزيفة، منها بصمة لا يمكن عكسها لعنوان IP (لا نحتفظ بالعنوان نفسه).",
+          "عند تصفّح كل صفحة، قياسات أداء مجهولة الهوية (سرعة العرض، نوع الشبكة)، دون كوكيز ودون أي معرّف."
         ]
       },
       {
@@ -111,7 +112,8 @@
           "Votre numéro de téléphone mobile.",
           "La wilaya et la commune de livraison.",
           "Les produits commandés et leur quantité.",
-          "Des données techniques limitées pour lutter contre les fausses commandes, dont l'adresse IP conservée sous forme chiffrée."
+          "Des données techniques limitées pour lutter contre les fausses commandes, dont une empreinte non réversible de l'adresse IP (l'adresse elle-même n'est pas conservée).",
+          "Pour chaque page vue, des mesures de performance anonymes (vitesse d'affichage, type de réseau), sans cookie ni identifiant."
         ]
       },
       {
