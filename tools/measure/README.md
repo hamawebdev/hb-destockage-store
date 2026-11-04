@@ -90,8 +90,9 @@ Lighthouse (MEAS-2: TBT, LCP) is the runtime check of the same property.
 
 Sum, per page, of brotli bytes of: every inline executable script + every first-party JS file
 reachable from the page. Reachability follows `<script src>`, module preloads, static
-`import`/`export … from`, `import()`, and **any string literal naming a `.js`/`.mjs` path**
-(`s.src = '/js/turnstile-loader.js'`), recursively. So a lazily injected first-party file counts.
+`import`/`export … from`, `import()`, **any string literal naming a `.js`/`.mjs` path**
+(`s.src = '/js/turnstile-loader.js'`), and every `.js` token in a `data-*` attribute (the
+storefront LOADER imports the modules listed in `[data-js]`), recursively. So a lazily injected first-party file counts.
 JSON fetched at runtime (commune lists, search index) is not JS and is not counted.
 
 Third-party URLs found inside first-party JS are not violations (that is how Turnstile is

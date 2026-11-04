@@ -311,6 +311,15 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
       for (const ref of jsRefs(text)) queue.push({ ref, base: docUrl, via: 'inline script' });
     }
   }
+  // modules named in data-* attributes (the storefront LOADER imports every token of [data-js]
+  // after load or on first interaction): any data-* value made of space-separated tokens counts
+  // its .js/.mjs tokens
+  for (const t of live) {
+    for (const [a, val] of Object.entries(t.attrs)) {
+      if (!a.startsWith('data-')) continue;
+      for (const tok of val.split(/\s+/)) if (JS_EXT.test(tok)) queue.push({ ref: tok, base: docUrl, via: `<${t.name} ${a}>` });
+    }
+  }
   // closure over the first-party JS reachable from the page: static imports, import(), and string
   // literals naming a .js file (a lazily injected <script src>)
   const seenJs = new Set<string>();

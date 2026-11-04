@@ -116,6 +116,10 @@ const CASES: Case[] = [
     mutate: (d) => { put(d, 'js/extra.js', `export const k="${noiseText(14000)}";`); edit(d, 'js/order.js', (s) => `${s}\nimport('./extra.js');\n`); },
   },
   {
+    name: 'modules listed in a data-js attribute (storefront LOADER) count', rule: 'js-after-lcp',
+    mutate: (d) => { put(d, 'js/search.js', `export const k="${noiseText(14000)}";`); edit(d, FR_H, (s) => s.replace('<main id="main">', '<main id="main" data-js="/js/search.js">')); },
+  },
+  {
     name: 'inline scripts count too', rule: 'js-after-lcp',
     mutate: (d) => edit(d, FR_H, before(BODY_END, `<script>const k="${noiseText(14000)}"</script>`)),
   },
@@ -209,6 +213,7 @@ const CASES: Case[] = [
   // missing-asset
   { name: 'LCP image file missing', rule: 'missing-asset', mutate: (d) => rmSync(path.join(d, 'img/p1-960.avif')) },
   { name: 'lazily referenced script missing', rule: 'missing-asset', mutate: (d) => edit(d, 'js/order.js', (s) => `${s}\nconst x = '/js/nope.js';\n`) },
+  { name: 'data-js module missing', rule: 'missing-asset', mutate: (d) => edit(d, FR_H, (s) => s.replace('<main id="main">', '<main id="main" data-js="/js/order.js /js/nope.js">')) },
   { name: 'Arabic font file missing', rule: 'missing-asset', mutate: (d) => rmSync(path.join(d, FONT.slice(1))) },
 ];
 
