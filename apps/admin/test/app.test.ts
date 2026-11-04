@@ -45,7 +45,7 @@ function expectSecurityHeaders(res: Response) {
   expect(res.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
 }
 
-describe('ADMIN-1 default app (index.ts) refuses everyone until ADMIN-2', () => {
+describe('default app (index.ts) without credentials', () => {
   const env = testEnv({} as D1Database);
   test('no credentials → 401, with security headers, no app chrome', async () => {
     const res = await prodApp.request('/', {}, env);
@@ -53,7 +53,7 @@ describe('ADMIN-1 default app (index.ts) refuses everyone until ADMIN-2', () => 
     expectSecurityHeaders(res);
     expect(await res.text()).not.toContain('nav__link');
   });
-  test('an Access header is not trusted yet → 403', async () => {
+  test('a malformed Access header → 403', async () => {
     const res = await prodApp.request('/orders', { headers: { 'Cf-Access-Jwt-Assertion': 'x.y.z' } }, env);
     expect(res.status).toBe(403);
   });
@@ -64,7 +64,8 @@ describe('ADMIN-1 default app (index.ts) refuses everyone until ADMIN-2', () => 
     for (const p of paths) {
       for (const method of ['GET', 'POST']) {
         const res = await prodApp.request(p, { method }, env);
-        expect(res.status, `${method} ${p}`).toBe(401);
+        // /__dev/* does not exist outside local development (404); see auth.test.ts.
+        expect(res.status, `${method} ${p}`).toBe(p.startsWith('/__dev') ? 404 : 401);
       }
     }
   });

@@ -13,14 +13,15 @@
 //  7. Your strings: `defineMessages({ fr, ar })` in your own folder.
 //
 // Pipeline (order matters): security headers → request id → env check → body limit →
-// db → authenticate → language/renderer → role guard → routes.
+// db → [dev login, local only] → authenticate → language/renderer → role guard → routes.
 
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { createMiddleware } from 'hono/factory';
 import { createDb } from '@hb/db';
 import { tokensCss } from '@hb/ui-tokens';
-import { authenticate, refuseAll, type IdentifyFn } from './auth/authenticate.ts';
+import { authenticate, createDefaultIdentify, type IdentifyFn } from './auth/authenticate.ts';
+import devRoutes, { DEV_PREFIX } from './auth/dev-routes.tsx';
 import { requirePerm, roleGuard } from './auth/require-role.ts';
 import { checkEnv, type AppEnv } from './env.ts';
 import { dirOf, translator } from './i18n/index.ts';
@@ -47,7 +48,7 @@ export const LARGE_BODY_BYTES = 10 * 1024 * 1024;
 export const LARGE_BODY_PATHS: ReadonlySet<string> = new Set(['/media/upload']);
 
 export interface AppOptions {
-  /** Identity provider. Defaults to `refuseAll` until ADMIN-2. */
+  /** Identity provider. Defaults to dev login (local only) + Cloudflare Access JWT. */
   identify?: IdentifyFn;
 }
 
@@ -93,7 +94,10 @@ const withLang = createMiddleware<AppEnv>(async (c, next) => {
 export function createApp(opts: AppOptions = {}): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
-  app.use('*', securityHeaders, requestId, envGuard, limitBody, withDb, authenticate(opts.identify ?? refuseAll), withLang, roleGuard);
+  app.use('*', securityHeaders, requestId, envGuard, limitBody, withDb);
+  // Local dev login: registered before authenticate; 404 unless ENV=development on a loopback host.
+  app.route(DEV_PREFIX, devRoutes);
+  app.use('*', authenticate(opts.identify ?? createDefaultIdentify()), withLang, roleGuard);
 
   // Static assets (after auth; `run_worker_first: true` in wrangler.jsonc).
   app.get(ASSET.tokens, requirePerm('dashboard.view'), (c) =>

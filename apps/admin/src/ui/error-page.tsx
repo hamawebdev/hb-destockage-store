@@ -5,6 +5,7 @@ import type { Context } from 'hono';
 import type { AppEnv } from '../env.ts';
 import { translator, type Lang } from '../i18n/index.ts';
 import { ASSET } from './assets.ts';
+import { isDevAuthAllowed } from '../auth/dev-gate.ts';
 
 export type ErrorStatus = 401 | 403 | 404 | 500 | 503;
 
@@ -53,6 +54,9 @@ export function renderError(c: Context<AppEnv>, status: ErrorStatus): Response {
               {langs.map((l) => (
                 <Block lang={l} status={status} requestId={requestId} withLink={withLink} />
               ))}
+              {status === 401 && isDevAuthAllowed(c) ? (
+                <p><a href="/__dev/login">Dev login (local only)</a></p>
+              ) : null}
             </main>
           </body>
         </html>

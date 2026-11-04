@@ -19,3 +19,19 @@ export async function verifyCsrfToken(secret: string, userId: number, token: unk
   if (!(issued <= now + 60_000 && now - issued <= CSRF_TTL_MS)) return false;
   return hmacVerify(secret, `csrf|${userId}|${issued}`, m[2]!);
 }
+
+/**
+ * Same-origin check for unsafe methods: `Sec-Fetch-Site: same-origin`, or (when that header is
+ * absent) an `Origin` equal to the request's own origin. Both absent → false.
+ */
+export function isSameOriginRequest(req: Request): boolean {
+  const site = req.headers.get('Sec-Fetch-Site');
+  if (site !== null) return site === 'same-origin';
+  const origin = req.headers.get('Origin');
+  if (origin === null) return false;
+  try {
+    return origin === new URL(req.url).origin;
+  } catch {
+    return false;
+  }
+}
