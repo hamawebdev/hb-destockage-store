@@ -149,9 +149,9 @@ for every template so `pages` and `orderform` drop components into a running sit
 ## 5. Areas and tasks
 
 Task IDs are `<AREA>-<n>`. `-0` tasks are plans (artifact only). **(H)** = high risk: plan first
-(write `artifacts/<ID>/plan.md`, message `lead`, wait for OK), then after reviewer approval the lead
+(write `artifacts/<ID>/plan.md`, message the lead (`team-lead`), wait for OK), then after reviewer approval the lead
 takes it to the client for sign-off. Each builder's list is in its spawn prompt and in the shared
-task list. A task too big for one reviewable commit: split it (tell `lead`).
+task list. A task too big for one reviewable commit: split it (tell the lead (`team-lead`)).
 
 ## 6. Workflow
 
@@ -181,9 +181,12 @@ task list. A task too big for one reviewable commit: split it (tell `lead`).
    your next task meanwhile.
 6. **Reviewer** follows REVIEW.md, writes `artifacts/<ID>/review-r<n>.md` (starts with a findings
    count and `Verdict: APPROVED` or `Verdict: CHANGES REQUESTED`), messages the author and `lead`.
-7. **Complete** the build task (TaskUpdate completed) once the reviewer approves. The
-   `TaskCompleted` hook runs `scripts/gate.sh` in your worktree and refuses while anything is red.
-8. **Merge**: only `lead` merges approved commits to `main`. High-risk commits wait for the client's
+7. **Complete** the build task (TaskUpdate completed) as soon as its commit exists and the gate is
+   green — do not wait for review. The `TaskCompleted` hook runs `scripts/gate.sh` in your worktree
+   and refuses while anything is red (it also fires when you go idle with a task in progress).
+   Review state lives in the `REV …` tasks and `artifacts/<ID>/review-r<n>.md`.
+8. **Merge**: only `lead` merges, with `scripts/team/merge.sh`, which refuses any commit without an
+   `APPROVED` review covering it (and, for high risk, the client's sign-off in `team/SIGNOFFS.md`). High-risk commits wait for the client's
    sign-off; keep working on other tasks meanwhile.
 9. **DECISIONS.md**: any deviation from STACK-REPORT.md gets an entry (`D-NNN`, what, why, evidence:
    measurement artifact path or cited source) **in the same commit** as the change. `DECISIONS.md`
