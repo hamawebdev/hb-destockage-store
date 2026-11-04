@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { ERROR_CODES as SERVER_CODES } from "@hb/shared/order-schema";
 
 const load = (lang) => JSON.parse(readFileSync(new URL(`../copy/strings.${lang}.json`, import.meta.url), "utf8"));
 const ar = load("ar");
@@ -13,14 +14,10 @@ const pluralBase = (k) => {
   return m ? m[1] : null;
 };
 
-// Copied from packages/shared/src/order-schema.ts ORDER_ERROR_CODES (SHARED-1) + client-only codes.
-const ERROR_CODES = [
-  "invalid_request", "lang_invalid", "name_invalid", "phone_required", "phone_invalid", "phone_not_mobile",
-  "wilaya_invalid", "commune_invalid", "items_empty", "items_invalid", "qty_invalid", "variant_unavailable",
-  "out_of_stock", "delivery_unavailable", "idempotency_key_invalid", "rate_limited", "server_error",
-  // client-side only (orderform JS):
-  "network_error", "quote_failed", "variant_required", "name_required", "wilaya_required", "commune_required", "total_changed",
-];
+// Server codes come from the contract itself, so a code added in @hb/shared turns this test red
+// until it has copy. Client-only codes are emitted by orderform's JS, never by the Worker.
+const CLIENT_ONLY_CODES = ["network_error", "quote_failed", "wilaya_required", "commune_required"];
+const ERROR_CODES = [...SERVER_CODES, ...CLIENT_ONLY_CODES];
 
 test("both files have identical key sets", () => {
   const a = Object.keys(ar).sort();
@@ -68,8 +65,12 @@ test("placeholders are marked in both languages together, and only where expecte
   }
 });
 
-test("every order error code has a message", () => {
-  for (const c of ERROR_CODES) assert.ok(`order.errors.${c}` in fr, c);
+test("every order error code (all of @hb/shared ERROR_CODES + client-only) has a message in both languages", () => {
+  assert.ok(SERVER_CODES.length >= 24, "contract list looks truncated");
+  for (const c of ERROR_CODES) {
+    assert.ok(`order.errors.${c}` in fr, `fr order.errors.${c}`);
+    assert.ok(`order.errors.${c}` in ar, `ar order.errors.${c}`);
+  }
 });
 
 test("Arabic values are translated (differ from French) unless language-neutral", () => {
@@ -117,5 +118,27 @@ test("no message lets the customer confirm without a total or promises the fee b
   for (const k of ["order.errors.quote_failed", "order.errors.rate_limited", "order.errors.delivery_unavailable"]) {
     assert.match(fr[k], /\{phone\}.*WhatsApp/, k);
     assert.match(ar[k], /\{phone\}.*واتساب/, k);
+  }
+});
+
+test("server error messages render without variables except {phone}/{max} (no-JS review step has no option name)", () => {
+  for (const k of ["order.errors.variant_required", "order.errors.validation", "order.errors.total_changed", "order.errors.name_required"]) {
+    assert.deepEqual([...vars(fr[k])], [], k);
+  }
+});
+
+test("Arabic: a sign before a number or variable is anchored with U+200E (else it renders on the wrong side, e.g. '20%−')", () => {
+  for (const [k, v] of Object.entries(ar)) {
+    if (k === "footer.whatsappDisplay") continue; // rendered inside <bdi dir="ltr">
+    assert.doesNotMatch(v, /(^|[^\u200E])[\u2212+\-](\{|\d)/u, k);
+  }
+});
+
+test("French typography: no breaking space before : ; ? ! % » or after «, and none inside '9 h'", () => {
+  for (const [k, v] of Object.entries(fr)) {
+    if (k.startsWith("_meta.")) continue;
+    assert.doesNotMatch(v, / [:;?!%»]/, `${k}: breaking space before punctuation`);
+    assert.doesNotMatch(v, /« /, `${k}: breaking space after «`);
+    assert.doesNotMatch(v, /\d h\b/, `${k}: breaking space in hour`);
   }
 });

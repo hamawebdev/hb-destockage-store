@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
+  ERROR_CODES,
   HONEYPOT_FIELD,
   MIN_REVIEW_MS,
   ORDER_ERROR_CODES,
@@ -263,6 +264,9 @@ test('error codes: keys, HTTP status for each', () => {
   expect(Object.keys(ORDER_ERROR_HTTP_STATUS).sort()).toEqual([...ORDER_ERROR_CODES].sort());
   expect(ORDER_ERROR_HTTP_STATUS.total_changed).toBe(409);
   expect(ORDER_ERROR_HTTP_STATUS.server_error).toBe(503);
+  expect(ERROR_CODES).toBe(ORDER_ERROR_CODES);
+  // Phone error codes are order error codes too.
+  for (const c of ['phone_required', 'phone_invalid', 'phone_not_mobile'] as const) expect(ERROR_CODES).toContain(c);
 });
 
 test('order ref', () => {
