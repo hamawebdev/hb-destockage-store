@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "name": "HB Destockage brand tokens",
+    "version": "1.0.0",
+    "owner": "brand",
+    "consumer": "packages/ui-tokens (tokens.css + TS export). Values here are the source of truth; ui-tokens transcribes them.",
+    "reference": "docs/design-reference/DESIGN.md (apple-com): light surfaces, near-black text, one blue accent, generous space. Where the reference and CLAUDE.md budgets disagree, the budgets win.",
+    "format": "Each leaf is { \"$value\", \"$type\", \"$description\"? } in the spirit of the W3C Design Tokens draft. Colours are 6-digit hex (sRGB) unless they carry alpha.",
+    "contrastCheck": "node brand/scripts/contrast.mjs [--out file]  (verifies every entry of contrastPairs; exits 1 on any failure). Tests: node --test brand/test/*.test.mjs"
+  },
+
+  "color": {
+    "surface":            { "$value": "#ffffff", "$type": "color", "$description": "Page background, cards on surface-alt, inputs." },
+    "surface-alt":        { "$value": "#f5f5f7", "$type": "color", "$description": "Alternate section band, product-image well, footer top. Apple fill-tertiary." },
+    "surface-raised":     { "$value": "#ffffff", "$type": "color", "$description": "Cards and dialogs that sit on surface-alt." },
+    "surface-inverse":    { "$value": "#1d1d1f", "$type": "color", "$description": "Rare dark band (footer bottom, toast). Only text-inverse / text-inverse-secondary / accent-inverse on it." },
+
+    "text":               { "$value": "#1d1d1f", "$type": "color", "$description": "Body copy, headings, prices. Apple glyph-gray." },
+    "text-secondary":     { "$value": "#6e6e73", "$type": "color", "$description": "Captions, hints, meta, struck compare-at price. >= 4.5:1 on surface AND surface-alt (Apple's #86868b fails, so it is not used for text)." },
+    "text-inverse":       { "$value": "#f5f5f7", "$type": "color", "$description": "Text on surface-inverse." },
+    "text-inverse-secondary": { "$value": "#a1a1a6", "$type": "color", "$description": "Secondary text on surface-inverse." },
+    "on-accent":          { "$value": "#ffffff", "$type": "color", "$description": "Text and icons on accent / accent-hover fills (primary button)." },
+
+    "border":             { "$value": "#d2d2d7", "$type": "color", "$description": "Decorative hairlines and dividers only (1px). Not for form-control boundaries: below 3:1." },
+    "border-control":     { "$value": "#86868b", "$type": "color", "$description": "Input, select, checkbox and secondary-button outlines. >= 3:1 on surface and surface-alt (WCAG 1.4.11)." },
+
+    "accent":             { "$value": "#0071e3", "$type": "color", "$description": "The single brand accent: primary button fill (order CTA), selected variant ring, focus ring, active nav underline. Same blue as the reference." },
+    "accent-hover":       { "$value": "#0062c4", "$type": "color", "$description": "Hover/pressed fill of accent. Darker (not lighter, as on apple.com) so on-accent text keeps >= 4.5:1." },
+    "accent-text":        { "$value": "#0066cc", "$type": "color", "$description": "Accent used as TEXT (inline links, text buttons). accent itself is only 4.31:1 on surface-alt, so links use this." },
+    "accent-inverse":     { "$value": "#2997ff", "$type": "color", "$description": "Links on surface-inverse." },
+    "accent-surface":     { "$value": "#eef5fe", "$type": "color", "$description": "Very light accent tint: info notes, selected list row." },
+    "focus":              { "$value": "#0071e3", "$type": "color", "$description": "Focus ring: outline 2px solid, offset 2px. >= 3:1 against surface, surface-alt and surface-inverse." },
+
+    "success":            { "$value": "#007a0c", "$type": "color", "$description": "In-stock text, order confirmed. Text and icon colour." },
+    "success-surface":    { "$value": "#f0faf1", "$type": "color", "$description": "Background of success notes and badges." },
+    "warning":            { "$value": "#a33f00", "$type": "color", "$description": "Low stock ('only 3 left'), delivery unavailable notice. Text and icon colour." },
+    "warning-surface":    { "$value": "#fff6ee", "$type": "color", "$description": "Background of warning notes." },
+    "danger":             { "$value": "#d70015", "$type": "color", "$description": "Form validation errors, out of stock. Always paired with an icon + text, never colour alone." },
+    "danger-surface":     { "$value": "#fff2f2", "$type": "color", "$description": "Background of the error summary box." },
+
+    "price":              { "$value": "#1d1d1f", "$type": "color", "$description": "Regular price. Prices read as calm text, not as alarms." },
+    "sale":               { "$value": "#b4232c", "$type": "color", "$description": "Discounted price and the discount badge text. Deeper than danger so a sale never reads as an error." },
+    "sale-surface":       { "$value": "#fdf1f1", "$type": "color", "$description": "Discount badge background (e.g. '-20%')." },
+
+    "scrim":              { "$value": "rgba(0, 0, 0, 0.40)", "$type": "color", "$description": "Behind <dialog> (menu, image zoom). Decorative." }
+  },
+
+  "contrastPairs": {
+    "$description": "Every text/background or UI/background pair the storefront may use. min 4.5 = normal text (WCAG 1.4.3), 3 = large text (>= 24px, or >= 18.66px bold — Arabic is never bold here, so Arabic text always needs 4.5 below 24px) or non-text UI (1.4.11). Using a pair not listed here requires adding it and re-running the check.",
+    "pairs": [
+      { "fg": "text",                   "bg": "surface",         "min": 4.5, "use": "body text" },
+      { "fg": "text",                   "bg": "surface-alt",     "min": 4.5, "use": "body text in alt band / image well" },
+      { "fg": "text",                   "bg": "accent-surface",  "min": 4.5, "use": "text in info note" },
+      { "fg": "text-secondary",         "bg": "surface",         "min": 4.5, "use": "hints, meta, compare-at price" },
+      { "fg": "text-secondary",         "bg": "surface-alt",     "min": 4.5, "use": "hints on alt band" },
+      { "fg": "text-inverse",           "bg": "surface-inverse", "min": 4.5, "use": "footer bottom / toast" },
+      { "fg": "text-inverse-secondary", "bg": "surface-inverse", "min": 4.5, "use": "footer legal line" },
+      { "fg": "on-accent",              "bg": "accent",          "min": 4.5, "use": "primary button label" },
+      { "fg": "on-accent",              "bg": "accent-hover",    "min": 4.5, "use": "primary button hover/pressed" },
+      { "fg": "accent-text",            "bg": "surface",         "min": 4.5, "use": "links" },
+      { "fg": "accent-text",            "bg": "surface-alt",     "min": 4.5, "use": "links on alt band" },
+      { "fg": "accent-text",            "bg": "accent-surface",  "min": 4.5, "use": "link inside info note" },
+      { "fg": "accent",                 "bg": "surface",         "min": 4.5, "use": "secondary (outline) button label on white" },
+      { "fg": "accent-inverse",         "bg": "surface-inverse", "min": 4.5, "use": "links in dark band" },
+      { "fg": "success",                "bg": "surface",         "min": 4.5, "use": "in stock" },
+      { "fg": "success",                "bg": "surface-alt",     "min": 4.5, "use": "in stock on alt band" },
+      { "fg": "success",                "bg": "success-surface", "min": 4.5, "use": "success note" },
+      { "fg": "warning",                "bg": "surface",         "min": 4.5, "use": "low stock" },
+      { "fg": "warning",                "bg": "surface-alt",     "min": 4.5, "use": "low stock on alt band" },
+      { "fg": "warning",                "bg": "warning-surface", "min": 4.5, "use": "warning note" },
+      { "fg": "danger",                 "bg": "surface",         "min": 4.5, "use": "field error message" },
+      { "fg": "danger",                 "bg": "surface-alt",     "min": 4.5, "use": "error on alt band" },
+      { "fg": "danger",                 "bg": "danger-surface",  "min": 4.5, "use": "error summary" },
+      { "fg": "text",                   "bg": "danger-surface",  "min": 4.5, "use": "error summary body" },
+      { "fg": "price",                  "bg": "surface",         "min": 4.5, "use": "price" },
+      { "fg": "price",                  "bg": "surface-alt",     "min": 4.5, "use": "price on alt band" },
+      { "fg": "sale",                   "bg": "surface",         "min": 4.5, "use": "sale price" },
+      { "fg": "sale",                   "bg": "surface-alt",     "min": 4.5, "use": "sale price on alt band" },
+      { "fg": "sale",                   "bg": "sale-surface",    "min": 4.5, "use": "discount badge" },
+      { "fg": "border-control",         "bg": "surface",         "min": 3,   "use": "input / select outline (1.4.11)" },
+      { "fg": "border-control",         "bg": "surface-alt",     "min": 3,   "use": "input outline on alt band (1.4.11)" },
+      { "fg": "focus",                  "bg": "surface",         "min": 3,   "use": "focus ring (1.4.11 / 2.4.13)" },
+      { "fg": "focus",                  "bg": "surface-alt",     "min": 3,   "use": "focus ring on alt band" },
+      { "fg": "focus",                  "bg": "surface-inverse", "min": 3,   "use": "focus ring in dark band" },
+      { "fg": "accent",                 "bg": "surface",         "min": 3,   "use": "selected-variant ring, outline-button border" },
+      { "fg": "accent",                 "bg": "surface-alt",     "min": 3,   "use": "selected-variant ring on alt band" },
+      { "fg": "danger",                 "bg": "surface",         "min": 3,   "use": "invalid input outline" },
+      { "fg": "text-secondary",         "bg": "surface",         "min": 3,   "use": "unselected radio/checkbox, icon-only controls" }
+    ]
+  },
+
+  "font": {
+    "family": {
+      "latin":  { "$value": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", \"Liberation Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"", "$type": "fontFamily", "$description": "French pages and all Latin UI. 0 bytes: SF Pro on Apple, Roboto on Android, Segoe UI on Windows. No Latin webfont (CLAUDE.md budget)." },
+      "arabic": { "$value": "\"HB Noto Sans Arabic\", \"Noto Sans Arabic\", system-ui, -apple-system, \"Segoe UI\", Tahoma, sans-serif", "$type": "fontFamily", "$description": "Arabic pages. First entry = the self-hosted static Noto Sans Arabic 400 subset (packages/ui-tokens owns the file and @font-face: font-display optional, preload on /ar/ only, unicode-range Arabic). Fallbacks are system fonts (Noto Naskh on Android, SF Arabic on iOS, Segoe UI on Windows)." },
+      "switcher": { "$value": "system-ui, -apple-system, \"Segoe UI\", Tahoma, sans-serif", "$type": "fontFamily", "$description": "The «العربية» language-switch label on /fr/ pages. Must not name the webfont, so French pages never download it through unicode-range." },
+      "numeric": { "$value": "inherit", "$type": "fontFamily", "$description": "Prices and phone numbers use the page font with font-variant-numeric: tabular-nums (system fonts and Noto Sans Arabic both support it)." }
+    },
+    "weight": {
+      "regular":  { "$value": 400, "$type": "fontWeight", "$description": "The ONLY weight for Arabic text (one static file). Latin body." },
+      "emphasis": { "$value": 600, "$type": "fontWeight", "$description": "Latin headings, price, button labels — system fonts only. Under :lang(ar) every weight resolves to 400 and font-synthesis is none, so the browser never fakes bold Arabic." }
+    },
+    "synthesis": { "$value": "none", "$type": "other", "$description": "font-synthesis: none on :lang(ar). Arabic hierarchy = size + colour + space, never weight." },
+    "lineHeight": {
+      "latin-body":    { "$value": 1.5,  "$type": "number", "$description": "Unitless. Paragraphs, form text." },
+      "latin-heading": { "$value": 1.15, "$type": "number", "$description": "Unitless. h1–h4." },
+      "latin-display": { "$value": 1.08, "$type": "number", "$description": "Unitless. Hero / display step." },
+      "latin-ui":      { "$value": 1.25, "$type": "number", "$description": "Unitless. Buttons, chips, nav, one-line labels." },
+      "arabic-body":   { "$value": 1.7,  "$type": "number", "$description": "Unitless, explicit (CLAUDE.md: 1.6–1.8). Prevents layout shift between the webfont and the system fallback (their natural line-heights range 1.20–2.11em)." },
+      "arabic-heading":{ "$value": 1.6,  "$type": "number", "$description": "Unitless. Arabic headings, display and one-line UI labels. Lower bound of the CLAUDE.md range; Arabic ascenders/descenders need it." },
+      "arabic-ui":     { "$value": 1.6,  "$type": "number", "$description": "Unitless. Buttons, chips, nav in Arabic." }
+    },
+    "letterSpacing": {
+      "latin-display": { "$value": "-0.015em", "$type": "dimension", "$description": "Latin display and h1 only (system fonts tighten at large sizes, as on the reference)." },
+      "latin-heading": { "$value": "-0.01em",  "$type": "dimension", "$description": "Latin h2–h3." },
+      "latin-body":    { "$value": "0",        "$type": "dimension" },
+      "latin-caps":    { "$value": "0.04em",   "$type": "dimension", "$description": "Small uppercase eyebrows in French only (e.g. 'NOUVEAUTÉS'). Arabic has no case: eyebrows in Arabic use text-secondary colour instead." },
+      "arabic":        { "$value": "0",        "$type": "dimension", "$description": "ALWAYS 0 on Arabic. Reset letter-spacing: 0 under :lang(ar) — spacing breaks cursive joins." }
+    }
+  },
+
+  "typeScale": {
+    "$description": "Modular scale, fluid between 360px and 1440px viewports. Ratio 1.2 (minor third) at 360, 1.25 (major third) at 1440, base 16 → 17px. Sizes rounded to whole px. Same steps for Arabic and Latin (Noto Sans Arabic's large x-height reads well at equal size); Arabic never goes below 14px except the caption step on single short labels.",
+    "ratio": { "at360": 1.2, "at1440": 1.25 },
+    "base":  { "at360": 16,  "at1440": 17 },
+    "steps": {
+      "-2": { "role": "caption",          "px360": 13, "px1440": 13, "fluid": "0.8125rem" },
+      "-1": { "role": "small / hint",     "px360": 14, "px1440": 15, "fluid": "clamp(0.875rem, 0.8542rem + 0.0926vw, 0.9375rem)" },
+      "0":  { "role": "body",             "px360": 16, "px1440": 17, "fluid": "clamp(1rem, 0.9792rem + 0.0926vw, 1.0625rem)" },
+      "1":  { "role": "lead / h4 / price","px360": 19, "px1440": 21, "fluid": "clamp(1.1875rem, 1.1458rem + 0.1852vw, 1.3125rem)" },
+      "2":  { "role": "h3 / card title",  "px360": 23, "px1440": 27, "fluid": "clamp(1.4375rem, 1.3542rem + 0.3704vw, 1.6875rem)" },
+      "3":  { "role": "h2 / section",     "px360": 28, "px1440": 33, "fluid": "clamp(1.75rem, 1.6458rem + 0.4630vw, 2.0625rem)" },
+      "4":  { "role": "h1 / page title",  "px360": 33, "px1440": 42, "fluid": "clamp(2.0625rem, 1.875rem + 0.8333vw, 2.625rem)" },
+      "5":  { "role": "display",          "px360": 40, "px1440": 52, "fluid": "clamp(2.5rem, 2.25rem + 1.1111vw, 3.25rem)" },
+      "6":  { "role": "hero (home only)", "px360": 48, "px1440": 64, "fluid": "clamp(3rem, 2.6667rem + 1.4815vw, 4rem)" }
+    },
+    "measure": { "$value": "68ch", "$type": "dimension", "$description": "Max line length for running text (content pages, product description)." }
+  },
+
+  "space": {
+    "$description": "4px base, 8px rhythm. Use logical properties only (margin-inline-start, padding-block, inset-inline-*).",
+    "0":  { "$value": "0",      "$type": "dimension" },
+    "1":  { "$value": "4px",    "$type": "dimension" },
+    "2":  { "$value": "8px",    "$type": "dimension" },
+    "3":  { "$value": "12px",   "$type": "dimension" },
+    "4":  { "$value": "16px",   "$type": "dimension" },
+    "5":  { "$value": "20px",   "$type": "dimension" },
+    "6":  { "$value": "24px",   "$type": "dimension" },
+    "8":  { "$value": "32px",   "$type": "dimension" },
+    "10": { "$value": "40px",   "$type": "dimension" },
+    "12": { "$value": "48px",   "$type": "dimension" },
+    "16": { "$value": "64px",   "$type": "dimension" },
+    "20": { "$value": "80px",   "$type": "dimension" },
+    "24": { "$value": "96px",   "$type": "dimension" },
+    "32": { "$value": "128px",  "$type": "dimension" }
+  },
+
+  "layout": {
+    "gutter":          { "px360": 16, "px768": 25, "px1440": 40, "fluid": "clamp(1rem, 0.5rem + 2.2222vw, 2.5rem)", "$description": "Inline page padding. Linear 16px@360 → 40px@1440 (≈25px@768)." },
+    "section-block":   { "px360": 48, "px1440": 96, "fluid": "clamp(3rem, 2rem + 4.4444vw, 6rem)", "$description": "Vertical padding between home/category sections — the reference's generous air." },
+    "container-max":   { "$value": "1200px", "$type": "dimension", "$description": "Content width inside the 1440 frame." },
+    "reading-max":     { "$value": "720px",  "$type": "dimension", "$description": "Content pages, product description column." },
+    "header-height":   { "$value": "52px",   "$type": "dimension", "$description": "Sticky header (reference 44px; raised for 44px tap targets with padding). scroll-padding-block-start = header-height + space.2." },
+    "bottom-bar-height": { "$value": "64px", "$type": "dimension", "$description": "Sticky mobile order bar on the product page. scroll-padding-block-end = this + space.2." },
+    "tap-min":         { "$value": "44px",   "$type": "dimension", "$description": "Minimum hit area for every interactive element (CLAUDE.md)." },
+    "grid": { "columns360": 2, "columns768": 3, "columns1024": 4, "gap360": "12px", "gap1440": "24px", "$description": "Product-card grid." }
+  },
+
+  "breakpoint": {
+    "$description": "Mobile-first min-width queries, aligned to the TOKENS-1 contract and the 360/768/1440 design checkpoints. base = 360 (no query).",
+    "base": { "$value": "360px",  "$type": "dimension", "$description": "Design width; styles without a media query." },
+    "md":   { "$value": "768px",  "$type": "dimension" },
+    "lg":   { "$value": "1024px", "$type": "dimension" },
+    "xl":   { "$value": "1440px", "$type": "dimension" }
+  },
+
+  "radius": {
+    "none": { "$value": "0",     "$type": "dimension" },
+    "sm":   { "$value": "8px",   "$type": "dimension", "$description": "Badges, small chips, thumbnails." },
+    "md":   { "$value": "12px",  "$type": "dimension", "$description": "Inputs, selects, notes, variant swatches." },
+    "lg":   { "$value": "18px",  "$type": "dimension", "$description": "Product cards, image wells, dialogs (reference cards ~18px)." },
+    "xl":   { "$value": "28px",  "$type": "dimension", "$description": "Hero tiles on home only." },
+    "pill": { "$value": "980px", "$type": "dimension", "$description": "Buttons (primary + secondary), search field, language switch." },
+    "round":{ "$value": "50%",   "$type": "dimension", "$description": "Colour swatches, icon buttons." }
+  },
+
+  "shadow": {
+    "$description": "Minimal. Depth comes from surface vs surface-alt, not shadows. Nothing at rest on cards.",
+    "none":    { "$value": "none", "$type": "shadow" },
+    "hover":   { "$value": "0 4px 16px rgba(0, 0, 0, 0.08)", "$type": "shadow", "$description": "Product card on hover (pointer: fine only)." },
+    "sticky":  { "$value": "0 1px 0 rgba(0, 0, 0, 0.08)", "$type": "shadow", "$description": "Sticky header / bottom bar edge once scrolled; reads as a hairline." },
+    "overlay": { "$value": "0 12px 40px rgba(0, 0, 0, 0.16)", "$type": "shadow", "$description": "<dialog>, popover menus." }
+  },
+
+  "border": {
+    "hairline": { "$value": "1px", "$type": "dimension" },
+    "control":  { "$value": "1px", "$type": "dimension", "$description": "Input outline (border-control colour). 2px accent when selected; 2px danger when invalid." },
+    "focus":    { "$value": "2px", "$type": "dimension", "$description": "outline-width for :focus-visible (colour: focus)." },
+    "focus-offset": { "$value": "2px", "$type": "dimension", "$description": "outline-offset for :focus-visible." }
+  },
+
+  "motion": {
+    "$description": "CSS only (View Transitions, @starting-style, transitions). Under prefers-reduced-motion: reduce, every duration becomes 0.01ms and the view-transition animation is disabled; nothing auto-advances.",
+    "duration": {
+      "instant": { "$value": "100ms", "$type": "duration", "$description": "Press feedback, colour changes." },
+      "fast":    { "$value": "160ms", "$type": "duration", "$description": "Hover, focus, small reveals." },
+      "base":    { "$value": "240ms", "$type": "duration", "$description": "Dialog/popover in, accordion, cross-document view transition." },
+      "slow":    { "$value": "400ms", "$type": "duration", "$description": "Hero image fade-in on load (opacity only). Max anywhere." }
+    },
+    "easing": {
+      "standard":   { "$value": "cubic-bezier(0.25, 0.1, 0.25, 1)", "$type": "cubicBezier", "$description": "Default (CSS ease)." },
+      "emphasized": { "$value": "cubic-bezier(0.2, 0, 0, 1)",       "$type": "cubicBezier", "$description": "Entrances: dialogs, view transitions." },
+      "exit":       { "$value": "cubic-bezier(0.4, 0, 1, 1)",       "$type": "cubicBezier", "$description": "Exits." }
+    },
+    "distance": { "$value": "8px", "$type": "dimension", "$description": "Max translate for entrance motion. Use translate on the block axis or inline axis via logical direction (mirror in RTL)." }
+  },
+
+  "zIndex": {
+    "base":    { "$value": 0,   "$type": "number" },
+    "sticky":  { "$value": 10,  "$type": "number", "$description": "Header, mobile order bar." },
+    "overlay": { "$value": 100, "$type": "number", "$description": "Dialog scrim + dialog (top layer covers most cases)." },
+    "toast":   { "$value": 200, "$type": "number" },
+    "skip":    { "$value": 300, "$type": "number", "$description": "Skip link when focused." }
+  },
+
+  "icon": {
+    "$description": "Direction for packages/ui-tokens/icons (tokens owns the set; brand guide documents it).",
+    "grid":        { "$value": "24px", "$type": "dimension", "$description": "24×24 viewBox, 2px live-area padding." },
+    "stroke":      { "$value": "1.5px", "$type": "dimension", "$description": "Outline icons, round caps and joins, stroke=currentColor, fill none. Matches the thin, crisp reference glyphs." },
+    "sizes":       { "$value": [16, 20, 24], "$type": "other", "$description": "Rendered at 20 in UI text, 24 in header/buttons, 16 inline in captions. Hit area always >= tap-min." },
+    "mirror":      { "$value": "Directional icons (arrows, chevrons, back, send, cart-with-motion) carry data-mirror and flip under [dir=rtl] with transform: scaleX(-1). Non-directional (search, phone, check, close, WhatsApp, truck) never mirror.", "$type": "other" }
+  }
+}
