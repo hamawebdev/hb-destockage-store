@@ -20,7 +20,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fixtureSnapshot } from './fixtures/snapshot.ts';
 import { parseSnapshot, SnapshotError, type SnapshotIssue } from './schema.ts';
-import { SNAPSHOT_VERSION, type CatalogSnapshot, type SnapshotWilaya } from './types.ts';
+import { SNAPSHOT_VERSION, type CatalogSnapshot, type Localized, type SnapshotWilaya, type StringTable } from './types.ts';
 
 export interface SeedOptions {
   /** Epoch ms for `meta.generatedAt`. Default: `SOURCE_DATE_EPOCH` (s) if set, else now. */
@@ -181,4 +181,26 @@ export function findRepoRoot(from: string): string {
     if (parent === dir) return resolve(from);
     dir = parent;
   }
+}
+
+/**
+ * Brand UI strings: `brand/copy/strings.{ar,fr}.json`, flat dotted keys → string. Keys starting
+ * with `_meta.` are notes and are dropped. Throws if a file is missing or a value is not a string.
+ */
+export async function loadStrings(repoRoot: string): Promise<Localized<StringTable>> {
+  const one = async (lang: 'ar' | 'fr'): Promise<StringTable> => {
+    const file = join(resolve(repoRoot), `brand/copy/strings.${lang}.json`);
+    const raw = await readJson(file);
+    if (!isRecord(raw)) throw new SnapshotError([{ path: file, message: 'expected a flat object' }], file);
+    const issues: SnapshotIssue[] = [];
+    const out: Record<string, string> = {};
+    for (const [k, val] of Object.entries(raw)) {
+      if (k.startsWith('_meta.')) continue;
+      if (typeof val !== 'string') issues.push({ path: `${file}#${k}`, message: 'value must be a string' });
+      else out[k] = val;
+    }
+    if (issues.length) throw new SnapshotError(issues, file);
+    return out;
+  };
+  return { ar: await one('ar'), fr: await one('fr') };
 }

@@ -82,6 +82,9 @@ export interface SnapshotCategory {
   readonly placeholder: boolean;
   /** Languages whose text (name, description, slug) is our translation, not the client's. `[]` when none. */
   readonly translationPlaceholder: readonly Lang[];
+  /** Category's own image (DB-1 `images.category_id`; `variantId` null). Absent/null ⇒ builders use
+   *  the first product image in the category's subtree. */
+  readonly image?: SnapshotImage | null;
 }
 
 export type ProductKind = 'simple' | 'variable' | 'pack';
@@ -305,6 +308,28 @@ export interface SrcsetCandidate {
 }
 
 export const IMAGE_WIDTHS: readonly number[] = [360, 480, 720, 960, 1200];
+
+/**
+ * CAT-4 output, CAT-3 input: the encoded files for each original, keyed by `SnapshotImage.key`.
+ * JSON-serialisable (`dist/image-manifest.json`). Builders combine an entry with the image's alt,
+ * the slot's `sizes` and the LCP flag into `ImageProps`.
+ */
+export type ImageManifest = Readonly<Record<string, ImageManifestEntry>>;
+
+export interface ImageManifestEntry {
+  readonly key: string;
+  /** Content hash of the original (hex), the file-name stem. */
+  readonly hash: string;
+  /** Ascending width. Never wider than the original. */
+  readonly candidates: readonly SrcsetCandidate[];
+  /** 1200×630 JPEG for `og:image`; null when not generated. */
+  readonly og: { readonly url: string; readonly bytes: number } | null;
+  /** True when the entry is a stand-in (no encoded files; fixtures/tests only). */
+  readonly stub: boolean;
+}
+
+/** Where an image is shown; decides `sizes`. Templates may override `sizes` for other uses. */
+export type ImageSlot = 'hero' | 'gallery' | 'card' | 'thumb';
 export const IMAGE_MAX_BYTES_UP_TO_960 = 25_000;
 
 export interface ImageProps {
@@ -713,4 +738,6 @@ export interface BuildOptions {
   readonly lowStockThreshold?: number;
   /** Related products per product page. Default 4. */
   readonly relatedCount?: number;
+  /** Featured products on the home page when settings name none. Default 8. */
+  readonly featuredCount?: number;
 }

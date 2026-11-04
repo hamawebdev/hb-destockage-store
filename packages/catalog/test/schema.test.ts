@@ -134,3 +134,15 @@ describe('exports for admin (pure)', () => {
     expect(isContentLinkHref('tel:+213560417403')).toBe(true);
   });
 });
+
+test('category image: optional, unique id, not tied to a variant', () => {
+  const ok = mut(clone()) as unknown as { categories: Record<string, unknown>[] };
+  const image = { id: 9001, variantId: null, key: 'fixture/cat.jpg', width: 800, height: 600, alt: { ar: 'م', fr: 'c' }, position: 0, placeholder: true };
+  ok.categories[0]!['image'] = image;
+  ok.categories[1]!['image'] = null;
+  expect(issuesOf(ok)).toEqual([]);
+  ok.categories[0]!['image'] = { ...image, id: 5011 };
+  expect(issuesOf(ok).join()).toMatch(/duplicate id 5011/);
+  ok.categories[0]!['image'] = { ...image, variantId: 1011 };
+  expect(issuesOf(ok).join()).toMatch(/cannot belong to a variant/);
+});
