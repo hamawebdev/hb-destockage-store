@@ -19,7 +19,7 @@ const ERROR_CODES = [
   "wilaya_invalid", "commune_invalid", "items_empty", "items_invalid", "qty_invalid", "variant_unavailable",
   "out_of_stock", "delivery_unavailable", "idempotency_key_invalid", "rate_limited", "server_error",
   // client-side only (orderform JS):
-  "network_error", "quote_failed", "variant_required",
+  "network_error", "quote_failed", "variant_required", "name_required", "wilaya_required", "commune_required", "total_changed",
 ];
 
 test("both files have identical key sets", () => {
@@ -108,4 +108,14 @@ test("language switch labels are the other language's name", () => {
 
 test("no exclamation marks (calm voice)", () => {
   for (const [lang, t] of [["ar", ar], ["fr", fr]]) for (const [k, v] of Object.entries(t)) assert.doesNotMatch(v, /!/, `${lang} ${k}`);
+});
+
+test("no message lets the customer confirm without a total or promises the fee by phone", () => {
+  // Lead rule: a failed fee quote = retry or contact us; never "confirm anyway", never "fee told by phone".
+  assert.doesNotMatch(fr["order.errors.quote_failed"], /confirm|au téléphone|par téléphone/i);
+  assert.doesNotMatch(ar["order.errors.quote_failed"], /تأكيد|أكّد|عبر الهاتف/);
+  for (const k of ["order.errors.quote_failed", "order.errors.rate_limited", "order.errors.delivery_unavailable"]) {
+    assert.match(fr[k], /\{phone\}.*WhatsApp/, k);
+    assert.match(ar[k], /\{phone\}.*واتساب/, k);
+  }
 });
