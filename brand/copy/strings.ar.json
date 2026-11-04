@@ -100,7 +100,7 @@
   "price.from": "ابتداءً من {price}",
   "price.now": "السعر",
   "price.was": "السعر السابق",
-  "price.discount": "−{percent}%",
+  "price.discount": "\u200E−{percent}%",
   "price.save": "توفّر {amount}",
 
   "badge.pack": "طقم",
