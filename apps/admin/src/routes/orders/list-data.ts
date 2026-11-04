@@ -1,0 +1,106 @@
+// AORD-1 — orders list: the D1 reads. Per page: the page of orders (+1 row to detect a next page)
+// and the 69 wilayas for the filter.
+
+import { asc, eq, sql } from 'drizzle-orm';
+import { communes, customers, orderItems, orders, wilayas, type Db } from '@hb/db';
+import type { OrderStatus } from '@hb/shared';
+import { cursorPage } from '../../lib/pagination.ts';
+import { ORDERS_PAGE_SIZE, ordersOrderBy, ordersWhere, type OrdersFilter } from './list-query.ts';
+
+export interface OrderListRow {
+  id: number;
+  ref: string;
+  createdAt: number;
+  name: string;
+  phoneE164: string;
+  wilayaCode: number;
+  wilayaFr: string;
+  wilayaAr: string;
+  communeFr: string;
+  communeAr: string;
+  status: OrderStatus;
+  callAttempts: number;
+  feeDzd: number;
+  totalDzd: number;
+  flags: string[];
+  customerBlocked: boolean;
+  itemCount: number;
+  firstItemFr: string | null;
+  firstItemAr: string | null;
+  firstItemQty: number | null;
+}
+
+export interface WilayaOption {
+  code: number;
+  nameFr: string;
+  nameAr: string;
+}
+
+export interface OrdersPage {
+  rows: OrderListRow[];
+  /** Encoded cursor for the next page, or null. */
+  next: string | null;
+  wilayas: WilayaOption[];
+}
+
+// Correlated sub-selects on order_items (indexed by order_id); at most PAGE_SIZE + 1 rows.
+const firstItem = (col: typeof orderItems.nameFr | typeof orderItems.nameAr | typeof orderItems.qty) =>
+  sql`(select ${col} from ${orderItems} where ${orderItems.orderId} = ${orders.id} order by ${orderItems.id} limit 1)`;
+
+/** The list query, exported so tests can EXPLAIN it against D1. */
+export function ordersListQuery(db: Db, filter: OrdersFilter, pageSize = ORDERS_PAGE_SIZE) {
+  return db
+    .select({
+      id: orders.id,
+      ref: orders.ref,
+      createdAt: orders.createdAt,
+      name: orders.name,
+      phoneE164: orders.phoneE164,
+      wilayaCode: orders.wilayaCode,
+      wilayaFr: wilayas.nameFr,
+      wilayaAr: wilayas.nameAr,
+      communeFr: communes.nameFr,
+      communeAr: communes.nameAr,
+      status: orders.status,
+      callAttempts: orders.callAttempts,
+      feeDzd: orders.feeDzd,
+      totalDzd: orders.totalDzd,
+      flags: orders.flags,
+      customerBlocked: customers.blocked,
+      itemCount: sql<number>`(select count(*) from ${orderItems} where ${orderItems.orderId} = ${orders.id})`.mapWith(Number),
+      firstItemFr: firstItem(orderItems.nameFr).mapWith(String),
+      firstItemAr: firstItem(orderItems.nameAr).mapWith(String),
+      firstItemQty: firstItem(orderItems.qty).mapWith(Number),
+    })
+    .from(orders)
+    .innerJoin(wilayas, eq(wilayas.code, orders.wilayaCode))
+    .innerJoin(communes, eq(communes.id, orders.communeId))
+    .innerJoin(customers, eq(customers.id, orders.customerId))
+    .where(ordersWhere(filter))
+    .orderBy(...ordersOrderBy)
+    .limit(pageSize + 1);
+}
+
+export async function fetchOrdersPage(db: Db, filter: OrdersFilter, pageSize = ORDERS_PAGE_SIZE): Promise<OrdersPage> {
+  // Not db.batch(): drizzle-orm 0.45 reads batch results as objects, so the joined tables'
+  // same-named columns (wilayas.name_fr / communes.name_fr) collide and every later column shifts.
+  // Outside a batch it reads raw arrays. Two reads in parallel instead.
+  const [rows, wilayaRows] = await Promise.all([
+    ordersListQuery(db, filter, pageSize),
+    db.select({ code: wilayas.code, nameFr: wilayas.nameFr, nameAr: wilayas.nameAr }).from(wilayas).orderBy(asc(wilayas.code)),
+  ]);
+  const page = cursorPage(rows, pageSize, (r) => ({ at: r.createdAt, id: r.id }));
+  return {
+    rows: page.rows.map((r) => ({
+      ...r,
+      flags: Array.isArray(r.flags) ? r.flags.filter((f): f is string => typeof f === 'string') : [],
+      customerBlocked: Boolean(r.customerBlocked),
+      // A sub-select with no row maps NULL through String/Number; normalise back to null.
+      firstItemFr: r.itemCount > 0 ? r.firstItemFr : null,
+      firstItemAr: r.itemCount > 0 ? r.firstItemAr : null,
+      firstItemQty: r.itemCount > 0 ? r.firstItemQty : null,
+    })),
+    next: page.next,
+    wilayas: wilayaRows,
+  };
+}
