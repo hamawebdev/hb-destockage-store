@@ -35,7 +35,14 @@ describe('icon set', () => {
     const mirrored = Object.entries(icons).filter(([, i]) => i.mirror).map(([n]) => n).sort();
     expect(mirrored).toEqual([...MIRRORED].sort());
     for (const [name, i] of Object.entries(icons)) expect(i.svg.includes(' data-mirror>'), name).toBe(i.mirror);
-    expect(ICON_MIRROR_RULE).toBe(':dir(rtl) [data-mirror]{transform:scaleX(-1)}');
+    expect(ICON_MIRROR_RULE).toBe('[data-mirror]:dir(rtl){transform:scaleX(-1)}');
+  });
+
+  test('the mirror rule tests the icon\'s own direction (review TOKENS-3 r1): no descendant :dir()', () => {
+    // ':dir(rtl) [data-mirror]' would match icons inside dir="ltr" islands on /ar/ (the html always matches).
+    const selector = ICON_MIRROR_RULE.slice(0, ICON_MIRROR_RULE.indexOf('{'));
+    expect(selector).not.toMatch(/\s/);
+    expect(selector).toMatch(/^\[data-mirror\]:dir\(rtl\)$/);
   });
 
   test('rejects contract violations', () => {

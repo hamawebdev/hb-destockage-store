@@ -25,6 +25,10 @@ describe('logical properties only', () => {
     expect(physicalProperties(read(f))).toEqual([]);
   });
 
+  test.each(SHEETS)('%s never tests direction through an ancestor (:dir(...) followed by a combinator)', (f) => {
+    expect(flat(read(f))).not.toMatch(/:dir\((rtl|ltr)\)\s*[\w.#[*>~+:]/);
+  });
+
   test('the lint catches physical declarations and allows logical ones', () => {
     const bad = `a{margin-left:1px}b{left:0}c{text-align:left}d{padding:1px 2px 3px 4px}e{border-radius:4px 0 0 4px}
       f{border-right:1px solid}g{inset:0 auto auto 0}h{float:right}i{padding-top:2px}j{top:0}k{border-top-left-radius:2px}`;

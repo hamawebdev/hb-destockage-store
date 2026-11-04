@@ -14,7 +14,7 @@ export { arabicFontFace, arabicFontFace as arabicFont, fontFaceCss } from './fon
 export interface IconEntry {
   /** Inline-able SVG markup. */
   svg: string;
-  /** Directional icon: carries data-mirror and is flipped by `:dir(rtl) [data-mirror]` in base.css. */
+  /** Directional icon: carries data-mirror and is flipped by `[data-mirror]:dir(rtl)` in base.css (its own direction, so dir="ltr" islands stay unflipped). */
   mirror: boolean;
 }
 

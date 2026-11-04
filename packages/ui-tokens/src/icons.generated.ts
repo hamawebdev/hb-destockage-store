@@ -3,7 +3,7 @@ import type { IconEntry } from './index.ts';
 
 export type IconName = 'alert' | 'arrow-end' | 'arrow-start' | 'bag' | 'check' | 'chevron-end' | 'chevron-start' | 'close' | 'filter' | 'grid' | 'home' | 'info' | 'menu' | 'minus' | 'phone' | 'plus' | 'search' | 'star' | 'truck' | 'user' | 'whatsapp';
 
-export const ICON_MIRROR_RULE = ":dir(rtl) [data-mirror]{transform:scaleX(-1)}";
+export const ICON_MIRROR_RULE = "[data-mirror]:dir(rtl){transform:scaleX(-1)}";
 
 export const icons: Record<IconName, IconEntry> = {
   'alert': { mirror: false, svg: "<svg aria-hidden=\"true\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3.5 2.5 20h19zM12 10v4m0 3h.01\"/></svg>" },

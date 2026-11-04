@@ -90,7 +90,7 @@ padding, only geometry inside, ≤ 300 B as a file and as the inline string.
   default size that CSS overrides), `icons[name].mirror`, `IconName`. `icons/manifest.json` lists
   `{ mirror, fileBytes, inlineBytes }` per icon. Files keep `xmlns` so they also work standalone.
 - **Direction:** chevron-start/-end and arrow-start/-end are drawn for LTR ("start" points left),
-  carry `data-mirror`, and are flipped by `:dir(rtl) [data-mirror]{transform:scaleX(-1)}`
+  carry `data-mirror`, and are flipped by `[data-mirror]:dir(rtl){transform:scaleX(-1)}`
   (`ICON_MIRROR_RULE`, shipped in `base.css`). Use `-start` for "back/previous" and `-end` for
   "next/forward" in both languages; never pick by physical direction. Everything else never
   mirrors (the truck and the phone keep their orientation in Arabic).

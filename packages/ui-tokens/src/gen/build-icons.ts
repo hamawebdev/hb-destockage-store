@@ -5,7 +5,7 @@ export const ICON_MAX_BYTES = 300;
 /** Directional icons: drawn for LTR, flipped in RTL. Every other icon must not mirror. */
 export const MIRRORED = ['arrow-end', 'arrow-start', 'chevron-end', 'chevron-start'] as const;
 /** The rule that flips directional icons. base.css carries it; exported for other consumers. */
-export const ICON_MIRROR_RULE = ':dir(rtl) [data-mirror]{transform:scaleX(-1)}';
+export const ICON_MIRROR_RULE = '[data-mirror]:dir(rtl){transform:scaleX(-1)}';
 
 const OPEN =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';

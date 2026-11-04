@@ -88,7 +88,7 @@
   .icon { inline-size: var(--icon-md); block-size: var(--icon-md); vertical-align: middle; }
   .icon-sm { inline-size: var(--icon-sm); block-size: var(--icon-sm); }
   .icon-lg { inline-size: var(--icon-lg); block-size: var(--icon-lg); }
-  :dir(rtl) [data-mirror] { transform: scaleX(-1); }
+  [data-mirror]:dir(rtl) { transform: scaleX(-1); }
 
   /* Buttons: pill, >= 44px, label + optional icon */
   .btn {
