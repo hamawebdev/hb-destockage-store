@@ -4,16 +4,11 @@ export { tokens, tokensCss, tokensSource, type Tokens } from './tokens.generated
 export const PACKAGE = '@hb/ui-tokens';
 
 /**
- * The Arabic webfont slot (file + @font-face land in TOKENS-2).
+ * The Arabic webfont (Noto Sans Arabic 400 subset): family, file, bytes, unicode-range.
  * Only elements whose font-family names `family` can download it: on /fr/ pages that is nobody,
  * because `--font-body` is the Latin system stack and the «العربية» switch uses `--font-switcher`.
  */
-export const arabicFont = {
-  family: 'HB Noto Sans Arabic',
-  weight: 400,
-  style: 'normal',
-  display: 'optional',
-} as const;
+export { arabicFontFace, arabicFontFace as arabicFont, fontFaceCss } from './font.generated.ts';
 
 /** Icon folder convention: icons/<name>.svg, 24×24 viewBox, stroke="currentColor", 1.5 stroke. */
 export interface IconEntry {
