@@ -7,6 +7,14 @@ import type { OrderStatus } from '@hb/shared';
 import { cursorPage } from '../../lib/pagination.ts';
 import { ORDERS_PAGE_SIZE, ordersOrderBy, ordersWhere, type OrdersFilter } from './list-query.ts';
 
+/**
+ * `orders.flags` as plain strings. DB-1 types it `OrderFlag[]`, but a flag added later by `web`
+ * can be in the column before the admin knows it: it is shown as its raw code, never dropped.
+ */
+export function stringFlags(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((f): f is string => typeof f === 'string') : [];
+}
+
 export interface OrderListRow {
   id: number;
   ref: string;
@@ -93,7 +101,7 @@ export async function fetchOrdersPage(db: Db, filter: OrdersFilter, pageSize = O
   return {
     rows: page.rows.map((r) => ({
       ...r,
-      flags: Array.isArray(r.flags) ? r.flags.filter((f): f is string => typeof f === 'string') : [],
+      flags: stringFlags(r.flags),
       customerBlocked: Boolean(r.customerBlocked),
       // A sub-select with no row maps NULL through String/Number; normalise back to null.
       firstItemFr: r.itemCount > 0 ? r.firstItemFr : null,

@@ -1,8 +1,9 @@
 // Order fixtures for admin-orders tests (AORD-1..5): geo, a small catalogue, customers, orders.
 // Rows go through Drizzle so the DB-1 CHECK constraints are exercised as in production.
 import { eq } from 'drizzle-orm';
-import { categories, communes, createDb, customers, orderItems, orders, products, variants, wilayas, type Db } from '@hb/db';
-import type { OrderStatus } from '@hb/shared';
+import { categories, communes, createDb, customers, orderEvents, orderItems, orders, products, variants, wilayas, type Db } from '@hb/db';
+import type { OrderFlag, OrderStatus } from '@hb/shared';
+import { form, type Harness } from '../helpers.ts';
 
 export const GEO = {
   alger: { code: 16, nameFr: 'Alger', nameAr: 'الجزائر' },
@@ -98,7 +99,8 @@ export async function insertOrder(db: Db, cat: CatalogFixture, s: OrderSpec): Pr
       feeDzd: fee,
       totalDzd: subtotal + fee,
       feeSource: 'table',
-      flags: s.flags ?? [],
+      // Unknown flags on purpose in some tests (shown raw): the column is typed OrderFlag[].
+      flags: (s.flags ?? []) as OrderFlag[],
       createdAt: s.createdAt,
       updatedAt: s.createdAt,
     })
@@ -121,4 +123,32 @@ export function refOf(n: number): string {
     x = Math.floor(x / 32);
   }
   return `HB-${s}`;
+}
+
+/** Appends an order event (the table is append-only; inserts are allowed). */
+export async function insertEvent(
+  db: Db,
+  orderId: number,
+  e: { type: 'created' | 'status_change' | 'call_attempt' | 'note'; at: number; outcome?: string; note?: string; from?: OrderStatus; to?: OrderStatus; actorUserId?: number },
+): Promise<void> {
+  await db.insert(orderEvents).values({
+    orderId,
+    type: e.type,
+    at: e.at,
+    outcome: e.outcome ?? null,
+    note: e.note ?? null,
+    fromStatus: e.from ?? null,
+    toStatus: e.to ?? null,
+    actorType: e.actorUserId === undefined ? 'customer' : 'admin',
+    actorUserId: e.actorUserId ?? null,
+  });
+}
+
+/**
+ * POST a same-origin form as `email`. Same signature as admin-core's `postAs` (ADMIN-3, adds the
+ * CSRF token); switch to a re-export of it once ADMIN-3 is merged here: every orders test POSTs
+ * through this one function.
+ */
+export async function postAs(h: Harness, email: string | null, path: string, data: Record<string, string> = {}): Promise<Response> {
+  return h.as(email, path, form(data));
 }

@@ -187,6 +187,7 @@ describe('rendering', () => {
     const html = (await page(USERS.owner, 'status=any')).html;
     const row = rowOf(html, N.n4);
     expect(row).toContain(`<bdi dir="ltr">${N.n4}</bdi>`);
+    expect(row).toContain(`<a href="/orders/${N.n4}">`);
     expect(row).toContain(`<bdi dir="ltr">${formatPhoneDisplay('+213770000004')}</bdi>`);
     expect(row).toContain(formatMoney('fr', 600));
     expect(row).toContain(formatMoney('fr', 14_600 * 2 + 16_500 + 600));

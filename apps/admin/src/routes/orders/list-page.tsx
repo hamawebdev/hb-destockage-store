@@ -117,7 +117,7 @@ function Filters(props: { tm: OrdersMessages; lang: Lang; parsed: ParsedOrdersFi
 
 function columns(tm: OrdersMessages, lang: Lang): Column<OrderListRow>[] {
   return [
-    { key: 'ref', header: tm('list.col.ref'), cell: (r) => <Bdi>{r.ref}</Bdi> },
+    { key: 'ref', header: tm('list.col.ref'), cell: (r) => <a href={`/orders/${r.ref}`}><Bdi>{r.ref}</Bdi></a> },
     { key: 'date', header: tm('list.col.date'), cell: (r) => <DateTime ms={r.createdAt} /> },
     {
       key: 'customer',
