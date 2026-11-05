@@ -39,8 +39,10 @@ export async function quoteFromReads(
   if (req.items.some(({ variantId }) => reads.variants.get(variantId)?.sellable !== true)) {
     const lines: QuoteLine[] = req.items.map(({ variantId, qty }) => {
       const v = reads.variants.get(variantId);
-      const unitPriceDzd = v?.priceDzd ?? 0;
-      const maxQty = v?.sellable === true ? maxQtyFor(v.stock) : 0;
+      // Never disclose the price of a draft, archived or inactive variant (it may not be public yet).
+      const sellable = v?.sellable === true;
+      const unitPriceDzd = sellable ? v.priceDzd : 0;
+      const maxQty = sellable ? maxQtyFor(v.stock) : 0;
       return { variantId, qty, unitPriceDzd, lineTotalDzd: unitPriceDzd * qty, maxQty };
     });
     return { ok: false, code: 'variant_unavailable', lines };

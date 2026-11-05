@@ -66,7 +66,7 @@ describe('POST /api/quote', () => {
   ])('%s → 409 variant_unavailable with lines', async (_label, variantId) => {
     const res = await quote({ items: [{ variantId, qty: 1 }], wilayaCode: 16 });
     expect(res.status).toBe(409);
-    expect(await res.json()).toMatchObject({ ok: false, code: 'variant_unavailable', lines: [{ variantId, maxQty: 0 }] });
+    expect(await res.json()).toMatchObject({ ok: false, code: 'variant_unavailable', lines: [{ variantId, maxQty: 0, unitPriceDzd: 0, lineTotalDzd: 0 }] });
   });
 
   test('more than the stock → 409 out_of_stock with maxQty', async () => {

@@ -63,7 +63,7 @@ describe('quoteFromReads', () => {
     expect(out).toEqual({ ok: false, code: 'validation', errors: [{ field: 'communeId', code: 'commune_invalid' }] });
   });
 
-  test('unknown or unsellable variant → variant_unavailable with lines (maxQty 0), no fee call', async () => {
+  test('unknown or unsellable variant → variant_unavailable with lines (maxQty 0, its price not disclosed), no fee call', async () => {
     let called = false;
     const spy: FeeProvider = { quote: () => ((called = true), Promise.resolve({ available: true, feeDzd: 1, source: 'table' })) };
     const out = wire(
@@ -79,7 +79,7 @@ describe('quoteFromReads', () => {
       code: 'variant_unavailable',
       lines: [
         { variantId: 11, qty: 1, unitPriceDzd: 14600, lineTotalDzd: 14600, maxQty: 10 },
-        { variantId: 23, qty: 1, unitPriceDzd: 16900, lineTotalDzd: 16900, maxQty: 0 },
+        { variantId: 23, qty: 1, unitPriceDzd: 0, lineTotalDzd: 0, maxQty: 0 },
         { variantId: 404, qty: 1, unitPriceDzd: 0, lineTotalDzd: 0, maxQty: 0 },
       ],
     });
