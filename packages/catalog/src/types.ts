@@ -62,8 +62,9 @@ export interface CatalogSnapshot {
 
 export interface SnapshotMeta {
   readonly version: typeof SNAPSHOT_VERSION;
-  /** `seed` = built from `data/`; `d1` = exported by the publish pipeline. */
-  readonly source: 'seed' | 'd1';
+  /** `seed` = built from `data/`; `d1` = exported by the publish pipeline; `fixture` = the invented
+   *  test catalogue (never a production build). */
+  readonly source: 'seed' | 'd1' | 'fixture';
   /** Epoch ms. */
   readonly generatedAt: number;
   /** `publish_runs.id` when `source === 'd1'`, else null. */

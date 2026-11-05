@@ -54,7 +54,7 @@ const localized = <T extends v.GenericSchema>(schema: T) => v.strictObject({ ar:
 
 const MetaSchema = v.strictObject({
   version: v.literal(SNAPSHOT_VERSION),
-  source: v.picklist(['seed', 'd1']),
+  source: v.picklist(['seed', 'd1', 'fixture']),
   generatedAt: epochMs,
   publishRunId: v.nullable(id),
 });

@@ -48,7 +48,7 @@ const single = (id: number, sku: string, priceDzd: number, stock: number | null,
 });
 
 export const fixtureSnapshot: CatalogSnapshot = {
-  meta: { version: 1, source: 'seed', generatedAt: 1_793_836_800_000, publishRunId: null },
+  meta: { version: 1, source: 'fixture', generatedAt: 1_793_836_800_000, publishRunId: null },
   categories: [
     {
       id: 1,
