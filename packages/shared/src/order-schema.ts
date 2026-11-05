@@ -63,6 +63,8 @@ export const ORDER_ERROR_CODES = [
   'delivery_unavailable',
   /** Recomputed total ≠ `expectedTotalDzd`; the response carries a fresh `quote`. */
   'total_changed',
+  /** Total above MAX_ORDER_TOTAL_DZD (sanity ceiling); the customer is asked to call. */
+  'order_total_out_of_range',
   /** Hard rate limit on the phone number; `retryAfterS` says when to retry. */
   'rate_limited',
   /** D1 or FeeProvider failure; retry with the same idempotency key. */
@@ -112,6 +114,7 @@ export const ORDER_ERROR_HTTP_STATUS: { readonly [C in OrderErrorCode]: OrderErr
   out_of_stock: 409,
   delivery_unavailable: 409,
   total_changed: 409,
+  order_total_out_of_range: 422,
   rate_limited: 429,
   server_error: 503,
 };
@@ -159,18 +162,24 @@ function intField(code: OrderErrorCode, min: number, max: number) {
   );
 }
 
-// Bidi marks, embeddings, overrides, isolates and BOM: invisible, never part of a name.
-const INVISIBLE_RE = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+// Bidi marks, embeddings, overrides, isolates, zero-width space, word joiner and BOM: invisible,
+// never part of a name. ZWNJ/ZWJ (U+200C/U+200D) are kept: they shape Arabic-script text.
+const INVISIBLE_RE = /[\u200B\u200E\u200F\u061C\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g;
+// Anything still left that is a control, surrogate, private-use or other format character.
+const FORBIDDEN_IN_NAME_RE = /[\p{Cc}\p{Cs}\p{Co}]|(?![\u200C\u200D])\p{Cf}/u;
 
 export const LangSchema = /* @__PURE__ */ v.picklist(LANGS, 'lang_invalid');
 
-/** NFC, invisible marks removed, whitespace collapsed; 2–80 characters with at least one letter. */
+/**
+ * NFC, invisible marks removed, whitespace collapsed; 2–80 characters with at least one letter;
+ * no remaining control/format characters except ZWNJ/ZWJ.
+ */
 export const NameSchema = /* @__PURE__ */ v.pipe(
   v.string('name_required'),
   v.normalize('NFC'),
   v.transform((s) => s.replace(INVISIBLE_RE, '').replace(/\s+/gu, ' ').trim()),
   v.nonEmpty('name_required'),
-  v.regex(/^[^\p{Cc}\p{Cs}\p{Co}]*$/u, 'name_invalid'),
+  v.check((s) => !FORBIDDEN_IN_NAME_RE.test(s), 'name_invalid'),
   v.regex(/\p{L}/u, 'name_invalid'),
   v.minLength(NAME_MIN_LENGTH, 'name_invalid'),
   v.maxLength(NAME_MAX_LENGTH, 'name_invalid'),
@@ -435,6 +444,10 @@ export function parseOrderDraft(input: unknown): ParseResult<OrderDraft> {
   if (missing.length > 0) return { ok: false, errors: missing };
   const o = r.output;
   const line = o.items?.[0];
+  // Check the parsed options, not the raw ones: v.record drops keys such as `__proto__`.
+  if (line === undefined && Object.keys(o.options ?? {}).length === 0) {
+    return { ok: false, errors: [{ field: 'items', code: 'variant_required' }] };
+  }
   const selection: DraftSelection =
     line !== undefined
       ? { kind: 'variant', variantId: line.variantId, qty: line.qty }
@@ -594,8 +607,11 @@ export const MIN_FILL_MS = 2_500;
 export const MIN_REVIEW_MS = 1_500;
 export const DUPLICATE_WINDOW_MS = 30 * 60 * 1000;
 
-/** Result of the server-side Turnstile check; `error` = siteverify timeout/network failure. */
-export type TurnstileVerdict = 'valid' | 'invalid' | 'missing' | 'error';
+/**
+ * Result of the server-side Turnstile check, as stored in `orders.turnstile` (DB-1 values);
+ * `error` = siteverify timeout/network failure.
+ */
+export type TurnstileVerdict = 'ok' | 'invalid' | 'missing' | 'error';
 
 /**
  * Flags derived from the submission itself. The Worker adds `duplicate`, `rate_limited` and
