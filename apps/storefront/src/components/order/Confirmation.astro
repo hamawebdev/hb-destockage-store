@@ -1,0 +1,72 @@
+---
+/**
+ * Order confirmation (ORDER-4), rendered by pages/{ar,fr}/order/confirmation/index.astro inside shell's Base.
+ * Static, no JS. The order ref arrives as ?ref=HB-XXXXX: web's Worker serves this page Worker-first and, only for
+ * a ref matching ORDER_REF_RE, fills <bdi data-hb="ref"> and removes `hidden` from data-hb-when="has-ref"
+ * (WEB-0 §2.4, frozen slot names). With no or an invalid ref the page is served untouched: generic thank-you.
+ * The JS order path navigates to the same URL, so both paths share one mechanism.
+ * Plan: artifacts/ORDER-0/plan.md §7. Owner: orderform.
+ */
+import type { OrderConfirmationProps } from '@hb/catalog';
+import { str } from './str.ts';
+
+interface Props {
+  props: OrderConfirmationProps;
+}
+const { layout: l, deliveryHref, continueHref } = Astro.props.props;
+const t = (k: string) => str(l.strings, k);
+const c = l.contact;
+/** Splits a brand string around `{phone}` so the number can be a tel: link inside <bdi dir="ltr">. */
+const around = (k: string): [string, string] => {
+  const s = t(k);
+  const i = s.indexOf('{phone}');
+  return i < 0 ? [s, ''] : [s.slice(0, i), s.slice(i + '{phone}'.length)];
+};
+const missed = around('confirmation.missedCall');
+const questions = around('confirmation.questions');
+---
+<div class="oc">
+  <h1 class="oc-title">{t('confirmation.title')}</h1>
+
+  <div class="oc-ref" data-hb-when="has-ref" hidden>
+    <p class="oc-ref-row">
+      <span class="oc-ref-label">{t('confirmation.ref.label')}</span>
+      <bdi class="oc-ref-value" dir="ltr" translate="no" data-hb="ref"></bdi>
+    </p>
+    <p class="oc-hint">{t('confirmation.ref.hint')}</p>
+  </div>
+
+  <section class="oc-next" aria-labelledby="oc-next-h">
+    <h2 id="oc-next-h" class="oc-h2">{t('confirmation.next.title')}</h2>
+    <ol class="oc-steps">
+      <li>{t('confirmation.next.step1')}</li>
+      <li>{t('confirmation.next.step2')}</li>
+      <li>{t('confirmation.next.step3')}</li>
+    </ol>
+  </section>
+
+  <p class="oc-p">{missed[0]}<a class="oc-link" href={c.phoneHref}><bdi dir="ltr">{c.phoneDisplay}</bdi></a>{missed[1]}</p>
+  <p class="oc-p">{questions[0]}<a class="oc-link" href={c.phoneHref}><bdi dir="ltr">{c.phoneDisplay}</bdi></a>{questions[1]}</p>
+
+  <p class="oc-actions">
+    <a class="btn btn-secondary" href={c.whatsappHref}>{t('order.whatsappCta')}</a>
+    <a class="btn btn-primary" href={continueHref}>{t('confirmation.continue')}</a>
+  </p>
+  {deliveryHref && <p class="oc-p"><a class="oc-link" href={deliveryHref}>{t('confirmation.deliveryInfo')}</a></p>}
+</div>
+
+<style is:global>
+  .oc { max-inline-size: var(--reading-max); margin-inline: auto; padding-block: var(--section-block); padding-inline: var(--gutter); display: grid; gap: var(--space-5); }
+  .oc-title { font-size: var(--fs-h1); line-height: var(--lh-heading); margin: 0; }
+  .oc-ref:not([hidden]) { display: grid; gap: var(--space-1); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface-alt); }
+  .oc-ref-row { margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: baseline; }
+  .oc-ref-label { color: var(--color-text-secondary); }
+  .oc-ref-value { font-size: var(--fs-h3); font-weight: var(--fw-emphasis); }
+  .oc-hint { margin: 0; color: var(--color-text-secondary); font-size: var(--fs-small); }
+  .oc-h2 { font-size: var(--fs-h3); line-height: var(--lh-heading); margin-block: 0 var(--space-2); }
+  .oc-steps { margin: 0; padding-inline-start: var(--space-6); display: grid; gap: var(--space-2); }
+  .oc-p { margin: 0; }
+  .oc-link { color: var(--color-accent-text); display: inline-flex; align-items: center; min-block-size: var(--tap-min); }
+  .oc-actions { margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-3); }
+  .oc-actions .btn { min-block-size: var(--tap-min); }
+</style>

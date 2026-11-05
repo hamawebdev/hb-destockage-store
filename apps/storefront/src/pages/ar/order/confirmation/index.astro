@@ -1,9 +1,11 @@
 ---
-// Order confirmation (ar). SHELL-1 stub, owned by `orderform` from here on (components in src/components/order/).
+// Order confirmation (ar). Owner: orderform (ORDER-4). Content: src/components/order/Confirmation.astro.
+// Static; the Worker fills the order ref (WEB-0 §2.4). noindex, no hreflang/canonical (LayoutProps.noindex).
 import Base from '../../../../layouts/Base.astro';
+import Confirmation from '../../../../components/order/Confirmation.astro';
 import { pageProps } from '../../../../lib/catalog.ts';
 const props = pageProps('order-confirmed', 'ar');
 ---
 <Base layout={props.layout}>
-  <div class="wrap"><h1>{props.layout.title}</h1></div>
+  <Confirmation props={props} />
 </Base>
