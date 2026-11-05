@@ -381,18 +381,21 @@ const COUNTER: Partial<Record<OrderStatus, 'deliveredCount' | 'returnedCount' | 
 
 /**
  * `INSERT INTO <table> SELECT <one value per column, table order> <from>`: an insert that writes a
- * row only when `<from>` (e.g. `FROM orders WHERE id = ? AND version = ?`) yields one. Columns not in
- * `values` (keyed by SQL column name) get NULL, so the id autoincrements. Built from the table's own
- * column list, so it follows schema changes.
+ * row only when `<from>` (e.g. `FROM orders WHERE id = ? AND version = ?`, or `WHERE <guard>`)
+ * yields one. `values` is keyed by SQL column name; a column not given gets its schema default
+ * (SQL default expression or literal), else NULL (so an integer primary key autoincrements).
+ * Built from the table's own column list, so it follows schema changes. Returns the insert
+ * builder (batch-safe; chain `.onConflictDoUpdate(…)` for an upsert).
  */
-export function guardedInsertSelect(db: Db, table: SQLiteTable, values: Record<string, unknown>, from: SQL): Item {
+export function guardedInsertSelect<T extends SQLiteTable>(db: Db, table: T, values: Record<string, unknown>, from: SQL) {
   const cols = getTableConfig(table).columns;
   const known = new Set(cols.map((c) => c.name));
   for (const k of Object.keys(values)) if (!known.has(k)) throw new TypeError(`guardedInsertSelect: unknown column ${k}`);
+  const lit = (val: unknown): SQL => (val instanceof SQL ? val : sql`${typeof val === 'boolean' ? (val ? 1 : 0) : (val ?? null)}`);
   const list = cols.map((c) => {
-    if (!(c.name in values)) return sql`NULL`;
-    const val = values[c.name];
-    return val instanceof SQL ? val : sql`${val ?? null}`;
+    if (c.name in values) return lit(values[c.name]);
+    if (c.primary || !c.hasDefault || c.default === undefined) return sql`NULL`;
+    return lit(c.default);
   });
   return db.insert(table).select(sql`SELECT ${sql.join(list, sql`, `)} ${from}`);
 }
