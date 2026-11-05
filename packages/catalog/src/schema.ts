@@ -13,20 +13,23 @@ const id = v.pipe(v.number(), v.integer(), v.minValue(1));
 
 /**
  * Text safety: no C0/C1 control characters and no bidi embedding/override/isolate controls
- * (U+202A–U+202E, U+2066–U+2069: they can visually reorder names, prices or refs). Newlines are
- * allowed only in multi-line fields. ZWJ/ZWNJ and LRM/RLM stay allowed (legitimate in Arabic).
+ * (U+202A–U+202E, U+2066–U+2069: they can visually reorder names, prices or refs), no U+2028/2029
+ * line/paragraph separators. Newlines are allowed only in multi-line fields. ZWJ/ZWNJ and LRM/RLM
+ * stay allowed (legitimate in Arabic) but a label made only of invisible characters is empty.
  */
 // eslint-disable-next-line no-control-regex
-const UNSAFE_LINE = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
+const UNSAFE_LINE = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/;
 // eslint-disable-next-line no-control-regex
-const UNSAFE_MULTILINE = /[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
+const UNSAFE_MULTILINE = /[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/;
+/** Invisible characters that do not make a label non-empty (zero-width space/joiners, word joiner, BOM, LRM/RLM, ALM). */
+const INVISIBLE = /[\u200b-\u200f\u2060\ufeff\u061c]/g;
 export const isSafeLine = (s: string): boolean => !UNSAFE_LINE.test(s);
 export const isSafeMultiline = (s: string): boolean => !UNSAFE_MULTILINE.test(s);
 /** One-line text, may be empty. */
 const line = (max: number) =>
   v.pipe(v.string(), v.maxLength(max), v.check(isSafeLine, 'control or bidi-override character in text'));
 /** One-line text, non-empty after trimming. */
-const label = (max = 200) => v.pipe(line(max), v.check((s) => s.trim().length > 0, 'must not be empty'));
+const label = (max = 200) => v.pipe(line(max), v.check((s) => s.replace(INVISIBLE, '').trim().length > 0, 'must not be empty'));
 /** Multi-line plain text (paragraphs separated by blank lines). */
 const multiline = (max: number) =>
   v.pipe(v.string(), v.maxLength(max), v.check(isSafeMultiline, 'control or bidi-override character in text'));
@@ -51,7 +54,7 @@ const localized = <T extends v.GenericSchema>(schema: T) => v.strictObject({ ar:
 
 const MetaSchema = v.strictObject({
   version: v.literal(SNAPSHOT_VERSION),
-  source: v.picklist(['seed', 'd1']),
+  source: v.picklist(['seed', 'd1', 'fixture']),
   generatedAt: epochMs,
   publishRunId: v.nullable(id),
 });
@@ -91,6 +94,7 @@ const PackItemSchema = v.strictObject({
 const ImageSchema = v.strictObject({
   id,
   variantId: v.nullable(id),
+  optionValueId: v.exactOptional(v.nullable(id)),
   key: v.pipe(v.string(), v.check(isImageKey, 'image key must be a relative path of lowercase [a-z0-9._-] segments')),
   width: v.pipe(v.number(), v.integer(), v.minValue(1)),
   height: v.pipe(v.number(), v.integer(), v.minValue(1)),
@@ -278,11 +282,15 @@ export function checkProductIntegrity(p: SnapshotProduct, ctx: ProductIntegrityC
   for (const d of duplicates(p.packItems.map((it) => it.variantId))) add(`${at}.packItems`, `variant ${d} listed twice`);
 
   const ownVariants = new Set(p.variants.map((x) => x.id));
+  const ownValues = new Set(p.options.flatMap((o) => o.values.map((x) => x.id)));
   p.images.forEach((img, j) => {
     if (img.variantId !== null && !ownVariants.has(img.variantId)) add(`${at}.images[${j}].variantId`, `variant ${img.variantId} is not in this product`);
+    const ov = img.optionValueId ?? null;
+    if (ov !== null && img.variantId !== null) add(`${at}.images[${j}]`, 'an image binds to a variant or to an option value, not both');
+    if (ov !== null && !ownValues.has(ov)) add(`${at}.images[${j}].optionValueId`, `option value ${ov} is not in this product`);
   });
-  if (p.status === 'active' && !p.images.some((img) => img.variantId === null)) {
-    add(`${at}.images`, 'active product needs ≥ 1 product-level image');
+  if (p.status === 'active' && !p.images.some((img) => img.variantId === null && (img.optionValueId ?? null) === null)) {
+    add(`${at}.images`, 'active product needs ≥ 1 general image (no variant or option-value binding)');
   }
   return issues;
 }
@@ -318,7 +326,9 @@ export function checkSnapshotIntegrity(s: CatalogSnapshot, opts: IntegrityOption
     ...s.categories.flatMap((c) => (c.image ? [c.image.id] : [])),
   ]);
   s.categories.forEach((c, i) => {
-    if (c.image && c.image.variantId !== null) add(`categories[${i}].image.variantId`, 'category image cannot belong to a variant');
+    if (c.image && (c.image.variantId !== null || (c.image.optionValueId ?? null) !== null)) {
+      add(`categories[${i}].image`, 'category image cannot bind to a variant or option value');
+    }
   });
   uniq('contentPages', s.contentPages.map((c) => c.id));
   uniq('contentPages[].key', s.contentPages.map((c) => c.key));

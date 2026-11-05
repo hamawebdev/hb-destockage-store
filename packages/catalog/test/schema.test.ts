@@ -146,6 +146,15 @@ describe('validateSnapshot', () => {
     const d = mut(clone());
     d.products[1]!.name = { fr: 'x'.repeat(201), ar: 'x' };
     expect(issuesOf(d).length).toBeGreaterThan(0);
+    const f = mut(clone());
+    f.products[1]!.name = { fr: '\u200b\u200b', ar: 'x' };
+    expect(issuesOf(f).join()).toMatch(/must not be empty/);
+    const g = mut(clone());
+    g.products[1]!.name = { fr: 'Poêle\u2028 28', ar: 'x' };
+    expect(issuesOf(g).join()).toMatch(/control or bidi/);
+    const h = mut(clone());
+    h.products[1]!.description = { fr: 'a\u2029b', ar: 'x' };
+    expect(issuesOf(h).join()).toMatch(/control or bidi/);
     const e = mut(clone());
     e.settings.turnstileSiteKey = '"><script>';
     expect(issuesOf(e).join()).toMatch(/turnstileSiteKey/);
@@ -171,10 +180,25 @@ describe('validateSnapshot', () => {
     expect(issuesOf(s).join()).toMatch(/variant 1011 is not in this product/);
   });
 
+  test('image option-value binding', () => {
+    const a = mut(clone()) as unknown as { products: { images: Record<string, unknown>[] }[] };
+    a.products[0]!.images[1]!['optionValueId'] = 999;
+    expect(issuesOf(a).join()).toMatch(/option value 999 is not in this product/);
+    const b = mut(clone()) as unknown as { products: { images: Record<string, unknown>[] }[] };
+    b.products[0]!.images[1]!['variantId'] = 1011;
+    expect(issuesOf(b).join()).toMatch(/variant or to an option value, not both/);
+    const c = mut(clone()) as unknown as { products: { images: Record<string, unknown>[] }[] };
+    c.products[0]!.images[0]!['optionValueId'] = 303; // the only general image becomes colour-bound
+    expect(issuesOf(c).join()).toMatch(/needs ≥ 1 general image/);
+    const d = mut(clone()) as unknown as { products: { images: Record<string, unknown>[] }[] };
+    d.products[0]!.images[1]!['optionValueId'] = null; // explicit null = general
+    expect(issuesOf(d)).toEqual([]);
+  });
+
   test('active product needs a product-level image', () => {
     const s = mut(clone());
     s.products[1]!.images = [];
-    expect(issuesOf(s).join()).toMatch(/needs ≥ 1 product-level image/);
+    expect(issuesOf(s).join()).toMatch(/needs ≥ 1 general image/);
   });
 
   test('parseSnapshot throws SnapshotError listing issues', () => {
@@ -209,5 +233,5 @@ test('category image: optional, unique id, not tied to a variant', () => {
   ok.categories[0]!['image'] = { ...image, id: 5011 };
   expect(issuesOf(ok).join()).toMatch(/duplicate id 5011/);
   ok.categories[0]!['image'] = { ...image, variantId: 1011 };
-  expect(issuesOf(ok).join()).toMatch(/cannot belong to a variant/);
+  expect(issuesOf(ok).join()).toMatch(/cannot bind to a variant or option value/);
 });

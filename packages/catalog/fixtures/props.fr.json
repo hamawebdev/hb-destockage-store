@@ -2492,7 +2492,9 @@
             "alt": "Pack cuisine 3 en 1",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/1e3e1840-og.jpg",
@@ -2577,7 +2579,9 @@
             "alt": "Pack cuisine 3 en 1",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           {
             "src": "/img/5809b433-720.avif",
@@ -2620,7 +2624,9 @@
             "alt": "Contenu du pack cuisine",
             "type": "image/avif",
             "lcp": false,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -2656,6 +2662,10 @@
               "qty": 20
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0,
+              1
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 10
@@ -3122,6 +3132,10 @@
                 "qty": 20
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0,
+                1
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 10
@@ -3277,7 +3291,9 @@
             "alt": "Tablier de cuisine rouge",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/3b7d8857-og.jpg",
@@ -3363,7 +3379,9 @@
             "alt": "Tablier de cuisine rouge",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           {
             "src": "/img/414dea80-720.avif",
@@ -3406,7 +3424,54 @@
             "alt": "Tablier de cuisine bleu",
             "type": "image/avif",
             "lcp": false,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": 304
+          },
+          {
+            "src": "/img/d11a8fc7-720.avif",
+            "srcset": "/img/d11a8fc7-360.avif 360w, /img/d11a8fc7-480.avif 480w, /img/d11a8fc7-720.avif 720w, /img/d11a8fc7-960.avif 960w, /img/d11a8fc7-1200.avif 1200w",
+            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "candidates": [
+              {
+                "url": "/img/d11a8fc7-360.avif",
+                "width": 360,
+                "height": 360,
+                "bytes": 0
+              },
+              {
+                "url": "/img/d11a8fc7-480.avif",
+                "width": 480,
+                "height": 480,
+                "bytes": 0
+              },
+              {
+                "url": "/img/d11a8fc7-720.avif",
+                "width": 720,
+                "height": 720,
+                "bytes": 0
+              },
+              {
+                "url": "/img/d11a8fc7-960.avif",
+                "width": 960,
+                "height": 960,
+                "bytes": 0
+              },
+              {
+                "url": "/img/d11a8fc7-1200.avif",
+                "width": 1200,
+                "height": 1200,
+                "bytes": 0
+              }
+            ],
+            "width": 720,
+            "height": 720,
+            "alt": "Tablier de cuisine bleu, taille L",
+            "type": "image/avif",
+            "lcp": false,
+            "placeholder": true,
+            "variantId": 1014,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -3430,12 +3495,14 @@
               {
                 "id": 301,
                 "label": "M",
+                "imageIndexes": [],
                 "swatchHex": null,
                 "available": true
               },
               {
                 "id": 302,
                 "label": "L",
+                "imageIndexes": [],
                 "swatchHex": null,
                 "available": true
               }
@@ -3449,12 +3516,16 @@
               {
                 "id": 303,
                 "label": "Rouge",
+                "imageIndexes": [],
                 "swatchHex": "#b3261e",
                 "available": true
               },
               {
                 "id": 304,
                 "label": "Bleu",
+                "imageIndexes": [
+                  1
+                ],
                 "swatchHex": "#1e4fb3",
                 "available": true
               }
@@ -3484,6 +3555,9 @@
               "qty": 8
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 8
@@ -3510,6 +3584,10 @@
               "qty": 0
             },
             "imageIndex": 1,
+            "imageIndexes": [
+              1,
+              0
+            ],
             "isDefault": false,
             "available": false,
             "maxQty": 0
@@ -3535,7 +3613,12 @@
               "state": "low_stock",
               "qty": 2
             },
-            "imageIndex": null,
+            "imageIndex": 2,
+            "imageIndexes": [
+              2,
+              1,
+              0
+            ],
             "isDefault": false,
             "available": true,
             "maxQty": 2
@@ -3836,6 +3919,9 @@
                 "qty": 8
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 8
@@ -3862,6 +3948,10 @@
                 "qty": 0
               },
               "imageIndex": 1,
+              "imageIndexes": [
+                1,
+                0
+              ],
               "isDefault": false,
               "available": false,
               "maxQty": 0
@@ -3887,7 +3977,12 @@
                 "state": "low_stock",
                 "qty": 2
               },
-              "imageIndex": null,
+              "imageIndex": 2,
+              "imageIndexes": [
+                2,
+                1,
+                0
+              ],
               "isDefault": false,
               "available": true,
               "maxQty": 2
@@ -3902,12 +3997,14 @@
                 {
                   "id": 301,
                   "label": "M",
+                  "imageIndexes": [],
                   "swatchHex": null,
                   "available": true
                 },
                 {
                   "id": 302,
                   "label": "L",
+                  "imageIndexes": [],
                   "swatchHex": null,
                   "available": true
                 }
@@ -3921,12 +4018,16 @@
                 {
                   "id": 303,
                   "label": "Rouge",
+                  "imageIndexes": [],
                   "swatchHex": "#b3261e",
                   "available": true
                 },
                 {
                   "id": 304,
                   "label": "Bleu",
+                  "imageIndexes": [
+                    1
+                  ],
                   "swatchHex": "#1e4fb3",
                   "available": true
                 }
@@ -4082,7 +4183,9 @@
             "alt": "Poêle 28 cm",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/f9cdabaf-og.jpg",
@@ -4171,7 +4274,9 @@
             "alt": "Poêle 28 cm",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -4207,6 +4312,9 @@
               "qty": 0
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": false,
             "maxQty": 0
@@ -4513,6 +4621,9 @@
                 "qty": 0
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": false,
               "maxQty": 0
@@ -4668,7 +4779,9 @@
             "alt": "Casserole 20 cm",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/381c18bd-og.jpg",
@@ -4757,7 +4870,9 @@
             "alt": "Casserole 20 cm",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -4793,6 +4908,9 @@
               "qty": 2
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 2
@@ -5099,6 +5217,9 @@
                 "qty": 2
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 2
@@ -5254,7 +5375,9 @@
             "alt": "Set de couteaux",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/04067ca2-og.jpg",
@@ -5339,7 +5462,9 @@
             "alt": "Set de couteaux",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -5375,6 +5500,9 @@
               "qty": null
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 10
@@ -5681,6 +5809,9 @@
                 "qty": null
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 10
@@ -5836,7 +5967,9 @@
             "alt": "Égouttoir",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/9479a432-og.jpg",
@@ -5921,7 +6054,9 @@
             "alt": "Égouttoir",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -5957,6 +6092,9 @@
               "qty": 12
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 10
@@ -6263,6 +6401,9 @@
                 "qty": 12
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 10

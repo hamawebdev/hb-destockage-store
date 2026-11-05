@@ -62,8 +62,9 @@ export interface CatalogSnapshot {
 
 export interface SnapshotMeta {
   readonly version: typeof SNAPSHOT_VERSION;
-  /** `seed` = built from `data/`; `d1` = exported by the publish pipeline. */
-  readonly source: 'seed' | 'd1';
+  /** `seed` = built from `data/`; `d1` = exported by the publish pipeline; `fixture` = the invented
+   *  test catalogue (never a production build). */
+  readonly source: 'seed' | 'd1' | 'fixture';
   /** Epoch ms. */
   readonly generatedAt: number;
   /** `publish_runs.id` when `source === 'd1'`, else null. */
@@ -83,7 +84,7 @@ export interface SnapshotCategory {
   readonly placeholder: boolean;
   /** Languages whose text (name, description, slug) is our translation, not the client's. `[]` when none. */
   readonly translationPlaceholder: readonly Lang[];
-  /** Category's own image (DB-1 `images.category_id`; `variantId` null). Absent/null ⇒ builders use
+  /** Category's own image (DB-1 `images.category_id`; no binding). Absent/null ⇒ builders use
    *  the first product image in the category's subtree. */
   readonly image?: SnapshotImage | null;
 }
@@ -171,8 +172,13 @@ export interface SnapshotPackItem {
 /** DB-1 `images`. */
 export interface SnapshotImage {
   readonly id: Id;
-  /** Null = product-level image; else the variant it illustrates. */
+  /**
+   * Binding. Both null = general (whole product). `variantId` = one variant. `optionValueId` = every
+   * variant with that option value (e.g. colour = red on a size × colour product). At most one of
+   * the two is set. `optionValueId` is optional in data (absent = null).
+   */
   readonly variantId: Id | null;
+  readonly optionValueId?: Id | null;
   /**
    * The original's key: its path relative to `data/photos/`. `db`'s seed uploads `data/photos/*`
    * to R2 under the same keys, so a `d1` snapshot's key is also the R2 object key.
@@ -428,7 +434,8 @@ export interface PriceProps {
   readonly compareAtLabel: string | null;
   /** Whole percent saved, null without `compareAt`. */
   readonly discountPercent: number | null;
-  /** Cards: true when active variants have different prices and `amountDzd` is the lowest ("from …").
+  /** Cards: true when the sellable variants (available ones; all active ones if none is available)
+   *  have different prices and `amountDzd` is the lowest ("from …").
    *  Product page / variants: always false (exact price of that variant). */
   readonly from: boolean;
 }
@@ -453,7 +460,8 @@ export interface ProductCard {
   readonly price: PriceProps;
   /** Product-level: best state among active variants (in > low > out); qty = sum, null if any untracked. */
   readonly stock: StockProps;
-  /** Distinct colour values of active variants, option-value order, max 6; `[]` when none. */
+  /** Distinct colour values of sellable variants (available; all active if none), option-value
+   *  order, max 6; `[]` when none. */
   readonly swatches: readonly { readonly label: string; readonly hex: string }[];
   readonly placeholder: boolean;
   /** This language's text is our translation. */
@@ -545,6 +553,8 @@ export interface CategoryProps {
 export interface OptionValueProps {
   readonly id: Id;
   readonly label: string;
+  /** Indexes into `ProductProps.images` bound to this value (e.g. the red photos), position order. */
+  readonly imageIndexes: readonly number[];
   readonly swatchHex: string | null;
   /** At least one `available` variant has this value. */
   readonly available: boolean;
@@ -570,6 +580,11 @@ export interface VariantProps {
   readonly stock: StockProps;
   /** Index into `ProductProps.images` to show when selected; null ⇒ keep current. */
   readonly imageIndex: number | null;
+  /** Gallery for this variant, as indexes into `ProductProps.images`: images bound to the variant,
+   *  then images bound to any of its option values (option order), then the general images. */
+  readonly imageIndexes: readonly number[];
+  /** The effective default: the admin's default variant when it is available, else the first
+   *  available variant, else the admin's default. Preselected on the page and in the no-JS form. */
   readonly isDefault: boolean;
   /** `active && stock.state !== 'out_of_stock'`. Inactive variants are not in `variants` at all,
    *  so a combination with no entry in `variants` is unavailable too. */
@@ -605,6 +620,8 @@ export interface OrderFormProps {
   readonly kind: ProductKind;
   /** True ⇒ hide the variant picker and post `defaultVariantId`. */
   readonly singleVariant: boolean;
+  /** The effective default (see `VariantProps.isDefault`): never an out-of-stock variant while
+   *  another one is available. */
   readonly defaultVariantId: Id;
   /** Same objects as `ProductProps.variants`. */
   readonly variants: readonly VariantProps[];
@@ -621,6 +638,12 @@ export interface OrderFormProps {
   readonly qty: { readonly min: 1; readonly max: number };
   /** False when every variant is out of stock: render the form disabled + WhatsApp link. */
   readonly orderable: boolean;
+}
+
+/** A gallery image with its binding (see `SnapshotImage`). */
+export interface ProductImageProps extends ImageProps {
+  readonly variantId: Id | null;
+  readonly optionValueId: Id | null;
 }
 
 export interface ProductProps {
@@ -641,10 +664,10 @@ export interface ProductProps {
   readonly category: { readonly id: Id; readonly name: string; readonly href: string };
   readonly breadcrumbs: readonly Breadcrumb[];
   /** All images in order; `images[0]` is the LCP image (`lcp: true`). */
-  readonly images: readonly ImageProps[];
-  /** The default variant's price (`from` false). The picker swaps in `variants[i].price`. */
+  readonly images: readonly ProductImageProps[];
+  /** The effective default variant's price (`from` false). The picker swaps in `variants[i].price`. */
   readonly price: PriceProps;
-  /** The default variant's stock. Whole-product availability: `orderForm.orderable`. */
+  /** The effective default variant's stock. Whole-product availability: `orderForm.orderable`. */
   readonly stock: StockProps;
   /** Option order = `position`; values in `position` order. Empty for simple/pack. */
   readonly options: readonly OptionProps[];

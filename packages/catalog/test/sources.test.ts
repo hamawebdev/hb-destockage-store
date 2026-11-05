@@ -84,6 +84,17 @@ describe('fromSeed', () => {
     await put(root, 'data/catalog/validate.mjs', `export const validateSeed = () => [{ path: 'data/photos/x.jpg', message: 'missing photo' }];`);
     await expect(fromSeed(root)).rejects.toThrow(/missing photo/);
     await expect(fromSeed(root, { seedValidation: false, generatedAt: 1 })).resolves.toBeTruthy();
+    // Fail closed on an unexpected shape or a missing export.
+    await put(root, 'data/catalog/validate.mjs', `export const validateSeed = () => ({ ok: true, issues: [] });`);
+    await expect(fromSeed(root)).rejects.toThrow(/expected an array/);
+    await put(root, 'data/catalog/validate.mjs', `export const nothing = 1;`);
+    await expect(fromSeed(root)).rejects.toThrow(/does not export validateSeed/);
+  });
+
+  test('findRepoRoot throws when there is no repo root', async () => {
+    const { findRepoRoot } = await import('../src/sources.ts');
+    expect(() => findRepoRoot(tmpdir())).toThrow(/repo root not found/);
+    expect(findRepoRoot(import.meta.dirname)).toMatch(/pagedata$/);
   });
 });
 
@@ -99,7 +110,11 @@ describe('fromExport / loadSnapshot', () => {
 
   test('HB_SNAPSHOT selects the source', async () => {
     const root = await fakeRepo();
-    expect(await loadSnapshot({ repoRoot: root, env: {} })).toEqual(fixtureSnapshot);
+    await expect(loadSnapshot({ repoRoot: root, env: {} })).rejects.toThrow(/HB_SNAPSHOT.*not set/s);
+    await expect(loadSnapshot({ repoRoot: root, env: { HB_SNAPSHOT: ' ' } })).rejects.toThrow(/not set/);
+    const fx = await loadSnapshot({ repoRoot: root, env: { HB_SNAPSHOT: 'fixture' } });
+    expect(fx).toEqual(fixtureSnapshot);
+    expect(fx.meta.source).toBe('fixture');
     expect((await loadSnapshot({ repoRoot: root, env: { HB_SNAPSHOT: 'seed' } })).meta.source).toBe('seed');
     const full = { ...fixtureSnapshot, wilayas: ALL_WILAYAS };
     await put(root, 'snap.json', full);
