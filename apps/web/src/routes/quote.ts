@@ -13,7 +13,7 @@ import { createDb } from '@hb/db';
 import { failureCode, parseQuoteInput } from '@hb/shared';
 import type { Env } from '../env.ts';
 import { readPricing } from '../catalog-reads.ts';
-import { createAdminTableFeeProvider } from '../fees/admin-table.ts';
+import { feeProvider } from '../fees.ts';
 import { log } from '../http.ts';
 import { quoteFromReads } from '../quote.ts';
 import { failure, parseJsonObject, readBody } from '../request.ts';
@@ -34,7 +34,7 @@ export function registerQuote(app: Hono<{ Bindings: Env }>): void {
         input.items.map((i) => i.variantId),
         input.communeId,
       );
-      const result = await quoteFromReads(input, reads, createAdminTableFeeProvider(db));
+      const result = await quoteFromReads(input, reads, feeProvider(db, c.env));
       if (result.ok) return c.json(result, 200);
       const { ok: _ok, ...rest } = result;
       return failure(c, rest);

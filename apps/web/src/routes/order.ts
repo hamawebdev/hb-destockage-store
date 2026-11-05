@@ -28,7 +28,7 @@ import {
 } from '@hb/shared';
 import { communesOf, readPricing, resolveVariant } from '../catalog-reads.ts';
 import { readConfig, type Config, type Env } from '../env.ts';
-import { createAdminTableFeeProvider } from '../fees/admin-table.ts';
+import { feeProvider } from '../fees.ts';
 import { log } from '../http.ts';
 import { ipHash, ipRateKey, reviewFillMs, signReviewToken, sinkRef } from '../order/crypto.ts';
 import { createD1OrderStore, DB_WRITES, type OrderWrites } from '../order/d1-store.ts';
@@ -51,7 +51,7 @@ function placeDeps(c: C, db: Db, store: OrderStore, config: Config): PlaceDeps {
   return {
     store,
     readPricing: (ids, communeId) => readPricing(db, ids, communeId, { snapshots: true }),
-    fees: createAdminTableFeeProvider(db),
+    fees: feeProvider(db, c.env),
     rlPhone: c.env.ORDER_RL_PHONE,
     rlIp: c.env.ORDER_RL_IP,
     ipRateKey,
@@ -205,7 +205,7 @@ async function reviewPage(
   if (q !== null && q.ok) {
     const input = q.value;
     const reads = await readPricing(db, input.items.map((i) => i.variantId), input.communeId, { snapshots: true });
-    const quote = await quoteFromReads(input, reads, createAdminTableFeeProvider(db));
+    const quote = await quoteFromReads(input, reads, feeProvider(db, c.env));
     const first = input.items[0]!;
     hiddenItem = { variantId: first.variantId, qty: first.qty, wilayaCode: input.wilayaCode };
     const snap = reads.snapshots?.get(first.variantId);

@@ -6,7 +6,8 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import * as v from 'valibot';
 import { createDb } from '@hb/db';
 import { checkFeeProviderConformance, QuoteResponseSchema, WILAYA_CODE_MAX } from '@hb/shared';
-import { createAdminTableFeeProvider } from '../src/fees/admin-table.ts';
+import { createAdminTableFeeProvider } from '@hb/db/fees';
+import { allowPlaceholderFees, feeProvider } from '../src/fees.ts';
 import { postJson, startSeeded, type Started } from './support/harness.ts';
 
 let h: Started;
@@ -123,6 +124,35 @@ describe('POST /api/quote', () => {
     const res = await quote({ items: [{ variantId: 21, qty: 1 }], wilayaCode: 16 });
     expect(await res.json()).toMatchObject({ subtotalDzd: 15000, lines: [{ maxQty: 1 }] });
     await h.env.DB.prepare('update variants set price_dzd = 15500, stock = 3 where id = 21').run();
+  });
+});
+
+describe('placeholder (invented seed) fees fail closed', () => {
+  test.each([
+    ['development', true],
+    ['production', false],
+    ['test', false],
+    ['staging', false],
+    ['Development', false],
+    ['', false],
+    [undefined, false],
+  ])('ENV=%j → allowPlaceholderFees %s', (ENV, expected) => {
+    expect(allowPlaceholderFees({ ENV })).toBe(expected);
+  });
+
+  test('a placeholder fee row is "no delivery" for production and test configs, served only in development', async () => {
+    await h.env.DB.prepare('update delivery_fees set placeholder = 1 where wilaya_code = 16').run();
+    try {
+      const db = createDb(h.env.DB);
+      const req = { wilayaCode: 16, items: [{ variantId: 11, qty: 1, weightG: null, unitPriceDzd: 14600 }] };
+      expect(await feeProvider(db, { ENV: 'production' }).quote(req)).toEqual({ available: false, feeDzd: null, source: 'table' });
+      expect(await feeProvider(db, { ENV: 'development' }).quote(req)).toEqual({ available: true, feeDzd: 600, source: 'table' });
+      // Over HTTP the harness runs ENV=test: the invented fee is never quoted.
+      const res = await quote({ items: [{ variantId: 11, qty: 1 }], wilayaCode: 16 });
+      expect(await res.json()).toMatchObject({ available: false, feeDzd: null, totalDzd: null });
+    } finally {
+      await h.env.DB.prepare('update delivery_fees set placeholder = 0 where wilaya_code = 16').run();
+    }
   });
 });
 
