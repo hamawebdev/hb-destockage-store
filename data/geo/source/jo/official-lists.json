@@ -1,0 +1,3245 @@
+{
+ "_about": "Commune lists transcribed from the Journal officiel (JORADP) for every wilaya whose composition was (re)stated by Law 19-12 (2019) or Law 26-06 (2026), mapped to the pinned Algeria-Cities row id (dataset_id). French text comes from the PDF text layer (reliable); Arabic text comes from the Arabic PDF text layer and may contain extraction artifacts (see jo/README.md) — it is evidence, not display data. Other wilayas (1984 composition, JO 1984 n°6, scanned without a text layer) are not listed.",
+ "sources": {
+  "law_26_06": {
+   "title": "Loi n° 26-06 du 16 Chaoual 1447 correspondant au 4 avril 2026 modifiant et complétant la loi n° 84-09 du 4 février 1984 relative à l'organisation territoriale du pays.",
+   "jo": "JORADP n° 25 du 5 avril 2026 (17 Chaoual 1447)",
+   "pages_fr": "4-9",
+   "pages_ar": "4-11",
+   "url_fr": "https://www.joradp.dz/FTP/jo-francais/2026/F2026025.pdf",
+   "url_ar": "https://www.joradp.dz/FTP/jo-arabe/2026/A2026025.pdf",
+   "sha256_fr": "f6d7f5261e997e490d54a1a061648a5635d3263e1f19aed50e5cd1e5ad01e46f",
+   "sha256_ar": "e21760367ac5ccf4bacc155873560460fddf5502c32af685aad459507ae48e87"
+  },
+  "decree_26_206": {
+   "title": "Décret présidentiel n° 26-206 du 8 Dhou El Hidja 1447 correspondant au 25 mai 2026 complétant le décret n° 84-79 du 3 avril 1984 fixant les noms et les chefs-lieux des wilayas.",
+   "title_ar": "مرسوم رئاسي رقم 26-206 مؤرخ في 8 ذي الحجة عام 1447 الموافق 25 مايو سنة 2026، يتمم المرسوم رقم 84-79 المؤرخ في أول رجب عام 1404 الموافق 3 أبريل سنة 1984 الذي يحدد أسماء الولايات ومقارها",
+   "jo": "JORADP n° 40 du 3 juin 2026 (17 Dhou El Hidja 1447)",
+   "page_fr": 5,
+   "page_ar": 6,
+   "url_fr": "https://www.joradp.dz/FTP/jo-francais/2026/F2026040.pdf",
+   "url_ar": "https://www.joradp.dz/FTP/jo-arabe/2026/A2026040.pdf",
+   "sha256_fr": "7cc0cf26f944d20138b24f7894332f2cc4c5cba260dc2303d4ba75d8c8b8f9b0",
+   "sha256_ar": "a4552b3ad93f79321093aef76ae3ca9733c0c63f6783a715afcd8ce13c943f6d"
+  },
+  "law_19_12": {
+   "title": "Loi n° 19-12 du 14 Rabie Ethani 1441 correspondant au 11 décembre 2019 modifiant et complétant la loi n° 84-09 du 4 février 1984 relative à l'organisation territoriale du pays.",
+   "jo": "JORADP n° 78 du 18 décembre 2019",
+   "pages_fr": "12-15",
+   "pages_ar": "13-16",
+   "url_fr": "https://www.joradp.dz/FTP/jo-francais/2019/F2019078.pdf",
+   "url_ar": "https://www.joradp.dz/FTP/jo-arabe/2019/A2019078.pdf",
+   "sha256_fr": "5a31159713aa60e49a56e2fb1a22cd33c00432ddc0f3082200f84218cb22669d",
+   "sha256_ar": "4a135bc50d460f9079ddfc361940592cbefc6406a562c81f745e1cd885464054"
+  }
+ },
+ "totals": {
+  "wilayas": 69,
+  "communes": 1541,
+  "quote_fr": "« Art. 3. — Le nouveau découpage territorial du pays comprend soixante-neuf (69) wilayas et mille cinq cent quarante-et-une (1541) communes. ».",
+  "quote_ar": "”المادة 3: يتكون التقسيم الإقليمي الجديد للبلاد من تسع وستين (69) ولاية وألف وخمسمائة وإحدى وأربعين (1541) بلدية“.",
+  "source": "law_26_06",
+  "page_fr": 4,
+  "page_ar": 4
+ },
+ "wilaya_names_59_69": [
+  {
+   "code": 59,
+   "name_fr": "Aflou",
+   "name_ar": "أفلو",
+   "quote_fr": "Wilaya d'Aflou avec chef-lieu la ville d'Aflou",
+   "quote_ar": "ولاية أفلو، مقرها مدينة أفلو",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 60,
+   "name_fr": "Barika",
+   "name_ar": "بريكة",
+   "quote_fr": "Wilaya de Barika avec chef-lieu la ville de Barika",
+   "quote_ar": "ولاية بريكة، مقرها مدينة بريكة",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 61,
+   "name_fr": "El Kantara",
+   "name_ar": "القنطرة",
+   "quote_fr": "Wilaya d'El Kantara avec chef-lieu la ville d'El Kantara",
+   "quote_ar": "ولاية القنطرة، مقرها مدينة القنطرة",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 62,
+   "name_fr": "Bir El Ater",
+   "name_ar": "بئر العاتر",
+   "quote_fr": "Wilaya de Bir El Ater avec chef-lieu la ville de Bir El Ater",
+   "quote_ar": "ولاية بئر العاتر، مقرها مدينة بئر العاتر",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 63,
+   "name_fr": "El Aricha",
+   "name_ar": "العريشة",
+   "quote_fr": "Wilaya d'El Aricha avec chef-lieu la ville d'El Aricha",
+   "quote_ar": "ولاية العريشة، مقرها مدينة العريشة",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 64,
+   "name_fr": "Ksar Chellala",
+   "name_ar": "قصر الشلالة",
+   "quote_fr": "Wilaya de Ksar Chellala avec chef-lieu la ville de Ksar Chellala",
+   "quote_ar": "ولاية قصر الشلالة، مقرها مدينة قصر الشلالة",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 65,
+   "name_fr": "Aïn Ouessara",
+   "name_ar": "عين وسارة",
+   "quote_fr": "Wilaya de Aïn Ouessara avec chef-lieu la ville de Aïn Ouessara",
+   "quote_ar": "ولاية عين وسارة، مقرها مدينة عين وسارة",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 66,
+   "name_fr": "Messaad",
+   "name_ar": "مسعد",
+   "quote_fr": "Wilaya de Messaad avec chef-lieu la ville de Messaad",
+   "quote_ar": "ولاية مسعد، مقرها مدينة مسعد",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 67,
+   "name_fr": "Ksar El Boukhari",
+   "name_ar": "قصر البخاري",
+   "quote_fr": "Wilaya de Ksar El Boukhari avec chef-lieu la ville de Ksar El Boukhari",
+   "quote_ar": "ولاية قصر البخاري، مقرها مدينة قصر البخاري",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 68,
+   "name_fr": "Bou Saâda",
+   "name_ar": "بوسعادة",
+   "quote_fr": "Wilaya de Bou Saâda avec chef-lieu la ville de Bou Saâda",
+   "quote_ar": "ولاية بوسعادة، مقرها مدينة بوسعادة",
+   "page_fr": 5,
+   "page_ar": 6
+  },
+  {
+   "code": 69,
+   "name_fr": "El Abiodh Sidi Cheikh",
+   "name_ar": "الأبيض سيدي الشيخ",
+   "quote_fr": "Wilaya d'El Abiodh Sidi Cheikh avec chef-lieu la ville d'El Abiodh Sidi Cheikh",
+   "quote_ar": "ولاية الأبيض سيدي الشيخ، مقرها مدينة الأبيض سيدي الشيخ",
+   "page_fr": 5,
+   "page_ar": 6
+  }
+ ],
+ "lists": [
+  {
+   "code": 1,
+   "source": "law_19_12",
+   "article": "Art. 5",
+   "page_fr": 12,
+   "page_ar": 13,
+   "declared": 16,
+   "communes": [
+    {
+     "fr": "Adrar",
+     "ar": "أدرار",
+     "dataset_id": 4
+    },
+    {
+     "fr": "Fenoghil",
+     "ar": "فنوغيل",
+     "dataset_id": 5
+    },
+    {
+     "fr": "Tamest",
+     "ar": "تاماست",
+     "dataset_id": 11
+    },
+    {
+     "fr": "Reggane",
+     "ar": "رقان",
+     "dataset_id": 7
+    },
+    {
+     "fr": "Sali",
+     "ar": "سالي",
+     "dataset_id": 8
+    },
+    {
+     "fr": "In Zghmir",
+     "ar": "إن زغمير",
+     "dataset_id": 6
+    },
+    {
+     "fr": "Akabli",
+     "ar": "أقبلي",
+     "dataset_id": 15
+    },
+    {
+     "fr": "Tit",
+     "ar": "تيت",
+     "dataset_id": 13
+    },
+    {
+     "fr": "Ouled Ahmed Timmi",
+     "ar": "أولاد أحمد تيمي",
+     "dataset_id": 3
+    },
+    {
+     "fr": "Tsabit",
+     "ar": "تسابيت",
+     "dataset_id": 10
+    },
+    {
+     "fr": "Bouda",
+     "ar": "بودة",
+     "dataset_id": 2
+    },
+    {
+     "fr": "Zaouiet Kounta",
+     "ar": "زاوية كنتة",
+     "dataset_id": 14
+    },
+    {
+     "fr": "Aoulef",
+     "ar": "أولف",
+     "dataset_id": 16
+    },
+    {
+     "fr": "Sebaa",
+     "ar": "السبع",
+     "dataset_id": 9
+    },
+    {
+     "fr": "Timekten",
+     "ar": "تيمقتن",
+     "dataset_id": 1
+    },
+    {
+     "fr": "Tamantit",
+     "ar": "تامنطيت",
+     "dataset_id": 12
+    }
+   ]
+  },
+  {
+   "code": 3,
+   "source": "law_26_06",
+   "article": "Art. 7",
+   "page_fr": 4,
+   "page_ar": 4,
+   "declared": 12,
+   "communes": [
+    {
+     "fr": "Laghouat",
+     "ar": "الأغواط",
+     "dataset_id": 57
+    },
+    {
+     "fr": "Ksar El Hirane",
+     "ar": "قصر الحيران",
+     "dataset_id": 58
+    },
+    {
+     "fr": "Benacer Benchohra",
+     "ar": "بن ناصر بن شهرة",
+     "dataset_id": 66
+    },
+    {
+     "fr": "Sidi Makhlouf",
+     "ar": "سيدي مخلوف",
+     "dataset_id": 60
+    },
+    {
+     "fr": "Hassi Delaa",
+     "ar": "حاسي الدلاعة",
+     "dataset_id": 61
+    },
+    {
+     "fr": "Hassi R'Mel",
+     "ar": "حاسي الرمل",
+     "dataset_id": 62
+    },
+    {
+     "fr": "Aïn Madhi",
+     "ar": "عين ماضي",
+     "dataset_id": 63
+    },
+    {
+     "fr": "Tadjemout",
+     "ar": "تاجموت",
+     "dataset_id": 55
+    },
+    {
+     "fr": "Kheneg",
+     "ar": "الخنق",
+     "dataset_id": 65
+    },
+    {
+     "fr": "Tadjrouna",
+     "ar": "تاجرونة",
+     "dataset_id": 56
+    },
+    {
+     "fr": "El Assafia",
+     "ar": "العسافية",
+     "dataset_id": 59
+    },
+    {
+     "fr": "El Haouita",
+     "ar": "الحويطة",
+     "dataset_id": 64
+    }
+   ]
+  },
+  {
+   "code": 5,
+   "source": "law_26_06",
+   "article": "Art. 9",
+   "page_fr": 4,
+   "page_ar": 4,
+   "declared": 53,
+   "communes": [
+    {
+     "fr": "Batna",
+     "ar": "باتنة",
+     "dataset_id": 108
+    },
+    {
+     "fr": "Ghassira",
+     "ar": "غسيرة",
+     "dataset_id": 140
+    },
+    {
+     "fr": "Maafa",
+     "ar": "معافة",
+     "dataset_id": 96
+    },
+    {
+     "fr": "Merouana",
+     "ar": "مروانة",
+     "dataset_id": 113
+    },
+    {
+     "fr": "Seriana",
+     "ar": "سريانة",
+     "dataset_id": 116
+    },
+    {
+     "fr": "Menaa",
+     "ar": "منعة",
+     "dataset_id": 118
+    },
+    {
+     "fr": "Elmadher",
+     "ar": "المعذر",
+     "dataset_id": 123
+    },
+    {
+     "fr": "Tazoult",
+     "ar": "تازولت",
+     "dataset_id": 125
+    },
+    {
+     "fr": "N'Gaous",
+     "ar": "نقاوس",
+     "dataset_id": 127
+    },
+    {
+     "fr": "Guigba",
+     "ar": "القيقبة",
+     "dataset_id": 106
+    },
+    {
+     "fr": "Inoughissene",
+     "ar": "إينوغيسن",
+     "dataset_id": 135
+    },
+    {
+     "fr": "Ouyoun El Assafir",
+     "ar": "عيون العصافير",
+     "dataset_id": 124
+    },
+    {
+     "fr": "Djerma",
+     "ar": "جرمة",
+     "dataset_id": 122
+    },
+    {
+     "fr": "Arris",
+     "ar": "آريس",
+     "dataset_id": 129
+    },
+    {
+     "fr": "Kimmel",
+     "ar": "كيمل",
+     "dataset_id": 141
+    },
+    {
+     "fr": "Ain Djasser",
+     "ar": "عين جاسر",
+     "dataset_id": 131
+    },
+    {
+     "fr": "Ouled Sellem",
+     "ar": "أولاد سلام",
+     "dataset_id": 105
+    },
+    {
+     "fr": "Tigherghar",
+     "ar": "تيغرغار",
+     "dataset_id": 119
+    },
+    {
+     "fr": "Ain Yagout",
+     "ar": "عين ياقوت",
+     "dataset_id": 120
+    },
+    {
+     "fr": "Fesdis",
+     "ar": "فسديس",
+     "dataset_id": 109
+    },
+    {
+     "fr": "Sefiane",
+     "ar": "سفيان",
+     "dataset_id": 128
+    },
+    {
+     "fr": "Rahbat",
+     "ar": "الرحبات",
+     "dataset_id": 104
+    },
+    {
+     "fr": "Tighanimine",
+     "ar": "تيغانمين",
+     "dataset_id": 130
+    },
+    {
+     "fr": "Lemsane",
+     "ar": "لمسان",
+     "dataset_id": 101
+    },
+    {
+     "fr": "Ksar Belezma",
+     "ar": "قصر بلزمة",
+     "dataset_id": 112
+    },
+    {
+     "fr": "Ichmoul",
+     "ar": "إيشمول",
+     "dataset_id": 134
+    },
+    {
+     "fr": "Foum Toub",
+     "ar": "فم الطوب",
+     "dataset_id": 133
+    },
+    {
+     "fr": "Béni Fedhala El Hakania",
+     "ar": "بني فضالة الحقانية",
+     "dataset_id": 144
+    },
+    {
+     "fr": "Oued El Ma",
+     "ar": "وادي الماء",
+     "dataset_id": 114
+    },
+    {
+     "fr": "Talkhamt",
+     "ar": "تالخمت",
+     "dataset_id": 102
+    },
+    {
+     "fr": "Bouzina",
+     "ar": "بوزينة",
+     "dataset_id": 136
+    },
+    {
+     "fr": "Chemora",
+     "ar": "الشمرة",
+     "dataset_id": 139
+    },
+    {
+     "fr": "Oued Chaaba",
+     "ar": "وادي الشعبة",
+     "dataset_id": 110
+    },
+    {
+     "fr": "Taxlent",
+     "ar": "تاكسلانت",
+     "dataset_id": 99
+    },
+    {
+     "fr": "Gosbat",
+     "ar": "القصبات",
+     "dataset_id": 97
+    },
+    {
+     "fr": "Ouled Aouf",
+     "ar": "أولاد عوف",
+     "dataset_id": 146
+    },
+    {
+     "fr": "Boumagueur",
+     "ar": "بومقر",
+     "dataset_id": 126
+    },
+    {
+     "fr": "T'Kout",
+     "ar": "تكوت",
+     "dataset_id": 142
+    },
+    {
+     "fr": "Aïn Touta",
+     "ar": "عين التوتة",
+     "dataset_id": 143
+    },
+    {
+     "fr": "Hidoussa",
+     "ar": "حيدوسة",
+     "dataset_id": 111
+    },
+    {
+     "fr": "Teniet El Abed",
+     "ar": "ثنية العابد",
+     "dataset_id": 107
+    },
+    {
+     "fr": "Oued Taga",
+     "ar": "وادي الطاقة",
+     "dataset_id": 148
+    },
+    {
+     "fr": "Ouled Fadel",
+     "ar": "أولاد فاضل",
+     "dataset_id": 145
+    },
+    {
+     "fr": "Timgad",
+     "ar": "تيمقاد",
+     "dataset_id": 98
+    },
+    {
+     "fr": "Ras El Aïoun",
+     "ar": "رأس العيون",
+     "dataset_id": 103
+    },
+    {
+     "fr": "Chir",
+     "ar": "شير",
+     "dataset_id": 147
+    },
+    {
+     "fr": "Ouled Si Slimane",
+     "ar": "أولاد سي سليمان",
+     "dataset_id": 100
+    },
+    {
+     "fr": "Zana El Beïda",
+     "ar": "زانة البيضاء",
+     "dataset_id": 117
+    },
+    {
+     "fr": "El Hassi",
+     "ar": "الحاسي",
+     "dataset_id": 132
+    },
+    {
+     "fr": "Lazrou",
+     "ar": "لازرو",
+     "dataset_id": 115
+    },
+    {
+     "fr": "Boumia",
+     "ar": "بومية",
+     "dataset_id": 121
+    },
+    {
+     "fr": "Boulhilat",
+     "ar": "بولهيلات",
+     "dataset_id": 138
+    },
+    {
+     "fr": "Larbaa",
+     "ar": "لارباع",
+     "dataset_id": 137
+    }
+   ]
+  },
+  {
+   "code": 7,
+   "source": "law_26_06",
+   "article": "Art. 11",
+   "page_fr": 5,
+   "page_ar": 5,
+   "declared": 22,
+   "communes": [
+    {
+     "fr": "Biskra",
+     "ar": "بسكرة",
+     "dataset_id": 208
+    },
+    {
+     "fr": "Oumache",
+     "ar": "أوماش",
+     "dataset_id": 215
+    },
+    {
+     "fr": "Chetma",
+     "ar": "شتمة",
+     "dataset_id": 217
+    },
+    {
+     "fr": "Sidi Okba",
+     "ar": "سيدي عقبة",
+     "dataset_id": 219
+    },
+    {
+     "fr": "M'Chounèche",
+     "ar": "مشونش",
+     "dataset_id": 220
+    },
+    {
+     "fr": "El Haouch",
+     "ar": "الحوش",
+     "dataset_id": 218
+    },
+    {
+     "fr": "Aïn Naga",
+     "ar": "عين الناقة",
+     "dataset_id": 216
+    },
+    {
+     "fr": "Zeribet El Oued",
+     "ar": "زريبة الوادي",
+     "dataset_id": 206
+    },
+    {
+     "fr": "El Feïdh",
+     "ar": "الفيض",
+     "dataset_id": 201
+    },
+    {
+     "fr": "Tolga",
+     "ar": "طولقة",
+     "dataset_id": 222
+    },
+    {
+     "fr": "Lioua",
+     "ar": "ليوة",
+     "dataset_id": 221
+    },
+    {
+     "fr": "Lichana",
+     "ar": "ليشانة",
+     "dataset_id": 202
+    },
+    {
+     "fr": "Ourlal",
+     "ar": "أورلال",
+     "dataset_id": 214
+    },
+    {
+     "fr": "M'Lili",
+     "ar": "أمليلي",
+     "dataset_id": 210
+    },
+    {
+     "fr": "Foughala",
+     "ar": "فوغالة",
+     "dataset_id": 211
+    },
+    {
+     "fr": "Bordj Ben Azzouz",
+     "ar": "برج بن عزوز",
+     "dataset_id": 213
+    },
+    {
+     "fr": "Meziraa",
+     "ar": "المزيرعة",
+     "dataset_id": 207
+    },
+    {
+     "fr": "Bouchagroun",
+     "ar": "بوشقرون",
+     "dataset_id": 203
+    },
+    {
+     "fr": "Mekhadma",
+     "ar": "أمخادمة",
+     "dataset_id": 204
+    },
+    {
+     "fr": "El Ghrous",
+     "ar": "الغروس",
+     "dataset_id": 212
+    },
+    {
+     "fr": "El Hadjeb",
+     "ar": "الحاجب",
+     "dataset_id": 209
+    },
+    {
+     "fr": "Khangat Sidi Nadji",
+     "ar": "خنقة سيدي ناجي",
+     "dataset_id": 205
+    }
+   ]
+  },
+  {
+   "code": 8,
+   "source": "law_19_12",
+   "article": "Art. 12",
+   "page_fr": 13,
+   "page_ar": 13,
+   "declared": 11,
+   "communes": [
+    {
+     "fr": "Béchar",
+     "ar": "بشار",
+     "dataset_id": 223
+    },
+    {
+     "fr": "Kenadsa",
+     "ar": "قنادسة",
+     "dataset_id": 234
+    },
+    {
+     "fr": "Erg Ferradj",
+     "ar": "عرق فراج",
+     "dataset_id": 230
+    },
+    {
+     "fr": "Meridja",
+     "ar": "مريجة",
+     "dataset_id": 227
+    },
+    {
+     "fr": "Lahmar",
+     "ar": "الاحمر",
+     "dataset_id": 225
+    },
+    {
+     "fr": "Mogheul",
+     "ar": "موغل",
+     "dataset_id": 226
+    },
+    {
+     "fr": "Abadla",
+     "ar": "العبادلة",
+     "dataset_id": 229
+    },
+    {
+     "fr": "Béni Ounif",
+     "ar": "بني ونيف",
+     "dataset_id": 232
+    },
+    {
+     "fr": "Boukaïs",
+     "ar": "بوقايس",
+     "dataset_id": 224
+    },
+    {
+     "fr": "Taghit",
+     "ar": "تاغيت",
+     "dataset_id": 228
+    },
+    {
+     "fr": "Mechraa Houari Boumediène",
+     "ar": "مشرع هواري بومدين",
+     "dataset_id": 231
+    }
+   ]
+  },
+  {
+   "code": 11,
+   "source": "law_19_12",
+   "article": "Art. 15",
+   "page_fr": 13,
+   "page_ar": 13,
+   "declared": 5,
+   "communes": [
+    {
+     "fr": "Tamenghasset",
+     "ar": "تامنغست",
+     "dataset_id": 307
+    },
+    {
+     "fr": "Abalessa",
+     "ar": "أباليسا",
+     "dataset_id": 306
+    },
+    {
+     "fr": "Idlès",
+     "ar": "إدلس",
+     "dataset_id": 309
+    },
+    {
+     "fr": "Tazrouk",
+     "ar": "تازروق",
+     "dataset_id": 305
+    },
+    {
+     "fr": "In Amguel",
+     "ar": "إن أمقل",
+     "dataset_id": 308
+    }
+   ]
+  },
+  {
+   "code": 12,
+   "source": "law_26_06",
+   "article": "Art. 16",
+   "page_fr": 5,
+   "page_ar": 5,
+   "declared": 24,
+   "communes": [
+    {
+     "fr": "Tébessa",
+     "ar": "تبسة",
+     "dataset_id": 331
+    },
+    {
+     "fr": "Cheria",
+     "ar": "الشريعة",
+     "dataset_id": 330
+    },
+    {
+     "fr": "Stah Guentis",
+     "ar": "السطح قنتيس",
+     "dataset_id": 324
+    },
+    {
+     "fr": "El Aouinet",
+     "ar": "العوينات",
+     "dataset_id": 311
+    },
+    {
+     "fr": "Lahouidjbet",
+     "ar": "الحويجبات",
+     "dataset_id": 310
+    },
+    {
+     "fr": "Safsaf El Ouesra",
+     "ar": "صفصاف الوسرى",
+     "dataset_id": 314
+    },
+    {
+     "fr": "Hammamet",
+     "ar": "الحمامات",
+     "dataset_id": 332
+    },
+    {
+     "fr": "Bir Mokkadem",
+     "ar": "بئر مقدم",
+     "dataset_id": 312
+    },
+    {
+     "fr": "El Kouif",
+     "ar": "الكويف",
+     "dataset_id": 333
+    },
+    {
+     "fr": "Morsott",
+     "ar": "مرسط",
+     "dataset_id": 328
+    },
+    {
+     "fr": "El Ogla",
+     "ar": "العقلة",
+     "dataset_id": 325
+    },
+    {
+     "fr": "Bir Dheheb",
+     "ar": "بئر الذهب",
+     "dataset_id": 313
+    },
+    {
+     "fr": "Gourrigueur",
+     "ar": "قريقر",
+     "dataset_id": 315
+    },
+    {
+     "fr": "Bekkaria",
+     "ar": "بكارية",
+     "dataset_id": 316
+    },
+    {
+     "fr": "Boukhadra",
+     "ar": "بوخضرة",
+     "dataset_id": 319
+    },
+    {
+     "fr": "Ouenza",
+     "ar": "الونزة",
+     "dataset_id": 321
+    },
+    {
+     "fr": "El Ma Labiod",
+     "ar": "الماء الأبيض",
+     "dataset_id": 320
+    },
+    {
+     "fr": "Oum Ali",
+     "ar": "أم علي",
+     "dataset_id": 318
+    },
+    {
+     "fr": "Thlidjene",
+     "ar": "ثليجان",
+     "dataset_id": 329
+    },
+    {
+     "fr": "Ain Zerga",
+     "ar": "عين الزرقاء",
+     "dataset_id": 323
+    },
+    {
+     "fr": "El Meridj",
+     "ar": "المريج",
+     "dataset_id": 322
+    },
+    {
+     "fr": "Boulhaf Dyr",
+     "ar": "بولحاف الدير",
+     "dataset_id": 317
+    },
+    {
+     "fr": "Bedjene",
+     "ar": "بجن",
+     "dataset_id": 327
+    },
+    {
+     "fr": "El Mezeraa",
+     "ar": "المزرعة",
+     "dataset_id": 326
+    }
+   ]
+  },
+  {
+   "code": 13,
+   "source": "law_26_06",
+   "article": "Art. 17",
+   "page_fr": 5,
+   "page_ar": 6,
+   "declared": 49,
+   "communes": [
+    {
+     "fr": "Tlemcen",
+     "ar": "تلمسان",
+     "dataset_id": 361
+    },
+    {
+     "fr": "Béni Mester",
+     "ar": "بني مستر",
+     "dataset_id": 337
+    },
+    {
+     "fr": "Aïn Tallout",
+     "ar": "عين تالوت",
+     "dataset_id": 363
+    },
+    {
+     "fr": "Remchi",
+     "ar": "الرمشي",
+     "dataset_id": 367
+    },
+    {
+     "fr": "El Fehoul",
+     "ar": "الفحول",
+     "dataset_id": 366
+    },
+    {
+     "fr": "Sabra",
+     "ar": "صبرة",
+     "dataset_id": 370
+    },
+    {
+     "fr": "Ghazaouet",
+     "ar": "الغزوات",
+     "dataset_id": 372
+    },
+    {
+     "fr": "Souani",
+     "ar": "السواني",
+     "dataset_id": 369
+    },
+    {
+     "fr": "Djebala",
+     "ar": "جبالة",
+     "dataset_id": 378
+    },
+    {
+     "fr": "Oued Lakhdar",
+     "ar": "وادي الأخضر",
+     "dataset_id": 376
+    },
+    {
+     "fr": "Ain Fezza",
+     "ar": "عين فزة",
+     "dataset_id": 341
+    },
+    {
+     "fr": "Ouled Mimoun",
+     "ar": "أولاد ميمون",
+     "dataset_id": 377
+    },
+    {
+     "fr": "Amieur",
+     "ar": "عمير",
+     "dataset_id": 340
+    },
+    {
+     "fr": "Ain Youcef",
+     "ar": "عين يوسف",
+     "dataset_id": 364
+    },
+    {
+     "fr": "Zenata",
+     "ar": "زناتة",
+     "dataset_id": 352
+    },
+    {
+     "fr": "Béni Snous",
+     "ar": "بني سنوس",
+     "dataset_id": 1540
+    },
+    {
+     "fr": "Bab El Assa",
+     "ar": "باب العسة",
+     "dataset_id": 334
+    },
+    {
+     "fr": "Dar Yaghmouracène",
+     "ar": "دار يغمراسن",
+     "dataset_id": 371
+    },
+    {
+     "fr": "Fellaoucène",
+     "ar": "فلاوسن",
+     "dataset_id": 358
+    },
+    {
+     "fr": "Azaïls",
+     "ar": "لعزايل",
+     "dataset_id": 1541
+    },
+    {
+     "fr": "Sebaa Chioukh",
+     "ar": "السبعة شيوخ",
+     "dataset_id": 368
+    },
+    {
+     "fr": "Tirni Béni Hediel",
+     "ar": "تيرني بني هديل",
+     "dataset_id": 335
+    },
+    {
+     "fr": "Bensekrane",
+     "ar": "بن سكران",
+     "dataset_id": 357
+    },
+    {
+     "fr": "Ain Nehala",
+     "ar": "عين النحالة",
+     "dataset_id": 362
+    },
+    {
+     "fr": "Hennaya",
+     "ar": "الحناية",
+     "dataset_id": 354
+    },
+    {
+     "fr": "Maghnia",
+     "ar": "مغنية",
+     "dataset_id": 350
+    },
+    {
+     "fr": "Hammam Boughrara",
+     "ar": "حمام بوغرارة",
+     "dataset_id": 351
+    },
+    {
+     "fr": "Souahlia",
+     "ar": "السواحلية",
+     "dataset_id": 373
+    },
+    {
+     "fr": "Msirda Fouaga",
+     "ar": "مسيردة الفواقة",
+     "dataset_id": 345
+    },
+    {
+     "fr": "Aïn Fetah",
+     "ar": "عين فتاح",
+     "dataset_id": 360
+    },
+    {
+     "fr": "Souk Thlata",
+     "ar": "سوق الثلاثاء",
+     "dataset_id": 356
+    },
+    {
+     "fr": "Sidi Abdelli",
+     "ar": "سيد عبد اللى",
+     "dataset_id": 355
+    },
+    {
+     "fr": "Sebdou",
+     "ar": "سبدو",
+     "dataset_id": 1536
+    },
+    {
+     "fr": "Béni Ouarsous",
+     "ar": "بني ورسوس",
+     "dataset_id": 365
+    },
+    {
+     "fr": "Sidi Medjahed",
+     "ar": "سيدى مجاهد",
+     "dataset_id": 347
+    },
+    {
+     "fr": "Béni Boussaïd",
+     "ar": "بني بوسعيد",
+     "dataset_id": 348
+    },
+    {
+     "fr": "Marsa Ben M'Hidi",
+     "ar": "مرسى بن مهيدى",
+     "dataset_id": 346
+    },
+    {
+     "fr": "Nédroma",
+     "ar": "ندرومة",
+     "dataset_id": 344
+    },
+    {
+     "fr": "Béni Bahdel",
+     "ar": "بني بحدل",
+     "dataset_id": 1539
+    },
+    {
+     "fr": "Honaïne",
+     "ar": "حنين",
+     "dataset_id": 342
+    },
+    {
+     "fr": "Tianet",
+     "ar": "تيانت",
+     "dataset_id": 374
+    },
+    {
+     "fr": "Ouled Riyah",
+     "ar": "أولاد رياح",
+     "dataset_id": 353
+    },
+    {
+     "fr": "Bouhlou",
+     "ar": "بوحلو",
+     "dataset_id": 349
+    },
+    {
+     "fr": "Béni Khellad",
+     "ar": "بني خلاد",
+     "dataset_id": 343
+    },
+    {
+     "fr": "Aïn Ghoraba",
+     "ar": "عين الغرابة",
+     "dataset_id": 338
+    },
+    {
+     "fr": "Chetouane",
+     "ar": "شتوان",
+     "dataset_id": 339
+    },
+    {
+     "fr": "Mansourah",
+     "ar": "المنصورة",
+     "dataset_id": 336
+    },
+    {
+     "fr": "Béni Semiel",
+     "ar": "بنى صميل",
+     "dataset_id": 375
+    },
+    {
+     "fr": "Ain Kebira",
+     "ar": "العين الكبيرة",
+     "dataset_id": 359
+    }
+   ]
+  },
+  {
+   "code": 14,
+   "source": "law_26_06",
+   "article": "Art. 18",
+   "page_fr": 6,
+   "page_ar": 6,
+   "declared": 36,
+   "communes": [
+    {
+     "fr": "Tiaret",
+     "ar": "تيارت",
+     "dataset_id": 405
+    },
+    {
+     "fr": "Medroussa",
+     "ar": "مدروسة",
+     "dataset_id": 406
+    },
+    {
+     "fr": "Aïn Bouchekif",
+     "ar": "عين بوشقيف",
+     "dataset_id": 412
+    },
+    {
+     "fr": "Sidi Ali Mellal",
+     "ar": "سيدي علي ملال",
+     "dataset_id": 399
+    },
+    {
+     "fr": "Aïn Dzarit",
+     "ar": "عين دزاريت",
+     "dataset_id": 380
+    },
+    {
+     "fr": "Aïn Deheb",
+     "ar": "عين الذهب",
+     "dataset_id": 409
+    },
+    {
+     "fr": "Sidi Bakhti",
+     "ar": "سيدى بختي",
+     "dataset_id": 408
+    },
+    {
+     "fr": "Médrissa",
+     "ar": "مدريسة",
+     "dataset_id": 395
+    },
+    {
+     "fr": "Madna",
+     "ar": "مادنة",
+     "dataset_id": 394
+    },
+    {
+     "fr": "Sebt",
+     "ar": "السبت",
+     "dataset_id": 387
+    },
+    {
+     "fr": "Mellakou",
+     "ar": "ملاكو",
+     "dataset_id": 407
+    },
+    {
+     "fr": "Dahmouni",
+     "ar": "الدحموني",
+     "dataset_id": 413
+    },
+    {
+     "fr": "Rahouia",
+     "ar": "الرحوية",
+     "dataset_id": 414
+    },
+    {
+     "fr": "Mahdia",
+     "ar": "مهدية",
+     "dataset_id": 379
+    },
+    {
+     "fr": "Sougueur",
+     "ar": "السوقر",
+     "dataset_id": 384
+    },
+    {
+     "fr": "Sidi Abdelghani",
+     "ar": "سيدي عبد الغني",
+     "dataset_id": 383
+    },
+    {
+     "fr": "Aïn El Hadid",
+     "ar": "عين الحديد",
+     "dataset_id": 389
+    },
+    {
+     "fr": "Djebilet Rosfa",
+     "ar": "جبيلة الرصفاء",
+     "dataset_id": 393
+    },
+    {
+     "fr": "Naïma",
+     "ar": "النعيمة",
+     "dataset_id": 411
+    },
+    {
+     "fr": "Meghila",
+     "ar": "مغيلة",
+     "dataset_id": 386
+    },
+    {
+     "fr": "Guertoufa",
+     "ar": "قرطوفة",
+     "dataset_id": 397
+    },
+    {
+     "fr": "Sidi Hosni",
+     "ar": "سيدي حسني",
+     "dataset_id": 388
+    },
+    {
+     "fr": "Djileli Ben Amar",
+     "ar": "جيلالي بن عمار",
+     "dataset_id": 400
+    },
+    {
+     "fr": "Sebaïne",
+     "ar": "سبعين",
+     "dataset_id": 381
+    },
+    {
+     "fr": "Tousnina",
+     "ar": "توسنينة",
+     "dataset_id": 385
+    },
+    {
+     "fr": "Frenda",
+     "ar": "فرندة",
+     "dataset_id": 390
+    },
+    {
+     "fr": "Aïn Kermes",
+     "ar": "عين كرمس",
+     "dataset_id": 392
+    },
+    {
+     "fr": "Nadorah",
+     "ar": "الناظورة",
+     "dataset_id": 404
+    },
+    {
+     "fr": "Tagdemt",
+     "ar": "تاقدمت",
+     "dataset_id": 402
+    },
+    {
+     "fr": "Oued Lili",
+     "ar": "وادى ليلي",
+     "dataset_id": 398
+    },
+    {
+     "fr": "Mechraa Sfa",
+     "ar": "مشرع الصفا",
+     "dataset_id": 401
+    },
+    {
+     "fr": "Chehaïma",
+     "ar": "شحيمة",
+     "dataset_id": 410
+    },
+    {
+     "fr": "Takhemaret",
+     "ar": "تخمارت",
+     "dataset_id": 391
+    },
+    {
+     "fr": "Sidi Abderrahmane",
+     "ar": "سيدي عبد الرحمان",
+     "dataset_id": 396
+    },
+    {
+     "fr": "Faïdja",
+     "ar": "الفايجة",
+     "dataset_id": 382
+    },
+    {
+     "fr": "Tidda",
+     "ar": "تيدة",
+     "dataset_id": 403
+    }
+   ]
+  },
+  {
+   "code": 17,
+   "source": "law_26_06",
+   "article": "Art. 21",
+   "page_fr": 6,
+   "page_ar": 7,
+   "declared": 18,
+   "communes": [
+    {
+     "fr": "Djelfa",
+     "ar": "الجلفة",
+     "dataset_id": 552
+    },
+    {
+     "fr": "Moudjbara",
+     "ar": "المجبارة",
+     "dataset_id": 556
+    },
+    {
+     "fr": "El Gueddid",
+     "ar": "القديد",
+     "dataset_id": 541
+    },
+    {
+     "fr": "Hassi Bahbah",
+     "ar": "حاسي بحبح",
+     "dataset_id": 555
+    },
+    {
+     "fr": "Aïn Maabed",
+     "ar": "عين معبد",
+     "dataset_id": 554
+    },
+    {
+     "fr": "Zaccar",
+     "ar": "زكار",
+     "dataset_id": 548
+    },
+    {
+     "fr": "Sidi Baïzid",
+     "ar": "سيدي بايزيد",
+     "dataset_id": 544
+    },
+    {
+     "fr": "M'Liliha",
+     "ar": "المليليحة",
+     "dataset_id": 545
+    },
+    {
+     "fr": "El Idrissia",
+     "ar": "الإدريسية",
+     "dataset_id": 550
+    },
+    {
+     "fr": "Douis",
+     "ar": "الدويس",
+     "dataset_id": 549
+    },
+    {
+     "fr": "Hassi El Euch",
+     "ar": "حاسي العش",
+     "dataset_id": 539
+    },
+    {
+     "fr": "Aïn Chouhada",
+     "ar": "عين الشهداء",
+     "dataset_id": 551
+    },
+    {
+     "fr": "Dar Chioukh",
+     "ar": "دار الشيوخ",
+     "dataset_id": 546
+    },
+    {
+     "fr": "Charef",
+     "ar": "الشارف",
+     "dataset_id": 542
+    },
+    {
+     "fr": "Ben Yaagoub",
+     "ar": "بن يعقوب",
+     "dataset_id": 543
+    },
+    {
+     "fr": "Zaafrane",
+     "ar": "زعفران",
+     "dataset_id": 553
+    },
+    {
+     "fr": "Aïn El Ibel",
+     "ar": "عين الإبل",
+     "dataset_id": 540
+    },
+    {
+     "fr": "Tadmit",
+     "ar": "تعظميت",
+     "dataset_id": 547
+    }
+   ]
+  },
+  {
+   "code": 26,
+   "source": "law_26_06",
+   "article": "Art. 30",
+   "page_fr": 7,
+   "page_ar": 7,
+   "declared": 43,
+   "communes": [
+    {
+     "fr": "Médéa",
+     "ar": "المدية",
+     "dataset_id": 835
+    },
+    {
+     "fr": "Ouzera",
+     "ar": "وزرة",
+     "dataset_id": 839
+    },
+    {
+     "fr": "Aïssaouia",
+     "ar": "العيساوية",
+     "dataset_id": 828
+    },
+    {
+     "fr": "Ouled Deïde",
+     "ar": "أولاد ذايد",
+     "dataset_id": 823
+    },
+    {
+     "fr": "El Omaria",
+     "ar": "العمارية",
+     "dataset_id": 847
+    },
+    {
+     "fr": "El Guelb El Kebir",
+     "ar": "القلب الكبير",
+     "dataset_id": 850
+    },
+    {
+     "fr": "Mezghenna",
+     "ar": "مزغنة",
+     "dataset_id": 830
+    },
+    {
+     "fr": "Ouled Brahim",
+     "ar": "أولاد ابراهيم",
+     "dataset_id": 848
+    },
+    {
+     "fr": "Tizi Mahdi",
+     "ar": "تيزي مهدي",
+     "dataset_id": 840
+    },
+    {
+     "fr": "Sidi Ziane",
+     "ar": "سيدي زيان",
+     "dataset_id": 1533
+    },
+    {
+     "fr": "Tamezguida",
+     "ar": "تمزقيدة",
+     "dataset_id": 836
+    },
+    {
+     "fr": "El Hamdania",
+     "ar": "الحمدانية",
+     "dataset_id": 838
+    },
+    {
+     "fr": "Bouskène",
+     "ar": "بوسكن",
+     "dataset_id": 820
+    },
+    {
+     "fr": "Rebaïa",
+     "ar": "الربعية",
+     "dataset_id": 824
+    },
+    {
+     "fr": "Bouchrahil",
+     "ar": "بوشراحيل",
+     "dataset_id": 856
+    },
+    {
+     "fr": "Baata",
+     "ar": "بعطة",
+     "dataset_id": 846
+    },
+    {
+     "fr": "Sidi Naamane",
+     "ar": "سيدي نعمان",
+     "dataset_id": 858
+    },
+    {
+     "fr": "Ouled Bouachra",
+     "ar": "أولاد بوعشرة",
+     "dataset_id": 818
+    },
+    {
+     "fr": "Sidi Zahar",
+     "ar": "سيدي زهار",
+     "dataset_id": 1532
+    },
+    {
+     "fr": "Oued Harbil",
+     "ar": "وادي حربيل",
+     "dataset_id": 815
+    },
+    {
+     "fr": "Benchicao",
+     "ar": "بن شكاو",
+     "dataset_id": 837
+    },
+    {
+     "fr": "Souagui",
+     "ar": "السواقي",
+     "dataset_id": 1521
+    },
+    {
+     "fr": "Zoubiria",
+     "ar": "الزبيرية",
+     "dataset_id": 827
+    },
+    {
+     "fr": "Al Azizia",
+     "ar": "العزيزية",
+     "dataset_id": 810
+    },
+    {
+     "fr": "Djouab",
+     "ar": "جواب",
+     "dataset_id": 1531
+    },
+    {
+     "fr": "Meghraoua",
+     "ar": "مغراوة",
+     "dataset_id": 811
+    },
+    {
+     "fr": "Ouamri",
+     "ar": "وامري",
+     "dataset_id": 814
+    },
+    {
+     "fr": "Si Mahdjoub",
+     "ar": "سي المحجوب",
+     "dataset_id": 819
+    },
+    {
+     "fr": "Eddouair",
+     "ar": "الدواير",
+     "dataset_id": 826
+    },
+    {
+     "fr": "Béni Slimane",
+     "ar": "بني سليمان",
+     "dataset_id": 816
+    },
+    {
+     "fr": "Berrouaghia",
+     "ar": "البرواقية",
+     "dataset_id": 822
+    },
+    {
+     "fr": "Seghouane",
+     "ar": "سغوان",
+     "dataset_id": 833
+    },
+    {
+     "fr": "Mihoub",
+     "ar": "ميهوب",
+     "dataset_id": 812
+    },
+    {
+     "fr": "Tablat",
+     "ar": "تابلاط",
+     "dataset_id": 831
+    },
+    {
+     "fr": "Deux Bassins",
+     "ar": "الحوضان",
+     "dataset_id": 829
+    },
+    {
+     "fr": "Draa Essamar",
+     "ar": "ذراع السمار",
+     "dataset_id": 834
+    },
+    {
+     "fr": "Sidi Errabie",
+     "ar": "سيدي الربيع",
+     "dataset_id": 821
+    },
+    {
+     "fr": "Bir Ben Abed",
+     "ar": "بئر بن عابد",
+     "dataset_id": 849
+    },
+    {
+     "fr": "Bouaïchoune",
+     "ar": "بوعيشون",
+     "dataset_id": 817
+    },
+    {
+     "fr": "Hannacha",
+     "ar": "حناشة",
+     "dataset_id": 813
+    },
+    {
+     "fr": "Sedraïa",
+     "ar": "سدراية",
+     "dataset_id": 851
+    },
+    {
+     "fr": "Medjebar",
+     "ar": "مجبر",
+     "dataset_id": 825
+    },
+    {
+     "fr": "Khamsa Djoumaa",
+     "ar": "خمس جوامع",
+     "dataset_id": 857
+    }
+   ]
+  },
+  {
+   "code": 28,
+   "source": "law_26_06",
+   "article": "Art. 32",
+   "page_fr": 7,
+   "page_ar": 8,
+   "declared": 24,
+   "communes": [
+    {
+     "fr": "M'Sila",
+     "ar": "المسيلة",
+     "dataset_id": 914
+    },
+    {
+     "fr": "Maadid",
+     "ar": "المعاضيد",
+     "dataset_id": 919
+    },
+    {
+     "fr": "Hammam Dhalaa",
+     "ar": "حمام الضلعة",
+     "dataset_id": 915
+    },
+    {
+     "fr": "Ouled Derradj",
+     "ar": "أولاد دراج",
+     "dataset_id": 922
+    },
+    {
+     "fr": "Tarmount",
+     "ar": "تارمونت",
+     "dataset_id": 918
+    },
+    {
+     "fr": "M'Tarfa",
+     "ar": "المطارفة",
+     "dataset_id": 920
+    },
+    {
+     "fr": "Chellal",
+     "ar": "الشلال",
+     "dataset_id": 892
+    },
+    {
+     "fr": "Ouled Madhi",
+     "ar": "أولاد ماضي",
+     "dataset_id": 893
+    },
+    {
+     "fr": "Magra",
+     "ar": "مقرة",
+     "dataset_id": 898
+    },
+    {
+     "fr": "Berhoum",
+     "ar": "برهوم",
+     "dataset_id": 896
+    },
+    {
+     "fr": "Aïn Khadra",
+     "ar": "عين الخضراء",
+     "dataset_id": 924
+    },
+    {
+     "fr": "Ouled Addi Guebala",
+     "ar": "أولاد عدي القبالة",
+     "dataset_id": 925
+    },
+    {
+     "fr": "Belaïba",
+     "ar": "بلعايبة",
+     "dataset_id": 895
+    },
+    {
+     "fr": "Sidi Aïssa",
+     "ar": "سيدي عيسى",
+     "dataset_id": 901
+    },
+    {
+     "fr": "Aïn El Hadjel",
+     "ar": "عين الحجل",
+     "dataset_id": 902
+    },
+    {
+     "fr": "Sidi Hadjeres",
+     "ar": "سيدي هجرس",
+     "dataset_id": 903
+    },
+    {
+     "fr": "Ouanougha",
+     "ar": "ونوغة",
+     "dataset_id": 916
+    },
+    {
+     "fr": "Ouled Mansour",
+     "ar": "أولاد منصور",
+     "dataset_id": 917
+    },
+    {
+     "fr": "Maarif",
+     "ar": "المعاريف",
+     "dataset_id": 921
+    },
+    {
+     "fr": "Dehahna",
+     "ar": "الدهاهنة",
+     "dataset_id": 897
+    },
+    {
+     "fr": "Bouti Sayah",
+     "ar": "بوطي السايح",
+     "dataset_id": 900
+    },
+    {
+     "fr": "Khetouti Sed El Djir",
+     "ar": "خطوطي سد الجير",
+     "dataset_id": 894
+    },
+    {
+     "fr": "Souamaa",
+     "ar": "السوامع",
+     "dataset_id": 923
+    },
+    {
+     "fr": "Béni Ilmane",
+     "ar": "بني يلمان",
+     "dataset_id": 899
+    }
+   ]
+  },
+  {
+   "code": 30,
+   "source": "law_19_12",
+   "article": "Art. 34",
+   "page_fr": 13,
+   "page_ar": 13,
+   "declared": 7,
+   "communes": [
+    {
+     "fr": "Ouargla",
+     "ar": "ورقلة",
+     "dataset_id": 973
+    },
+    {
+     "fr": "Hassi Ben Abdelah",
+     "ar": "حاسي بن عبد الّله",
+     "dataset_id": 976
+    },
+    {
+     "fr": "Aïn Beïda",
+     "ar": "عين البيضاء",
+     "dataset_id": 975
+    },
+    {
+     "fr": "N'Goussa",
+     "ar": "نقوسة",
+     "dataset_id": 980
+    },
+    {
+     "fr": "Hassi Messaoud",
+     "ar": "حاسي مسعود",
+     "dataset_id": 974
+    },
+    {
+     "fr": "Rouissat",
+     "ar": "الرويسات",
+     "dataset_id": 979
+    },
+    {
+     "fr": "Sidi Khouiled",
+     "ar": "سيدي خويلد",
+     "dataset_id": 977
+    }
+   ]
+  },
+  {
+   "code": 32,
+   "source": "law_26_06",
+   "article": "Art. 36",
+   "page_fr": 7,
+   "page_ar": 9,
+   "declared": 15,
+   "communes": [
+    {
+     "fr": "El Bayadh",
+     "ar": "البيض",
+     "dataset_id": 1015
+    },
+    {
+     "fr": "Rogassa",
+     "ar": "روقاصة",
+     "dataset_id": 1016
+    },
+    {
+     "fr": "Stitten",
+     "ar": "استيتن",
+     "dataset_id": 1014
+    },
+    {
+     "fr": "Brézina",
+     "ar": "بريزينة",
+     "dataset_id": 1507
+    },
+    {
+     "fr": "Ghassoul",
+     "ar": "الغاسول",
+     "dataset_id": 1508
+    },
+    {
+     "fr": "Boualem",
+     "ar": "بوعلام",
+     "dataset_id": 1009
+    },
+    {
+     "fr": "Bougtob",
+     "ar": "بوقطب",
+     "dataset_id": 1010
+    },
+    {
+     "fr": "El Kheïther",
+     "ar": "الخيثر",
+     "dataset_id": 1011
+    },
+    {
+     "fr": "Kef El Ahmar",
+     "ar": "الكاف الاحمر",
+     "dataset_id": 1018
+    },
+    {
+     "fr": "Krakda",
+     "ar": "كراكدة",
+     "dataset_id": 1505
+    },
+    {
+     "fr": "Cheguig",
+     "ar": "الشقيق",
+     "dataset_id": 1019
+    },
+    {
+     "fr": "Sidi Amar",
+     "ar": "سيدي عمر",
+     "dataset_id": 1008
+    },
+    {
+     "fr": "Tousmouline",
+     "ar": "توسمولين",
+     "dataset_id": 1012
+    },
+    {
+     "fr": "Sidi Slimane",
+     "ar": "سيدي سليمان",
+     "dataset_id": 1007
+    },
+    {
+     "fr": "Sidi Tifour",
+     "ar": "سيدي طيفور",
+     "dataset_id": 1013
+    }
+   ]
+  },
+  {
+   "code": 33,
+   "source": "law_19_12",
+   "article": "Art. 37",
+   "page_fr": 13,
+   "page_ar": 13,
+   "declared": 4,
+   "communes": [
+    {
+     "fr": "Illizi",
+     "ar": "إيليزي",
+     "dataset_id": 1024
+    },
+    {
+     "fr": "Bordj Omar Driss",
+     "ar": "برج عمر ادريس",
+     "dataset_id": 1021
+    },
+    {
+     "fr": "Debdeb",
+     "ar": "دبداب",
+     "dataset_id": 1022
+    },
+    {
+     "fr": "In Amenas",
+     "ar": "إن اميناس",
+     "dataset_id": 1023
+    }
+   ]
+  },
+  {
+   "code": 39,
+   "source": "law_19_12",
+   "article": "Art. 43",
+   "page_fr": 13,
+   "page_ar": 13,
+   "declared": 22,
+   "communes": [
+    {
+     "fr": "El Oued",
+     "ar": "الوادي",
+     "dataset_id": 1160
+    },
+    {
+     "fr": "Robbah",
+     "ar": "رباح",
+     "dataset_id": 1147
+    },
+    {
+     "fr": "Sidi Aoun",
+     "ar": "سيدي عون",
+     "dataset_id": 1142
+    },
+    {
+     "fr": "Oued El Alenda",
+     "ar": "وادي العلندة",
+     "dataset_id": 1159
+    },
+    {
+     "fr": "Trifaoui",
+     "ar": "تريفاوي",
+     "dataset_id": 1157
+    },
+    {
+     "fr": "Magrane",
+     "ar": "المقرن",
+     "dataset_id": 1141
+    },
+    {
+     "fr": "Bayadha",
+     "ar": "البياضة",
+     "dataset_id": 1145
+    },
+    {
+     "fr": "Beni Guecha",
+     "ar": "بني قشة",
+     "dataset_id": 1149
+    },
+    {
+     "fr": "Nakhla",
+     "ar": "النخلة",
+     "dataset_id": 1146
+    },
+    {
+     "fr": "Ourmas",
+     "ar": "ورماس",
+     "dataset_id": 1150
+    },
+    {
+     "fr": "Guemar",
+     "ar": "قمار",
+     "dataset_id": 1148
+    },
+    {
+     "fr": "Kouinine",
+     "ar": "كوينين",
+     "dataset_id": 1144
+    },
+    {
+     "fr": "Reguiba",
+     "ar": "الرقيبة",
+     "dataset_id": 1153
+    },
+    {
+     "fr": "Hamraia",
+     "ar": "حمراية",
+     "dataset_id": 1152
+    },
+    {
+     "fr": "Taghzout",
+     "ar": "تاغزوت",
+     "dataset_id": 1151
+    },
+    {
+     "fr": "El Ogla",
+     "ar": "العقلة",
+     "dataset_id": 1140
+    },
+    {
+     "fr": "Debila",
+     "ar": "الدبيلة",
+     "dataset_id": 1154
+    },
+    {
+     "fr": "Mih Ouansa",
+     "ar": "ميه ونسى",
+     "dataset_id": 1143
+    },
+    {
+     "fr": "Hassani Abdelkrim",
+     "ar": "حساني عبد الكريم",
+     "dataset_id": 1155
+    },
+    {
+     "fr": "Hassi Khelifa",
+     "ar": "حاسي خليفة",
+     "dataset_id": 1156
+    },
+    {
+     "fr": "Taleb Larbi",
+     "ar": "طالب العربي",
+     "dataset_id": 1158
+    },
+    {
+     "fr": "Douar El Ma",
+     "ar": "دوار الماء",
+     "dataset_id": 1139
+    }
+   ]
+  },
+  {
+   "code": 47,
+   "source": "law_19_12",
+   "article": "Art. 51",
+   "page_fr": 14,
+   "page_ar": 13,
+   "declared": 10,
+   "communes": [
+    {
+     "fr": "Ghardaïa",
+     "ar": "غرداية",
+     "dataset_id": 1353
+    },
+    {
+     "fr": "Zelfana",
+     "ar": "زلفانة",
+     "dataset_id": 1348
+    },
+    {
+     "fr": "Dhayet Bendhahoua",
+     "ar": "ضاية بن ضحوة",
+     "dataset_id": 1344
+    },
+    {
+     "fr": "Sebseb",
+     "ar": "سبسب",
+     "dataset_id": 1350
+    },
+    {
+     "fr": "Berriane",
+     "ar": "بريان",
+     "dataset_id": 1352
+    },
+    {
+     "fr": "Bounoura",
+     "ar": "بونورة",
+     "dataset_id": 1347
+    },
+    {
+     "fr": "Metlili",
+     "ar": "متليلي",
+     "dataset_id": 1351
+    },
+    {
+     "fr": "El Guerrera",
+     "ar": "القرارة",
+     "dataset_id": 1349
+    },
+    {
+     "fr": "El Atteuf",
+     "ar": "العطف",
+     "dataset_id": 1346
+    },
+    {
+     "fr": "Mansoura",
+     "ar": "المنصورة",
+     "dataset_id": 1345
+    }
+   ]
+  },
+  {
+   "code": 49,
+   "source": "law_19_12",
+   "article": "Art. 52 bis",
+   "page_fr": 14,
+   "page_ar": 13,
+   "declared": 10,
+   "communes": [
+    {
+     "fr": "Timimoun",
+     "ar": "تيميمون",
+     "dataset_id": 1393
+    },
+    {
+     "fr": "Ouled Saïd",
+     "ar": "أولاد سعيد",
+     "dataset_id": 1394
+    },
+    {
+     "fr": "Aougrout",
+     "ar": "أوقروت",
+     "dataset_id": 1399
+    },
+    {
+     "fr": "Deldoul",
+     "ar": "دلدول",
+     "dataset_id": 1400
+    },
+    {
+     "fr": "Metarfa",
+     "ar": "المطارفة",
+     "dataset_id": 1395
+    },
+    {
+     "fr": "Tinerkouk",
+     "ar": "تينركوك",
+     "dataset_id": 1392
+    },
+    {
+     "fr": "Ksar Kaddour",
+     "ar": "قصر قدور",
+     "dataset_id": 1401
+    },
+    {
+     "fr": "Charouine",
+     "ar": "شروين",
+     "dataset_id": 1398
+    },
+    {
+     "fr": "Talmine",
+     "ar": "طالمين",
+     "dataset_id": 1396
+    },
+    {
+     "fr": "Ouled Aïssa",
+     "ar": "أولاد عيسى",
+     "dataset_id": 1397
+    }
+   ]
+  },
+  {
+   "code": 50,
+   "source": "law_19_12",
+   "article": "Art. 52 bis 1",
+   "page_fr": 14,
+   "page_ar": 13,
+   "declared": 2,
+   "communes": [
+    {
+     "fr": "Bordj Badji Mokhtar",
+     "ar": "برج باجي مختار",
+     "dataset_id": 1403
+    },
+    {
+     "fr": "Timiaouine",
+     "ar": "تيمياوين",
+     "dataset_id": 1402
+    }
+   ]
+  },
+  {
+   "code": 51,
+   "source": "law_19_12",
+   "article": "Art. 52 bis 2",
+   "page_fr": 14,
+   "page_ar": 13,
+   "declared": 6,
+   "communes": [
+    {
+     "fr": "Ouled Djellal",
+     "ar": "أولاد جلال",
+     "dataset_id": 1409
+    },
+    {
+     "fr": "Sidi Khaled",
+     "ar": "سيدي خالد",
+     "dataset_id": 1406
+    },
+    {
+     "fr": "Ras El Miaâd",
+     "ar": "راس الميعاد",
+     "dataset_id": 1404
+    },
+    {
+     "fr": "Besbes",
+     "ar": "البسباس",
+     "dataset_id": 1405
+    },
+    {
+     "fr": "Chaïba",
+     "ar": "الشعيبة",
+     "dataset_id": 1408
+    },
+    {
+     "fr": "Doucen",
+     "ar": "الدوسن",
+     "dataset_id": 1407
+    }
+   ]
+  },
+  {
+   "code": 52,
+   "source": "law_19_12",
+   "article": "Art. 52 bis 3",
+   "page_fr": 14,
+   "page_ar": 13,
+   "declared": 10,
+   "communes": [
+    {
+     "fr": "Béni Abbès",
+     "ar": "بني عباس",
+     "dataset_id": 1410
+    },
+    {
+     "fr": "Tamtert",
+     "ar": "تامترت",
+     "dataset_id": 1411
+    },
+    {
+     "fr": "Kerzaz",
+     "ar": "كرزاز",
+     "dataset_id": 1415
+    },
+    {
+     "fr": "Timoudi",
+     "ar": "تيمودي",
+     "dataset_id": 1416
+    },
+    {
+     "fr": "Béni Ikhlef",
+     "ar": "بني يخلف",
+     "dataset_id": 1418
+    },
+    {
+     "fr": "El Ouata",
+     "ar": "الوطاء",
+     "dataset_id": 1413
+    },
+    {
+     "fr": "Tabelbala",
+     "ar": "تبلبلة",
+     "dataset_id": 233
+    },
+    {
+     "fr": "Ouled Khodeir",
+     "ar": "أولاد خضير",
+     "dataset_id": 1414
+    },
+    {
+     "fr": "Ksabi",
+     "ar": "قصابي",
+     "dataset_id": 1417
+    },
+    {
+     "fr": "Igli",
+     "ar": "أقلي",
+     "dataset_id": 1412
+    }
+   ]
+  },
+  {
+   "code": 53,
+   "source": "law_19_12",
+   "article": "Art. 52 bis 4",
+   "page_fr": 14,
+   "page_ar": 13,
+   "declared": 3,
+   "communes": [
+    {
+     "fr": "In Salah",
+     "ar": "إن صالح",
+     "dataset_id": 1420
+    },
+    {
+     "fr": "Foggaret Ezzaouia",
+     "ar": "فقارت الزاوية",
+     "dataset_id": 1421
+    },
+    {
+     "fr": "In Ghar",
+     "ar": "إن غار",
+     "dataset_id": 1419
+    }
+   ]
+  },
+  {
+   "code": 54,
+   "source": "law_19_12",
+   "article": "Art. 52 bis 5",
+   "page_fr": 14,
+   "page_ar": 13,
+   "declared": 2,
+   "communes": [
+    {
+     "fr": "In Guezzam",
+     "ar": "إن قزام",
+     "dataset_id": 1423
+    },
+    {
+     "fr": "Tin Zaouatine",
+     "ar": "تين زاوتين",
+     "dataset_id": 1422
+    }
+   ]
+  },
+  {
+   "code": 55,
+   "source": "law_19_12",
+   "article": "Art. 52 bis 6",
+   "page_fr": 15,
+   "page_ar": 13,
+   "declared": 14,
+   "communes": [
+    {
+     "fr": "Touggourt",
+     "ar": "توقرت",
+     "dataset_id": 1430
+    },
+    {
+     "fr": "Nezla",
+     "ar": "نزلة",
+     "dataset_id": 1427
+    },
+    {
+     "fr": "Tebesbest",
+     "ar": "تيبسبست",
+     "dataset_id": 1429
+    },
+    {
+     "fr": "Zaouia El Abidia",
+     "ar": "الزاوية العابدية",
+     "dataset_id": 1436
+    },
+    {
+     "fr": "Tamacine",
+     "ar": "تماسين",
+     "dataset_id": 1424
+    },
+    {
+     "fr": "Blidat Ameur",
+     "ar": "بليدة عامر",
+     "dataset_id": 1428
+    },
+    {
+     "fr": "Megarine",
+     "ar": "المقارين",
+     "dataset_id": 1426
+    },
+    {
+     "fr": "M'Naguar",
+     "ar": "المنقر",
+     "dataset_id": 1435
+    },
+    {
+     "fr": "Taibet",
+     "ar": "الطيبات",
+     "dataset_id": 1431
+    },
+    {
+     "fr": "Benaceur",
+     "ar": "بن ناصر",
+     "dataset_id": 1434
+    },
+    {
+     "fr": "Sidi Slimane",
+     "ar": "سيدي سليمان",
+     "dataset_id": 1425
+    },
+    {
+     "fr": "El Hadjira",
+     "ar": "الحجيرة",
+     "dataset_id": 1433
+    },
+    {
+     "fr": "El Allia",
+     "ar": "العالية",
+     "dataset_id": 1432
+    },
+    {
+     "fr": "El Borma",
+     "ar": "البرمة",
+     "dataset_id": 978
+    }
+   ]
+  },
+  {
+   "code": 56,
+   "source": "law_19_12",
+   "article": "Art. 52 bis 7",
+   "page_fr": 15,
+   "page_ar": 13,
+   "declared": 2,
+   "communes": [
+    {
+     "fr": "Djanet",
+     "ar": "جانت",
+     "dataset_id": 1437
+    },
+    {
+     "fr": "Bordj El Haouasse",
+     "ar": "برج الحواس",
+     "dataset_id": 1438
+    }
+   ]
+  },
+  {
+   "code": 57,
+   "source": "law_19_12",
+   "article": "Art. 52 bis 8",
+   "page_fr": 15,
+   "page_ar": 13,
+   "declared": 8,
+   "communes": [
+    {
+     "fr": "El Megaier",
+     "ar": "المغير",
+     "dataset_id": 1444
+    },
+    {
+     "fr": "Oum Touyour",
+     "ar": "أم الطيور",
+     "dataset_id": 1439
+    },
+    {
+     "fr": "Still",
+     "ar": "سطيل",
+     "dataset_id": 1445
+    },
+    {
+     "fr": "Sidi Khelil",
+     "ar": "سيدي خليل",
+     "dataset_id": 1446
+    },
+    {
+     "fr": "Djamaâ",
+     "ar": "جامعة",
+     "dataset_id": 1442
+    },
+    {
+     "fr": "Sidi Amrane",
+     "ar": "سيدي عمران",
+     "dataset_id": 1440
+    },
+    {
+     "fr": "Tendla",
+     "ar": "تندلة",
+     "dataset_id": 1443
+    },
+    {
+     "fr": "M'Rara",
+     "ar": "مرارة",
+     "dataset_id": 1441
+    }
+   ]
+  },
+  {
+   "code": 58,
+   "source": "law_19_12",
+   "article": "Art. 52 bis 9",
+   "page_fr": 15,
+   "page_ar": 13,
+   "declared": 3,
+   "communes": [
+    {
+     "fr": "El Meniaâ",
+     "ar": "المنيعة",
+     "dataset_id": 1447
+    },
+    {
+     "fr": "Hassi Gara",
+     "ar": "حاسي القارة",
+     "dataset_id": 1448
+    },
+    {
+     "fr": "Hassi Fehal",
+     "ar": "حاسي الفحل",
+     "dataset_id": 1449
+    }
+   ]
+  },
+  {
+   "code": 59,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 10",
+   "page_fr": 8,
+   "page_ar": 9,
+   "declared": 12,
+   "parent_code": 3,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 3 in the dataset.",
+   "communes": [
+    {
+     "fr": "Aflou",
+     "ar": "آفلو",
+     "dataset_id": 1458
+    },
+    {
+     "fr": "Gueltat Sidi Saad",
+     "ar": "قلتة سيدي سعد",
+     "dataset_id": 53
+    },
+    {
+     "fr": "Aïn Sidi Ali",
+     "ar": "عين سيدي علي",
+     "dataset_id": 54
+    },
+    {
+     "fr": "El Beïdha",
+     "ar": "البيضاء",
+     "dataset_id": 52
+    },
+    {
+     "fr": "Brida",
+     "ar": "بريدة",
+     "dataset_id": 1450
+    },
+    {
+     "fr": "El Ghicha",
+     "ar": "الغيشة",
+     "dataset_id": 1453
+    },
+    {
+     "fr": "Hadj Mechri",
+     "ar": "الحاج المشري",
+     "dataset_id": 1451
+    },
+    {
+     "fr": "Sebgag",
+     "ar": "سبقاق",
+     "dataset_id": 1454
+    },
+    {
+     "fr": "Taouiala",
+     "ar": "تاويالة",
+     "dataset_id": 1452
+    },
+    {
+     "fr": "Oued Morra",
+     "ar": "وادي مرة",
+     "dataset_id": 1456
+    },
+    {
+     "fr": "Oued M'Zi",
+     "ar": "وادي مزي",
+     "dataset_id": 1457
+    },
+    {
+     "fr": "Sidi Bouzid",
+     "ar": "سيدي بوزيد",
+     "dataset_id": 1455
+    }
+   ]
+  },
+  {
+   "code": 60,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 11",
+   "page_fr": 8,
+   "page_ar": 9,
+   "declared": 8,
+   "parent_code": 5,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 5 in the dataset.",
+   "communes": [
+    {
+     "fr": "Barika",
+     "ar": "بريكة",
+     "dataset_id": 1461
+    },
+    {
+     "fr": "Bitam",
+     "ar": "بيطام",
+     "dataset_id": 1462
+    },
+    {
+     "fr": "Abdelkader Azil",
+     "ar": "عبد القادر عزيل",
+     "dataset_id": 1464
+    },
+    {
+     "fr": "Tilatou",
+     "ar": "تيلاطو",
+     "dataset_id": 1460
+    },
+    {
+     "fr": "Seggana",
+     "ar": "سقانة",
+     "dataset_id": 1459
+    },
+    {
+     "fr": "Djezzar",
+     "ar": "الجزار",
+     "dataset_id": 1465
+    },
+    {
+     "fr": "M'Doukal",
+     "ar": "امدوكال",
+     "dataset_id": 1463
+    },
+    {
+     "fr": "Ouled Ammar",
+     "ar": "أولاد عمار",
+     "dataset_id": 1466
+    }
+   ]
+  },
+  {
+   "code": 61,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 12",
+   "page_fr": 8,
+   "page_ar": 9,
+   "declared": 5,
+   "parent_code": 7,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 7 in the dataset.",
+   "communes": [
+    {
+     "fr": "El Kantara",
+     "ar": "القنطرة",
+     "dataset_id": 1515
+    },
+    {
+     "fr": "Aïn Zaatout",
+     "ar": "عين زعطوط",
+     "dataset_id": 1516
+    },
+    {
+     "fr": "Branis",
+     "ar": "البرانيس",
+     "dataset_id": 1513
+    },
+    {
+     "fr": "El Outaya",
+     "ar": "الوطاية",
+     "dataset_id": 1514
+    },
+    {
+     "fr": "Djemourah",
+     "ar": "جمورة",
+     "dataset_id": 1512
+    }
+   ]
+  },
+  {
+   "code": 62,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 13",
+   "page_fr": 8,
+   "page_ar": 9,
+   "declared": 4,
+   "parent_code": 12,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 12 in the dataset.",
+   "communes": [
+    {
+     "fr": "Bir El Ater",
+     "ar": "بئر العاتر",
+     "dataset_id": 1520
+    },
+    {
+     "fr": "Negrine",
+     "ar": "نقرين",
+     "dataset_id": 1518
+    },
+    {
+     "fr": "El Ogla El Melha",
+     "ar": "العقلة المالحة",
+     "dataset_id": 1519
+    },
+    {
+     "fr": "Ferkane",
+     "ar": "فركان",
+     "dataset_id": 1517
+    }
+   ]
+  },
+  {
+   "code": 63,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 14",
+   "page_fr": 8,
+   "page_ar": 10,
+   "declared": 4,
+   "parent_code": 13,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 13 in the dataset.",
+   "communes": [
+    {
+     "fr": "El Aricha",
+     "ar": "العريشة",
+     "dataset_id": 1538
+    },
+    {
+     "fr": "El Gor",
+     "ar": "القور",
+     "dataset_id": 1537
+    },
+    {
+     "fr": "Sidi Djillali",
+     "ar": "سيدي الجيلالي",
+     "dataset_id": 1534
+    },
+    {
+     "fr": "El Bouihi",
+     "ar": "البويهي",
+     "dataset_id": 1535
+    }
+   ]
+  },
+  {
+   "code": 64,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 15",
+   "page_fr": 8,
+   "page_ar": 10,
+   "declared": 6,
+   "parent_code": 14,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 14 in the dataset.",
+   "communes": [
+    {
+     "fr": "Ksar Chellala",
+     "ar": "قصر الشلالة",
+     "dataset_id": 1467
+    },
+    {
+     "fr": "Zmalet El Emir Abdelkader",
+     "ar": "زمالة الأمير عبد القادر",
+     "dataset_id": 1469
+    },
+    {
+     "fr": "Rechaiga",
+     "ar": "الرشايقة",
+     "dataset_id": 1472
+    },
+    {
+     "fr": "Hamadia",
+     "ar": "حمادية",
+     "dataset_id": 1471
+    },
+    {
+     "fr": "Serguine",
+     "ar": "سرقين",
+     "dataset_id": 1468
+    },
+    {
+     "fr": "Bougara",
+     "ar": "بوقرة",
+     "dataset_id": 1470
+    }
+   ]
+  },
+  {
+   "code": 65,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 16",
+   "page_fr": 8,
+   "page_ar": 10,
+   "declared": 10,
+   "parent_code": 17,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 17 in the dataset.",
+   "communes": [
+    {
+     "fr": "Aïn Ouessara",
+     "ar": "عين وسارة",
+     "dataset_id": 1489
+    },
+    {
+     "fr": "Birine",
+     "ar": "البيرين",
+     "dataset_id": 1487
+    },
+    {
+     "fr": "Bouira Lahdab",
+     "ar": "بويرة الأحدب",
+     "dataset_id": 1482
+    },
+    {
+     "fr": "El Khemis",
+     "ar": "الخميس",
+     "dataset_id": 1486
+    },
+    {
+     "fr": "Sidi Ladjel",
+     "ar": "سيدي لعجال",
+     "dataset_id": 1484
+    },
+    {
+     "fr": "Had Sahary",
+     "ar": "حد الصحاري",
+     "dataset_id": 1481
+    },
+    {
+     "fr": "Guernini",
+     "ar": "قرنيني",
+     "dataset_id": 1488
+    },
+    {
+     "fr": "Benhar",
+     "ar": "بنهار",
+     "dataset_id": 1490
+    },
+    {
+     "fr": "Hassi Fedoul",
+     "ar": "حاسي فدول",
+     "dataset_id": 1485
+    },
+    {
+     "fr": "Aïn Fekka",
+     "ar": "عين فقة",
+     "dataset_id": 1483
+    }
+   ]
+  },
+  {
+   "code": 66,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 17",
+   "page_fr": 8,
+   "page_ar": 10,
+   "declared": 8,
+   "parent_code": 17,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 17 in the dataset.",
+   "communes": [
+    {
+     "fr": "Messaad",
+     "ar": "مسعد",
+     "dataset_id": 1475
+    },
+    {
+     "fr": "Sed Rahal",
+     "ar": "سد رحال",
+     "dataset_id": 1474
+    },
+    {
+     "fr": "Faïdh El Botma",
+     "ar": "فيض البطمة",
+     "dataset_id": 1479
+    },
+    {
+     "fr": "Guettara",
+     "ar": "قطارة",
+     "dataset_id": 1476
+    },
+    {
+     "fr": "Selmana",
+     "ar": "سلمانة",
+     "dataset_id": 1473
+    },
+    {
+     "fr": "Oum Laadham",
+     "ar": "أم العظام",
+     "dataset_id": 1478
+    },
+    {
+     "fr": "Deldoul",
+     "ar": "دلدول",
+     "dataset_id": 1477
+    },
+    {
+     "fr": "Amourah",
+     "ar": "عمورة",
+     "dataset_id": 1480
+    }
+   ]
+  },
+  {
+   "code": 67,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 18",
+   "page_fr": 9,
+   "page_ar": 10,
+   "declared": 21,
+   "parent_code": 26,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 26 in the dataset.",
+   "communes": [
+    {
+     "fr": "Ksar El Boukhari",
+     "ar": "قصر البخاري",
+     "dataset_id": 1522
+    },
+    {
+     "fr": "Ouled Maaref",
+     "ar": "أولاد معرف",
+     "dataset_id": 844
+    },
+    {
+     "fr": "Aïn Boucif",
+     "ar": "عين بوسيف",
+     "dataset_id": 841
+    },
+    {
+     "fr": "Derrag",
+     "ar": "دراق",
+     "dataset_id": 1529
+    },
+    {
+     "fr": "Bouaiche",
+     "ar": "البواعيش",
+     "dataset_id": 1525
+    },
+    {
+     "fr": "Kef Lakhdar",
+     "ar": "الكاف الأخضر",
+     "dataset_id": 843
+    },
+    {
+     "fr": "Chelalet El Adhaoura",
+     "ar": "شلالة العذاورة",
+     "dataset_id": 853
+    },
+    {
+     "fr": "Ouled Hellal",
+     "ar": "أولاد هلال",
+     "dataset_id": 809
+    },
+    {
+     "fr": "Tafraout",
+     "ar": "تافراوت",
+     "dataset_id": 855
+    },
+    {
+     "fr": "Boghar",
+     "ar": "بوغار",
+     "dataset_id": 832
+    },
+    {
+     "fr": "Sidi Damed",
+     "ar": "سيدي دمد",
+     "dataset_id": 845
+    },
+    {
+     "fr": "Aziz",
+     "ar": "عزيز",
+     "dataset_id": 1528
+    },
+    {
+     "fr": "Chahbounia",
+     "ar": "الشهبونية",
+     "dataset_id": 1527
+    },
+    {
+     "fr": "Cheniguel",
+     "ar": "شنيقل",
+     "dataset_id": 854
+    },
+    {
+     "fr": "Aïn Ouksir",
+     "ar": "عين القصير",
+     "dataset_id": 852
+    },
+    {
+     "fr": "Oum El Djallil",
+     "ar": "أم الجليل",
+     "dataset_id": 1530
+    },
+    {
+     "fr": "M'Fatha",
+     "ar": "المفاتحة",
+     "dataset_id": 1523
+    },
+    {
+     "fr": "Boughezoul",
+     "ar": "بوغزول",
+     "dataset_id": 1526
+    },
+    {
+     "fr": "El Ouinet",
+     "ar": "العوينات",
+     "dataset_id": 842
+    },
+    {
+     "fr": "Ouled Antar",
+     "ar": "أولاد عنتر",
+     "dataset_id": 859
+    },
+    {
+     "fr": "Saneg",
+     "ar": "السانق",
+     "dataset_id": 1524
+    }
+   ]
+  },
+  {
+   "code": 68,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 19",
+   "page_fr": 9,
+   "page_ar": 10,
+   "declared": 23,
+   "parent_code": 28,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 28 in the dataset.",
+   "communes": [
+    {
+     "fr": "Bou Saada",
+     "ar": "بوسعادة",
+     "dataset_id": 904
+    },
+    {
+     "fr": "Khoubana",
+     "ar": "الخبانة",
+     "dataset_id": 1502
+    },
+    {
+     "fr": "M'Cif",
+     "ar": "امسيف",
+     "dataset_id": 1503
+    },
+    {
+     "fr": "Ouled Sidi Brahim",
+     "ar": "أولاد سيدي إبراهيم",
+     "dataset_id": 1492
+    },
+    {
+     "fr": "Sidi Ameur",
+     "ar": "سيدي عامر",
+     "dataset_id": 1493
+    },
+    {
+     "fr": "Tamsa",
+     "ar": "تامسة",
+     "dataset_id": 1494
+    },
+    {
+     "fr": "Ben Srour",
+     "ar": "بن سرور",
+     "dataset_id": 1495
+    },
+    {
+     "fr": "Ouled Slimane",
+     "ar": "أولاد سليمان",
+     "dataset_id": 1497
+    },
+    {
+     "fr": "El Houamed",
+     "ar": "الحوامد",
+     "dataset_id": 1501
+    },
+    {
+     "fr": "El Hamel",
+     "ar": "الهامل",
+     "dataset_id": 905
+    },
+    {
+     "fr": "Zarzour",
+     "ar": "الزرزور",
+     "dataset_id": 1498
+    },
+    {
+     "fr": "Mouhamed Boudiaf",
+     "ar": "محمد بوضياف",
+     "dataset_id": 1496
+    },
+    {
+     "fr": "Benzouh",
+     "ar": "بنزوه",
+     "dataset_id": 1491
+    },
+    {
+     "fr": "Bir Foda",
+     "ar": "بئر الفضة",
+     "dataset_id": 910
+    },
+    {
+     "fr": "Aïn Farès",
+     "ar": "عين فارس",
+     "dataset_id": 908
+    },
+    {
+     "fr": "Sidi M'Hamed",
+     "ar": "سيدي امحمد",
+     "dataset_id": 911
+    },
+    {
+     "fr": "Menaâ",
+     "ar": "مناعة",
+     "dataset_id": 913
+    },
+    {
+     "fr": "Aïn El Meleh",
+     "ar": "عين الملح",
+     "dataset_id": 907
+    },
+    {
+     "fr": "Medjedel",
+     "ar": "امجدل",
+     "dataset_id": 912
+    },
+    {
+     "fr": "Slim",
+     "ar": "سليم",
+     "dataset_id": 1500
+    },
+    {
+     "fr": "Aïn Errich",
+     "ar": "عين الريش",
+     "dataset_id": 909
+    },
+    {
+     "fr": "Oultem",
+     "ar": "ولتام",
+     "dataset_id": 906
+    },
+    {
+     "fr": "Djebel Messaad",
+     "ar": "جبل مساعد",
+     "dataset_id": 1499
+    }
+   ]
+  },
+  {
+   "code": 69,
+   "source": "law_26_06",
+   "article": "Art. 52 bis 20",
+   "page_fr": 9,
+   "page_ar": 11,
+   "declared": 7,
+   "parent_code": 32,
+   "parent_basis": "Not stated in the JO. Inferred from (a) the order of articles 52 bis 10-20 following the rewritten parent articles, and (b) every commune of this wilaya carrying a pre-reform commune code of wilaya 32 in the dataset.",
+   "communes": [
+    {
+     "fr": "El Abiodh Sidi Cheikh",
+     "ar": "الأبيض سيدي الشيخ",
+     "dataset_id": 1509
+    },
+    {
+     "fr": "Aïn El Orak",
+     "ar": "عين العراك",
+     "dataset_id": 1504
+    },
+    {
+     "fr": "Arbaouat",
+     "ar": "أربوات",
+     "dataset_id": 1511
+    },
+    {
+     "fr": "Boussemghoun",
+     "ar": "بوسمغون",
+     "dataset_id": 1510
+    },
+    {
+     "fr": "Chellala",
+     "ar": "الشلالة",
+     "dataset_id": 1020
+    },
+    {
+     "fr": "El Bnoud",
+     "ar": "البنود",
+     "dataset_id": 1506
+    },
+    {
+     "fr": "El Meharra",
+     "ar": "المحرة",
+     "dataset_id": 1017
+    }
+   ]
+  }
+ ]
+}
