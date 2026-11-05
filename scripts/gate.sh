@@ -8,9 +8,12 @@
 #                     node data/catalog/validate.mjs, node --test data/catalog/test/*.test.mjs (when present)
 #   npm run build
 #   npm run budget    when apps/storefront/src/pages has a real (non-placeholder) page
-#   npm run lh        when the diff vs <base> (default: merge-base with main) touches a
-#                     storefront-affecting path, or with --full
+#   npm run lh        when real pages exist, unless EVERY path changed vs <base> (default: merge-base
+#                     with main) is known not to affect the built storefront or its server
+#                     (admin, jobs, db, docs, team, tooling scripts/hooks, tests, *.md); --full forces it
 # Once apps/storefront has real pages, a missing or stub ("not wired yet") budget/lh script is RED.
+# Refuses (RED "hooks") unless core.hooksPath is the ABSOLUTE path of the main checkout's .githooks.
+# Each step runs in its own process group without lock fds; leftovers are killed when it ends.
 #
 # Machine-wide: at most HB_GATE_SLOTS (2) gates at once, each also holding one of the HB_HEAVY_SLOTS (3)
 # heavy slots shared with every other heavy job (scripts/lib/locks.sh); waits up to
@@ -53,7 +56,10 @@ log="$logdir/$short$([[ $clean -eq 1 ]] || echo -dirty).log"
 say() { printf '%s\n' "$*" | tee -a "$log"; }
 
 # --- what this run must cover -------------------------------------------------------------
-storefront_paths='^(apps/storefront/|apps/web/public/|packages/ui-tokens/|packages/catalog/|data/catalog/|data/photos/|data/content/|brand/)'
+# Paths that cannot change what the storefront builds or how apps/web serves it. Anything else
+# (lockfile, package.json, apps/storefront, apps/web, packages/{shared,catalog,ui-tokens}, data/,
+# brand/, tools/measure, …) makes Lighthouse run.
+no_lh_effect='^(apps/admin/|apps/jobs/|packages/db/|docs/|research-evidence/|team/|artifacts/|\.claude/|\.githooks/|scripts/|tests/e2e/|[^/]+\.md$|\.gitignore$|\.nvmrc$)|(^|/)test/|\.test\.(ts|mjs|js)$'
 
 has_real_pages() {
   local d="apps/storefront/src/pages" f
@@ -80,12 +86,22 @@ data_steps=()
 [[ -d data/catalog/test && -n "$(data_files data/catalog/test)" ]] && data_steps+=(data-catalog-test)
 
 steps=(typecheck test "${data_steps[@]}" build)
-real_pages=0 lh_needed=0
+real_pages=0
 if has_real_pages; then real_pages=1; steps+=(budget); fi
-if [[ $full -eq 1 ]] || changed_files | grep -Eq "$storefront_paths"; then lh_needed=1; steps+=(lh); fi
+if [[ $full -eq 1 ]] || { [[ $real_pages -eq 1 ]] && changed_files | grep -Evq "$no_lh_effect"; }; then steps+=(lh); fi
+
+hooks_ok=1
+[[ "$(git config --get core.hooksPath || true)" == "$main_root/.githooks" && -x "$main_root/.githooks/pre-commit" ]] || hooks_ok=0
 
 say "gate: $branch @ $short (tree ${tree:0:12}, $([[ $clean -eq 1 ]] && echo clean || echo DIRTY)) in $wt"
 say "gate: steps = ${steps[*]}$([[ $full -eq 1 ]] && echo ' (--full)')"
+
+if [[ $hooks_ok -eq 0 ]]; then
+  say "gate: RED at hooks — core.hooksPath is '$(git config --get core.hooksPath || true)', must be the absolute '$main_root/.githooks'"
+  say "       (the lead activates it once: git config core.hooksPath \"$main_root/.githooks\") — log: $log"
+  echo "gate: RED at hooks — log: $log" >&2
+  exit 1
+fi
 
 cache="$main_root/artifacts/gate/cache/$tree"
 if [[ $use_cache -eq 1 && $clean -eq 1 && -f "$cache" ]]; then
@@ -101,6 +117,11 @@ fi
 # --- run ----------------------------------------------------------------------------------
 hb_acquire_gate_slot "${HB_GATE_WAIT:-3600}" "gate $branch@$short $wt" || { say "gate: RED — could not get a gate slot"; exit 1; }
 say "gate: holding gate slot $HB_GATE_SLOT and heavy slot $HB_HEAVY_SLOT (shared with scripts/lib/locks.sh heavy and /tmp/hb-locks/heavy.sh)"
+release_slots() {
+  flock -u "$HB_GATE_SLOT_FD" 2>/dev/null || true
+  flock -u "$HB_HEAVY_SLOT_FD" 2>/dev/null || true
+}
+trap release_slots EXIT
 
 summary=()
 red=""
@@ -108,7 +129,7 @@ run_step() {
   local name="$1"; shift
   local t0=$SECONDS rc=0
   printf '\n===== %s: %s\n' "$name" "$*" >>"$log"
-  "$@" >>"$log" 2>&1 </dev/null || rc=$?
+  hb_run_group "$@" >>"$log" 2>&1 </dev/null || rc=$?
   if [[ $rc -eq 0 ]]; then
     summary+=("GREEN $name ($((SECONDS - t0))s)")
   else

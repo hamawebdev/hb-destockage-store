@@ -1,85 +1,13 @@
-// Tests for the team process tooling (TOOL-1): pre-commit, commit-msg, port.sh, gate.sh,
-// TaskCompleted and TeammateIdle hooks. Each test builds a throwaway git repo and runs the real scripts.
+// Tests for the team process tooling (TOOL-1): pre-commit, pre-merge-commit, commit-msg, port.sh,
+// gate.sh, locks, TaskCompleted and TeammateIdle hooks. Each test builds a throwaway git repo.
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { branch, cleanupTmp, commit, git, makeRepo, msg, ok, sh, tmpRoots, write } from './helpers.ts';
 
-const src = fileURLToPath(new URL('../..', import.meta.url));
-const tmpRoots: string[] = [];
-afterAll(() => {
-  for (const d of tmpRoots) rmSync(d, { recursive: true, force: true });
-});
-
-const GOOD_BODY = 'What changed: x\nTesting: y\nRisk tier: low\nRevert: git revert\n';
-const msg = (subject: string, body = GOOD_BODY) => `${subject}\n\n${body}`;
-
-type Run = { status: number; stdout: string; stderr: string };
-// Never let an inherited GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE / GIT_CONFIG_* point a test at the real repo.
-const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
-function sh(cwd: string, cmd: string, args: string[], env: Record<string, string> = {}, input?: string): Run {
-  const r = spawnSync(cmd, args, {
-    cwd,
-    input,
-    encoding: 'utf8',
-    env: {
-      ...cleanEnv,
-      GIT_AUTHOR_NAME: 't',
-      GIT_AUTHOR_EMAIL: 't@example.com',
-      GIT_COMMITTER_NAME: 't',
-      GIT_COMMITTER_EMAIL: 't@example.com',
-      HB_ROLE: '',
-      ...env,
-    },
-  });
-  return { status: r.status ?? -1, stdout: r.stdout ?? '', stderr: r.stderr ?? '' };
-}
-const git = (cwd: string, ...args: string[]) => sh(cwd, 'git', args);
-const ok = (r: Run) => {
-  if (r.status !== 0) throw new Error(`exit ${r.status}\n${r.stdout}\n${r.stderr}`);
-  return r;
-};
-const write = (root: string, rel: string, body: string | Buffer) => {
-  mkdirSync(dirname(join(root, rel)), { recursive: true });
-  writeFileSync(join(root, rel), body);
-};
-const commit = (cwd: string, subject: string, env: Record<string, string> = {}) =>
-  sh(cwd, 'git', ['commit', '-q', '-F', '-'], env, msg(subject));
-
-/** A repo carrying the real hooks, scripts and owners.json, with an initial lead commit on main. */
-function makeRepo(pkgScripts: Record<string, string> = {}): string {
-  const root = mkdtempSync(join(tmpdir(), 'hb-tooling-test-'));
-  tmpRoots.push(root);
-  ok(git(root, 'init', '-q', '-b', 'main'));
-  // Guard: every config write below must land in this throwaway repo, never the project's .git.
-  const gitDir = ok(git(root, 'rev-parse', '--path-format=absolute', '--git-common-dir')).stdout.trim();
-  if (gitDir !== join(root, '.git')) throw new Error(`test repo resolved to ${gitDir}, refusing to configure it`);
-  cpSync(join(src, '.githooks'), join(root, '.githooks'), { recursive: true });
-  cpSync(join(src, 'scripts/lib'), join(root, 'scripts/lib'), { recursive: true });
-  cpSync(join(src, 'scripts/team'), join(root, 'scripts/team'), { recursive: true });
-  cpSync(join(src, 'scripts/gate.sh'), join(root, 'scripts/gate.sh'));
-  cpSync(join(src, 'team/owners.json'), join(root, 'team/owners.json'));
-  write(root, '.gitignore', 'node_modules/\nartifacts/\n.worktrees/\n');
-  write(
-    root,
-    'package.json',
-    JSON.stringify({ name: 'fixture', private: true, scripts: { typecheck: 'true', test: 'true', build: 'true', ...pkgScripts } }, null, 2),
-  );
-  write(root, 'package-lock.json', '{"lockfileVersion":3}\n');
-  write(root, 'DECISIONS.md', '# Decisions\n\n## D-001 — first\n');
-  write(root, 'apps/web/src/index.ts', 'export {};\n');
-  write(root, 'apps/admin/src/app.ts', 'export const a = 1;\n');
-  ok(git(root, 'config', 'core.hooksPath', '.githooks'));
-  ok(git(root, 'add', '-A'));
-  ok(commit(root, 'BOOT-0: init', { HB_ROLE: 'lead' }));
-  return root;
-}
-
-function branch(root: string, name: string) {
-  ok(git(root, 'checkout', '-q', '-B', name, 'main'));
-}
+afterAll(cleanupTmp);
 
 describe('pre-commit ownership', () => {
   let root: string;
@@ -198,6 +126,64 @@ describe('pre-commit ownership', () => {
     ok(git(root, 'merge', '--abort'));
   });
 
+  test('a merge that keeps our old copy of another owner\'s file (revert) is refused (review F1)', () => {
+    branch(root, 'team/admin-core');
+    write(root, 'apps/admin/src/auth/rev.ts', 'export const v = 1;\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'ADMIN-3: v1'));
+    branch(root, 'team/web');
+    ok(git(root, 'merge', '-q', '--no-edit', 'team/admin-core'));
+    // admin-core moves on
+    ok(git(root, 'checkout', '-q', 'team/admin-core'));
+    write(root, 'apps/admin/src/auth/rev.ts', 'export const v = 2;\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'ADMIN-4: v2'));
+    ok(git(root, 'checkout', '-q', 'team/web'));
+    // variant 1: -s ours (no conflict → pre-merge-commit)
+    const r1 = git(root, 'merge', '-q', '-s', 'ours', '--no-edit', 'team/admin-core');
+    expect(r1.status).not.toBe(0);
+    expect(r1.stderr).toContain('apps/admin/src/auth/rev.ts');
+    if (git(root, 'rev-parse', '-q', '--verify', 'MERGE_HEAD').status === 0) ok(git(root, 'merge', '--abort'));
+    // variant 2: --no-commit, then put our old copy back
+    ok(git(root, 'merge', '-q', '--no-ff', '--no-commit', 'team/admin-core'));
+    ok(git(root, 'checkout', 'HEAD', '--', 'apps/admin/src/auth/rev.ts'));
+    const r2 = sh(root, 'git', ['commit', '-q', '--no-edit']);
+    expect(r2.status).not.toBe(0);
+    expect(r2.stderr).toContain('apps/admin/src/auth/rev.ts');
+    ok(git(root, 'merge', '--abort'));
+    // a plain merge taking their version is fine
+    ok(git(root, 'merge', '-q', '--no-edit', 'team/admin-core'));
+  });
+
+  test('hooks come from the configured hooks dir, not the committing branch (review F5)', () => {
+    const wt = join(root, '.worktrees/stale');
+    ok(git(root, 'worktree', 'add', '-q', '-b', 'team/pages', wt, 'main'));
+    rmSync(join(wt, '.githooks'), { recursive: true, force: true }); // a branch without (or with edited) hooks
+    write(wt, 'apps/admin/src/auth/sneak.ts', 'export {};\n');
+    ok(git(wt, 'add', 'apps/admin/src/auth/sneak.ts'));
+    const r = sh(wt, 'git', ['commit', '-q', '-F', '-'], {}, msg('PAGES-1: sneak'));
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('admin-core');
+    ok(git(root, 'worktree', 'remove', '--force', wt));
+  });
+
+  test('team/APPROVALS.md and team/SIGNOFFS.md: only the lead on main (TOOL-5 ruling)', () => {
+    for (const f of ['team/APPROVALS.md', 'team/SIGNOFFS.md']) {
+      branch(root, 'team/tooling');
+      write(root, f, '# forged\n');
+      ok(git(root, 'add', '-A'));
+      const r = commit(root, 'TOOL-9: forge');
+      expect(r.status, f).not.toBe(0);
+      expect(r.stderr).toContain('owned by lead');
+      ok(git(root, 'reset', '-q', '--hard'));
+      ok(git(root, 'clean', '-qfd'));
+    }
+    branch(root, 'main');
+    write(root, 'team/APPROVALS.md', '# Approvals ledger\n');
+    ok(git(root, 'add', '-A'));
+    expect(commit(root, 'BOOT-9: ledger', { HB_ROLE: 'lead' }).status).toBe(0);
+  });
+
   test('pre-commit is fast (< 1 s)', () => {
     branch(root, 'team/web');
     write(root, 'apps/web/src/speed.ts', 'export {};\n');
@@ -231,8 +217,12 @@ describe('commit-msg', () => {
     expect(check('What changed: multi\nline\n'.length ? msg('DB-2: x', 'What changed: a\n  more\nTesting: b\nRisk tier: high\nRevert: c\n') : '').status).toBe(0);
   });
 
-  test('accepts merge commits', () => {
-    expect(check("Merge branch 'main' into team/web\n").status).toBe(0);
+  test('"Merge …" subjects pass only while a merge is in progress; empty values are refused (review N1)', () => {
+    expect(check("Merge branch 'main' into team/web\n").status).not.toBe(0);
+    expect(check('Merge anything I like\n').status).not.toBe(0);
+    const r = check(msg('DB-1: x', 'What changed:\nTesting: y\nRisk tier: low\nRevert: z\n'));
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('has no value');
   });
 
   test('rejects bad subjects and bodies with a template', () => {
@@ -358,20 +348,57 @@ describe('gate.sh', () => {
     ok(commit(root, 'SHELL-9: placeholder'));
     const r = gate(root, '--no-cache');
     expect(r.status, r.stdout).toBe(0);
-    expect(r.stdout).toContain('steps = typecheck test build lh');
-    expect(r.stdout).toContain('SKIP  lh (not wired yet');
+    expect(r.stdout).toContain('steps = typecheck test build\n');
+    expect(r.stdout).toContain('gate: GREEN');
   });
 
-  test('lh runs when the diff vs main touches storefront paths', () => {
+  test('with real pages, lh runs for anything that can affect the storefront and skips only no-effect paths (review F4)', () => {
     const root = makeRepo({ budget: 'true', lh: 'echo LH-RAN' });
     prepNodeModules(root);
-    branch(root, 'team/brand');
-    write(root, 'brand/guide.md', '# guide\n');
+    write(root, 'apps/storefront/src/pages/ar/index.astro', '<html lang="ar"></html>\n');
     ok(git(root, 'add', '-A'));
-    ok(commit(root, 'BRAND-1: guide'));
+    ok(commit(root, 'BOOT-1: real page', { HB_ROLE: 'lead' }));
+    const cases: Array<[string, string, string, boolean]> = [
+      ['team/shared', 'packages/shared/src/format.ts', 'SHARED-9', true],
+      ['team/web', 'apps/web/src/index.ts', 'WEB-9', true],
+      ['team/measure', 'tools/measure/src/lh.ts', 'MEAS-9', true],
+      ['team/tooling', 'packages/shared/package.json', 'TOOL-9', true],
+      ['team/brand', 'brand/guide.md', 'BRAND-9', true],
+      ['team/admin-core', 'apps/admin/src/app.ts', 'ADMIN-9', false],
+      ['team/db', 'packages/db/src/schema.ts', 'DB-9', false],
+    ];
+    for (const [b, file, id, wantLh] of cases) {
+      branch(root, b);
+      write(root, file, `// ${id}\n`);
+      ok(git(root, 'add', '-A'));
+      ok(commit(root, `${id}: change`));
+      const r = gate(root, '--no-cache');
+      expect(r.status, `${file}\n${r.stdout}`).toBe(0);
+      expect(r.stdout.includes('steps = typecheck test build budget lh'), file).toBe(wantLh);
+    }
+  });
+
+  test('gate refuses when core.hooksPath is not the absolute main hooks path (review F5)', () => {
+    const root = makeRepo();
+    prepNodeModules(root);
+    ok(git(root, 'config', 'core.hooksPath', '.githooks'));
     const r = gate(root, '--no-cache');
-    expect(r.status, r.stdout).toBe(0);
-    expect(r.stdout).toContain('steps = typecheck test build lh');
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('RED at hooks');
+    ok(git(root, 'config', '--unset', 'core.hooksPath'));
+    expect(gate(root, '--no-cache').stdout).toContain('RED at hooks');
+  });
+
+  test('a step that leaves an orphan behind neither keeps the slot nor survives the gate (review F3)', () => {
+    const root = makeRepo({ test: '(sleep 41 &) ; true' });
+    prepNodeModules(root);
+    const dir = mkdtempSync(join(tmpdir(), 'hb-locks-orphan-'));
+    tmpRoots.push(dir);
+    const env = { HB_LOCK_DIR: dir, HB_GATE_SLOTS: '1', HB_HEAVY_SLOTS: '1', HB_GATE_WAIT: '3' };
+    expect(sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env).status).toBe(0);
+    expect(spawnSync('pgrep', ['-f', '^sleep 41$']).status).toBe(1); // killed with its group
+    const again = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
+    expect(again.status, again.stdout + again.stderr).toBe(0); // the slot was free
   });
 });
 
@@ -446,6 +473,20 @@ describe('TaskCompleted hook', () => {
     expect(r2.stderr).toContain('RED at test');
   });
 
+  test('build task: a gate that outlasts the hook budget fails closed, then the result is picked up (review F2)', () => {
+    const bin = mkdtempSync(join(tmpdir(), 'hb-slow-gate-'));
+    tmpRoots.push(bin);
+    const slow = join(bin, 'gate.sh');
+    writeFileSync(slow, '#!/bin/sh\nsleep 4\necho "gate: GREEN — log: /tmp/fake.log"\n', { mode: 0o755 });
+    const p = { task_subject: 'WEB-1: x', teammate_name: 'web', cwd: root };
+    const r1 = hook(p, { HB_GATE: slow, HB_HOOK_BUDGET: '1' });
+    expect(r1.status).toBe(2);
+    expect(r1.stderr).toContain('gate still running');
+    spawnSync('sleep', ['5']);
+    const r2 = hook(p, { HB_GATE: slow, HB_HOOK_BUDGET: '1' });
+    expect(r2.status, r2.stderr).toBe(0);
+  });
+
   test('free-form subjects pass', () => {
     expect(hook({ task_subject: 'Look into something', cwd: root }).status).toBe(0);
   });
@@ -476,213 +517,5 @@ describe('TeammateIdle hook', () => {
     idle();
     expect(performance.now() - t0).toBeLessThan(3000);
     expect(sh(root, join(root, 'scripts/team/on-teammate-idle.sh'), [], env, '{}').status).toBe(0);
-  });
-});
-
-describe('merge.sh (lead merge)', () => {
-  let root: string;
-  let wt: string;
-  let artifacts: string;
-  let gateOk: string;
-  let gateRed: string;
-
-  const mainSha = () => ok(git(root, 'rev-parse', 'main')).stdout.trim();
-  const merge = (args: string[], gate = gateOk) =>
-    sh(root, join(root, 'scripts/team/merge.sh'), args, { HB_ARTIFACTS_DIR: artifacts, HB_GATE: gate });
-  const review = (id: string, n: number, verdict: string, commits: string[], findings = 'Nothing to fix.\n') =>
-    write(
-      artifacts,
-      `${id}/review-r${n}.md`,
-      `Findings: 0 Important, 0 Nit, 0 Pre-existing\nVerdict: ${verdict}\nCommits: ${commits.join(' ')}\n\n## Findings\n${findings}`,
-    );
-  const commitIn = (dir: string, subject: string, body = GOOD_BODY, noVerify = false) => {
-    ok(git(dir, 'add', '-A'));
-    ok(sh(dir, 'git', ['commit', '-q', ...(noVerify ? ['--no-verify'] : []), '-F', '-'], {}, msg(subject, body)));
-    return ok(git(dir, 'rev-parse', 'HEAD')).stdout.trim();
-  };
-  const resetBranch = () => {
-    ok(git(wt, 'reset', '-q', '--hard', 'main'));
-    rmSync(artifacts, { recursive: true, force: true });
-  };
-
-  beforeAll(() => {
-    root = makeRepo();
-    artifacts = join(root, 'artifacts');
-    const bin = mkdtempSync(join(tmpdir(), 'hb-gate-fake-'));
-    tmpRoots.push(bin);
-    gateOk = join(bin, 'gate-ok.sh');
-    gateRed = join(bin, 'gate-red.sh');
-    writeFileSync(gateOk, '#!/bin/sh\necho "fake gate GREEN $*"\n', { mode: 0o755 });
-    writeFileSync(gateRed, '#!/bin/sh\necho "gate: RED at test" >&2\nexit 1\n', { mode: 0o755 });
-    write(root, 'team/SIGNOFFS.md', '# Client sign-offs\n');
-    ok(git(root, 'add', '-A'));
-    ok(commit(root, 'BOOT-1: signoffs', { HB_ROLE: 'lead' }));
-    ok(git(root, 'branch', 'team/web'));
-    wt = join(root, '.worktrees/web');
-    ok(git(root, 'worktree', 'add', '-q', wt, 'team/web'));
-  });
-
-  test('refuses a commit without an APPROVED review covering it; main untouched', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/a.ts', 'export const a = 1;\n');
-    commitIn(wt, 'WEB-1: a');
-    const before = mainSha();
-    const r = merge(['team/web']);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain('no APPROVED review');
-    expect(mainSha()).toBe(before);
-  });
-
-  test('approved low-risk commit merges with --no-ff after a green gate', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/b.ts', 'export const b = 1;\n');
-    const c = commitIn(wt, 'WEB-2: b');
-    review('WEB-2', 1, 'APPROVED', [c.slice(0, 7)]);
-    const before = mainSha();
-    const r = merge(['team/web']);
-    expect(r.status, r.stdout + r.stderr).toBe(0);
-    expect(r.stdout).toContain('MERGED');
-    expect(ok(git(root, 'rev-parse', 'main^1')).stdout.trim()).toBe(before);
-    expect(ok(git(root, 'rev-parse', 'main^2')).stdout.trim()).toBe(c);
-    expect(readFileSync(join(artifacts, 'merges.log'), 'utf8')).toContain('team/web');
-    expect(ok(git(root, 'worktree', 'list')).stdout).not.toContain('hb-merge');
-  });
-
-  test('approval is per commit: a review of another sha does not cover a new commit', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/c.ts', 'export const c = 1;\n');
-    const c1 = commitIn(wt, 'WEB-3: c');
-    review('WEB-3', 1, 'APPROVED', [c1.slice(0, 7)]);
-    write(wt, 'apps/web/src/c.ts', 'export const c = 2;\n');
-    commitIn(wt, 'WEB-3: address review r1');
-    const r = merge(['team/web']);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain('no APPROVED review');
-  });
-
-  test('latest round CHANGES REQUESTED or an open Important finding refuses; "not confirmed" does not', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/d.ts', 'export const d = 1;\n');
-    const c = commitIn(wt, 'WEB-4: d');
-    review('WEB-4', 1, 'APPROVED', [c]);
-    review('WEB-4', 2, 'CHANGES REQUESTED', [c]);
-    expect(merge(['team/web']).stderr).toContain('latest round review-r2.md is not APPROVED');
-
-    review('WEB-4', 2, 'APPROVED', [c], '- [Important] apps/web/src/d.ts:1 — wrong — status: open\n  - rev-b: confirmed — x\n');
-    const r = merge(['team/web']);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain('open Important');
-
-    review('WEB-4', 2, 'APPROVED', [c], '- [Important] apps/web/src/d.ts:1 — wrong — status: open\n  - rev-b: not confirmed — y\n');
-    expect(merge(['team/web'], gateOk).status).toBe(0);
-  });
-
-  test('high risk needs a SIGNOFFS line on main', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/e.ts', 'export const e = 1;\n');
-    const c = commitIn(wt, 'WEB-5: e', 'What changed: x\nTesting: y\nRisk tier: high\nRevert: z\n');
-    review('WEB-5', 1, 'APPROVED', [c.slice(0, 8)]);
-    const r = merge(['team/web']);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain('SIGNOFFS');
-
-    write(root, 'team/SIGNOFFS.md', `# Client sign-offs\nWEB-5 ${c.slice(0, 7)} — signed off 2026-11-04 — evidence artifacts/WEB-5/\n`);
-    ok(git(root, 'add', '-A'));
-    ok(commit(root, 'BOOT-2: sign-off WEB-5', { HB_ROLE: 'lead' }));
-    ok(git(wt, 'merge', '-q', '--no-edit', 'main'));
-    expect(merge(['team/web']).status).toBe(0);
-  });
-
-  test('red gate leaves main untouched', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/f.ts', 'export const f = 1;\n');
-    const c = commitIn(wt, 'WEB-6: f');
-    review('WEB-6', 1, 'APPROVED', [c]);
-    const before = mainSha();
-    const r = merge(['team/web'], gateRed);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain('RED');
-    expect(mainSha()).toBe(before);
-    expect(ok(git(root, 'branch', '--list', 'hb-merge/*')).stdout.trim()).toBe('');
-  });
-
-  test('dry-run checks and trial-merges but never moves main', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/g.ts', 'export const g = 1;\n');
-    const c = commitIn(wt, 'WEB-7: g');
-    review('WEB-7', 1, 'APPROVED', [c]);
-    const before = mainSha();
-    const r = merge(['team/web', '--dry-run']);
-    expect(r.status, r.stderr).toBe(0);
-    expect(r.stdout).toContain('DRY-RUN OK');
-    expect(mainSha()).toBe(before);
-  });
-
-  test('backstop: ownership violation and missing/malformed Risk tier are refused even without hooks', () => {
-    resetBranch();
-    write(wt, 'apps/admin/src/app.ts', 'export const a = 9;\n');
-    const c1 = commitIn(wt, 'WEB-8: touches admin', GOOD_BODY, true);
-    write(wt, 'apps/web/src/h.ts', 'export const h = 1;\n');
-    const c2 = commitIn(wt, 'WEB-9: no tier', 'What changed: x\nTesting: y\nRevert: z\n', true);
-    write(wt, 'apps/web/src/i.ts', 'export const i = 1;\n');
-    const c3 = commitIn(wt, 'WEB-10: bad tier', 'What changed: x\nTesting: y\nRisk tier: medium\nRevert: z\n', true);
-    review('WEB-8', 1, 'APPROVED', [c1]);
-    review('WEB-9', 1, 'APPROVED', [c2]);
-    review('WEB-10', 1, 'APPROVED', [c3]);
-    const r = merge(['team/web']);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain('ownership');
-    expect(r.stderr).toContain('admin-core');
-    expect(r.stderr).toContain("exactly one 'Risk tier");
-    expect(r.stderr).toContain('malformed');
-  });
-
-  test('conflict refuses and leaves main untouched', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/conflict.ts', 'export const v = "web";\n');
-    const c = commitIn(wt, 'WEB-11: conflict');
-    write(root, 'apps/web/src/conflict.ts', 'export const v = "lead";\n');
-    ok(git(root, 'add', '-A'));
-    ok(commit(root, 'BOOT-3: conflict', { HB_ROLE: 'lead' }));
-    review('WEB-11', 1, 'APPROVED', [c]);
-    const before = mainSha();
-    const r = merge(['team/web']);
-    expect(r.status, r.stdout + r.stderr).toBe(1);
-    expect(r.stderr).toContain('conflicts with main');
-    expect(mainSha()).toBe(before);
-  });
-
-  test('merge commits: clean ones pass; conflict resolutions need a review listing them', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/conflict2.ts', 'export const v = "web";\n');
-    const c = commitIn(wt, 'WEB-12: conflict2');
-    write(root, 'apps/web/src/conflict2.ts', 'export const v = "lead";\n');
-    ok(git(root, 'add', '-A'));
-    ok(commit(root, 'BOOT-4: conflict2', { HB_ROLE: 'lead' }));
-    expect(git(wt, 'merge', '-q', '--no-edit', 'main').status).not.toBe(0);
-    write(wt, 'apps/web/src/conflict2.ts', 'export const v = "both";\n');
-    ok(git(wt, 'add', '-A'));
-    ok(sh(wt, 'git', ['commit', '-q', '--no-edit']));
-    const m = ok(git(wt, 'rev-parse', 'HEAD')).stdout.trim();
-    review('WEB-12', 1, 'APPROVED', [c]);
-    const r1 = merge(['team/web', '--dry-run']);
-    expect(r1.status).toBe(1);
-    expect(r1.stderr).toContain('conflict-resolution');
-    review('WEB-12', 2, 'APPROVED', [c.slice(0, 7), m.slice(0, 7)]);
-    const r2 = merge(['team/web', '--dry-run']);
-    expect(r2.status, r2.stdout + r2.stderr).toBe(0);
-
-    // a clean merge of main into the branch needs no review of its own
-    resetBranch();
-    write(wt, 'apps/web/src/j.ts', 'export const j = 1;\n');
-    const c2 = commitIn(wt, 'WEB-13: j');
-    write(root, 'apps/admin/src/other.ts', 'export {};\n');
-    ok(git(root, 'add', '-A'));
-    ok(commit(root, 'BOOT-5: other', { HB_ROLE: 'lead' }));
-    ok(git(wt, 'merge', '-q', '--no-edit', 'main'));
-    review('WEB-13', 1, 'APPROVED', [c2]);
-    const r3 = merge(['team/web', '--dry-run']);
-    expect(r3.status, r3.stdout + r3.stderr).toBe(0);
-    expect(r3.stdout).toContain('clean merge');
   });
 });

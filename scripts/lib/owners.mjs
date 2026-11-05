@@ -3,6 +3,7 @@
 //
 //   node scripts/lib/owners.mjs check-staged <name> [--lead]   pre-commit checks on the index
 //   node scripts/lib/owners.mjs check-commit <name> <sha>      same rules for one commit (merge.sh)
+//   node scripts/lib/owners.mjs check-net <author> <base> <result>   net diff of a merge (stdin: sha owner)
 //   node scripts/lib/owners.mjs violations <name> [path…]      paths <name> may not write (args or stdin, one per line)
 //   node scripts/lib/owners.mjs port <name>                    print portBase
 //   node scripts/lib/owners.mjs owner-of <path>                print the owners allowed to write <path>
@@ -111,13 +112,19 @@ function showOrEmpty(spec) {
 }
 
 export function checkStaged(cfg, name, { lead = false } = {}) {
-  return checkChanges(cfg, name, {
-    lead,
-    changes: diffChanges(['--cached']),
-    before: 'HEAD',
-    after: '', // index
-    merging: hasRef('MERGE_HEAD'),
-  });
+  // Their side of a merge: MERGE_HEAD after a conflict (`git commit`), or HB_MERGE_THEIRS from
+  // .githooks/pre-merge-commit (git writes MERGE_HEAD only after that hook has run).
+  const theirs = hasRef('MERGE_HEAD') ? git(['rev-parse', 'MERGE_HEAD']).trim() : process.env.HB_MERGE_THEIRS || '';
+  // On a merge also list paths where the result differs from THEIR side (a kept-old-copy revert is
+  // identical to HEAD, so `diff --cached` alone would never show it).
+  const changes = diffChanges(['--cached']);
+  if (theirs) {
+    const seen = new Set(changes.flatMap((c) => c.paths));
+    for (const c of diffChanges(['--cached', theirs])) {
+      if (!c.paths.some((p) => seen.has(p))) changes.push(c);
+    }
+  }
+  return checkChanges(cfg, name, { lead, changes, before: 'HEAD', after: '', theirs });
 }
 
 /** Ownership/size/append rules for one existing commit (merge.sh backstop). Merge commits are not checked here. */
@@ -127,11 +134,53 @@ export function checkCommit(cfg, name, sha) {
     changes: diffChanges([`${sha}^`, sha]),
     before: `${sha}^`,
     after: sha,
-    merging: false,
+    theirs: '',
   });
 }
 
-function checkChanges(cfg, name, { lead, changes, before, after, merging }) {
+/**
+ * Net-diff ownership for a merge into main (merge.sh, review F1): every path that `result` changes
+ * relative to `base` (main) must be writable by `author`, or be exactly the version produced by a
+ * commit in the range whose attributed owner may write it. Anything else (a kept-old-copy revert, an
+ * edit inside a merge commit) is refused, whoever's branch carries it.
+ * `attributed` = [{sha, owner}] for the range's non-merge commits that passed their own checks.
+ */
+export function checkNet(cfg, author, base, result, attributed) {
+  const problems = [];
+  const paths = git(['diff', '--name-only', '--no-renames', '-z', base, result]).split('\0').filter(Boolean);
+  const touchedBy = new Map(); // sha -> Set(paths)
+  for (const { sha } of attributed) {
+    touchedBy.set(sha, new Set(git(['diff-tree', '--no-commit-id', '-r', '--name-only', '--no-renames', '-z', '--root', sha]).split('\0').filter(Boolean)));
+  }
+  const specs = [];
+  for (const p of paths) {
+    specs.push(`${result}:${p}`);
+    for (const { sha } of attributed) if (touchedBy.get(sha)?.has(p)) specs.push(`${sha}:${p}`);
+  }
+  const objs = batchCheck(specs);
+  for (const p of paths) {
+    if (mayWrite(cfg, author, p) || (any(p, cfg.appendOnlyForAll) && appendOnly(base, result, p))) continue;
+    const want = objs.get(`${result}:${p}`)?.oid ?? '';
+    const explained = attributed.some(
+      ({ sha, owner }) => touchedBy.get(sha)?.has(p) && mayWrite(cfg, owner, p) && (objs.get(`${sha}:${p}`)?.oid ?? '') === want,
+    );
+    if (!explained) {
+      problems.push(
+        `${p}: the merge would change it on main (${explain(cfg, p)}) but no reviewed commit of its owner in the range produces this version — a revert or an edit inside a merge`,
+      );
+    }
+  }
+  return problems;
+}
+
+function appendOnly(base, result, p) {
+  const was = showOrEmpty(`${base}:${p}`);
+  const now = showOrEmpty(`${result}:${p}`);
+  return now.startsWith(was) && now.length >= was.length;
+}
+
+function checkChanges(cfg, name, { lead, changes, before, after, theirs }) {
+  const merging = Boolean(theirs);
   const problems = [];
   if (!lead && !cfg.owners[name]) {
     return [`"${name}" is not a teammate in team/owners.json; commit from your own branch team/<your-name>`];
@@ -150,17 +199,25 @@ function checkChanges(cfg, name, { lead, changes, before, after, merging }) {
     }
   }
 
+  // On a merge, `before` is our side (HEAD) and `theirs` the merged commit; base = their merge base.
+  const base = merging ? git(['merge-base', 'HEAD', theirs]).trim() : '';
   const specs = [];
-  for (const t of touched) specs.push(A(t.path), B(t.path), ...(merging ? [`MERGE_HEAD:${t.path}`] : []));
+  for (const t of touched) {
+    specs.push(A(t.path), B(t.path));
+    if (merging) specs.push(`${theirs}:${t.path}`, `${base}:${t.path}`);
+  }
   const objs = batchCheck(specs);
 
   if (merging) {
-    // A merge commit only "authors" paths whose result differs from both parents (conflict resolutions, evil merges).
+    // A merge "authors" a path when its result is not theirs AND (it is not ours either, or they had
+    // changed it since the base). The second case is a merge that keeps our old copy and so silently
+    // reverts their change (`-s ours`, `checkout HEAD -- f` during a merge); it must pass ownership.
     touched = touched.filter((t) => {
-      const st = objs.get(A(t.path))?.oid ?? '';
-      const h = objs.get(B(t.path))?.oid ?? '';
-      const m = objs.get(`MERGE_HEAD:${t.path}`)?.oid ?? '';
-      return st !== h && st !== m;
+      const res = objs.get(A(t.path))?.oid ?? '';
+      const ours = objs.get(B(t.path))?.oid ?? '';
+      const their = objs.get(`${theirs}:${t.path}`)?.oid ?? '';
+      const was = objs.get(`${base}:${t.path}`)?.oid ?? '';
+      return res !== their && (res !== ours || their !== was);
     });
   }
 
@@ -230,6 +287,21 @@ function main(argv) {
       const problems = checkCommit(loadOwners(), name, sha);
       if (problems.length) {
         process.stderr.write(problems.map((p) => `${p}`).join('\n') + '\n');
+        return 1;
+      }
+      return 0;
+    }
+    if (cmd === 'check-net') {
+      // check-net <author> <base> <result>; stdin: "<sha> <owner>" lines
+      const [author, base, result] = rest;
+      if (!author || !base || !result) throw new Error('usage: check-net <author> <base> <result> < sha-owner lines');
+      const attributed = readStdinLines().map((l) => {
+        const [sha, owner] = l.trim().split(/\s+/);
+        return { sha, owner };
+      });
+      const problems = checkNet(loadOwners(), author, base, result, attributed);
+      if (problems.length) {
+        process.stderr.write(problems.join('\n') + '\n');
         return 1;
       }
       return 0;

@@ -39,7 +39,7 @@ Any deviation from it needs a measurement or a cited source, recorded in [DECISI
 
 ## How work happens (detail: [team/BRIEF.md](team/BRIEF.md))
 - Agent-team task list, subjects `<AREA>-<n>: …` (`-0` = plan). The lead (`team-lead`) creates and closes tasks and routes reviews and requests.
-- One worktree + branch per teammate (`.worktrees/<name>`, `team/<name>`). Edit only your paths in `team/owners.json`, enforced by pre-commit (`git config core.hooksPath .githooks`). Dependencies: ask `tooling`.
+- One worktree + branch per teammate (`.worktrees/<name>`, `team/<name>`). Edit only your paths in `team/owners.json`, enforced by main's hooks (`git config core.hooksPath "/mnt/data/ecom website/.githooks"`, absolute). Dependencies: ask `tooling`.
 - One commit per task (`commit-msg` enforces `<ID>: <title>`, blank, `What changed:`, `Testing:`, `Risk tier: low|high`, `Revert:`). Review fixes = new commits; `git merge main`, never rebase.
 - `scripts/gate.sh` (typecheck, test, build, budget, Lighthouse on storefront changes) runs in the `TaskCompleted` hook; red ⇒ refused.
 - Review per [REVIEW.md](REVIEW.md) (`REV <ID> r<n>` tasks). Only the lead merges (`scripts/team/merge.sh`): approved commits only, high risk after client sign-off.

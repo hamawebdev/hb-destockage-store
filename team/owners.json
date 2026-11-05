@@ -21,6 +21,11 @@
       "**/package-lock.json",
       "tsconfig*.json",
       "**/tsconfig*.json"
+    ],
+    "lead": [
+      "team/APPROVALS.md",
+      "team/SIGNOFFS.md",
+      "team/BRIEF.md"
     ]
   },
   "owners": {
@@ -222,6 +227,7 @@
     },
     "lead": {
       "paths": [
+        "team/APPROVALS.md",
         "team/BRIEF.md",
         "team/SIGNOFFS.md",
         "docs/**",

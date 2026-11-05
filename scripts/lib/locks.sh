@@ -79,6 +79,22 @@ hb_acquire_gate_slot() {
   done
 }
 
+# hb_run_group <cmd…>: run <cmd> in a new process group (setsid) with every inherited fd above 2
+# closed (so no descendant can keep a lock alive), wait for it, then kill whatever is left in that
+# group (a wrangler/workerd or Chrome a test forgot). TERM/INT kill the group too.
+hb_run_group() {
+  local rc=0 pid
+  setsid bash -c 'for f in /proc/$$/fd/*; do n=${f##*/}; [[ $n =~ ^[0-9]+$ ]] && ((n > 2)) && eval "exec $n>&-"; done; exec "$@"' hb-step "$@" &
+  pid=$!
+  HB_GROUP_PID=$pid
+  trap 'kill -TERM -- "-$HB_GROUP_PID" 2>/dev/null; exit 143' TERM INT
+  wait "$pid" || rc=$?
+  kill -TERM -- "-$pid" 2>/dev/null || true
+  trap - TERM INT
+  HB_GROUP_PID=""
+  return $rc
+}
+
 hb_lock_exclusive() {
   local name="$1" wait="$2"
   shift 2
@@ -90,7 +106,12 @@ hb_lock_exclusive() {
       flock -w "$wait" "$fd" || { echo "locks: timed out waiting for '$name'" >&2; exit 75; }
     fi
     hb__owner_note "$name $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?') $PWD" >"$HB_LOCK_DIR/$name.owner"
-    "$@"
+    # Only this subshell holds the lock: the command runs in its own process group without the
+    # lock fd, and whatever it leaves behind is killed when it returns.
+    hb_run_group "$@"
+    rc=$?
+    flock -u "$fd"
+    exit $rc
   )
 }
 
@@ -109,7 +130,10 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   [[ $# -gt 0 ]] || { echo "locks: no command given" >&2; exit 2; }
   if [[ "$mode" == heavy ]]; then
     hb_acquire_heavy_slot "$wait" "heavy $* ($PWD)"
-    "$@"
+    rc=0
+    hb_run_group "$@" || rc=$?
+    flock -u "$HB_HEAVY_SLOT_FD"
+    exit $rc
   else
     hb_lock_exclusive "$name" "$wait" "$@"
   fi
