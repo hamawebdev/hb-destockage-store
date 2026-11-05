@@ -8,6 +8,7 @@
     "./tokens.css": "./tokens.css",
     "./font-face.css": "./font-face.css",
     "./base.css": "./base.css",
+    "./forms.css": "./forms.css",
     "./fonts/*": "./fonts/*",
     "./icons/*": "./icons/*",
     "./package.json": "./package.json"

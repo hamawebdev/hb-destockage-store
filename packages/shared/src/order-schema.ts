@@ -63,6 +63,8 @@ export const ORDER_ERROR_CODES = [
   'delivery_unavailable',
   /** Recomputed total ≠ `expectedTotalDzd`; the response carries a fresh `quote`. */
   'total_changed',
+  /** Total above MAX_ORDER_TOTAL_DZD (sanity ceiling); the customer is asked to call. */
+  'order_total_out_of_range',
   /** Hard rate limit on the phone number; `retryAfterS` says when to retry. */
   'rate_limited',
   /** D1 or FeeProvider failure; retry with the same idempotency key. */
@@ -112,6 +114,7 @@ export const ORDER_ERROR_HTTP_STATUS: { readonly [C in OrderErrorCode]: OrderErr
   out_of_stock: 409,
   delivery_unavailable: 409,
   total_changed: 409,
+  order_total_out_of_range: 422,
   rate_limited: 429,
   server_error: 503,
 };
@@ -441,6 +444,10 @@ export function parseOrderDraft(input: unknown): ParseResult<OrderDraft> {
   if (missing.length > 0) return { ok: false, errors: missing };
   const o = r.output;
   const line = o.items?.[0];
+  // Check the parsed options, not the raw ones: v.record drops keys such as `__proto__`.
+  if (line === undefined && Object.keys(o.options ?? {}).length === 0) {
+    return { ok: false, errors: [{ field: 'items', code: 'variant_required' }] };
+  }
   const selection: DraftSelection =
     line !== undefined
       ? { kind: 'variant', variantId: line.variantId, qty: line.qty }
