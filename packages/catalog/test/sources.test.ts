@@ -1,6 +1,6 @@
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 import { fixtureSnapshot, SnapshotError } from '../src/index.ts';
 import { fromExport, fromSeed, loadSnapshot, toSnapshotWilayas } from '../src/sources.ts';
@@ -94,7 +94,8 @@ describe('fromSeed', () => {
   test('findRepoRoot throws when there is no repo root', async () => {
     const { findRepoRoot } = await import('../src/sources.ts');
     expect(() => findRepoRoot(tmpdir())).toThrow(/repo root not found/);
-    expect(findRepoRoot(import.meta.dirname)).toMatch(/pagedata$/);
+    // packages/catalog/test → the checkout root, whatever its directory is called.
+    expect(findRepoRoot(import.meta.dirname)).toBe(resolve(import.meta.dirname, '../../..'));
   });
 });
 
@@ -106,6 +107,9 @@ describe('fromExport / loadSnapshot', () => {
     expect((await fromExport(join(root, 'out/snapshot.json'))).meta.publishRunId).toBe(7);
     await put(root, 'out/bad.json', { ...exp, products: 'x' });
     await expect(fromExport(join(root, 'out/bad.json'))).rejects.toThrow(SnapshotError);
+    // The invented fixture is never a publishable export (CAT-2 r2 Nit).
+    await put(root, 'out/fixture.json', { ...fixtureSnapshot, wilayas: ALL_WILAYAS });
+    await expect(fromExport(join(root, 'out/fixture.json'))).rejects.toThrow(/fixture/);
   });
 
   test('HB_SNAPSHOT selects the source', async () => {
@@ -116,7 +120,7 @@ describe('fromExport / loadSnapshot', () => {
     expect(fx).toEqual(fixtureSnapshot);
     expect(fx.meta.source).toBe('fixture');
     expect((await loadSnapshot({ repoRoot: root, env: { HB_SNAPSHOT: 'seed' } })).meta.source).toBe('seed');
-    const full = { ...fixtureSnapshot, wilayas: ALL_WILAYAS };
+    const full = { ...fixtureSnapshot, meta: { ...fixtureSnapshot.meta, source: 'd1', publishRunId: 1 }, wilayas: ALL_WILAYAS };
     await put(root, 'snap.json', full);
     expect(await loadSnapshot({ repoRoot: root, env: { HB_SNAPSHOT: 'snap.json' } })).toEqual(full);
     await put(root, 'partial.json', fixtureSnapshot);

@@ -162,8 +162,13 @@ export async function fromSeed(repoRoot: string, opts: SeedOptions = {}): Promis
   }
 }
 
+/** A snapshot file (normally `source: 'd1'`, or a saved seed snapshot). The invented fixture is refused. */
 export async function fromExport(file: string): Promise<CatalogSnapshot> {
-  return parseSnapshot(await readJson(file), file);
+  const snapshot = parseSnapshot(await readJson(file), file);
+  if (snapshot.meta.source === 'fixture') {
+    throw new SnapshotError([{ path: `${file}#meta.source`, message: "the fixture is not a catalogue export (use HB_SNAPSHOT=fixture for tests)" }], file);
+  }
+  return snapshot;
 }
 
 /**
