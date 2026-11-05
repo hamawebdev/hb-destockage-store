@@ -20,6 +20,7 @@ import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join, normalize, resolve, sep } from 'node:path';
 import sharp from 'sharp';
+import { candidateWidths } from './widths.ts';
 import {
   IMAGE_MAX_BYTES_UP_TO_960,
   IMAGE_WIDTHS,
@@ -31,7 +32,7 @@ import {
 } from './types.ts';
 
 /** Bump when the encoding recipe changes: every hash (and cached file) changes with it. */
-export const PIPELINE_VERSION = 'cat4-v1';
+export const PIPELINE_VERSION = 'cat4-v2';
 export const BUDGET_MAX_WIDTH = 960;
 
 export interface ImagePipelineOptions {
@@ -134,8 +135,7 @@ async function encodeOne(key: string, original: Buffer, s: Settings, hash: strin
   const meta = await base.clone().toBuffer({ resolveWithObject: true });
   const W = meta.info.width;
   const H = meta.info.height;
-  const fit = s.widths.filter((w) => w <= W);
-  const widths = fit.length ? fit : [W];
+  const widths = candidateWidths(W, s.widths);
 
   const candidates: (SrcsetCandidate & { quality: number })[] = [];
   let lastQuality = s.maxQuality;
@@ -245,6 +245,7 @@ export async function buildImages(snapshot: CatalogSnapshot, opts: ImagePipeline
     manifest[r.key] = {
       key: r.key,
       hash: r.hash,
+      original: { width: r.original.width, height: r.original.height },
       candidates: r.candidates.map(({ url, width, height, bytes }) => ({ url, width, height, bytes })),
       og: { url: `/img/${r.hash}-og.jpg`, bytes: r.ogBytes },
       stub: false,
@@ -281,7 +282,14 @@ export function sizesMarkdown(result: ImagePipelineResult, title = 'CAT-4 image 
     );
   }
   const within = result.report.flatMap((r) => r.candidates.filter((c) => c.width <= BUDGET_MAX_WIDTH));
+  const above = result.report.flatMap((r) => r.candidates.filter((c) => c.width > BUDGET_MAX_WIDTH));
   const max = within.reduce((m, c) => Math.max(m, c.bytes), 0);
-  lines.push('', `Images: ${result.report.length}. Largest candidate ≤ ${BUDGET_MAX_WIDTH} w: ${max.toLocaleString('en')} B. Over budget: ${within.filter((c) => c.bytes > IMAGE_MAX_BYTES_UP_TO_960).length}.`, '');
+  const maxAbove = above.reduce((m, c) => Math.max(m, c.bytes), 0);
+  lines.push(
+    '',
+    `Images: ${result.report.length}. Largest candidate ≤ ${BUDGET_MAX_WIDTH} w: ${max.toLocaleString('en')} B. Over budget: ${within.filter((c) => c.bytes > IMAGE_MAX_BYTES_UP_TO_960).length}. ` +
+      `Largest candidate > ${BUDGET_MAX_WIDTH} w (no budget): ${maxAbove.toLocaleString('en')} B.`,
+    '',
+  );
   return lines.join('\n');
 }

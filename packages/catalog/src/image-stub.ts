@@ -3,7 +3,8 @@
  * scheme (`/img/<hash>-<w>.avif`, `/img/<hash>-og.jpg`) but the files do not exist; `bytes` is 0
  * and `stub` is true. Real builds use CAT-4's manifest.
  */
-import { IMAGE_WIDTHS, type CatalogSnapshot, type ImageManifest, type ImageManifestEntry, type SnapshotImage } from './types.ts';
+import { candidateWidths } from './widths.ts';
+import { type CatalogSnapshot, type ImageManifest, type ImageManifestEntry, type SnapshotImage } from './types.ts';
 
 /** FNV-1a 32-bit, hex. Deterministic stand-in for the content hash. */
 export function fnv1a(text: string): string {
@@ -17,11 +18,11 @@ export function fnv1a(text: string): string {
 
 export function stubManifestEntry(img: Pick<SnapshotImage, 'key' | 'width' | 'height'>): ImageManifestEntry {
   const hash = fnv1a(img.key);
-  const widths = IMAGE_WIDTHS.filter((w) => w <= img.width);
-  const list = widths.length ? widths : [img.width];
+  const list = candidateWidths(img.width);
   return {
     key: img.key,
     hash,
+    original: { width: img.width, height: img.height },
     candidates: list.map((w) => ({ url: `/img/${hash}-${w}.avif`, width: w, height: Math.round((w * img.height) / img.width), bytes: 0 })),
     og: { url: `/img/${hash}-og.jpg`, bytes: 0 },
     stub: true,

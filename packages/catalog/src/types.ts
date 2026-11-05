@@ -322,7 +322,8 @@ export const IMAGE_WIDTHS: readonly number[] = [360, 480, 720, 960, 1200];
 
 /**
  * CAT-4 output, CAT-3 input: the encoded files for each original, keyed by `SnapshotImage.key`.
- * JSON-serialisable (`dist/image-manifest.json`). Builders combine an entry with the image's alt,
+ * JSON-serialisable; the CLI writes it where `--manifest` says (convention:
+ * `apps/storefront/.catalog/image-manifest.json`). Builders combine an entry with the image's alt,
  * the slot's `sizes` and the LCP flag into `ImageProps`.
  */
 export type ImageManifest = Readonly<Record<string, ImageManifestEntry>>;
@@ -331,7 +332,13 @@ export interface ImageManifestEntry {
   readonly key: string;
   /** Content hash of the original (hex), the file-name stem. */
   readonly hash: string;
-  /** Ascending width. Never wider than the original. */
+  /** Intrinsic size of the original (after orientation). */
+  readonly original: { readonly width: number; readonly height: number };
+  /**
+   * Ascending width, never upscaled: every `IMAGE_WIDTHS` step ≤ the original's width, plus one
+   * candidate at the original width when it falls between steps or below 360 (lead's ruling on
+   * CAT-4 r1 Nit 1).
+   */
   readonly candidates: readonly SrcsetCandidate[];
   /** 1200×630 JPEG for `og:image`; null when not generated. */
   readonly og: { readonly url: string; readonly bytes: number } | null;
