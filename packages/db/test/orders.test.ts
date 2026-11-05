@@ -1,7 +1,10 @@
 // DB-4 on real D1 (workerd via getPlatformProxy): createOrder, replay, dedup, order changes.
 // Lead guards: precise error mapping (each mapping tested + an unexpected error), ref collisions
 // retried inside createOrder (forced collision), replay after commit, last-unit race, NULL stock.
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+// workerd D1 per test: generous timeout on a loaded shared machine.
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
 import { sql } from 'drizzle-orm';
 import { computeTotals } from '@hb/shared';
 import {

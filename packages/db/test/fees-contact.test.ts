@@ -1,5 +1,8 @@
 // DB-6 on real D1 (workerd via getPlatformProxy): @hb/db/fees and updateOrderContact.
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+// workerd D1 per test: generous timeout on a loaded shared machine.
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
 import { checkFeeProviderConformance, computeTotals, type FeeProvider } from '@hb/shared';
 import type { AnyD1Database } from 'drizzle-orm/d1';
 import { createAdminTableFeeProvider } from '../src/fees.ts';
@@ -134,6 +137,19 @@ describe('updateOrderContact', () => {
     ]);
   });
 
+  test('the owner may still edit a confirmed order', async () => {
+    const id = await order();
+    await exec(d1, `update orders set status = 'confirmed' where id = ${id}`);
+    expect(await updateOrderContact(db, id, { name: 'Amine B.' }, provider, owner, 0)).toMatchObject({ ok: true, version: 1 });
+  });
+
+  test('re-pricing over MAX_ORDER_TOTAL_DZD is refused (buildQuote contract), nothing written', async () => {
+    const id = await order();
+    await exec(d1, 'update delivery_fees set fee_dzd = 9999999 where wilaya_code = 31');
+    expect(await updateOrderContact(db, id, { wilayaCode: 31, communeId: 3101 }, provider, owner, 0)).toEqual({ ok: false, code: 'order_total_out_of_range' });
+    expect(await row()).toMatchObject({ wilaya_code: 16, fee_dzd: 600, version: 0 });
+  });
+
   test('area change re-quotes the fee; total = subtotal + new fee (computeTotals)', async () => {
     const id = await order();
     const r = await updateOrderContact(db, id, { wilayaCode: 31, communeId: 3101 }, provider, confirmer, 0);
@@ -149,6 +165,9 @@ describe('updateOrderContact', () => {
     expect(await updateOrderContact(db, id, { wilayaCode: 9, communeId: 901 }, provider, owner, 0)).toEqual({ ok: false, code: 'area_unavailable' });
     expect(await updateOrderContact(db, id, { name: 'X' }, provider, { userId: 3, role: 'logistics' }, 0)).toEqual({ ok: false, code: 'forbidden' });
     expect(await updateOrderContact(db, id, { name: 'Amine' }, provider, owner, 0)).toEqual({ ok: false, code: 'nothing_to_change' });
+    await exec(d1, `update orders set status = 'confirmed' where id = ${id}`);
+    // AORD-0 §0.4: the confirmer edits contact data only before confirmation; the owner until shipping.
+    expect(await updateOrderContact(db, id, { name: 'X' }, provider, confirmer, 0)).toEqual({ ok: false, code: 'forbidden' });
     await exec(d1, `update orders set status = 'shipped' where id = ${id}`);
     expect(await updateOrderContact(db, id, { name: 'X' }, provider, owner, 0)).toEqual({ ok: false, code: 'not_editable' });
     expect(await row()).toMatchObject({ name: 'Amine', wilaya_code: 16, fee_dzd: 600, version: 0 });
