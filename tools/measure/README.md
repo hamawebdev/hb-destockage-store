@@ -21,6 +21,7 @@ npm run budget                          # checks apps/storefront/dist
 npm run budget -- --dist path/to/dist   # any built site
 npm run budget -- --out artifacts/QA-1/budget --quiet
 npm run budget -- --own-origin https://hbdestockage.dz   # absolute URLs on this origin are first-party
+npm run budget -- --static-only         # skip the Chrome runtime pass (quick local check; NOT valid for the gate)
 # without the root script: node tools/measure/src/budget/cli.ts [same flags]
 ```
 
@@ -30,7 +31,9 @@ npm run budget -- --own-origin https://hbdestockage.dz   # absolute URLs on this
   from any worktree; override with `--out` or `HB_ARTIFACTS=<dir>`).
 - **Exit code:** `0` all rules green · `1` at least one violation (including "dist missing / empty /
   no `/ar/` or `/fr/` pages") · `2` bad flags or internal error.
-- No network, no browser, no dependencies beyond Node built-ins; takes a second or two.
+- Two passes. **Static** (Node built-ins only, about 2 s): every rule below. **Runtime** (system
+  Chrome via Playwright over a local static server of dist): every `/ar/` and `/fr/` page is loaded
+  and its real requests recorded (see "Runtime pass"). The runtime pass is part of the gate.
 
 ### What counts as a page, and its language
 
@@ -55,17 +58,44 @@ raw.
 | `html-size` | the HTML document (incl. inline CSS and inline scripts) is > 14,336 B brotli. Above the 4–6 KiB target is reported as a non-blocking warning. |
 | `css-inline` | not exactly one inline `<style>`; any `<link rel=stylesheet>`, `<link rel=preload as=style>` or `@import`. |
 | `js-before-lcp` | see "JS before LCP" below. |
-| `js-inline-handler` | any `on*=` attribute or `javascript:` URL (hash-based CSP cannot allow them). |
+| `js-inline-handler` | any `on*=` attribute, or any attribute whose value is a `javascript:` URL after the URL parser's preprocessing (`java&#x09;script:`, `formaction`, SVG `xlink:href`…). Hash-based CSP cannot allow them. |
 | `speculation-rules` | `<script type=speculationrules>` with `src`, or whose body is not valid JSON. |
 | `js-after-lcp` | the page can load > 10,000 B brotli of JS in total (see "JS after LCP"). |
 | `critical-path` | critical bytes > 46,080 B or > 4 requests (see "Critical path"). |
 | `lcp-image` | more than one `<img fetchpriority=high>`; the LCP image is `loading=lazy`; an image preload matches no `<img>`/`<source>` on the page. |
-| `avif` | an AVIF `srcset` lacks any of 360/480/720/960/1200 `w`, or uses `x` descriptors; a `w` descriptor differs from the file's real width (read from the AVIF `ispe` box); an AVIF at ≤ 960 px wide (declared or real) is > 25,000 B; a `.avif` file is not a readable AVIF. Checked for every `srcset`, `imagesrcset`, `<img src>` and image preload on every page, not only the hero. |
+| `avif` | see "Images" below: every raster image the page can show must be a same-origin AVIF `srcset` at 360/480/720/960/1200 `w`. |
 | `third-party` | see "Third-party origins". |
-| `fr-font` | a `/fr/` page has any `@font-face`, font preload or font URL (French = system stack, 0 bytes); the message names the Arabic font when it is the one referenced. |
+| `fr-font` | static: a `/fr/` page preloads, prefetches or prerenders a font. Runtime: a `/fr/` page downloads any font (at 360 or 1440 px, after load + idle, or after focusing/hovering every link and button). The shared stylesheet may declare the Arabic `@font-face` on `/fr/` (lead ruling on SHELL-1 F2 / qa BUG-2: one stylesheet for both languages is mandated); STACK-REPORT §5: "give its «العربية» label a system font; otherwise French pages download the Arabic font". |
 | `ar-font` | an `/ar/` page uses more than one font file; an `@font-face` lacks `font-display: optional`; the font is not preloaded with `<link rel=preload as=font crossorigin>`; a font preload is not used by any `@font-face`. A page with no web font (system-Arabic fallback) passes. |
 | `html-lang-dir` | `<html>` missing; `lang` not `ar`/`ar-DZ` on `/ar/` or `fr`/`fr-DZ` on `/fr/`; `dir` not `rtl` / `ltr` respectively (explicit `dir` is required on both). |
 | `missing-asset` | a first-party script, preload, font, image candidate or CSS `url()` that a page references does not exist in dist (an unmeasurable file never passes silently). |
+| `runtime` | a page does not load in Chrome (HTTP ≥ 400, timeout) during the runtime pass. |
+
+#### Images (`avif`)
+
+For every `<img>` (also inside `<noscript>` and declarative shadow DOM):
+- the AVIF set is the `<picture>`'s `<source type="image/avif">`, else the `<img srcset>` if it is
+  AVIF; it must use `w` descriptors, list all of 360/480/720/960/1200 w, every file must be a
+  real AVIF (ftyp brand + `ispe`) whose width equals its descriptor;
+- every candidate the browser could pick, **in any format** (AVIF set, other `<source>`s, the
+  `<img>`'s own `srcset` and `src`), at ≤ 960 w or of unknown width must be ≤ 25,000 B;
+- failures by escape route: `<img src>` without `srcset`, a non-AVIF `srcset`, `<picture>`
+  without an AVIF `<source>`, raster `data:` URIs.
+Also failing: `<link rel=preload as=image>` without `imagesrcset` (its `imagesrcset` gets the same
+AVIF-set check); raster images in CSS (`url()`, `image-set()`, in `<style>` or `style=""`),
+`<video poster>`, `<input type=image>`, SVG `<image>`, `background=""`. Use an `<img>` with an AVIF
+srcset for photos and SVG for decoration. Exempt: SVG files and `data:image/svg+xml` (vector:
+logos, icons), `<link rel=icon|apple-touch-icon|manifest>`, `<source>` of `<video>`/`<audio>`.
+
+#### What the parser sees
+
+CSS is read after removing comments and decoding escapes (`url("\68ttps://…")` is `https://…`;
+`/* font-display: optional */` is not a declaration). URLs go through the URL parser's
+preprocessing (tab/newline removed, C0/space trimmed). HTML comments end at `-->` or `--!>`;
+`<!-->` and `<!--->` are empty comments. `<template shadowrootmode>` content renders (scanned as
+live); `<template>` content is inert; `<noscript>` content is scanned for third parties and
+images. `<iframe srcdoc>` is scanned for absolute URLs; `<a ping>` / `<area ping>` targets count
+as third-party references.
 
 #### The LCP element
 
@@ -90,9 +120,11 @@ Lighthouse (MEAS-2: TBT, LCP) is the runtime check of the same property.
 
 Sum, per page, of brotli bytes of: every inline executable script + every first-party JS file
 reachable from the page. Reachability follows `<script src>`, module preloads, static
-`import`/`export … from`, `import()`, **any string literal naming a `.js`/`.mjs` path**
-(`s.src = '/js/turnstile-loader.js'`), and every `.js` token in a `data-*` attribute (the
-storefront LOADER imports the modules listed in `[data-js]`), recursively. So a lazily injected first-party file counts.
+`import`/`export … from`, `import()`, **any string literal naming a `.js`/`.mjs` file**
+(`s.src = '/js/turnstile-loader.js'`; bare names like `'big.js'` or
+`new Worker(new URL('w.js', import.meta.url))` are followed when such a file exists, relative to
+the script or the document), and every `.js` token in a `data-*` attribute (the storefront LOADER
+imports the modules listed in `[data-js]`), recursively. So a lazily injected first-party file counts.
 JSON fetched at runtime (commune lists, search index) is not JS and is not counted.
 
 Third-party URLs found inside first-party JS are not violations (that is how Turnstile is
@@ -113,10 +145,13 @@ Requests counted, deduplicated by URL:
   **Lighthouse mobile emulation, 412 CSS px × DPR 1.75** (first candidate with density ≥ 1.75;
   Chromium may sometimes pick one smaller, so this errs on the larger file; an unparseable
   `sizes` → the largest candidate);
-- every font in an `@font-face` (first `src` URL);
+- on `/ar/` (and pages outside `/fr/`), every font in an `@font-face` (first `src` URL); on
+  `/fr/` only preloaded fonts (the shared sheet's Arabic face must stay unused, which the runtime
+  pass proves);
 - every external `url()` in the inline CSS other than fonts (static analysis cannot tell which
   rules apply above the fold; use inline SVG or `data:` for decoration);
-- every non-lazy `<img>` and external `<script>` before the LCP element.
+- every non-lazy `<img>`, external `<script>`, `<video poster>`, `<input type=image>`, SVG
+  `<image>`, `background=""` and `style=""` `url()` before the LCP element.
 
 `<link rel=icon>`, `prefetch`, `preconnect` are not counted as critical requests
 (preconnect/dns-prefetch to another origin fails `third-party` anyway).
@@ -191,12 +226,26 @@ npm run lh -- --serve static --port 4114      # server choice / port (measure bl
   record, skipped pages, server mode), `summary.txt` (the printed table), `server.log` (wrangler).
 - Time: about 30–50 s per run on this machine, so 16 URLs × 5 runs ≈ 45–70 min without retries.
 
+#### Runtime pass (`src/budget/runtime.ts`)
+
+Method from qa (`artifacts/qa/scripts/live-checks.mjs`): Playwright with `/usr/bin/google-chrome`,
+`page.on('request')`, `document.fonts` entries loaded/loading. Every page under `/ar/` and `/fr/`:
+- loaded at 360 px (and 1440 px for `/fr/`), `waitUntil: 'load'` + 1.5 s idle (the storefront
+  LOADER imports its modules on load → `requestIdleCallback`), no interaction:
+  **any request to another origin fails `third-party`** (Turnstile must wait for interaction);
+- `/fr/` again with every link and button focused and hovered (a `:focus`/`:hover` rule could pull
+  the Arabic font in): **any font request or font in use fails `fr-font`**;
+- a page that does not load (HTTP ≥ 400, timeout) fails `runtime`.
+Observations (font requests, fonts in use, third-party requests per page × width) are in
+`budget.json` under `runtime.results`.
+
 ### Adding or changing a rule
 
 1. Change `src/budget/check.ts` (and `RULES`), numbers only in `src/budget/config.ts`
    (with a DECISIONS.md entry if it departs from CLAUDE.md / STACK-REPORT.md).
 2. Add a failing case to `CASES` in `test/budget.test.ts` (the test "covers every rule" fails if a
-   rule has none) and, if the rule could misfire, a positive control.
+   rule has none) and, if the rule could misfire, a positive control. Runtime behaviour:
+   `test/runtime.test.ts` (real Chrome). qa's 62 probes: `test/qa-probes.test.ts`.
 3. `npm test -w tools/measure`.
 
 The good fixture site (`test/fixtures/site.ts`) is generated in a temp dir: 4 pages, synthetic

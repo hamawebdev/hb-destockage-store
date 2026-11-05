@@ -76,8 +76,9 @@ describe('CSS', () => {
 
 describe('JS references', () => {
   it('finds imports, dynamic imports and injected script URLs', () => {
-    const js = `import a from './a.js'; export * from "../b.mjs"; import('/c.js'); s.src='/js/d.js?v=1'; const u = "not-a-path.js"; // https://example.com/e.js`;
-    expect(jsRefs(js).sort()).toEqual(['../b.mjs', './a.js', '/c.js', '/js/d.js?v=1'].sort());
+    const js = `import a from './a.js'; export * from "../b.mjs"; import('/c.js'); s.src='/js/d.js?v=1'; const u = "big.js"; new Worker(new URL('w.js', import.meta.url)); const t = "not a path.js"; // https://example.com/e.js`;
+    const refs = jsRefs(js).map((r) => `${r.ref}${r.loose ? ' (loose)' : ''}`).sort();
+    expect(refs).toEqual(['../b.mjs', './a.js', '/c.js', '/js/d.js?v=1', 'big.js (loose)', 'w.js (loose)'].sort());
   });
   it('finds absolute and protocol-relative URLs but not // comments', () => {
     expect(absUrlsIn('// a comment\nfetch("https://x.example/a"); s.src="//cdn.example.com/y.js"')).toEqual([

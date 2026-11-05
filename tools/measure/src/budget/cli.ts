@@ -7,16 +7,18 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { checkSite, RULES, type SiteReport } from './check.ts';
+import { checkSite, mergeRuntime, RULES, type SiteReport } from './check.ts';
+import { runtimeChecks, type RuntimeResult } from './runtime.ts';
 import { DEFAULT_DIST, artifactsRoot } from '../lib/paths.ts';
 
-const USAGE = `usage: npm run budget -- [--dist <dir>] [--out <dir>] [--own-origin <origin>]… [--quiet]
+const USAGE = `usage: npm run budget -- [--dist <dir>] [--out <dir>] [--own-origin <origin>]… [--quiet] [--static-only]
   --dist        built storefront (default apps/storefront/dist)
   --out         report directory (default <main checkout>/artifacts/budget)
   --own-origin  origin treated as first-party in absolute URLs (repeatable), e.g. the production domain
-  --quiet       print only violations and the verdict`;
+  --quiet       print only violations and the verdict
+  --static-only skip the Chrome runtime pass (fonts on /fr/, third-party requests); NOT valid for the gate`;
 
-export function main(argv: string[]): number {
+export async function main(argv: string[]): Promise<number> {
   let args;
   try {
     args = parseArgs({
@@ -25,7 +27,7 @@ export function main(argv: string[]): number {
         'dist': { type: 'string' },
         'out': { type: 'string' },
         'own-origin': { type: 'string', multiple: true },
-        'quiet': { type: 'boolean' },
+        'quiet': { type: 'boolean' }, 'static-only': { type: 'boolean' },
         'help': { type: 'boolean', short: 'h' },
       },
     }).values;
@@ -37,15 +39,22 @@ export function main(argv: string[]): number {
   const dist = path.resolve(args.dist ?? DEFAULT_DIST);
   const out = path.resolve(args.out ?? path.join(artifactsRoot(), 'budget'));
   let report: SiteReport;
+  let runtime: { ran: boolean; results: RuntimeResult[] } = { ran: false, results: [] };
   try {
     report = checkSite(dist, { ownOrigins: args['own-origin'] ?? [] });
+    const pages = report.pages.filter((p) => p.lang === 'ar' || p.lang === 'fr').map((p) => ({ url: p.url, lang: p.lang }));
+    if (!args['static-only'] && pages.length) {
+      const rt = await runtimeChecks(dist, pages);
+      report = mergeRuntime(report, rt.violations);
+      runtime = { ran: true, results: rt.results };
+    }
   } catch (e) {
     console.error(`budget: internal error: ${(e as Error).stack ?? String(e)}`);
     return 2;
   }
-  const table = formatTable(report, !!args.quiet);
+  const table = formatTable(report, !!args.quiet) + (runtime.ran ? '' : '\n(runtime pass skipped: --static-only; not valid for the gate)');
   mkdirSync(out, { recursive: true });
-  writeFileSync(path.join(out, 'budget.json'), `${JSON.stringify(report, null, 2)}\n`);
+  writeFileSync(path.join(out, 'budget.json'), `${JSON.stringify({ ...report, runtime }, null, 2)}\n`);
   writeFileSync(path.join(out, 'budget.txt'), `${table}\n`);
   console.log(table);
   console.log(`\nreport: ${path.join(out, 'budget.json')}`);
@@ -88,5 +97,5 @@ export function formatTable(r: SiteReport, quiet: boolean): string {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  process.exitCode = main(process.argv.slice(2));
+  main(process.argv.slice(2)).then((c) => { process.exitCode = c; }, (e: unknown) => { console.error(e); process.exitCode = 2; });
 }

@@ -7,8 +7,8 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseTags, has, attr, tokens, type Tag } from '../lib/html.ts';
 import {
-  brSize, parseSrcset, evalSizes, evalMedia, pickCandidate, isAvif, avifSize, cssUrls, fontFaces,
-  FONT_EXT, JS_EXT, type Candidate,
+  brSize, parseSrcset, evalSizes, evalMedia, pickCandidate, isAvif, avifSize, cssUrls, fontFaces, cleanCss,
+  FONT_EXT, JS_EXT, SVG_REF, RASTER_DATA, type Candidate,
 } from '../lib/assets.ts';
 import { walk } from '../lib/paths.ts';
 import { BUDGETS, NON_FETCHING_RELS, JS_TYPES, type Budgets } from './config.ts';
@@ -23,12 +23,13 @@ export const RULES = {
   'js-after-lcp': 'All JS a page can load (incl. lazily injected first-party JS) within the brotli budget',
   'critical-path': 'HTML + preloads + LCP image + fonts + pre-LCP images + CSS url() within bytes and request count',
   'lcp-image': 'At most one fetchpriority=high image, not lazy; image preloads match an image on the page',
-  'avif': 'AVIF srcsets list 360/480/720/960/1200 w, descriptors match the file, small widths within the byte budget',
-  'third-party': 'No resource from another origin before LCP (navigation <a href> is allowed)',
-  'fr-font': '/fr/ pages load no web font (system stack), never the Arabic font',
+  'avif': 'Every raster image is a same-origin AVIF srcset at 360/480/720/960/1200 w (descriptors = real widths); no candidate of any format ≤ 960 w over the byte budget; no raster image outside a srcset (CSS, data:, poster…)',
+  'third-party': 'No resource from another origin before LCP (navigation <a href> is allowed); (runtime) no request to another origin without user interaction',
+  'fr-font': '/fr/ pages preload/prefetch no font and (runtime) download no font: the Arabic face in the shared sheet stays unused',
   'ar-font': '/ar/ pages: at most one font file, font-display: optional, preloaded as=font with crossorigin',
   'html-lang-dir': '<html lang dir> matches the page language (ar → rtl, fr → ltr)',
   'missing-asset': 'Every first-party resource a page references exists in dist',
+  'runtime': 'Every page loads in Chrome for the runtime pass (fonts and third-party requests)',
 } as const;
 
 export type RuleId = keyof typeof RULES;
@@ -81,6 +82,19 @@ const TEXT_EXT = /\.(m?js|css|svg|json|html?|txt|xml|webmanifest)$/i;
 const SKIP_SCHEME = /^(data|blob|about|mailto|tel|sms|geo|whatsapp|intent):/i;
 const IMG_TYPES = new Set(['image/avif', 'image/webp', 'image/jpeg', 'image/png', 'image/gif', 'image/svg+xml']);
 
+/** Fold runtime violations into a static report (recomputes ok and the summary). */
+export function mergeRuntime(r: SiteReport, extra: Map<string, Violation[]>): SiteReport {
+  const pages = r.pages.map((p) => {
+    const add = extra.get(p.url) ?? [];
+    const violations = [...p.violations, ...add];
+    return { ...p, violations, ok: violations.length === 0 };
+  });
+  const all = [...r.siteViolations, ...pages.flatMap((p) => p.violations)];
+  const byRule: Partial<Record<RuleId, number>> = {};
+  for (const v of all) byRule[v.rule] = (byRule[v.rule] ?? 0) + 1;
+  return { ...r, pages, ok: all.length === 0, summary: { pages: pages.length, failingPages: pages.filter((p) => !p.ok).length, violations: all.length, byRule } };
+}
+
 export function checkSite(dist: string, opts: Options = {}): SiteReport {
   const budgets: Budgets = { ...BUDGETS, ...(opts.budgets ?? {}) };
   const ownOrigins = new Set((opts.ownOrigins ?? []).map((o) => new URL(o).origin));
@@ -125,7 +139,8 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
 
   // ---------- helpers ----------
   const resolve = (ref: string | undefined, base: URL = docUrl): Resolved => {
-    const r = (ref ?? '').trim();
+    // URL parser preprocessing: tab/newline removed anywhere, C0 controls and spaces trimmed
+    const r = normUrl(ref);
     if (!r || r.startsWith('#')) return { kind: 'skip' };
     if (/^javascript:/i.test(r)) return { kind: 'js-url', url: r };
     if (SKIP_SCHEME.test(r)) return { kind: 'skip' };
@@ -189,7 +204,7 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
 
   // ---------- css-inline ----------
   const styles = live.filter((t) => t.name === 'style');
-  const inlineCss = styles.map((t) => t.text ?? '').join('\n');
+  const inlineCss = cleanCss(styles.map((t) => t.text ?? '').join('\n'));
   if (styles.length !== 1) v('css-inline', `${styles.length} inline <style> elements (expected exactly 1)`);
   for (const t of scanned) {
     if (t.name !== 'link') continue;
@@ -234,7 +249,6 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
   const thirdSeen = new Set<string>();
   const checkRef = (ref: string | undefined, where: string): void => {
     const r = resolve(ref);
-    if (r.kind === 'js-url') v('js-inline-handler', `javascript: URL in ${where}`);
     if (r.kind !== 'third') return;
     const key = `${r.origin} ${where}`;
     if (thirdSeen.has(key)) return;
@@ -244,8 +258,8 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
   for (const t of scanned) {
     const tagDesc = `<${t.name}${has(t, 'rel') ? ` rel="${attr(t, 'rel')}"` : ''}>`;
     if (t.name === 'a' || t.name === 'area' || t.name === 'form') {
-      // navigation / submission targets are not fetched before LCP; only javascript: is refused
-      for (const a of ['href', 'action']) if (/^\s*javascript:/i.test(attr(t, a))) v('js-inline-handler', `javascript: URL in <${t.name} ${a}>`);
+      // navigation / submission targets are not fetched before LCP; hyperlink auditing (ping) is
+      for (const u of attr(t, 'ping').split(/\s+/).filter(Boolean)) checkRef(u, `<${t.name} ping>`);
     } else {
       for (const a of ['src', 'poster', 'data', 'background']) if (has(t, a)) checkRef(t.attrs[a], `${tagDesc} ${a}`);
       for (const a of ['srcset', 'imagesrcset']) if (has(t, a)) for (const c of parseSrcset(attr(t, a))) checkRef(c.url, `${tagDesc} ${a}`);
@@ -260,9 +274,11 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
     }
     for (const [a, val] of Object.entries(t.attrs)) {
       if (/^on[a-z]+$/.test(a)) v('js-inline-handler', `<${t.name} ${a}="…"> event-handler attribute`);
-      if (a === 'style') for (const u of cssUrls(val)) checkRef(u, `<${t.name} style> url()`);
+      if (/^javascript:/i.test(normUrl(val))) v('js-inline-handler', `javascript: URL in <${t.name} ${a}>`);
+      if (a === 'style') for (const u of cssUrls(cleanCss(val))) checkRef(u, `<${t.name} style> url()`);
     }
-    if (t.name === 'style') for (const u of cssUrls(t.text ?? '')) checkRef(u, '<style> url()');
+    if (t.name === 'iframe' && has(t, 'srcdoc')) for (const u of absUrlsIn(attr(t, 'srcdoc'))) checkRef(u, '<iframe srcdoc>');
+    if (t.name === 'style') for (const u of cssUrls(cleanCss(t.text ?? ''))) checkRef(u, '<style> url()');
     if (t.name === 'script' && !has(t, 'src')) {
       const type = attr(t, 'type').trim().toLowerCase();
       if (JS_TYPES.has(type) || type === 'speculationrules' || type === 'importmap') {
@@ -278,7 +294,8 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
   // ---------- scripts: js-before-lcp, speculation-rules, js-after-lcp ----------
   const jsFiles: Array<{ path: string; br: number; via: string }> = [];
   let inlineJsBr = 0;
-  const queue: Array<{ ref: string; base: URL; via: string }> = [];
+  // loose = a bare string like 'big.js': followed when such a file exists, never "missing"
+  const queue: Array<{ ref: string; base: URL; via: string; loose?: boolean }> = [];
   for (const t of live) {
     if (t.name === 'link') {
       const rels = tokens(t, 'rel');
@@ -308,7 +325,7 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
     else {
       const text = t.text ?? '';
       if (text.trim()) inlineJsBr += gateBr(text);
-      for (const ref of jsRefs(text)) queue.push({ ref, base: docUrl, via: 'inline script' });
+      for (const { ref, loose } of jsRefs(text)) queue.push({ ref, base: docUrl, via: 'inline script', loose });
     }
   }
   // modules named in data-* attributes (the storefront LOADER imports every token of [data-js]
@@ -325,7 +342,7 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
   const seenJs = new Set<string>();
   const lazyThird = new Set<string>();
   for (let item = queue.shift(); item; item = queue.shift()) {
-    const { ref, base, via } = item;
+    const { ref, base, via, loose } = item;
     const r = resolve(ref, base);
     if (r.kind === 'third') { lazyThird.add(r.origin); continue; }
     if (r.kind !== 'same' || seenJs.has(r.path)) continue;
@@ -337,11 +354,11 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
       const p2 = samePath(ref, docUrl);
       if (p2) { buf = read(p2); found = p2; }
     }
-    if (!buf) { missing(r.path, `script (via ${via})`); continue; }
+    if (!buf) { if (!loose) missing(r.path, `script (via ${via})`); continue; }
     jsFiles.push({ path: found, br: gateBr(buf), via });
     const text = buf.toString('utf8');
     const fileUrl = new URL(found, BASE);
-    for (const sub of jsRefs(text)) queue.push({ ref: sub, base: fileUrl, via: found });
+    for (const sub of jsRefs(text)) queue.push({ ref: sub.ref, base: fileUrl, via: found, loose: sub.loose });
     for (const u of absUrlsIn(text)) {
       const ru = resolve(u);
       if (ru.kind === 'third') lazyThird.add(ru.origin);
@@ -359,20 +376,20 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
     && (attr(t, 'as').toLowerCase() === 'font' || FONT_EXT.test(attr(t, 'href'))));
   // the first src URL of each @font-face is the one a woff2-capable browser fetches
   const facePaths = [...new Set(faces.map((f) => samePath(f.urls[0])).filter((p): p is string => !!p))];
-  const allFontRefs = [...new Set([
-    ...faces.flatMap((f) => f.urls),
-    ...fontPreloads.map((t) => attr(t, 'href')),
-    ...cssUrls(inlineCss).filter((u) => FONT_EXT.test(u)),
-    ...live.filter((t) => t.name === 'link' && FONT_EXT.test(attr(t, 'href'))).map((t) => attr(t, 'href')),
-  ].filter(Boolean))];
-  if (lang === 'fr' && (allFontRefs.length || faces.length)) {
-    const arabic = [
-      ...allFontRefs.filter((u) => /arab/i.test(u)),
-      ...faces.filter((f) => /arab/i.test(f.family) || /U\+06/i.test(f.unicodeRange ?? '')).map((f) => `@font-face "${f.family}"`),
-    ];
-    v('fr-font', arabic.length
-      ? `French page references the Arabic font: ${[...new Set(arabic)].join(', ')}`
-      : `French page references a web font (French uses the system stack): ${allFontRefs.join(', ') || faces.map((f) => f.family).join(', ')}`);
+  // /fr/: the shared sheet may declare the Arabic @font-face (lead ruling on SHELL-1 F2 / QA BUG-2:
+  // one stylesheet for both languages is mandated); what must not happen is a download. Statically
+  // that is any font preload/prefetch; the runtime pass (runtime.ts) checks the actual requests.
+  if (lang === 'fr') {
+    const arabicUrls = new Set(faces.filter((f) => /arab/i.test(f.family) || /U\+0?6[0-9a-f]{2}/i.test(f.unicodeRange ?? '')).flatMap((f) => f.urls));
+    for (const t of live) {
+      if (t.name !== 'link') continue;
+      const rels = tokens(t, 'rel');
+      if (!rels.some((r) => r === 'preload' || r === 'prefetch' || r === 'prerender')) continue;
+      const href = attr(t, 'href');
+      if (attr(t, 'as').toLowerCase() !== 'font' && !FONT_EXT.test(href)) continue;
+      const arabic = /arab/i.test(href) || arabicUrls.has(href);
+      v('fr-font', `French page ${rels.join(' ')}s ${arabic ? 'the Arabic font' : 'a web font'} ${href} (French uses the system stack; the Arabic font loads on /ar/ only)`);
+    }
   }
   if (lang === 'ar') {
     const preloadPaths = fontPreloads.map((t) => samePath(attr(t, 'href'))).filter((p): p is string => !!p);
@@ -430,58 +447,134 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
     } else addCrit(`preload ${attr(t, 'as') || rels.join(' ')}`, t.attrs['href']);
   }
   if (lcpImg) addCrit('LCP image', choose(imageChoice(lcpImg))?.url);
-  for (const f of faces) if (f.urls[0]) addCrit('font', f.urls[0]);
+  // @font-face fonts are fetched only when text uses them: on /ar/ the Arabic font always is; on
+  // /fr/ the shared sheet's Arabic face must stay unused (the runtime pass proves it), so only
+  // preloaded fonts count there
+  if (lang !== 'fr') for (const f of faces) if (f.urls[0]) addCrit('font', f.urls[0]);
   const faceUrls = new Set(faces.flatMap((f) => f.urls));
   for (const u of cssUrls(inlineCss)) if (!u.startsWith('data:') && !faceUrls.has(u)) addCrit('CSS url()', u);
   for (const t of live) {
     if (t.index >= lcpIndex) break;
     if (t.name === 'img' && t !== lcpImg && attr(t, 'loading').toLowerCase() !== 'lazy') addCrit('image before LCP', choose(imageChoice(t))?.url);
     if (t.name === 'script' && has(t, 'src')) addCrit('script before LCP', t.attrs['src']);
+    if (t.name === 'video' && has(t, 'poster')) addCrit('poster before LCP', t.attrs['poster']);
+    if (t.name === 'input' && attr(t, 'type').toLowerCase() === 'image' && has(t, 'src')) addCrit('input image before LCP', t.attrs['src']);
+    if ((t.name === 'image' || t.name === 'feimage') && (has(t, 'href') || has(t, 'xlink:href'))) addCrit('SVG image before LCP', t.attrs['href'] ?? t.attrs['xlink:href']);
+    if (has(t, 'background')) addCrit('background before LCP', t.attrs['background']);
+    if (has(t, 'style')) for (const u of cssUrls(cleanCss(attr(t, 'style')))) if (!u.startsWith('data:')) addCrit('style="" url() before LCP', u);
   }
   const critBytes = critical.reduce((n, c) => n + c.bytes, 0);
   if (critBytes > budgets.criticalBytesMax || critical.length > budgets.criticalRequestsMax) {
     v('critical-path', `critical path ${critBytes} B in ${critical.length} requests (budget ${budgets.criticalBytesMax} B in ${budgets.criticalRequestsMax}): ${critical.map((c) => `${c.kind} ${c.url} ${c.bytes} B`).join('; ')}`);
   }
 
-  // ---------- avif ----------
+  // ---------- images (avif) ----------
+  // Every raster image the page can show must be an AVIF srcset at 360/480/720/960/1200 w, same
+  // origin, with real widths matching the descriptors, and no candidate of any format at ≤ 960 w
+  // (or of unknown width) over 25,000 B. Escape routes fail on their own: <img src> without a
+  // srcset, <picture> without an AVIF <source>, href-only image preloads, CSS raster backgrounds
+  // (url() and image-set()), raster data: URIs, poster, <input type=image>, SVG <image>.
+  // Exempt: SVG (vector: logos, icons) and <link rel=icon|apple-touch-icon|manifest>.
   const avifs: PageResult['metrics']['avif'] = [];
   const avifSeen = new Set<string>();
-  /** @returns true when the file is an AVIF */
-  const checkAvifFile = (p: string, declaredW: number | undefined, where: string): boolean => {
+  const imgV = (msg: string): void => v('avif', msg);
+  const isVector = (u: string | undefined): boolean => SVG_REF.test(normUrl(u));
+  /** Byte/width check of one same-origin candidate file; returns 'avif' | 'other' | 'missing'. */
+  const checkFile = (p: string, declaredW: number | undefined, where: string): 'avif' | 'other' | 'missing' => {
     const buf = read(p);
-    if (!buf) { missing(p, `image (${where})`); return /\.avif$/i.test(p); }
-    if (!/\.avif$/i.test(p) && !isAvif(buf)) return false;
+    if (!buf) { missing(p, `image (${where})`); return 'missing'; }
+    const avif = isAvif(buf);
+    const dim = avif ? avifSize(buf) : null;
     const key = `${p} ${declaredW}`;
-    if (avifSeen.has(key)) return true;
+    if (avifSeen.has(key)) return avif ? 'avif' : 'other';
     avifSeen.add(key);
-    const dim = avifSize(buf);
     avifs.push({ url: p, ...(declaredW !== undefined ? { declaredW } : {}), ...(dim ? { width: dim.width } : {}), bytes: buf.length });
-    if (!dim) { v('avif', `${p}: not a readable AVIF (no avif ftyp brand / ispe box)`); return true; }
-    if (declaredW !== undefined && declaredW !== dim.width) v('avif', `${p}: srcset says ${declaredW}w but the image is ${dim.width} px wide`);
-    const w = Math.min(declaredW ?? dim.width, dim.width);
-    if (w <= budgets.avifCheckMaxWidth && buf.length > budgets.avifMaxBytes) {
-      v('avif', `${p}: ${buf.length} B at ${dim.width} w (budget ${budgets.avifMaxBytes} B at ≤ ${budgets.avifCheckMaxWidth} w)`);
+    if (/\.avif(?:$|\?)/i.test(p) && !dim) imgV(`${p}: not a readable AVIF (no avif ftyp brand / ispe box)`);
+    if (dim && declaredW !== undefined && declaredW !== dim.width) imgV(`${p}: srcset says ${declaredW}w but the image is ${dim.width} px wide`);
+    // width known from the AVIF itself or the descriptor; unknown width = checked (conservative)
+    const w = Math.min(declaredW ?? Infinity, dim?.width ?? Infinity);
+    if ((w <= budgets.avifCheckMaxWidth || w === Infinity) && buf.length > budgets.avifMaxBytes) {
+      imgV(`${p}: ${buf.length} B at ${w === Infinity ? 'unknown width' : `${w} w`} (budget ${budgets.avifMaxBytes} B at ≤ ${budgets.avifCheckMaxWidth} w, any format)`);
     }
-    return true;
+    return dim ? 'avif' : 'other';
   };
-  for (const t of scanned) {
-    for (const a of ['srcset', 'imagesrcset']) {
-      if (!has(t, a)) continue;
-      const cands = parseSrcset(attr(t, a));
-      let anyAvif = attr(t, 'type').toLowerCase() === 'image/avif';
-      for (const c of cands) {
-        const p = samePath(c.url);
-        if (p && checkAvifFile(p, c.w, `<${t.name} ${a}>`)) anyAvif = true;
-      }
-      if (!anyAvif) continue;
-      if (cands.some((c) => c.w === undefined)) v('avif', `<${t.name} ${a}> uses density (x) descriptors; use width (w) descriptors`);
-      const widths = new Set(cands.map((c) => c.w));
-      const lacking = budgets.avifWidths.filter((w) => !widths.has(w));
-      if (lacking.length) v('avif', `<${t.name} ${a}="${attr(t, a).slice(0, 80)}…"> lacks ${lacking.map((w) => `${w}w`).join(', ')} (AVIF must exist at ${budgets.avifWidths.join('/')} w)`);
+  /** A complete AVIF candidate set: w descriptors, all five widths, every file a real AVIF. */
+  const checkAvifSet = (srcset: string, where: string): void => {
+    const cands = parseSrcset(srcset);
+    if (cands.some((c) => c.w === undefined)) imgV(`${where} uses density (x) or no descriptors; use width (w) descriptors`);
+    const widths = new Set(cands.map((c) => c.w));
+    const lacking = budgets.avifWidths.filter((w) => !widths.has(w));
+    if (lacking.length) imgV(`${where} lacks ${lacking.map((w) => `${w}w`).join(', ')} (AVIF must exist at ${budgets.avifWidths.join('/')} w)`);
+    for (const c of cands) {
+      const u = normUrl(c.url);
+      if (RASTER_DATA.test(u)) { imgV(`${where} has a raster data: URI candidate`); continue; }
+      const p = samePath(u);
+      if (!p) continue; // third-party: reported by the third-party rule
+      if (checkFile(p, c.w, where) === 'other') imgV(`${where}: ${p} is not an AVIF`);
     }
-    const single = t.name === 'img' ? t.attrs['src'] : t.name === 'link' && attr(t, 'as').toLowerCase() === 'image' ? t.attrs['href'] : undefined;
-    const p = samePath(single);
-    if (p) checkAvifFile(p, undefined, `<${t.name}>`);
+  };
+  /** Any other candidate (fallbacks, single URLs): bytes and AVIF validity only. */
+  const checkLoose = (u: string | undefined, declaredW: number | undefined, where: string): void => {
+    const n = normUrl(u);
+    if (!n || isVector(n)) return;
+    if (RASTER_DATA.test(n)) { imgV(`${where}: raster data: URI (bypasses srcset, AVIF and the byte budget)`); return; }
+    const p = samePath(n);
+    if (p) checkFile(p, declaredW, where);
+  };
+
+  for (const t of scanned) {
+    if (t.name === 'img') {
+      const src = attr(t, 'src');
+      const own = parseSrcset(attr(t, 'srcset'));
+      const all = [...own.map((c) => c.url), src].filter(Boolean);
+      if (all.length && all.every((u) => isVector(u))) continue; // SVG logo / icon
+      const where = `<img${src ? ` src="${src.slice(0, 60)}"` : ''}>`;
+      // the <picture> sources directly before this <img>
+      const sources: Tag[] = [];
+      let k = t.index - 1;
+      for (; k >= 0 && tags[k]?.name === 'source'; k--) sources.unshift(tags[k] as Tag);
+      const inPicture = tags[k]?.name === 'picture';
+      const avifSource = inPicture ? sources.find((s) => attr(s, 'type').toLowerCase().split(';')[0]?.trim() === 'image/avif') : undefined;
+      const ownIsAvif = own.length > 0 && own.some((c) => /\.avif(?:$|\?)/i.test(c.url) || (() => { const p = samePath(c.url); const b = p ? read(p) : null; return !!b && isAvif(b); })());
+      if (avifSource) checkAvifSet(attr(avifSource, 'srcset'), `${where}'s <source type="image/avif">`);
+      else if (ownIsAvif) checkAvifSet(attr(t, 'srcset'), `${where} srcset`);
+      else if (inPicture) imgV(`${where}: <picture> without a <source type="image/avif"> (photos must be an AVIF srcset)`);
+      else if (own.length) imgV(`${where}: srcset is not AVIF (photos must be an AVIF srcset)`);
+      else imgV(`${where} has no srcset (photos must be an AVIF srcset at ${budgets.avifWidths.join('/')} w)`);
+      // every other candidate the browser could pick (other sources, the img's own srcset and src)
+      for (const s of sources) if (s !== avifSource) for (const c of parseSrcset(attr(s, 'srcset'))) checkLoose(c.url, c.w, `<source type="${attr(s, 'type')}">`);
+      if (!ownIsAvif || avifSource) for (const c of own) checkLoose(c.url, c.w, `${where} srcset`);
+      checkLoose(src, undefined, where);
+      continue;
+    }
+    if (t.name === 'link' && tokens(t, 'rel').includes('preload') && attr(t, 'as').toLowerCase() === 'image') {
+      if (has(t, 'imagesrcset')) checkAvifSet(attr(t, 'imagesrcset'), '<link rel="preload" as="image" imagesrcset>');
+      else if (!isVector(attr(t, 'href'))) imgV(`<link rel="preload" as="image" href="${attr(t, 'href')}"> without imagesrcset (must preload the AVIF srcset)`);
+      continue;
+    }
+    if (t.name === 'source' && !(tags.slice(t.index + 1).find((x) => x.name !== 'source')?.name === 'img')) {
+      // a <source> outside <picture><img> (e.g. <video>/<audio>) is not an image
+      continue;
+    }
+    const single: Array<[string, string | undefined]> = [];
+    if (t.name === 'video' && has(t, 'poster')) single.push(['<video poster>', t.attrs['poster']]);
+    if (t.name === 'input' && attr(t, 'type').toLowerCase() === 'image') single.push(['<input type="image">', t.attrs['src']]);
+    if (t.name === 'image' || t.name === 'feimage') single.push([`<${t.name} href>`, t.attrs['href'] ?? t.attrs['xlink:href']]);
+    if (has(t, 'background')) single.push([`<${t.name} background>`, t.attrs['background']]);
+    if (has(t, 'style')) for (const u of cssUrls(cleanCss(attr(t, 'style')))) single.push([`<${t.name} style> url()`, u]);
+    for (const [where, u] of single) {
+      const n = normUrl(u);
+      if (!n || isVector(n)) continue;
+      imgV(`${where} ${n.startsWith('data:') ? 'raster data: URI' : n}: a raster image outside an AVIF srcset (use <img> with an AVIF srcset, or SVG)`);
+      checkLoose(n, undefined, where);
+    }
+  }
+  // CSS in the inline sheet: raster backgrounds escape srcset (fonts are not images)
+  for (const u of cssUrls(inlineCss)) {
+    const n = normUrl(u);
+    if (!n || isVector(n) || FONT_EXT.test(n) || /\.css(?:$|\?)/i.test(n) || faces.some((f) => f.urls.includes(u))) continue;
+    imgV(`<style> ${n.startsWith('data:') ? 'raster data: URI' : `url(${n})`}: a raster image outside an AVIF srcset (use <img> with an AVIF srcset, or SVG)`);
+    checkLoose(n, undefined, '<style> url()');
   }
 
   return {
@@ -514,15 +607,28 @@ export function absUrlsIn(text: string): string[] {
   return out;
 }
 
-/** References to JS files in JS text: import/export-from, import(), and '.js' string literals. */
-export function jsRefs(text: string): string[] {
-  const out = new Set<string>();
+/**
+ * References to JS files in JS text: import/export-from, import(), and string literals ending in
+ * .js/.mjs. Literals that are not explicit paths ('/x.js', './x.js', '../x.js', URLs) are `loose`.
+ */
+export function jsRefs(text: string): Array<{ ref: string; loose: boolean }> {
+  const out = new Map<string, boolean>();
+  const add = (r: string, loose: boolean): void => { if (!out.has(r) || out.get(r)) out.set(r, loose); };
   let m: RegExpExecArray | null;
   const imp = /\b(?:import|export)\s*(?:[\w*${}\s,]+?\s*from\s*)?["']([^"'\n]+)["']/g;
-  while ((m = imp.exec(text))) if (m[1]) out.add(m[1]);
+  while ((m = imp.exec(text))) if (m[1]) add(m[1], false);
   const dyn = /\bimport\(\s*["'`]([^"'`\n]+)["'`]\s*\)/g;
-  while ((m = dyn.exec(text))) if (m[1]) out.add(m[1]);
-  const lit = /(["'`])((?:https?:)?(?:\/|\.\.?\/)[^"'`\s]*?\.m?js(?:\?[^"'`\s]*)?)\1/g;
-  while ((m = lit.exec(text))) if (m[2]) out.add(m[2]);
-  return [...out];
+  while ((m = dyn.exec(text))) if (m[1]) add(m[1], false);
+  const lit = /(["'`])([^"'`\s]+?\.m?js(?:\?[^"'`\s]*)?)\1/g;
+  while ((m = lit.exec(text))) {
+    const r = m[2] ?? '';
+    if (/^(?:https?:)?\/\/|^\.{0,2}\//.test(r)) add(r, false);
+    else if (/^[\w.-]+(?:\/[\w.-]+)*\.m?js(?:\?\S*)?$/.test(r)) add(r, true);
+  }
+  return [...out].map(([ref, loose]) => ({ ref, loose }));
+}
+
+/** The URL parser's preprocessing: ASCII tab/newline removed, leading/trailing C0 and space trimmed. */
+export function normUrl(ref: string | undefined): string {
+  return (ref ?? '').replace(/[\t\n\r]/g, '').replace(/^[\x00-\x20]+|[\x00-\x20]+$/g, '');
 }

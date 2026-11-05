@@ -133,19 +133,19 @@ const CASES: Case[] = [
     },
   },
   {
-    name: 'non-lazy image before the LCP pushes bytes over 45 KiB', rule: 'critical-path',
+    name: 'non-lazy image before the LCP pushes bytes over 45 KiB', rule: 'critical-path', allow: ['avif'],
     mutate: (d) => { put(d, 'img/banner.png', noise(16000, 9)); edit(d, AR_P, (s) => s.replace('</header>', '<img src="/img/banner.png" width="10" height="10" alt=""></header>')); },
   },
   {
     name: 'external CSS url() counts', rule: 'critical-path',
     mutate: (d) => {
-      put(d, 'img/bg.png', noise(100, 4)); put(d, 'img/bg2.png', noise(100, 5));
-      edit(d, AR_P, (s) => s.replace('<style>', '<style>.a{background:url(/img/bg.png)}.b{background:url("/img/bg2.png")}'));
+      put(d, 'img/bg.svg', noise(100, 4)); put(d, 'img/bg2.svg', noise(100, 5));
+      edit(d, AR_P, (s) => s.replace('<style>', '<style>.a{background:url(/img/bg.svg)}.b{background:url("/img/bg2.svg")}'));
     },
   },
 
   // lcp-image
-  { name: 'two fetchpriority=high images', rule: 'lcp-image', mutate: (d) => edit(d, FR_P, (s) => s.replace('</h1>', '</h1><img src="/img/p1-360.avif" width="360" height="360" alt="" fetchpriority="high">')) },
+  { name: 'two fetchpriority=high images', rule: 'lcp-image', mutate: (d) => edit(d, FR_P, (s) => s.replace('</h1>', `</h1><img src="/img/p1-360.avif" srcset="${srcset('p1')}" width="360" height="360" alt="" fetchpriority="high">`)) },
   { name: 'LCP image is lazy', rule: 'lcp-image', mutate: (d) => edit(d, FR_P, (s) => s.replace('alt="Pack cuisine" fetchpriority="high">', 'alt="Pack cuisine" fetchpriority="high" loading="lazy">')) },
   {
     name: 'image preload matching no image', rule: 'lcp-image',
@@ -169,26 +169,20 @@ const CASES: Case[] = [
   // third-party (QA: preconnect + image from another origin)
   { name: 'preconnect to Turnstile', rule: 'third-party', mutate: (d) => edit(d, FR_P, before(HEAD_END, '<link rel="preconnect" href="https://challenges.cloudflare.com">')) },
   { name: 'dns-prefetch', rule: 'third-party', mutate: (d) => edit(d, FR_P, before(HEAD_END, '<link rel="dns-prefetch" href="//challenges.cloudflare.com">')) },
-  { name: 'image from a CDN', rule: 'third-party', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<img src="https://cdn.example.com/x.avif" loading="lazy" alt=""></main>')) },
+  { name: 'image from a CDN', rule: 'third-party', allow: ['avif'], mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<img src="https://cdn.example.com/x.avif" loading="lazy" alt=""></main>')) },
   { name: 'srcset candidate on another origin', rule: 'third-party', mutate: (d) => edit(d, FR_H, (s) => s.replace(srcset('c1'), `${srcset('c1')}, https://cdn.example.com/c-1600.avif 1600w`)) },
   { name: 'static Turnstile <script src>', rule: 'third-party', mutate: (d) => edit(d, FR_P, before(BODY_END, '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>')) },
   { name: 'third-party URL in an inline script', rule: 'third-party', mutate: (d) => edit(d, FR_P, before(BODY_END, '<script type="module">import("https://challenges.cloudflare.com/turnstile/v0/api.js")</script>')) },
-  { name: 'third-party url() in CSS', rule: 'third-party', allow: ['critical-path'], mutate: (d) => edit(d, FR_H, (s) => s.replace('<style>', '<style>.h{background:url(https://cdn.example.com/bg.avif)}')) },
-  { name: 'third-party url() in a style attribute', rule: 'third-party', mutate: (d) => edit(d, FR_H, (s) => s.replace('<footer>', '<footer style="background:url(\'https://cdn.example.com/f.png\')">')) },
-  { name: 'tracker in <noscript>', rule: 'third-party', mutate: (d) => edit(d, FR_H, before(BODY_END, '<noscript><img src="https://tracker.example/p.gif" alt=""></noscript>')) },
+  { name: 'third-party url() in CSS', rule: 'third-party', allow: ['critical-path', 'avif'], mutate: (d) => edit(d, FR_H, (s) => s.replace('<style>', '<style>.h{background:url(https://cdn.example.com/bg.avif)}')) },
+  { name: 'third-party url() in a style attribute', rule: 'third-party', allow: ['avif'], mutate: (d) => edit(d, FR_H, (s) => s.replace('<footer>', '<footer style="background:url(\'https://cdn.example.com/f.png\')">')) },
+  { name: 'tracker in <noscript>', rule: 'third-party', allow: ['avif'], mutate: (d) => edit(d, FR_H, before(BODY_END, '<noscript><img src="https://tracker.example/p.gif" alt=""></noscript>')) },
   { name: 'third-party favicon', rule: 'third-party', mutate: (d) => edit(d, FR_H, before(HEAD_END, '<link rel="icon" href="https://cdn.example.com/favicon.ico">')) },
   { name: 'iframe widget', rule: 'third-party', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<iframe src="https://widget.example/chat" title="chat" loading="lazy"></iframe></main>')) },
 
   // fr-font
   { name: '/fr/ preloads the Arabic font', rule: 'fr-font', mutate: (d) => edit(d, FR_P, before(HEAD_END, `<link rel="preload" href="${FONT}" as="font" type="font/woff2" crossorigin>`)) },
-  {
-    name: '/fr/ declares the Arabic @font-face (unicode-range)', rule: 'fr-font',
-    mutate: (d) => edit(d, FR_H, (s) => s.replace('<style>', `<style>@font-face{font-family:"AR";src:url(${FONT}) format("woff2");font-display:optional;unicode-range:U+0600-06FF}`)),
-  },
-  {
-    name: '/fr/ loads any web font', rule: 'fr-font', allow: ['critical-path'],
-    mutate: (d) => { put(d, 'font/inter.woff2', noise(20000, 2)); edit(d, FR_H, (s) => s.replace('<style>', '<style>@font-face{font-family:"Inter";src:url(/font/inter.woff2) format("woff2")}')); },
-  },
+  { name: '/fr/ prefetches the Arabic font', rule: 'fr-font', mutate: (d) => edit(d, FR_H, before(HEAD_END, `<link rel="prefetch" href="${FONT}">`)) },
+  { name: '/fr/ preloads a Latin web font', rule: 'fr-font', allow: ['critical-path'], mutate: (d) => { put(d, 'font/inter.woff2', noise(20000, 2)); edit(d, FR_H, before(HEAD_END, '<link rel="preload" href="/font/inter.woff2" as="font" crossorigin>')); } },
 
   // ar-font (QA: Arabic page without font preload)
   { name: '/ar/ font not preloaded', rule: 'ar-font', mutate: (d) => edit(d, AR_P, (s) => s.replace(/<link rel="preload" href="\/font[^>]*>/, '')) },
@@ -215,11 +209,71 @@ const CASES: Case[] = [
   { name: 'lazily referenced script missing', rule: 'missing-asset', mutate: (d) => edit(d, 'js/order.js', (s) => `${s}\nconst x = '/js/nope.js';\n`) },
   { name: 'data-js module missing', rule: 'missing-asset', mutate: (d) => edit(d, FR_H, (s) => s.replace('<main id="main">', '<main id="main" data-js="/js/order.js /js/nope.js">')) },
   { name: 'Arabic font file missing', rule: 'missing-asset', mutate: (d) => rmSync(path.join(d, FONT.slice(1))) },
+
+  // ---- r2: every raster image is an AVIF srcset (rev-c Important 1; one fixture per escape route)
+  {
+    name: 'JPEG hero with two widths (rev-c probe)', rule: 'avif',
+    mutate: (d) => {
+      put(d, 'img/h-360.jpg', noise(9000, 21)); put(d, 'img/h-960.jpg', noise(30000, 22));
+      edit(d, FR_P, (s) => s.replace(/<picture>[\s\S]*?<\/picture>/, '<img src="/img/h-960.jpg" srcset="/img/h-360.jpg 360w, /img/h-960.jpg 960w" sizes="100vw" width="960" height="960" alt="x" fetchpriority="high">')
+        .replace(/<link rel="preload" as="image"[^>]*>/, ''));
+    },
+  },
+  {
+    name: 'single 1200 px AVIF hero without srcset (rev-c probe)', rule: 'avif',
+    mutate: (d) => edit(d, FR_P, (s) => s.replace(/<picture>[\s\S]*?<\/picture>/, '<img src="/img/p1-1200.avif" width="1200" height="1200" alt="x" fetchpriority="high">')
+      .replace(/<link rel="preload" as="image"[^>]*>/, '<link rel="preload" as="image" href="/img/p1-1200.avif" fetchpriority="high">')),
+  },
+  {
+    name: '<picture> without an AVIF source', rule: 'avif',
+    mutate: (d) => { put(d, 'img/h.webp', noise(9000, 23)); edit(d, FR_P, (s) => s.replace('<source type="image/avif"', '<source type="image/webp" srcset="/img/h.webp 720w"><source type="image/x-none"')); },
+  },
+  { name: 'plain <img src> card image without srcset', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<img src="/img/c1-360.avif" loading="lazy" width="360" height="360" alt=""></main>')) },
+  { name: 'PNG card image', rule: 'avif', mutate: (d) => { put(d, 'img/c.png', noise(3000, 24)); edit(d, FR_H, (s) => s.replace('</main>', '<img src="/img/c.png" loading="lazy" width="10" height="10" alt=""></main>')); } },
+  { name: 'raster data: URI image', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', `<img src="data:image/png;base64,${noise(300, 25).toString('base64')}" alt=""></main>`)) },
+  { name: 'raster CSS background (url)', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('<style>', '<style>.h{background:url(/img/c1-720.avif)}')) },
+  { name: 'raster CSS background (image-set string)', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('<style>', '<style>.h{background-image:image-set("/img/c1-720.avif" type("image/avif"))}')) },
+  { name: 'raster data: URI in CSS', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('<style>', `<style>.h{background:url(data:image/png;base64,${noise(60, 26).toString('base64')})}`)) },
+  { name: 'raster style="" background', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('<footer>', '<footer style="background:url(/img/c1-480.avif)">')) },
+  { name: 'raster <video poster>', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<video poster="/img/c1-720.avif" controls></video></main>')) },
+  { name: 'raster <input type=image>', rule: 'avif', mutate: (d) => edit(d, FR_P, (s) => s.replace('<button type="submit">', '<input type="image" src="/img/c1-360.avif" alt="ok"><button type="submit">')) },
+  { name: 'image preload without imagesrcset', rule: 'avif', mutate: (d) => edit(d, FR_P, before(HEAD_END, '<link rel="preload" as="image" href="/img/p1-960.avif">')) },
+  {
+    name: 'non-AVIF fallback inside <picture> over 25 KB at ≤ 960 w', rule: 'avif',
+    mutate: (d) => { put(d, 'img/p1-720.jpg', noise(30000, 27)); edit(d, FR_P, (s) => s.replace('<img src="/img/p1-720.avif"', '<img src="/img/p1-720.jpg"')); },
+  },
+
+  // ---- r2: nits and qa BUG-3..8 ("anything that can fetch or reference a URL must be seen")
+  { name: 'bare-relative .js literal over budget (rev-c Nit 1)', rule: 'js-after-lcp', mutate: (d) => { put(d, 'js/big.js', `const k="${noiseText(14000)}";`); edit(d, 'js/order.js', (s) => `${s}\nconst x = document.createElement('script'); x.src = 'big.js';\n`); } },
+  { name: 'new Worker(new URL("w.js", import.meta.url)) over budget', rule: 'js-after-lcp', mutate: (d) => { put(d, 'js/w.js', `const k="${noiseText(14000)}";`); edit(d, 'js/order.js', (s) => `${s}\nnew Worker(new URL('w.js', import.meta.url));\n`); } },
+  { name: 'formaction="javascript:" (rev-c Nit 2)', rule: 'js-inline-handler', mutate: (d) => edit(d, FR_P, (s) => s.replace('<button type="submit">', '<button type="submit" formaction="javascript:go()">')) },
+  { name: 'SVG xlink:href="javascript:"', rule: 'js-inline-handler', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<svg><a xlink:href="javascript:go()"><text>x</text></a></svg></main>')) },
+  { name: 'java&#x09;script: (qa BUG-7)', rule: 'js-inline-handler', mutate: (d) => edit(d, FR_H, (s) => s.replace('</footer>', '<a href="java&#x09;script:go()">x</a></footer>')) },
+  {
+    name: '<video poster> before the LCP counts (rev-c Nit 3)', rule: 'critical-path',
+    mutate: (d) => { put(d, 'img/poster.svg', `<svg xmlns="http://www.w3.org/2000/svg"><!--${noiseText(40000)}--></svg>`); edit(d, FR_P, (s) => s.replace('</header>', '<video poster="/img/poster.svg"></video></header>')); },
+  },
+  {
+    name: '<input type=image> before the LCP counts', rule: 'critical-path',
+    mutate: (d) => { put(d, 'img/i.svg', `<svg xmlns="http://www.w3.org/2000/svg"><!--${noiseText(40000)}--></svg>`); edit(d, FR_P, (s) => s.replace('</header>', '<input type="image" src="/img/i.svg" alt="go"></header>')); },
+  },
+  {
+    name: 'style="" url() before the LCP counts (qa BUG-8)', rule: 'critical-path',
+    mutate: (d) => { put(d, 'img/s.svg', `<svg xmlns="http://www.w3.org/2000/svg"><!--${noiseText(40000)}--></svg>`); edit(d, FR_P, (s) => s.replace('</header>', '<div style="background:url(/img/s.svg)">.</div></header>')); },
+  },
+  { name: '<template shadowrootmode> renders (rev-c Nit 4, qa BUG-4)', rule: 'third-party', allow: ['avif'], mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<div><template shadowrootmode="open"><img src="https://cdn.example.com/x.avif" alt=""></template></div></main>')) },
+  { name: '<iframe srcdoc> content', rule: 'third-party', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<iframe title="x" srcdoc="&lt;img src=https://cdn.example.com/x.png&gt;"></iframe></main>')) },
+  { name: 'CSS image-set() string URL (qa BUG-3)', rule: 'third-party', allow: ['avif', 'critical-path'], mutate: (d) => edit(d, FR_H, (s) => s.replace('<style>', '<style>.h{background-image:-webkit-image-set("https://cdn.example.com/a.avif" 1x)}')) },
+  { name: 'CSS escaped url', rule: 'third-party', allow: ['avif', 'critical-path'], mutate: (d) => edit(d, FR_H, (s) => s.replace('<style>', '<style>.h{background:url("\\68ttps://cdn.example.com/a.png")}')) },
+  { name: '<a ping> to another origin', rule: 'third-party', mutate: (d) => edit(d, FR_H, (s) => s.replace('rel="noopener">WhatsApp', 'rel="noopener" ping="https://track.example/p">WhatsApp')) },
+  { name: 'script after a comment closed by --!> (qa BUG-5)', rule: 'js-before-lcp', mutate: (d) => edit(d, FR_H, before(HEAD_END, '<!--x--!><script>var a=1</script>')) },
+  { name: 'font-display: optional only inside a CSS comment (qa BUG-6)', rule: 'ar-font', mutate: (d) => edit(d, AR_H, (s) => s.replace('font-display:optional', '/* font-display: optional */font-display:swap')) },
 ];
 
 describe('each rule fails on its fixture', () => {
   it('covers every rule', () => {
-    const covered = new Set(CASES.map((c) => c.rule));
+    // 'runtime' (page fails to load in Chrome) has its failing fixture in test/runtime.test.ts
+    const covered = new Set<RuleId>([...CASES.map((c) => c.rule), 'runtime']);
     expect(Object.keys(RULES).filter((r) => !covered.has(r as RuleId))).toEqual([]);
   });
 
@@ -246,14 +300,18 @@ describe('positive controls (things that must NOT fail)', () => {
   });
   it('absolute URLs on the own origin pass only when the origin is declared', () => {
     const dir = freshSite();
-    edit(dir, FR_H, (s) => s.replace('</main>', '<img src="https://hbdestockage.dz/img/c1-360.avif" loading="lazy" alt=""></main>'));
-    expect(rulesOf(checkSite(dir))).toEqual(['third-party']);
+    edit(dir, FR_H, (s) => s.replace('</main>', `<img src="https://hbdestockage.dz/img/c1-360.avif" srcset="${srcset('c1').replaceAll('/img/', 'https://hbdestockage.dz/img/')}" loading="lazy" alt=""></main>`));
+    expect([...new Set(rulesOf(checkSite(dir)))]).toEqual(['third-party']);
     expect(checkSite(dir, { ownOrigins: ['https://hbdestockage.dz'] }).ok).toBe(true);
   });
   ok('navigation links to other origins (wa.me, tel:) are fine', (d) => edit(d, FR_H, (s) => s.replace('</footer>', '<a href="https://www.facebook.com/hbdestockage">Facebook</a></footer>')));
   ok('JSON-LD with absolute URLs is fine', (d) => edit(d, FR_H, before(HEAD_END, '<script type="application/ld+json">{"@context":"https://schema.org","url":"https://example.com/"}</script>')));
   ok('third-party URLs inside <template> are inert', (d) => edit(d, FR_H, before(BODY_END, '<template><img src="https://cdn.example.com/t.avif" alt=""></template>')));
   ok('inline module script after the LCP element is fine', (d) => edit(d, FR_P, before(BODY_END, '<script type="module">document.body.dataset.ready="1"</script>')));
+  ok('the shared sheet may declare the Arabic @font-face on /fr/ (lead ruling F2; runtime pass checks the download)', (d) => edit(d, FR_H, (s) => s.replace('<style>', `<style>@font-face{font-family:"Noto Sans Arabic";src:url(${FONT}) format("woff2");font-display:optional;unicode-range:U+0600-06FF}`)));
+  ok('SVG images are exempt from the AVIF rule (logos, icons)', (d) => { put(d, 'img/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>'); edit(d, FR_H, (s) => s.replace('</header>', '<img src="/img/logo.svg" width="10" height="10" alt="HB"></header>')); });
+  ok('<!--> empty comments do not hide what follows... and a commented-out script is ignored', (d) => edit(d, FR_H, before(HEAD_END, '<!-- <script src="/js/order.js"></script> -->')));
+  ok('<source> inside <video> is not an image', (d) => { put(d, 'v.mp4', noise(100, 30)); edit(d, FR_H, (s) => s.replace('</main>', '<video controls preload="none"><source src="/v.mp4" type="video/mp4"></video></main>')); });
   ok('data: URIs are fine', (d) => edit(d, FR_H, (s) => s.replace('<style>', '<style>.i{background:url("data:image/svg+xml,%3Csvg%3E%3C/svg%3E")}')));
 });
 
@@ -261,14 +319,16 @@ describe('cli', () => {
   const cli = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/budget/cli.ts');
   const run = (args: string[]) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
 
-  it('exits 0 and writes JSON + table for the good site', () => {
+  it('exits 0 and writes JSON + table for the good site (static + Chrome runtime pass)', { timeout: 240_000 }, () => {
     const dir = freshSite();
     const out = mkdtempSync(path.join(tmpdir(), 'hb-budget-out-'));
     const res = run(['--dist', dir, '--out', out]);
     expect(res.status, res.stdout + res.stderr).toBe(0);
     expect(res.stdout).toContain('BUDGET OK');
-    const json = JSON.parse(readFileSync(path.join(out, 'budget.json'), 'utf8')) as SiteReport;
+    const json = JSON.parse(readFileSync(path.join(out, 'budget.json'), 'utf8')) as SiteReport & { runtime: { ran: boolean; results: unknown[] } };
     expect(json.ok).toBe(true);
+    expect(json.runtime.ran).toBe(true);
+    expect(json.runtime.results.length).toBeGreaterThan(4);
     expect(existsSync(path.join(out, 'budget.txt'))).toBe(true);
     rmSync(out, { recursive: true });
   });
@@ -277,8 +337,9 @@ describe('cli', () => {
     const dir = freshSite();
     put(dir, 'img/p1-720.avif', fakeAvif(720, 30000));
     const out = mkdtempSync(path.join(tmpdir(), 'hb-budget-out-'));
-    const res = run(['--dist', dir, '--out', out, '--quiet']);
+    const res = run(['--dist', dir, '--out', out, '--quiet', '--static-only']);
     expect(res.status).toBe(1);
+    expect(res.stdout).toContain('not valid for the gate');
     expect(res.stdout).toMatch(/\[avif\] \/img\/p1-720\.avif: 30000 B/);
     expect(res.stdout).toContain('BUDGET FAILED');
     rmSync(out, { recursive: true });

@@ -173,7 +173,21 @@ export function avifSize(buf: Buffer): { width: number; height: number } | null 
   return { width: buf.readUInt32BE(k + 8), height: buf.readUInt32BE(k + 12) };
 }
 
-/** `url(...)` and `@import "..."` references in CSS text. */
+/**
+ * CSS as the browser reads it for URLs: comments removed and escapes decoded
+ * (`url("\\68ttps://x")` is `https://x`; `/* font-display: optional *\/` is not a declaration).
+ */
+export function cleanCss(css: string): string {
+  return css
+    .replace(/\/\*[\s\S]*?(?:\*\/|$)/g, '')
+    .replace(/\\([0-9a-fA-F]{1,6})[ \t\n]?/g, (_m, h: string) => {
+      const cp = parseInt(h, 16);
+      return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : '\ufffd';
+    })
+    .replace(/\\([^\n0-9a-fA-F])/g, '$1');
+}
+
+/** `url(...)`, `@import "..."` and `image-set("...")` references in CSS text. */
 export function cssUrls(css: string): string[] {
   const out: string[] = [];
   const re = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)\s]*))\s*\)/gi;
@@ -181,6 +195,14 @@ export function cssUrls(css: string): string[] {
   while ((m = re.exec(css))) out.push((m[1] ?? m[2] ?? m[3] ?? '').trim());
   const imp = /@import\s+(?:"([^"]+)"|'([^']+)')/gi;
   while ((m = imp.exec(css))) out.push(m[1] ?? m[2] ?? '');
+  // image-set("a.avif" 1x, …) / -webkit-image-set: bare strings are URLs too (url() ones are
+  // already collected above)
+  const set = /image-set\(((?:[^()]|\([^()]*\))*)\)/gi;
+  while ((m = set.exec(css))) {
+    const strs = /(?:^|[\s,])(?:"([^"]+)"|'([^']+)')/g;
+    let q: RegExpExecArray | null;
+    while ((q = strs.exec(m[1] ?? ''))) out.push((q[1] ?? q[2] ?? '').trim());
+  }
   return out.filter(Boolean);
 }
 
@@ -211,4 +233,8 @@ export function fontFaces(css: string): FontFace[] {
 }
 
 export const FONT_EXT = /\.(woff2?|ttf|otf|eot)(?:[?#]|$)/i;
+/** Vector images: exempt from the AVIF/srcset rule (logos, icons). */
+export const SVG_REF = /^data:image\/svg\+xml|\.svg(?:[?#]|$)/i;
+/** Raster data: URIs (they bypass srcset, AVIF and the byte checks). */
+export const RASTER_DATA = /^data:image\/(?!svg\+xml)/i;
 export const JS_EXT = /\.m?js(?:[?#]|$)/i;

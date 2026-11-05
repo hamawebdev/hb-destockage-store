@@ -8,7 +8,8 @@
  * and the text of inline scripts and styles.
  *
  * Tags inside `<template>` or `<noscript>` are marked `inert`: a JS-capable browser neither
- * fetches nor runs them. Rules about what such a browser loads skip inert tags; the third-party
+ * fetches nor runs them. A `<template shadowrootmode>` (declarative shadow DOM) is NOT inert: its
+ * content renders and fetches. Rules about what such a browser loads skip inert tags; the third-party
  * rule still scans `<noscript>` content (a no-JS browser loads it).
  */
 
@@ -58,15 +59,20 @@ function parseAttrs(src: string): Record<string, string> {
 /** Tokenize an HTML document into start tags in document order. */
 export function parseTags(html: string): Tag[] {
   const tags: Tag[] = [];
-  const inertStack: Array<'template' | 'noscript'> = [];
+  // open template/noscript elements; 'shadow' = <template shadowrootmode>, which renders (not inert)
+  const stack: Array<'template' | 'noscript' | 'shadow'> = [];
   const n = html.length;
   let i = 0;
   while (i < n) {
     const lt = html.indexOf('<', i);
     if (lt < 0) break;
     if (html.startsWith('<!--', lt)) {
-      const e = html.indexOf('-->', lt + 4);
-      i = e < 0 ? n : e + 3;
+      // HTML comment end: '-->' or '--!>' (a parse error browsers accept); '<!-->' and '<!--->'
+      // are empty comments that close immediately
+      if (html.startsWith('<!-->', lt)) { i = lt + 5; continue; }
+      if (html.startsWith('<!--->', lt)) { i = lt + 6; continue; }
+      const m = /--!?>/.exec(html.slice(lt + 4));
+      i = m ? lt + 4 + m.index + m[0].length : n;
       continue;
     }
     const next = html[lt + 1];
@@ -80,8 +86,13 @@ export function parseTags(html: string): Tag[] {
       if (m) {
         const name = (m[1] ?? '').toLowerCase();
         if (name === 'template' || name === 'noscript') {
-          const k = inertStack.lastIndexOf(name);
-          if (k >= 0) inertStack.splice(k, 1);
+          // a declarative-shadow-DOM <template> was pushed as 'shadow'
+          let k = -1;
+          for (let q = stack.length - 1; q >= 0; q--) {
+            const e = stack[q];
+            if (e === name || (name === 'template' && e === 'shadow')) { k = q; break; }
+          }
+          if (k >= 0) stack.splice(k, 1);
         }
         i = lt + m[0].length;
       } else i = lt + 2;
@@ -105,10 +116,12 @@ export function parseTags(html: string): Tag[] {
       if (c === '>') break;
     }
     const attrSrc = html.slice(lt + nm[0].length, j).replace(/\/\s*$/, '');
-    const inertIn = inertStack[inertStack.length - 1];
+    const inertOnly = stack.filter((e): e is 'template' | 'noscript' => e !== 'shadow');
+    const inertIn = inertOnly[inertOnly.length - 1];
+    const attrs = parseAttrs(attrSrc);
     const tag: Tag = {
-      name, attrs: parseAttrs(attrSrc), start: lt, end: Math.min(j + 1, n), index: tags.length,
-      inert: inertStack.length > 0, ...(inertIn ? { inertIn } : {}),
+      name, attrs, start: lt, end: Math.min(j + 1, n), index: tags.length,
+      inert: inertOnly.length > 0, ...(inertIn ? { inertIn } : {}),
     };
     i = tag.end;
     if (RAW_TEXT.has(name)) {
@@ -120,7 +133,10 @@ export function parseTags(html: string): Tag[] {
       const gt = cm ? html.indexOf('>', stop) : -1;
       i = gt < 0 ? n : gt + 1;
     }
-    if (INERT.has(name)) inertStack.push(name as 'template' | 'noscript');
+    if (INERT.has(name)) {
+      const shadow = name === 'template' && ('shadowrootmode' in attrs || 'shadowroot' in attrs);
+      stack.push(shadow ? 'shadow' : (name as 'template' | 'noscript'));
+    }
     tags.push(tag);
   }
   return tags;
