@@ -13,14 +13,26 @@ export interface Started {
   readonly env: Env;
 }
 
-export async function startSeeded(): Promise<Started> {
-  const server = createTestHarness({ root: WEB_ROOT, workers: [{ configPath: './wrangler.jsonc', env: 'test' }] });
+/** Test-only secrets (never real values). */
+export const TEST_SECRETS = { ORDER_SIGNING_KEY: 'test-signing-key', IP_HASH_KEY: 'test-ip-salt' } as const;
+
+export async function startSeeded(secrets: Record<string, string> = TEST_SECRETS): Promise<Started> {
+  const server = createTestHarness({ root: WEB_ROOT, workers: [{ configPath: './wrangler.jsonc', env: 'test', secrets }] });
   await server.listen();
   const worker = server.getWorker<Env>();
   await worker.applyD1Migrations('DB');
   const env = await worker.getEnv();
   await env.DB.batch(SEED_SQL.map((s) => env.DB.prepare(s)));
   return { server, env };
+}
+
+export function postForm(server: TestHarness, path: string, fields: Record<string, string> | [string, string][], headers: Record<string, string> = {}): ReturnType<TestHarness['fetch']> {
+  return server.fetch(path, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...headers },
+    body: new URLSearchParams(fields).toString(),
+  });
 }
 
 export function postJson(

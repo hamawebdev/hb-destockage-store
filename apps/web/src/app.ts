@@ -8,6 +8,7 @@
 import { Hono } from 'hono';
 import { ConfigError, readConfig, type Env } from './env.ts';
 import { apiError, apiHeaders, log } from './http.ts';
+import { registerOrder } from './routes/order.ts';
 import { registerQuote } from './routes/quote.ts';
 
 export const app = new Hono<{ Bindings: Env }>();
@@ -33,15 +34,8 @@ app.all('/api/health', (c) => apiError(c, 405, 'method_not_allowed', {}, { Allow
 // --- /api/quote (WEB-2) -------------------------------------------------------------------------
 registerQuote(app);
 
-// --- Order confirmation page (WEB-3 fills the ref with HTMLRewriter; no D1 here, ever) ----------
-app.get('/:lang{ar|fr}/order/confirmation/*', async (c) => {
-  const res = await c.env.ASSETS.fetch(c.req.raw);
-  const out = new Response(res.body, res);
-  // Per-order URL (`?ref=`): never stored by a shared cache.
-  out.headers.set('Cache-Control', 'no-store');
-  out.headers.delete('Set-Cookie');
-  return out;
-});
+// --- /api/order + the order confirmation page (WEB-3) ------------------------------------------
+registerOrder(app);
 
 // --- Fallbacks ----------------------------------------------------------------------------------
 app.notFound((c) => {

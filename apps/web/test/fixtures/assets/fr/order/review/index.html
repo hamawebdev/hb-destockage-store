@@ -1,0 +1,16 @@
+<!doctype html><html lang="fr" dir="ltr"><head><meta charset="utf-8"><title>review fr</title><style>.x{color:red}</style></head><body>
+<div data-hb-when="has-errors" hidden role="alert">fixture-errors
+<p data-hb-error="name_required" hidden>err:name_required</p><p data-hb-error="name_invalid" hidden>err:name_invalid</p>
+<p data-hb-error="phone_required" hidden>err:phone_required</p><p data-hb-error="phone_invalid" hidden>err:phone_invalid</p><p data-hb-error="phone_not_mobile" hidden>err:phone_not_mobile</p>
+<p data-hb-error="commune_invalid" hidden>err:commune_invalid</p><p data-hb-error="variant_unavailable" hidden>err:variant_unavailable</p><p data-hb-error="variant_required" hidden>err:variant_required</p>
+<p data-hb-error="out_of_stock" hidden>err:out_of_stock</p><p data-hb-error="delivery_unavailable" hidden>err:delivery_unavailable</p><p data-hb-error="total_changed" hidden>err:total_changed</p>
+<p data-hb-error="rate_limited" hidden>err:rate_limited</p><p data-hb-error="server_error" hidden>err:server_error</p></div>
+<ul data-hb="lines"><li>placeholder-line</li></ul>
+<p>subtotal <bdi data-hb="subtotal">-</bdi> fee <bdi data-hb="fee">-</bdi> total <bdi data-hb="total">-</bdi></p>
+<a data-hb="back" href="/fr/">back</a>
+<form data-hb="form" method="post" action="/api/order">
+<input name="name" data-hb="name" data-hb-field="name" required>
+<input name="phone" type="tel" dir="ltr" data-hb="phone" data-hb-field="phone" required>
+<select name="communeId" data-hb="commune-select" data-hb-field="communeId" required><option value="">--</option></select>
+<div data-hb-when="can-confirm" hidden><button type="submit">confirm-fr</button></div>
+</form></body></html>

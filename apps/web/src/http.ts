@@ -14,7 +14,14 @@ export const API_HEADERS: Readonly<Record<string, string>> = {
 
 export const apiHeaders: MiddlewareHandler = async (c, next) => {
   await next();
-  for (const [k, v] of Object.entries(API_HEADERS)) c.res.headers.set(k, v);
+  // The no-JS review page is HTML from an /api/* POST: it carries its page CSP (WEB-4), not the API one.
+  const html = (c.res.headers.get('Content-Type') ?? '').startsWith('text/html');
+  for (const [k, v] of Object.entries(API_HEADERS)) {
+    if (html && k === 'Content-Security-Policy') continue;
+    // Keep a page's own stricter-or-equal cache policy (`private, no-store`).
+    if (k === 'Cache-Control' && (c.res.headers.get(k) ?? '').includes('no-store')) continue;
+    c.res.headers.set(k, v);
+  }
   // Defence in depth: nothing on this origin sets cookies (CLAUDE.md "Storefront: no cookies").
   c.res.headers.delete('Set-Cookie');
 };

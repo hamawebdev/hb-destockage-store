@@ -88,7 +88,8 @@ describe('fallbacks', () => {
 
   test('confirmation page is served from assets with no-store', async () => {
     const env = fakeEnv();
-    const res = await app.request('/ar/order/confirmation/?ref=HB-7K2Q9', {}, env);
+    // No ref: Node has no HTMLRewriter; the ref fill is covered in workerd (order.workerd.test.ts).
+    const res = await app.request('/ar/order/confirmation/', {}, env);
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toBe('no-store');
     expect(res.headers.get('set-cookie')).toBeNull();
