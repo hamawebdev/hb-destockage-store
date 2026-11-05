@@ -30,6 +30,8 @@ const USAGE = `usage: npm run lh -- [options]
   --min-benchmark <n>   benchmarkIndex below which a run is contended (default ${DEFAULT_MIN_BENCHMARK})
   --max-load <n>        1-minute load average above which a run is contended (default ${DEFAULT_MAX_LOAD})
   --quiet-wait <s>      before each run, wait up to this long for the load to drop (default 900)
+  --quiet-wait-total <s>  total load-wait budget for the whole invocation (default 1800); once spent,
+                        runs start at once (and are flagged contended when the load is high)
   --out <dir>           output directory (default <main checkout>/artifacts/lh)
   --chrome-path <path>  Chrome binary (default /usr/bin/google-chrome)
   --gate                strict mode for scripts/gate.sh (also HB_GATE=1): refuses every option that
@@ -58,15 +60,20 @@ function runLighthouse(bin: string, url: string, outFile: string, chromePath: st
   });
 }
 
-/** Wait (polling) until the 1-minute load average is ≤ max, up to waitS seconds. */
+/** Remaining total load-wait budget (ms) for this invocation; bounds the gate's wall time. */
+const waitBudget = { remainingMs: 1800_000 };
+
+/** Wait (polling) until the 1-minute load average is ≤ max, up to waitS seconds and the remaining budget. */
 async function waitForQuiet(max: number, waitS: number, label: string): Promise<void> {
-  const end = Date.now() + waitS * 1000;
+  const start = Date.now();
+  const end = start + Math.min(waitS * 1000, waitBudget.remainingMs);
   let said = false;
   while ((loadavg()[0] ?? 0) > max && Date.now() < end) {
     if (!said) { console.log(`  ${label}: waiting up to ${waitS} s for load ≤ ${max} (now ${loadavg()[0]?.toFixed(1)})`); said = true; }
     await new Promise((ok) => setTimeout(ok, 10_000));
   }
-  if (said) console.log(`  ${label}: load ${loadavg()[0]?.toFixed(1)}${(loadavg()[0] ?? 0) > max ? ' still high, running anyway (run will be flagged contended)' : ', going'}`);
+  waitBudget.remainingMs = Math.max(0, waitBudget.remainingMs - (Date.now() - start));
+  if (said) console.log(`  ${label}: load ${loadavg()[0]?.toFixed(1)}${(loadavg()[0] ?? 0) > max ? ' still high, running anyway (run will be flagged contended)' : ', going'}; wait budget left ${Math.round(waitBudget.remainingMs / 1000)} s`);
 }
 
 async function oneRun(o: { bin: string; target: TemplateTarget; baseUrl: string; attempt: number; retry: boolean; dir: string; chromePath: string; minBenchmark: number; maxLoad: number; quietWait: number }): Promise<RunRecord> {
@@ -93,7 +100,7 @@ export async function main(argv: string[]): Promise<number> {
       options: {
         'dist': { type: 'string' }, 'base-url': { type: 'string' }, 'serve': { type: 'string' }, 'port': { type: 'string' },
         'url': { type: 'string', multiple: true }, 'urls': { type: 'string' }, 'template': { type: 'string', multiple: true },
-        'runs': { type: 'string' }, 'min-benchmark': { type: 'string' }, 'max-load': { type: 'string' }, 'quiet-wait': { type: 'string' }, 'out': { type: 'string' }, 'chrome-path': { type: 'string' },
+        'runs': { type: 'string' }, 'min-benchmark': { type: 'string' }, 'max-load': { type: 'string' }, 'quiet-wait': { type: 'string' }, 'quiet-wait-total': { type: 'string' }, 'out': { type: 'string' }, 'chrome-path': { type: 'string' },
         'gate': { type: 'boolean' }, 'help': { type: 'boolean', short: 'h' },
       },
     }).values;
@@ -107,9 +114,10 @@ export async function main(argv: string[]): Promise<number> {
   const minBenchmark = Number(a['min-benchmark'] ?? DEFAULT_MIN_BENCHMARK);
   const maxLoad = Number(a['max-load'] ?? DEFAULT_MAX_LOAD);
   const quietWait = Number(a['quiet-wait'] ?? 900);
+  waitBudget.remainingMs = Number(a['quiet-wait-total'] ?? 1800) * 1000;
   const port = Number(a.port ?? DEFAULT_PORT);
   const serveMode = (a.serve ?? 'auto') as ServeMode;
-  if (!Number.isInteger(runs) || runs < 1 || !Number.isFinite(minBenchmark) || !Number.isFinite(maxLoad) || !Number.isFinite(quietWait) || !Number.isInteger(port) || !['auto', 'static', 'wrangler'].includes(serveMode)) {
+  if (!Number.isInteger(runs) || runs < 1 || !Number.isFinite(minBenchmark) || !Number.isFinite(maxLoad) || !Number.isFinite(quietWait) || !Number.isFinite(waitBudget.remainingMs) || !Number.isInteger(port) || !['auto', 'static', 'wrangler'].includes(serveMode)) {
     console.error(`bad --runs / --min-benchmark / --port / --serve\n${USAGE}`); return 2;
   }
   const chromePath = a['chrome-path'] ?? '/usr/bin/google-chrome';

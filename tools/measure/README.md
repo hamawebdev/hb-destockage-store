@@ -211,7 +211,9 @@ npm run lh -- --serve static --port 4114      # server choice / port (measure bl
   summary with the reason. The not-found template is measured at its file URL
   (`/{lang}/404.html`, HTTP 200): Lighthouse refuses to score a document answered with 404. MEAS-5 adds product kinds (simple/variable/pack) and sub-categories.
 - **Machine load (lead's rule, 2026-11-05):** before every run the CLI waits (up to
-  `--quiet-wait`, default 900 s) for the 1-minute load average to drop to `--max-load` (default 4).
+  `--quiet-wait`, default 900 s, within a total budget `--quiet-wait-total`, default 1800 s per
+  invocation, so the gate's wall time stays bounded) for the 1-minute load average to drop to
+  `--max-load` (default 4).
   A run is **contended** if it started with load > 4 or its `benchmarkIndex` is < 1,500 (this
   machine's quiet spike runs: 1,843–2,347; loaded: 117–1,505). A contended run is retried once,
   and the summary records both attempts with their load and benchmarkIndex.
