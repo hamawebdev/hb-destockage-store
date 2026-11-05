@@ -284,7 +284,7 @@ function init(f) {
       setBlocked(!d.available);
       showAlert(d.available ? '' : msg('delivery_unavailable'), !d.available);
       render();
-      if (d.available) say(msg('updated', { total: money(d.totalDzd) }));
+      if (d.available && k === inputs()) say(msg('updated', { total: money(d.totalDzd) })); // never announce a stale total
       return quote;
     }
     quote = null;
@@ -380,6 +380,7 @@ function init(f) {
     btn.setAttribute('aria-disabled', 'true');
     text(btn, msg('submitting'));
     say(msg('submitting'));
+    const sentK = inputs(); // the inputs this request (and any 409 quote in its answer) is about
     const body = {
       idempotencyKey: key,
       lang,
@@ -415,8 +416,14 @@ function init(f) {
     say('');
     if (r.status) ts?.reset(); // the server has seen (and spent) this Turnstile token
     const c = d.code;
-    // 409 answers carry a fresh quote (WEB-0 §2.2): show it; the next press confirms against it.
-    if (d.quote) apply(inputs(), { ...d.quote, ok: true, status: 200 });
+    // 409 answers carry a fresh quote (WEB-0 §2.2) for the inputs that were SENT. If the customer edited the form
+    // while the request was pending, it is not the summary of what is on screen: render() shows "—" for it and the
+    // current inputs are re-quoted, so the confirm gate cannot pass on a stale total (ORDER-2 review r1 F1).
+    if (d.quote) {
+      quotes.clear(); // a 409 means server prices/stock moved: cached quotes for other inputs are stale too
+      apply(sentK, { ...d.quote, ok: true, status: 200 });
+      if (sentK !== inputs()) changed();
+    }
     if (c === 'total_changed') {
       showAlert(msg('total_changed'));
       sumH.focus();
