@@ -71,3 +71,5 @@ export type NewRumDaily = typeof schema.rumDaily.$inferInsert;
 export type NotificationDelivery = typeof schema.notificationDeliveries.$inferSelect;
 export type NewNotificationDelivery = typeof schema.notificationDeliveries.$inferInsert;
 export * from './orders.ts';
+export * from './fees.ts';
+export * from './order-contact.ts';
