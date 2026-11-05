@@ -159,6 +159,68 @@ describe('parseOrderInput', () => {
   });
 });
 
+describe('missing keys get the field code, not invalid_request (web report on 6dabb6f)', () => {
+  const confirm = {
+    step: 'confirm',
+    lang: 'ar',
+    idempotencyKey: KEY,
+    variantId: '11',
+    qty: '1',
+    wilayaCode: '16',
+    communeId: '1601',
+    expectedTotalDzd: '15200',
+    website: '',
+    name: 'أمين',
+    phone: '0661100000',
+  };
+  const without = (o: Record<string, string>, k: string) => Object.fromEntries(Object.entries(o).filter(([key]) => key !== k));
+
+  test('the full confirm body is valid', () => {
+    expect(parseOrderInput(formFieldsToBody(confirm)).ok).toBe(true);
+  });
+
+  test.each([
+    ['communeId', { field: 'communeId', code: 'commune_invalid' }, 'validation'],
+    ['name', { field: 'name', code: 'name_required' }, 'validation'],
+    ['phone', { field: 'phone', code: 'phone_required' }, 'validation'],
+    ['wilayaCode', { field: 'wilayaCode', code: 'wilaya_invalid' }, 'validation'],
+    ['lang', { field: 'lang', code: 'lang_invalid' }, 'validation'],
+    ['variantId', { field: 'items', code: 'items_invalid' }, 'validation'],
+    ['idempotencyKey', { field: 'idempotencyKey', code: 'idempotency_key_invalid' }, 'idempotency_key_invalid'],
+    ['expectedTotalDzd', { field: 'expectedTotalDzd', code: 'invalid_request' }, 'invalid_request'],
+  ] as const)('order without %s', (key, error, top) => {
+    const r = parseOrderInput(formFieldsToBody(without(confirm, key)));
+    expect(r).toEqual({ ok: false, errors: [error] });
+    if (!r.ok) expect(failureCode(r.errors)).toBe(top);
+  });
+
+  const draft = { lang: 'fr', name: 'Amine', phone: '0661100000', wilayaCode: '16', variantId: '11', qty: '1' };
+  test.each([
+    ['name', { field: 'name', code: 'name_required' }],
+    ['phone', { field: 'phone', code: 'phone_required' }],
+    ['wilayaCode', { field: 'wilayaCode', code: 'wilaya_invalid' }],
+    ['lang', { field: 'lang', code: 'lang_invalid' }],
+  ] as const)('draft without %s', (key, error) => {
+    expect(parseOrderDraft(formFieldsToBody(without(draft, key)))).toEqual({ ok: false, errors: [error] });
+  });
+
+  test('quote without wilayaCode / items', () => {
+    expect(parseQuoteInput({ items: [{ variantId: 1, qty: 1 }] })).toEqual({
+      ok: false,
+      errors: [{ field: 'wilayaCode', code: 'wilaya_invalid' }],
+    });
+    expect(parseQuoteInput({ wilayaCode: 16 })).toEqual({ ok: false, errors: [{ field: 'items', code: 'items_invalid' }] });
+    expect(parseQuoteInput({ wilayaCode: 16, items: [{ variantId: 1 }] })).toEqual({
+      ok: false,
+      errors: [{ field: 'items', code: 'qty_invalid', index: 0 }],
+    });
+  });
+
+  test('a non-object body is still a request-level error', () => {
+    expect(parseOrderInput('x')).toEqual({ ok: false, errors: [{ field: 'form', code: 'invalid_request' }] });
+  });
+});
+
 describe('failureCode', () => {
   test('validation unless a request-level code is present', () => {
     expect(failureCode([{ field: 'phone', code: 'phone_invalid' }])).toBe('validation');
