@@ -102,6 +102,14 @@ describe('handleOrderNotifications', () => {
     expect(m.retryDelay).toBe(120);
   });
 
+  test('permanent failure: the DLQ gets the parsed order, never extra body fields', async () => {
+    const tg = new FakeProvider('telegram');
+    tg.failures.push(new PermanentError('telegram: HTTP 400'));
+    const dlq = { send: vi.fn(async () => undefined) } as unknown as Queue<unknown>;
+    await handleOrderNotifications(fakeBatch([fakeMessage({ ...body, phone: '+213560417403' })]), deps([tg], { dlq }));
+    expect(dlq.send).toHaveBeenCalledWith(body);
+  });
+
   test('permanent failure: not retried, forwarded to the DLQ, acked, last_error recorded', async () => {
     const tg = new FakeProvider('telegram');
     tg.failures.push(new PermanentError('telegram: HTTP 400'));
@@ -132,11 +140,12 @@ describe('handleOrderNotifications', () => {
     const tg = new FakeProvider('telegram');
     const send = vi.spyOn(tg, 'send');
     const dlq = { send: vi.fn(async () => undefined) } as unknown as Queue<unknown>;
-    const m = fakeMessage({ type: 'order.created', v: 1, phone: '0560417403' });
+    const m = fakeMessage({ type: 'order.created', v: 1, phone: '0560417403' }, 1, 'msg-1');
     await handleOrderNotifications(fakeBatch([m]), deps([tg], { dlq }));
     expect(m.outcome).toBe('ack');
     expect(send).not.toHaveBeenCalled();
-    expect(dlq.send).toHaveBeenCalledOnce();
+    expect(dlq.send).toHaveBeenCalledWith({ type: 'invalid', messageId: 'msg-1', attempts: 1, at: 1_000_000 });
+    expect(JSON.stringify(vi.mocked(dlq.send).mock.calls)).not.toContain('560417403');
   });
 
   test('busy lease held by another consumer: retry, no send', async () => {

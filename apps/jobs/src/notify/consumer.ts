@@ -9,7 +9,10 @@ export interface ConsumerDeps {
   providers: readonly NotificationProvider[];
   /** Required when at least one provider is enabled. */
   store: DeliveryStore | null;
-  /** Explicit DLQ producer for permanently failed or malformed messages (optional). */
+  /**
+   * Explicit DLQ producer (optional). Receives the parsed order for permanent failures and a
+   * data-free `{type:'invalid', messageId, attempts, at}` envelope for malformed messages.
+   */
   dlq?: Queue<unknown> | undefined;
   lang?: StaffLang;
   now?: () => number;
@@ -43,7 +46,8 @@ export async function handleOrderNotifications(batch: MessageBatch<unknown>, dep
     const order = parseOrderCreated(msg.body);
     if (!order) {
       log('notify.invalid_message', { messageId: msg.id });
-      await sendToDlq(deps, msg.body);
+      // The raw body is not forwarded: it failed validation, so it may hold anything (review r1).
+      await sendToDlq(deps, { type: 'invalid', messageId: msg.id, attempts: msg.attempts, at: now() });
       msg.ack();
       continue;
     }
@@ -100,7 +104,8 @@ export async function handleOrderNotifications(batch: MessageBatch<unknown>, dep
       msg.retry({ delaySeconds: backoffSeconds(msg.attempts, retryAfter, deps.random) });
       continue;
     }
-    if (permanentFailure) await sendToDlq(deps, msg.body);
+    // The parsed order (unknown keys stripped), not the raw body.
+    if (permanentFailure) await sendToDlq(deps, order);
     msg.ack();
   }
 }

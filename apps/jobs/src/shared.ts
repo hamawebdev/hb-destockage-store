@@ -1,5 +1,4 @@
-// Single import point for @hb/shared. Relative path until packages/shared/package.json gets an
-// "exports" map (asked of tooling); then this becomes `from '@hb/shared'`.
-export { parseOrderCreatedMessage, type OrderCreatedMessage } from '../../../packages/shared/src/messages.ts';
-export { formatPrice } from '../../../packages/shared/src/format.ts';
-export type { Lang } from '../../../packages/shared/src/lang.ts';
+// Single import point for @hb/shared (SHARED-1).
+export { parseOrderCreatedMessage, type OrderCreatedMessage } from '@hb/shared/messages';
+export { formatPrice } from '@hb/shared/format';
+export type { Lang } from '@hb/shared/lang';
