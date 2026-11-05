@@ -2,11 +2,16 @@
 // 1. One <style> per page (merge), 2. prune unused custom properties, 3. move <lang>/404/index.html
 // to <lang>/404.html for Workers static assets `not_found_handling: "404-page"`, 4. fail the
 // build on any structural violation (postbuild-core.checkPage), 5. print per-page brotli sizes
-// and the hashes of the constant inline scripts. Owner: shell. Plan: artifacts/SHELL-0/plan.md §2.3.
-import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+// and the hashes of the constant inline scripts, 6. copy brand assets (favicons, og images) into
+// dist, 7. minify dist/js/**/*.js in place (oxc via Vite; public/js stays readable source,
+// ?v=<hash> URLs are computed from the source so cache-busting is unaffected). One sheet for both languages (lead decision on SHELL-1 r1 F2): /fr/ pages carry the
+// Arabic @font-face text but must never preload the font.
+// Owner: shell. Plan: artifacts/SHELL-0/plan.md §2.3.
+import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync, constants } from 'node:zlib';
+import { minify } from 'vite';
 import { checkPage, mergeStyles, pruneCustomProperties, sha256 } from './postbuild-core.mjs';
 
 async function* walk(dir) {
@@ -20,7 +25,7 @@ async function* walk(dir) {
 const br = (s) => brotliCompressSync(Buffer.from(s), { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
 
 /**
- * @param {{ allowedInlineScripts: readonly string[], routes?: () => readonly { path: string, template: string }[], extraGroups?: readonly { pattern: RegExp, template: string }[] }} opts
+ * @param {{ allowedInlineScripts: readonly string[], routes?: () => readonly { path: string, template: string }[], extraGroups?: readonly { pattern: RegExp, template: string }[], copy?: readonly { from: string, to: string }[] }} opts
  *   allowedInlineScripts: exact bodies of the constant inline scripts (src/lib/inline-scripts.mjs).
  *   routes: every route-map entry; each must have produced a file, and all pages of one template
  *   must carry byte-identical inline CSS (apps/web's CSP groups style hashes per template route
@@ -47,6 +52,34 @@ export default function hbPostbuild(opts) {
         }
 
         const errors = [];
+
+        // 6. Brand assets.
+        for (const { from, to } of opts.copy ?? []) {
+          try {
+            await mkdir(dirname(join(root, to)), { recursive: true });
+            await copyFile(from, join(root, to));
+          } catch (e) {
+            errors.push(`copy ${from} -> ${to}: ${/** @type {Error} */ (e).message}`);
+          }
+        }
+        // 7. Post-LCP modules: ship minified (Algerian baseline: ES2022 = Chrome 111 / Safari 16.4).
+        const jsRows = [];
+        try {
+          for await (const f of walk(join(root, 'js'))) {
+            if (!f.endsWith('.js')) continue;
+            const code = await readFile(f, 'utf8');
+            const r = await minify(f, code, { compress: { target: 'es2022' }, mangle: true, module: true });
+            if (r.errors.length) {
+              errors.push(`minify ${relative(root, f)}: ${r.errors.map((e) => e.message).join('; ')}`);
+              continue;
+            }
+            await writeFile(f, r.code);
+            jsRows.push({ file: relative(root, f).split(sep).join('/'), srcBr: br(code), minBr: br(r.code) });
+          }
+        } catch (e) {
+          if (/** @type {NodeJS.ErrnoException} */ (e).code !== 'ENOENT') throw e;
+        }
+
         const rows = [];
         const files = [];
         for await (const f of walk(root)) if (f.endsWith('.html')) files.push(f);
@@ -57,14 +90,17 @@ export default function hbPostbuild(opts) {
           const src = await readFile(file, 'utf8');
           const merged = mergeStyles(src);
           let html = merged.html;
+          const lang = /<html\b[^>]*\blang=["']?(ar|fr)/i.exec(src)?.[1] ?? '';
           if (merged.count > 0) {
             const pruned = pruneCustomProperties(merged.css);
             html = html.replace(/<style>[\s\S]*?<\/style>/, () => `<style>${pruned}</style>`);
           }
           errors.push(...checkPage(html, { allowedInlineScripts: opts.allowedInlineScripts, file: rel }));
+          // French = system stack: the Arabic font may be declared in the shared sheet but never preloaded.
+          if (lang === 'fr' && /<link\b[^>]*\bas=["']?font\b/i.test(html)) errors.push(`${rel}: a French page preloads a font (French = system stack, 0 bytes)`);
           if (html !== src) await writeFile(file, html);
           const css = /<style>([\s\S]*?)<\/style>/.exec(html)?.[1] ?? '';
-          rows.push({ page: rel, htmlBr: br(html), cssBr: br(css), styles: merged.count, styleHash: sha256(css) });
+          rows.push({ page: rel, lang, htmlBr: br(html), cssBr: br(css), styles: merged.count, styleHash: sha256(css) });
         }
 
         // Every route-map entry produced a file; one inline-CSS hash per template.
@@ -80,17 +116,19 @@ export default function hbPostbuild(opts) {
               continue;
             }
             row.template = template;
-            const hashes = byTemplate.get(template) ?? new Map();
+            const key = template;
+            const hashes = byTemplate.get(key) ?? new Map();
             hashes.set(row.styleHash, [...(hashes.get(row.styleHash) ?? []), want]);
-            byTemplate.set(template, hashes);
+            byTemplate.set(key, hashes);
           }
           for (const g of opts.extraGroups ?? []) {
             for (const row of rows) {
               if (!g.pattern.test('/' + row.page)) continue;
               row.template = g.template;
-              const hashes = byTemplate.get(g.template) ?? new Map();
+              const key = g.template;
+              const hashes = byTemplate.get(key) ?? new Map();
               hashes.set(row.styleHash, [...(hashes.get(row.styleHash) ?? []), '/' + row.page]);
-              byTemplate.set(g.template, hashes);
+              byTemplate.set(key, hashes);
             }
           }
           for (const [template, hashes] of byTemplate) {
@@ -106,6 +144,7 @@ export default function hbPostbuild(opts) {
         for (const r of rows) {
           logger.info(`${r.page.padEnd(48)} html+css ${kib(r.htmlBr)} KiB br (css ${kib(r.cssBr)} KiB, ${r.styles} <style> merged)`);
         }
+        for (const j of jsRows) logger.info(`${j.file.padEnd(48)} js ${kib(j.srcBr)} → ${kib(j.minBr)} KiB br (minified)`);
         for (const [template, hashes] of byTemplate) logger.info(`template ${template}: ${hashes.size} distinct inline <style> hash(es)`);
         const distinct = new Set(rows.map((r) => r.styleHash)).size;
         logger.info(`distinct inline <style> sheets across the site: ${distinct}`);
@@ -114,7 +153,7 @@ export default function hbPostbuild(opts) {
         // Machine-readable report outside dist/ (dist is deployed as-is).
         const reportDir = join(root, '..', '.hb');
         await mkdir(reportDir, { recursive: true });
-        await writeFile(join(reportDir, 'postbuild-report.json'), JSON.stringify({ pages: rows, styleHashesPerTemplate: Object.fromEntries([...byTemplate].map(([t, h]) => [t, [...h.keys()]])), scriptHashes: opts.allowedInlineScripts.map(sha256) }, null, 2));
+        await writeFile(join(reportDir, 'postbuild-report.json'), JSON.stringify({ pages: rows, js: jsRows, styleHashesPerTemplate: Object.fromEntries([...byTemplate].map(([t, h]) => [t, [...h.keys()]])), scriptHashes: opts.allowedInlineScripts.map(sha256) }, null, 2));
 
         if (errors.length) {
           for (const e of errors) logger.error(e);

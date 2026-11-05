@@ -1,4 +1,5 @@
 // Storefront build config. Owner: shell. Plan: /artifacts/SHELL-0/plan.md (§2 CSS, §3 URLs).
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import hbPostbuild from './integrations/hb-postbuild.mjs';
 import { ALLOWED_INLINE_SCRIPTS } from './src/lib/inline-scripts.mjs';
@@ -30,6 +31,11 @@ export default defineConfig({
       routes: allRoutes,
       // orderform's Worker-filled review template (not in the route map).
       extraGroups: [{ pattern: /^\/(ar|fr)\/order\/review\/index\.html$/, template: 'order-review' }],
+      // brand/assets/README.md: favicons and per-language default og:image (WhatsApp/Facebook read JPEG, not AVIF).
+      copy: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'og-default-ar.jpg', 'og-default-fr.jpg'].map((f) => ({
+        from: fileURLToPath(new URL(`../../brand/assets/${f}`, import.meta.url)),
+        to: f,
+      })),
     }),
   ],
 });

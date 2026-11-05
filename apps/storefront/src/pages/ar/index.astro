@@ -1,9 +1,9 @@
 ---
-// Home (ar). SHELL-3 builds the page. Owner: shell.
+// Home (ar). SHELL-3 builds the page (hero <Picture image={layout.lcpImage}> + <Base lcp>). Owner: shell.
 import Base from '../../layouts/Base.astro';
 import { pageProps } from '../../lib/catalog.ts';
 const props = pageProps('home', 'ar');
 ---
 <Base layout={props.layout}>
-  <div class="wrap"><h1><bdi lang="fr" dir="ltr">{props.layout.storeName}</bdi></h1></div>
+  <div class="container"><h1><bdi lang="fr" dir="ltr">{props.layout.storeName}</bdi></h1></div>
 </Base>
