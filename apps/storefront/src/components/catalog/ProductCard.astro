@@ -9,7 +9,7 @@ import type { Lang, ProductCard as Card, StringTable } from '@hb/catalog';
 import Picture from '../Picture.astro';
 import Price from './Price.astro';
 import Stock from './Stock.astro';
-import { latinLang, t } from './lib/i18n.ts';
+import { latinLang, showDevMarkers, t } from './lib/i18n.ts';
 import { swatchFill } from './lib/variants.ts';
 
 interface Props {
@@ -22,17 +22,18 @@ interface Props {
 const { card, lang, strings, level = 2 } = Astro.props;
 const H = `h${level}` as 'h2' | 'h3';
 const out = card.stock.state === 'out_of_stock';
+const dev = showDevMarkers();
 ---
 <article class:list={['cat-card', { 'cat-card--out': out }]}>
   <div class="cat-card-media">
     {card.image ? (
       <Picture image={{ ...card.image, alt: '' }} class="cat-card-img" />
     ) : (
-      <span class="cat-card-noimg">{t(strings, 'dev.photoPlaceholder')}</span>
+      <span class="cat-card-noimg">{dev && t(strings, 'dev.photoPlaceholder')}</span>
     )}
     <ul class="cat-flags" role="list">
       {card.kind === 'pack' && <li class="cat-flag">{t(strings, 'badge.pack')}</li>}
-      {(card.placeholder || card.translationPlaceholder) && <li class="cat-flag cat-flag--ph">{t(strings, 'dev.placeholder')}</li>}
+      {dev && (card.placeholder || card.translationPlaceholder) && <li class="cat-flag cat-flag--ph">{t(strings, 'dev.placeholder')}</li>}
     </ul>
   </div>
   <div class="cat-card-body">

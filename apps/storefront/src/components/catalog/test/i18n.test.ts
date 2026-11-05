@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { formatInt, latinLang, parts, t, tp } from '../lib/i18n.ts';
+import { formatInt, latinLang, parts, showDevMarkers, t, tp } from '../lib/i18n.ts';
 
 const fr = {
   'a.plain': 'Bonjour',
@@ -23,8 +23,22 @@ describe('t', () => {
     expect(t(fr, 'a.var', { n: 2, total: 3 })).toBe('Page 2 sur 3');
     expect(t(fr, 'a.var', { n: 2 })).toBe('Page 2 sur {total}');
   });
-  test('a missing key is visible, never empty', () => {
-    expect(t(fr, 'nope')).toBe('⟦nope⟧');
+  test('goes through shell\'s t(): a missing key fails the build', () => {
+    expect(() => t(fr, 'nope')).toThrow(/missing UI string "nope"/);
+  });
+  test('HB_STRICT_COPY=1: a [PLACEHOLDER] value fails the build and dev markers are off', () => {
+    const prev = process.env['HB_STRICT_COPY'];
+    try {
+      process.env['HB_STRICT_COPY'] = '1';
+      expect(() => t({ k: 'x [PLACEHOLDER]' }, 'k')).toThrow(/placeholder/);
+      expect(showDevMarkers()).toBe(false);
+      delete process.env['HB_STRICT_COPY'];
+      expect(t({ k: 'x [PLACEHOLDER]' }, 'k')).toBe('x [PLACEHOLDER]');
+      expect(showDevMarkers()).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env['HB_STRICT_COPY'];
+      else process.env['HB_STRICT_COPY'] = prev;
+    }
   });
 });
 

@@ -5,7 +5,7 @@
  * One row that scrolls sideways at 360 px, wraps from 768 px.
  */
 import type { CategoryLink, Lang, StringTable } from '@hb/catalog';
-import { formatInt, t } from './lib/i18n.ts';
+import { formatInt, showDevMarkers, t } from './lib/i18n.ts';
 
 interface Props {
   current: { name: string; href: string };
@@ -16,6 +16,7 @@ interface Props {
   label?: string;
 }
 const { current, totalCount, items, lang, strings, label } = Astro.props;
+const dev = showDevMarkers();
 ---
 {items.length > 0 && (
   <nav class="cat-chips" aria-label={label ?? t(strings, 'catalog.subcategories')}>
@@ -24,7 +25,7 @@ const { current, totalCount, items, lang, strings, label } = Astro.props;
       {items.map((c) => (
         <li>
           <a class="cat-chip" href={c.href}>
-            {c.name}{c.placeholder && ` ${t(strings, 'dev.placeholder')}`} <span class="cat-chip-n">{formatInt(lang, c.count)}</span>
+            {c.name}{dev && c.placeholder && ` ${t(strings, 'dev.placeholder')}`} <span class="cat-chip-n">{formatInt(lang, c.count)}</span>
           </a>
         </li>
       ))}

@@ -14,8 +14,8 @@
 .cat-chev{inline-size:8px;block-size:8px;border-block-start:1.5px solid currentColor;border-inline-end:1.5px solid currentColor}
 .cat-chev--end{transform:rotate(45deg)}
 .cat-chev--start{transform:rotate(-135deg)}
-.cat-chev--end:dir(rtl){transform:rotate(-45deg)}
-.cat-chev--start:dir(rtl){transform:rotate(135deg)}
+[dir="rtl"] .cat-chev--end{transform:rotate(-45deg)}
+[dir="rtl"] .cat-chev--start{transform:rotate(135deg)}
 .cat-sec{margin-block-start:var(--section-block)}
 .cat-sec-bar{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--space-2) var(--space-6);margin-block-end:var(--space-6)}
 .cat-sec-h{margin:0 0 var(--space-4);font-size:var(--fs-h2);font-weight:var(--fw-emphasis);line-height:var(--lh-heading);letter-spacing:var(--ls-heading)}

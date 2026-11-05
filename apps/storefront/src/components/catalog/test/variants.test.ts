@@ -12,12 +12,13 @@ const v = (id: number, ids: number[], stock: number | null, isDefault = false): 
   price: price(1000 + id),
   stock: { state: stock === 0 ? 'out_of_stock' : stock !== null && stock <= 3 ? 'low_stock' : 'in_stock', qty: stock },
   imageIndex: null,
+  imageIndexes: [],
   isDefault,
   available: stock !== 0,
   maxQty: stock === null ? 10 : Math.min(stock, 10),
 });
-const size: OptionProps = { id: 1, type: 'size', name: 'Taille', values: [{ id: 11, label: 'M', swatchHex: null, available: true }, { id: 12, label: 'L', swatchHex: null, available: true }, { id: 13, label: 'XL', swatchHex: null, available: false }] };
-const colour: OptionProps = { id: 2, type: 'colour', name: 'Couleur', values: [{ id: 21, label: 'Rouge', swatchHex: '#B3261E', available: true }] };
+const size: OptionProps = { id: 1, type: 'size', name: 'Taille', values: [{ id: 11, label: 'M', swatchHex: null, available: true, imageIndexes: [] }, { id: 12, label: 'L', swatchHex: null, available: true, imageIndexes: [] }, { id: 13, label: 'XL', swatchHex: null, available: false, imageIndexes: [] }] };
+const colour: OptionProps = { id: 2, type: 'colour', name: 'Couleur', values: [{ id: 21, label: 'Rouge', swatchHex: '#B3261E', available: true, imageIndexes: [] }] };
 
 describe('pickerMode', () => {
   test('one variant ⇒ none', () => expect(pickerMode({ options: [], variants: [v(1, [], 5, true)] })).toBe('none'));

@@ -1,13 +1,15 @@
 import type { Lang, StringTable } from '@hb/catalog';
+import { t as lookup } from '../../../lib/strings.ts';
 
 /**
- * UI strings come from `brand/copy/strings.<lang>.json` through `layout.strings`.
- * A missing key renders as `⟦key⟧` so QA screenshots show it instead of an empty slot;
- * the template tests fail on any `⟦`.
+ * UI strings for the catalogue templates. Every lookup goes through shell's `t()`
+ * (src/lib/strings.ts): a missing key fails the build, and with HB_STRICT_COPY=1 (production) so
+ * does a value still marked [PLACEHOLDER]. This file only adds `{name}` substitution, plurals and
+ * number formatting on top; it never reads the table itself except to test which plural form
+ * exists.
  */
 export function t(strings: StringTable, key: string, vars?: Readonly<Record<string, string | number>>): string {
-  const raw = strings[key];
-  if (raw === undefined) return `⟦${key}⟧`;
+  const raw = lookup(strings, key);
   if (!vars) return raw;
   return raw.replace(/\{(\w+)\}/g, (m, name: string) => {
     const v = vars[name];
@@ -18,7 +20,7 @@ export function t(strings: StringTable, key: string, vars?: Readonly<Record<stri
 /**
  * Split a template around one variable so the caller can wrap the value in markup
  * (`<bdi>`, `<span class>`) without building HTML strings.
- * `parts(s, 'product.compareAt', 'price')` → `{ before: 'Au lieu de ', after: '' }`.
+ * `parts(s, 'price.from', 'price')` → `{ before: 'À partir de ', after: '' }`.
  */
 export function parts(strings: StringTable, key: string, name: string): { before: string; after: string } {
   const raw = t(strings, key);
@@ -33,7 +35,7 @@ const pluralRules = new Map<Lang, Intl.PluralRules>();
 /**
  * Plural string: `<base>.<zero|one|two|few|many|other>` chosen with `Intl.PluralRules`, `{count}`
  * filled with the locale-formatted number (Arabic `.one`/`.two` spell the number out and have
- * no `{count}`). Arabic `zero` is selected by the rules for 0.
+ * no `{count}`). Falls back to `<base>.other` when the selected form is absent.
  */
 export function tp(
   strings: StringTable,
@@ -48,7 +50,15 @@ export function tp(
     pluralRules.set(lang, r);
   }
   const key = `${base}.${r.select(count)}`;
-  return t(strings, strings[key] === undefined ? `${base}.other` : key, { ...vars, count: formatInt(lang, count) });
+  return t(strings, key in strings ? key : `${base}.other`, { ...vars, count: formatInt(lang, count) });
+}
+
+/**
+ * Whether QA markers (the `dev.*` strings: [PLACEHOLDER] pills, banner, missing-photo text) are
+ * rendered. Never in a strict (production) build: there the markers are dropped, not looked up.
+ */
+export function showDevMarkers(): boolean {
+  return process.env['HB_STRICT_COPY'] !== '1';
 }
 
 const numberFormats = new Map<Lang, Intl.NumberFormat>();

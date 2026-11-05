@@ -10,17 +10,18 @@ import Breadcrumbs from './Breadcrumbs.astro';
 import Pagination from './Pagination.astro';
 import ProductGrid from './ProductGrid.astro';
 import SubcategoryNav from './SubcategoryNav.astro';
-import { t, tp } from './lib/i18n.ts';
+import { showDevMarkers, t, tp } from './lib/i18n.ts';
 
 type Props = CategoryProps;
 const { layout, category, breadcrumbs, subCategories, products, totalCount, pagination } = Astro.props;
 const { lang, strings } = layout;
+const dev = showDevMarkers();
 ---
 <div class="cat-page">
   <Breadcrumbs items={breadcrumbs} strings={strings} />
   <header class="cat-head">
     <h1 class="cat-title">{category.name}</h1>
-    {category.placeholder && <p class="cat-ph">{t(strings, 'dev.placeholder')}</p>}
+    {dev && category.placeholder && <p class="cat-ph">{t(strings, 'dev.placeholder')}</p>}
     {category.description && <p class="cat-desc">{category.description}</p>}
     <p class="cat-count">{tp(strings, lang, 'catalog.count', totalCount)}</p>
   </header>

@@ -64,6 +64,9 @@ describe('CSS rules (logical properties, Arabic-safe, CSP-safe)', () => {
       expect(bad).toEqual([]);
       expect(css).not.toMatch(/letter-spacing\s*:\s*(?!var\(--ls-)/);
       if (f.endsWith('.astro')) {
+        // Strings only through lib/i18n (shell's t()); QA markers only behind showDevMarkers().
+        expect(src).not.toMatch(/strings\[|Object\.(entries|keys|values)\(strings/);
+        for (const line of src.split('\n').filter((l) => l.includes("'dev."))) expect(line).toMatch(/\b(dev|ph) &&|\bdev \?|DEV/);
         expect(src).not.toMatch(/\sstyle=/);
         expect(src).not.toMatch(/\son[a-z]+=/);
         expect(src.replace(/<script type="application\/ld\+json"[^>]*\/>/g, '')).not.toMatch(/<script\b/);
