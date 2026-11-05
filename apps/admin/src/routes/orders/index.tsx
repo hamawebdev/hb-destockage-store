@@ -336,6 +336,8 @@ r.post(`/${REF}/contact`, requirePerm('orders.edit'), async (c) => {
       return renderContactEdit(c, order, f.values, 422, contactErrors(c, { commune: 'contact.err.commune' }));
     case 'area_unavailable':
       return renderContactEdit(c, order, f.values, 422, contactErrors(c, { wilaya: 'contact.err.unavailable' }));
+    case 'order_total_out_of_range':
+      return renderContactEdit(c, order, f.values, 422, contactErrors(c, { _form: 'contact.err.totalTooHigh' }));
     case 'nothing_to_change':
       return renderContactEdit(c, order, f.values, 422, contactErrors(c, { _form: 'contact.err.nothing' }));
   }

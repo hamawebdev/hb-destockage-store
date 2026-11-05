@@ -6,21 +6,14 @@
 
 import * as v from 'valibot';
 import { asc, eq } from 'drizzle-orm';
-import { communes, createAdminTableFeeProvider, orderItems, variants, type Db } from '@hb/db';
-import { normalizePhone, type AdminRole, type FeeProvider, type OrderStatus } from '@hb/shared';
+import { CONTACT_EDIT_STATUSES, communes, createAdminTableFeeProvider, orderItems, variants, type Db } from '@hb/db';
+import { buildQuote, normalizePhone, type AdminRole, type FeeProvider, type OrderStatus } from '@hb/shared';
 import { vInt, vOptionalText, vText } from '../../lib/forms.ts';
 import type { RuntimeEnv } from '../../env.ts';
 
-/** Statuses in which each role may edit contact data (stricter than DB-6's own check: both apply). */
-const EDITABLE: Readonly<Record<AdminRole, readonly OrderStatus[]>> = {
-  owner: ['new', 'called', 'unreachable', 'confirmed'],
-  confirmer: ['new', 'called', 'unreachable'],
-  logistics: [],
-  content: [],
-};
-
+/** Role × status rule, from DB-6's own table (one source: `updateOrderContact` applies it too). */
 export function canEditContact(role: AdminRole, status: OrderStatus): boolean {
-  return EDITABLE[role].includes(status);
+  return CONTACT_EDIT_STATUSES[role]?.includes(status) ?? false;
 }
 
 /** The admin's FeeProvider: the one /api/quote uses. Placeholder (invented seed) fees only in development. */
@@ -59,7 +52,8 @@ export type ContactErrKey =
   | 'contact.err.unavailable'
   | 'contact.err.nothing'
   | 'contact.err.priceChanged'
-  | 'contact.err.notEditable';
+  | 'contact.err.notEditable'
+  | 'contact.err.totalTooHigh';
 
 export type ContactPreview =
   | {
@@ -108,10 +102,17 @@ export async function previewContact(
       .from(orderItems)
       .innerJoin(variants, eq(variants.id, orderItems.variantId))
       .where(eq(orderItems.orderId, orderId));
-    const q = await fees.quote({ wilayaCode: input.wilaya, communeId: input.commune, items });
+    const fee = await fees.quote({ wilayaCode: input.wilaya, communeId: input.commune, items });
+    if (!fee.available) return { ok: false, errors: { wilaya: 'contact.err.unavailable' } };
+    // Same re-pricing as DB-6: @hb/shared buildQuote (MAX_ORDER_TOTAL_DZD ceiling); stock null
+    // because this order's stock was taken when it was placed.
+    const q = buildQuote(items.map((l) => ({ variantId: l.variantId, qty: l.qty, unitPriceDzd: l.unitPriceDzd, stock: null })), fee);
+    if (!q.ok) {
+      return { ok: false, errors: q.code === 'order_total_out_of_range' ? { _form: 'contact.err.totalTooHigh' } : { wilaya: 'contact.err.unavailable' } };
+    }
     if (!q.available) return { ok: false, errors: { wilaya: 'contact.err.unavailable' } };
     feeDzd = q.feeDzd;
-    feeSource = q.source;
+    feeSource = q.feeSource;
   }
   const changed = [
     input.name !== cur.name ? 'name' : null,

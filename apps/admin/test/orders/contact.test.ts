@@ -3,7 +3,7 @@
 // unavailable wilayas, phone re-normalise + customer re-link, version guard, audit row.
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { and, eq } from 'drizzle-orm';
-import { auditLog, communes, customers, deliveryFees, orderEvents, orders, wilayas } from '@hb/db';
+import { auditLog, communes, customers, deliveryFees, orderEvents, orderItems, orders, wilayas } from '@hb/db';
 import { formatMoney } from '../../src/ui/format.tsx';
 import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, postAs, refOf, seedGeoAndCatalog, type CatalogFixture } from './fixtures.ts';
@@ -21,16 +21,19 @@ beforeAll(async () => {
   await db.insert(wilayas).values([
     { code: 1, nameFr: 'Adrar', nameAr: 'أدرار' },
     { code: 2, nameFr: 'Chlef', nameAr: 'الشلف' },
+    { code: 3, nameFr: 'Laghouat', nameAr: 'الأغواط' },
   ]);
   await db.insert(communes).values([
     { id: 101, wilayaCode: 1, nameFr: 'Adrar', nameAr: 'أدرار' },
     { id: 201, wilayaCode: 2, nameFr: 'Chlef', nameAr: 'الشلف' },
+    { id: 301, wilayaCode: 3, nameFr: 'Laghouat', nameAr: 'الأغواط' },
   ]);
   await db.insert(deliveryFees).values([
     { wilayaCode: 16, feeDzd: 600, available: true },
     { wilayaCode: 31, feeDzd: 800, available: true },
     { wilayaCode: 1, feeDzd: 1200, available: true, placeholder: true }, // invented seed fee
     { wilayaCode: 2, feeDzd: 900, available: false },
+    { wilayaCode: 3, feeDzd: 20_000, available: true },
   ]);
 }, 180_000);
 
@@ -39,9 +42,9 @@ afterAll(async () => {
 });
 
 const db = () => dbOf(h.db);
-async function newOrder(status: 'new' | 'called' | 'unreachable' | 'confirmed' | 'shipped' = 'new', phone?: string) {
+async function newOrder(status: 'new' | 'called' | 'unreachable' | 'confirmed' | 'shipped' = 'new', phone?: string, items?: readonly (readonly ['A' | 'B', number])[]) {
   const ref = refOf(n++);
-  const id = await insertOrder(db(), cat, { ref, createdAt: NOW - n, status, phone: phone ?? `+2136${String(20_000_000 + n).slice(-8)}`, name: 'Amina' });
+  const id = await insertOrder(db(), cat, { ref, createdAt: NOW - n, status, phone: phone ?? `+2136${String(20_000_000 + n).slice(-8)}`, name: 'Amina', ...(items ? { items } : {}) });
   return { ref, id };
 }
 const row = async (id: number) => (await db().select().from(orders).where(eq(orders.id, id)))[0]!;
@@ -220,5 +223,38 @@ describe('concurrency and steps', () => {
     expect(html).toMatch(/<html[^>]*dir="rtl"/);
     expect(html).toContain('البلدية');
     expect(html).toContain(`⁦${o.ref}⁩`);
+  });
+});
+
+describe('DB-6 follow-up (168fd1f): role rule and total ceiling', () => {
+  test('a confirmer cannot save on a confirmed order: 403 with a clear message, nothing written', async () => {
+    const o = await newOrder('confirmed');
+    const phone = (await row(o.id)).phoneE164;
+    const res = await submit(USERS.confirmer, o.ref, values({ phone, over: { name: 'X', previewTotal: String(SUBTOTAL + 600), step: 'save' } }));
+    expect(res.status).toBe(403);
+    expect(await res.text()).toContain('ne peuvent plus être modifiées');
+    expect((await row(o.id)).version).toBe(0);
+    expect(await audits(o.id)).toHaveLength(0);
+  });
+  test('the owner can still save on a confirmed order', async () => {
+    const o = await newOrder('confirmed');
+    const phone = (await row(o.id)).phoneE164;
+    const res = await submit(USERS.owner, o.ref, values({ phone, over: { name: 'Owner edit', previewTotal: String(SUBTOTAL + 600), step: 'save' } }));
+    expect(res.status).toBe(303);
+  });
+  test('a fee that pushes the total over MAX_ORDER_TOTAL_DZD is refused at review and at save', async () => {
+    // 10 × 999 000 = 9 990 000 DZD (a line is at most MAX_QTY_PER_LINE = 10); + 20 000 fee > 10 000 000.
+    const o = await newOrder('new', undefined, [['A', 10]]);
+    await db().update(orderItems).set({ unitPriceDzd: 999_000, lineTotalDzd: 9_990_000 }).where(eq(orderItems.orderId, o.id));
+    await db().update(orders).set({ subtotalDzd: 9_990_000, totalDzd: 9_990_600 }).where(eq(orders.id, o.id));
+    const phone = (await row(o.id)).phoneE164;
+    for (const step of ['review', 'save']) {
+      const res = await submit(USERS.owner, o.ref, values({ phone, over: { wilaya: '3', commune: '301', previewTotal: '10010000', step } }));
+      expect(res.status, step).toBe(422);
+      expect(await res.text()).toContain('dépasserait le plafond');
+    }
+    const r = await row(o.id);
+    expect([r.wilayaCode, r.version]).toEqual([16, 0]);
+    expect(await audits(o.id)).toHaveLength(0);
   });
 });
