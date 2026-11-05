@@ -235,6 +235,14 @@ def main():
         f'<path fill="currentColor" d="{hd}"/>'
         f'<circle fill="var(--color-accent,{ACCENT})" cx="{fmt(hcx)}" cy="{fmt(hcy)}" r="{fmt(hr)}"/></svg>\n',
     )
+    # Same integer-precision paths with literal brand colours, for use as a cached same-origin
+    # <img> (inside an <img>, currentColor and page custom properties do not apply).
+    write(
+        "wordmark-header-static.svg",
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}">'
+        f'<path fill="{TEXT}" d="{hd}"/>'
+        f'<circle fill="{ACCENT}" cx="{fmt(hcx)}" cy="{fmt(hcy)}" r="{fmt(hr)}"/></svg>\n',
+    )
 
     mp, tx, ty, size = build_monogram(hb)
     md = join(mp)
