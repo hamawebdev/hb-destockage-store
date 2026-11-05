@@ -100,6 +100,7 @@ describe('base.css uses the token contract', () => {
   test('tap targets ≥ 44px on every interactive component', () => {
     expect(tokens.layout.tapMin).toBe('44px');
     for (const sel of ['.btn', '.btn-icon']) expect(rule(base, sel)).toContain('var(--tap-min)');
+    expect(rule(base, '.skip-link')).toContain('min-block-size: var(--tap-min)');
     for (const sel of ['.input', '.choice', '.chip']) expect(rule(forms, sel)).toContain('min-block-size: var(--tap-min)');
   });
 

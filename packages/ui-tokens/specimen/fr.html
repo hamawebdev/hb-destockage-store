@@ -266,7 +266,7 @@
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  .skip-link { position: absolute; inset-inline-start: var(--space-2); inset-block-start: var(--space-2); z-index: var(--z-skip); padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); background: var(--color-surface); }
+  .skip-link { position: absolute; inset-inline-start: var(--space-2); inset-block-start: var(--space-2); z-index: var(--z-skip); display: inline-flex; align-items: center; min-block-size: var(--tap-min); padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); background: var(--color-surface); }
   .skip-link:not(:focus) { translate: 0 -200%; }
 
   /* CSS-only entrance motion for dialogs and popovers (95–98% of DZ mobile; others just appear) */
