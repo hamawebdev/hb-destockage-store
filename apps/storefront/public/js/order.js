@@ -454,6 +454,7 @@ function init(f) {
   addEventListener('pageshow', (e) => {
     if (!e.persisted) return;
     key = uuid();
+    ts?.reset(); // the previous order spent the Turnstile token too (ORDER-3 review r1 nit)
     busy = false;
     btn.removeAttribute('aria-disabled');
     text(btn, msg('submit'));

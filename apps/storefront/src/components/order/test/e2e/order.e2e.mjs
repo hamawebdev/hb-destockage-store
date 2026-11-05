@@ -311,6 +311,13 @@ async function run(browser, lang) {
     assert.equal(a.turnstileToken, 'tok-1'); assert.equal(b.turnstileToken, 'tok-2'); assert.equal(a.idempotencyKey, b.idempotencyKey);
   }, { page: 'ts', ts: 'stub' });
 
+  await t('Turnstile: a bfcache return also resets the spent token (ORDER-3 review r1 nit)', async (p) => {
+    await p.focus('#of-name');
+    await p.waitForFunction(() => window.__tsN === 1);
+    await p.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+    await p.waitForFunction(() => window.__tsResets === 1 && window.__tsN === 2);
+  }, { page: 'ts', ts: 'stub' });
+
   await t('Turnstile blocked: the order goes through without a token', async (p, tsReqs) => {
     await fill(p);
     await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
