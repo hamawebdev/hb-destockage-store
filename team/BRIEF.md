@@ -78,9 +78,9 @@ customer confirms**.
 | `db` | `packages/db/` | `rev-d` |
 | `shared` | `packages/shared/` | `rev-d` |
 | `web` | `apps/web/` | `rev-d` |
-| `pages` | `apps/storefront/src/pages/{ar,fr}/{c,p,search}/**`, `apps/storefront/src/components/catalog/**`, `apps/storefront/public/js/search*.js` | `rev-e` |
+| `pages` | `apps/storefront/src/pages/{ar,fr}/{c,p,search}/**`, `apps/storefront/src/components/catalog/**`, `apps/storefront/public/js/search*.js`, `apps/storefront/public/js/variant*.js` | `rev-e` |
 | `orderform` | `apps/storefront/src/components/order/**`, `apps/storefront/src/pages/{ar,fr}/order/**` (confirmation), `apps/storefront/public/js/order*.js` | `rev-e` |
-| `admin-core` | `apps/admin/src/{app.ts,index.ts,env.ts}`, `apps/admin/src/{auth,audit,ui,i18n,lib}/**`, `apps/admin/src/routes/{dashboard,users,settings}/**`, `apps/admin/wrangler.jsonc`, `apps/admin/public/**`, `apps/admin/test/**` except `test/{orders,catalog}/**`, `apps/admin/.dev.vars.example` | `rev-f` |
+| `admin-core` | `apps/admin/src/{app.ts,index.ts,env.ts}`, `apps/admin/src/{auth,audit,ui,i18n,lib}/**`, `apps/admin/src/routes/{dashboard,users,settings}/**`, `apps/admin/wrangler.jsonc`, `apps/admin/public/**`, `apps/admin/test/**` except `test/{orders,catalog}/**`, `apps/admin/.dev.vars.example`, all other top-level files in `apps/admin/` | `rev-f` |
 | `admin-orders` | `apps/admin/src/routes/{orders,customers}/**`, `apps/admin/test/orders/**` | `rev-f` |
 | `admin-catalog` | `apps/admin/src/routes/{products,categories,fees,content,media,publish}/**`, `apps/admin/test/catalog/**` | `rev-f` |
 | `qa` | nothing in source; writes `artifacts/QA-*/` and files tasks | — |
@@ -212,3 +212,11 @@ order in each language shows the wilaya's fee and correct total, reaches the adm
 duplicate submit, and moves to `shipped`; pickers list 69 wilayas and 1,541 communes in both
 languages; admin refuses access without auth; tests/typecheck/build green from a clean checkout;
 every change approved at its tier with no open Important finding.
+
+## 9. Git safety rules (shared repository)
+
+- **Never use `git stash`**: the stash is shared by every worktree; a pop can apply another teammate's work. Set work aside with a WIP commit on your own branch (squash before the task commit) or copy files to your scratch dir.
+- **Never change git config** (`core.hooksPath` included): it is shared by every worktree. The lead activates hooks.
+- **Merge only `main`**, or an exact contract sha the lead names.
+- **Kill only processes you started** (no `pkill -f` patterns).
+- Heavy commands go through `/tmp/hb-locks/heavy.sh` (3 machine-wide slots); scope tests with `-w`.
