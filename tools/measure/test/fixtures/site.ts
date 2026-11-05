@@ -131,6 +131,13 @@ s.async = true;
 document.head.append(s);
 `;
 
+/** A CAT-4-shaped image manifest: stem → original width (square originals). */
+export function manifestJson(originals: Record<string, number | null>): string {
+  return JSON.stringify(Object.fromEntries(Object.entries(originals).map(([hash, width]) => [
+    `k-${hash}`, { key: `k-${hash}`, hash, candidates: [], og: null, stub: false, ...(width === null ? {} : { original: { width, height: width } }) },
+  ])), null, 1);
+}
+
 /** Write the good site into `dir`. */
 export function writeGoodSite(dir: string): void {
   const w = (rel: string, data: string | Buffer): void => {
@@ -147,6 +154,8 @@ export function writeGoodSite(dir: string): void {
     w(`img/c1-${wd}.avif`, fakeAvif(wd, Math.round((AVIF_BYTES[wd] ?? 0) / 2), wd + 1));
   }
   w(FONT.slice(1), Buffer.concat([Buffer.from('wOF2'), noise(FONT_BYTES - 4, 3)]));
+  // CAT-4 manifest: original dimensions decide the required widths (never upscaled)
+  w('image-manifest.json', manifestJson({ p1: 1600, c1: 1600 }));
   w('js/order.js', ORDER_JS);
   w('js/turnstile.js', TURNSTILE_JS);
 }

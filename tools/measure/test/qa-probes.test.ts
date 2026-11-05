@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { checkSite } from '../src/budget/check.ts';
-import { fakeAvif as avif, noise } from './fixtures/site.ts';
+import { fakeAvif as avif, manifestJson, noise } from './fixtures/site.ts';
 
 type Probe = [string, string, (d: string) => void];
 
@@ -40,6 +40,8 @@ function base(dir: string, { onlyAr = false } = {}): void {
   w('js/o.js', 'document.querySelector("h1").dataset.x=1;\n');
   w('js/a.js', 'console.log(1);\n');
   w('s.css', 'body{color:red}');
+  // adopted from qa with one addition: the CAT-4 image manifest the r2 width rule needs
+  w('image-manifest.json', manifestJson({ h: 1600, n: 1600 }));
 }
 const edit = (dir: string, rel: string, fn: (s: string) => string): void => { const p = join(dir, rel); const b = readFileSync(p, 'utf8'); const a = fn(b); if (a === b) throw new Error('no change ' + rel); writeFileSync(p, a); };
 const both = (dir: string, fn: (s: string) => string): void => { for (const l of ['ar', 'fr']) edit(dir, `${l}/index.html`, fn); };

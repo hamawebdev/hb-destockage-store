@@ -84,5 +84,7 @@ describe('JS references', () => {
     expect(absUrlsIn('// a comment\nfetch("https://x.example/a"); s.src="//cdn.example.com/y.js"')).toEqual([
       'https://x.example/a', 'https://cdn.example.com/y.js',
     ]);
+    // orderform: a CSP note in a comment must not yield a second origin with a trailing dot
+    expect(absUrlsIn('// needs frame-src https://challenges.cloudflare.com.\n')).toEqual(['https://challenges.cloudflare.com']);
   });
 });

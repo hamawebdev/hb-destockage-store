@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import { checkSite, RULES, type RuleId, type SiteReport } from '../src/budget/check.ts';
 import {
-  AVIF_BYTES, FONT, cleanup, edit, fakeAvif, freshSite, noise, noiseText, put, srcset,
+  AVIF_BYTES, FONT, cleanup, edit, fakeAvif, freshSite, manifestJson, noise, noiseText, put, srcset,
 } from './fixtures/site.ts';
 
 afterAll(cleanup);
@@ -151,6 +151,7 @@ const CASES: Case[] = [
     name: 'image preload matching no image', rule: 'lcp-image',
     mutate: (d) => {
       for (const w of [360, 480, 720, 960, 1200]) put(d, `img/o-${w}.avif`, fakeAvif(w, 2000));
+      put(d, 'image-manifest.json', manifestJson({ p1: 1600, c1: 1600, o: 1600 }));
       edit(d, FR_P, before(HEAD_END, `<link rel="preload" as="image" imagesrcset="${srcset('o')}" imagesizes="100vw">`));
     },
   },
@@ -243,6 +244,23 @@ const CASES: Case[] = [
     mutate: (d) => { put(d, 'img/p1-720.jpg', noise(30000, 27)); edit(d, FR_P, (s) => s.replace('<img src="/img/p1-720.avif"', '<img src="/img/p1-720.jpg"')); },
   },
 
+  // ---- r2: never upscaled (lead ruling from rev-c's CAT-4 review): widths come from the original
+  {
+    name: 'original ≥ 1200 px but 1200w missing', rule: 'avif', allow: ['critical-path'],
+    mutate: (d) => edit(d, FR_P, (s) => s.split(srcset('p1')).join(srcset('p1', [360, 480, 720, 960]))),
+  },
+  {
+    name: '960 px original: a 1200w candidate is an upscale', rule: 'avif',
+    mutate: (d) => put(d, 'image-manifest.json', manifestJson({ p1: 1600, c1: 960 })),
+  },
+  {
+    name: '1000 px original: the 1000w (original-width) candidate is missing', rule: 'avif',
+    mutate: (d) => { put(d, 'image-manifest.json', manifestJson({ p1: 1600, c1: 1000 })); edit(d, FR_H, (s) => s.replace(srcset('c1'), srcset('c1', [360, 480, 720, 960]))); },
+  },
+  { name: 'no image manifest', rule: 'avif', mutate: (d) => rmSync(path.join(d, 'image-manifest.json')) },
+  { name: 'image missing from the manifest', rule: 'avif', mutate: (d) => put(d, 'image-manifest.json', manifestJson({ p1: 1600 })) },
+  { name: 'manifest entry without an original width', rule: 'avif', mutate: (d) => put(d, 'image-manifest.json', manifestJson({ p1: 1600, c1: null })) },
+
   // ---- r2: nits and qa BUG-3..8 ("anything that can fetch or reference a URL must be seen")
   { name: 'bare-relative .js literal over budget (rev-c Nit 1)', rule: 'js-after-lcp', mutate: (d) => { put(d, 'js/big.js', `const k="${noiseText(14000)}";`); edit(d, 'js/order.js', (s) => `${s}\nconst x = document.createElement('script'); x.src = 'big.js';\n`); } },
   { name: 'new Worker(new URL("w.js", import.meta.url)) over budget', rule: 'js-after-lcp', mutate: (d) => { put(d, 'js/w.js', `const k="${noiseText(14000)}";`); edit(d, 'js/order.js', (s) => `${s}\nnew Worker(new URL('w.js', import.meta.url));\n`); } },
@@ -312,6 +330,18 @@ describe('positive controls (things that must NOT fail)', () => {
   ok('SVG images are exempt from the AVIF rule (logos, icons)', (d) => { put(d, 'img/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>'); edit(d, FR_H, (s) => s.replace('</header>', '<img src="/img/logo.svg" width="10" height="10" alt="HB"></header>')); });
   ok('<!--> empty comments do not hide what follows... and a commented-out script is ignored', (d) => edit(d, FR_H, before(HEAD_END, '<!-- <script src="/js/order.js"></script> -->')));
   ok('<source> inside <video> is not an image', (d) => { put(d, 'v.mp4', noise(100, 30)); edit(d, FR_H, (s) => s.replace('</main>', '<video controls preload="none"><source src="/v.mp4" type="video/mp4"></video></main>')); });
+  ok('a 960 px original needs only 360/480/720/960 w', (d) => {
+    put(d, 'image-manifest.json', manifestJson({ p1: 1600, c1: 960 }));
+    edit(d, FR_H, (s) => s.replace(srcset('c1'), srcset('c1', [360, 480, 720, 960])));
+    edit(d, AR_H, (s) => s.replace(srcset('c1'), srcset('c1', [360, 480, 720, 960])));
+    edit(d, FR_P, (s) => s.replace(srcset('c1'), srcset('c1', [360, 480, 720, 960])));
+    edit(d, AR_P, (s) => s.replace(srcset('c1'), srcset('c1', [360, 480, 720, 960])));
+  });
+  ok('a 1000 px original: 360/480/720/960 + 1000 w', (d) => {
+    put(d, 'image-manifest.json', manifestJson({ p1: 1600, c1: 1000 }));
+    put(d, 'img/c1-1000.avif', fakeAvif(1000, 15000));
+    for (const f of [FR_H, AR_H, FR_P, AR_P]) edit(d, f, (s) => s.replace(srcset('c1'), `${srcset('c1', [360, 480, 720, 960])}, /img/c1-1000.avif 1000w`));
+  });
   ok('data: URIs are fine', (d) => edit(d, FR_H, (s) => s.replace('<style>', '<style>.i{background:url("data:image/svg+xml,%3Csvg%3E%3C/svg%3E")}')));
 });
 

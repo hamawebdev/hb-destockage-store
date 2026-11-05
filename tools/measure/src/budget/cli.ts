@@ -16,6 +16,8 @@ const USAGE = `usage: npm run budget -- [--dist <dir>] [--out <dir>] [--own-orig
   --out         report directory (default <main checkout>/artifacts/budget)
   --own-origin  origin treated as first-party in absolute URLs (repeatable), e.g. the production domain
   --quiet       print only violations and the verdict
+  --image-manifest <file>  CAT-4 image manifest with original widths (default <dist>/image-manifest.json,
+                then apps/storefront/.catalog/image-manifest.json)
   --static-only skip the Chrome runtime pass (fonts on /fr/, third-party requests); NOT valid for the gate`;
 
 export async function main(argv: string[]): Promise<number> {
@@ -27,7 +29,7 @@ export async function main(argv: string[]): Promise<number> {
         'dist': { type: 'string' },
         'out': { type: 'string' },
         'own-origin': { type: 'string', multiple: true },
-        'quiet': { type: 'boolean' }, 'static-only': { type: 'boolean' },
+        'quiet': { type: 'boolean' }, 'static-only': { type: 'boolean' }, 'image-manifest': { type: 'string' },
         'help': { type: 'boolean', short: 'h' },
       },
     }).values;
@@ -41,7 +43,7 @@ export async function main(argv: string[]): Promise<number> {
   let report: SiteReport;
   let runtime: { ran: boolean; results: RuntimeResult[] } = { ran: false, results: [] };
   try {
-    report = checkSite(dist, { ownOrigins: args['own-origin'] ?? [] });
+    report = checkSite(dist, { ownOrigins: args['own-origin'] ?? [], ...(args['image-manifest'] ? { imageManifest: args['image-manifest'] } : {}) });
     const pages = report.pages.filter((p) => p.lang === 'ar' || p.lang === 'fr').map((p) => ({ url: p.url, lang: p.lang }));
     if (!args['static-only'] && pages.length) {
       const rt = await runtimeChecks(dist, pages);

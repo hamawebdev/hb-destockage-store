@@ -34,7 +34,45 @@ export const RULES = {
 
 export type RuleId = keyof typeof RULES;
 export interface Violation { rule: RuleId; message: string }
-export interface Options { ownOrigins?: string[]; budgets?: Partial<Budgets> }
+export interface Options { ownOrigins?: string[]; budgets?: Partial<Budgets>; imageManifest?: string }
+
+/** Original dimensions per image stem (CAT-4 manifest `hash`), for the no-upscaling width rule. */
+export interface ManifestInfo { path: string | null; originals: Map<string, number | null>; error?: string }
+
+/**
+ * Load the CAT-4 image manifest: `--image-manifest`, else `<dist>/image-manifest.json`, else
+ * `apps/storefront/.catalog/image-manifest.json` next to a storefront dist.
+ * Original width = `entry.original.width` (lead ruling: images are never upscaled).
+ */
+export function loadManifest(dist: string, explicit?: string): ManifestInfo {
+  const candidates = explicit ? [path.resolve(explicit)] : [path.join(dist, 'image-manifest.json'), path.join(dist, '..', '.catalog', 'image-manifest.json')];
+  const file = candidates.find((f) => existsSync(f)) ?? null;
+  const originals = new Map<string, number | null>();
+  if (!file) return { path: null, originals, error: `image manifest not found (${candidates.join(' or ')})` };
+  try {
+    const json = JSON.parse(readFileSync(file, 'utf8')) as Record<string, { hash?: unknown; original?: { width?: unknown } }>;
+    for (const e of Object.values(json)) {
+      if (typeof e?.hash !== 'string') continue;
+      const w = e.original?.width;
+      originals.set(e.hash, typeof w === 'number' && w > 0 ? w : null);
+    }
+    return { path: file, originals };
+  } catch (e) {
+    return { path: file, originals, error: `image manifest ${file} unreadable: ${(e as Error).message}` };
+  }
+}
+
+/** `/img/1e3e1840-720.avif` → `1e3e1840` (the manifest hash). */
+export function imageStem(url: string): string {
+  return (url.split(/[?#]/)[0] ?? '').split('/').pop()?.replace(/-\d+(\.avif)?$/i, '') ?? '';
+}
+
+/** Widths an AVIF set must list for an original of `orig` px: never upscaled (lead ruling). */
+export function requiredWidths(standard: readonly number[], orig: number): number[] {
+  const max = Math.max(...standard);
+  if (orig >= max) return [...standard];
+  return [...new Set([...standard.filter((w) => w <= orig), orig])].sort((a, b) => a - b);
+}
 
 export interface CriticalRequest { kind: string; url: string; bytes: number }
 export interface PageResult {
@@ -68,7 +106,7 @@ export interface SiteReport {
   pages: PageResult[];
 }
 
-interface Ctx { dist: string; budgets: Budgets; ownOrigins: Set<string>; files: Map<string, Buffer | null> }
+interface Ctx { dist: string; budgets: Budgets; ownOrigins: Set<string>; files: Map<string, Buffer | null>; manifest: ManifestInfo; manifestReported: boolean }
 
 type Resolved =
   | { kind: 'skip' }
@@ -98,7 +136,7 @@ export function mergeRuntime(r: SiteReport, extra: Map<string, Violation[]>): Si
 export function checkSite(dist: string, opts: Options = {}): SiteReport {
   const budgets: Budgets = { ...BUDGETS, ...(opts.budgets ?? {}) };
   const ownOrigins = new Set((opts.ownOrigins ?? []).map((o) => new URL(o).origin));
-  const ctx: Ctx = { dist: path.resolve(dist), budgets, ownOrigins, files: new Map() };
+  const ctx: Ctx = { dist: path.resolve(dist), budgets, ownOrigins, files: new Map(), manifest: loadManifest(path.resolve(dist), opts.imageManifest), manifestReported: false };
   const siteViolations: Violation[] = [];
   const pages = walk(ctx.dist).filter((f) => /\.html?$/i.test(f));
   if (!existsSync(ctx.dist)) siteViolations.push({ rule: 'site', message: `dist not found: ${ctx.dist}` });
@@ -503,8 +541,28 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
     const cands = parseSrcset(srcset);
     if (cands.some((c) => c.w === undefined)) imgV(`${where} uses density (x) or no descriptors; use width (w) descriptors`);
     const widths = new Set(cands.map((c) => c.w));
-    const lacking = budgets.avifWidths.filter((w) => !widths.has(w));
-    if (lacking.length) imgV(`${where} lacks ${lacking.map((w) => `${w}w`).join(', ')} (AVIF must exist at ${budgets.avifWidths.join('/')} w)`);
+    // required widths depend on the original (never upscaled): from the CAT-4 manifest
+    const stems = [...new Set(cands.filter((c) => samePath(c.url)).map((c) => imageStem(c.url)))];
+    let required: number[] = [...budgets.avifWidths];
+    if (stems.length > 1) imgV(`${where} mixes images ${stems.join(', ')} in one srcset`);
+    const stem = stems[0];
+    if (stem !== undefined) {
+      const mf = ctx.manifest;
+      if (mf.error) {
+        if (!ctx.manifestReported) { ctx.manifestReported = true; v('avif', `${mf.error}: cannot verify AVIF widths against the original (pass --image-manifest)`); }
+      } else if (!mf.originals.has(stem)) imgV(`${where}: image ${stem} is not in the image manifest ${mf.path}`);
+      else {
+        const orig = mf.originals.get(stem);
+        if (!orig) imgV(`${where}: the image manifest has no original width for ${stem}`);
+        else {
+          required = requiredWidths(budgets.avifWidths, orig);
+          const up = cands.filter((c) => c.w !== undefined && c.w > orig);
+          if (up.length) imgV(`${where}: ${up.map((c) => `${c.w}w`).join(', ')} wider than the ${orig} px original (never upscale)`);
+        }
+      }
+    }
+    const lacking = required.filter((w) => !widths.has(w));
+    if (lacking.length) imgV(`${where} lacks ${lacking.map((w) => `${w}w`).join(', ')} (required for this image: ${required.join('/')} w)`);
     for (const c of cands) {
       const u = normUrl(c.url);
       if (RASTER_DATA.test(u)) { imgV(`${where} has a raster data: URI candidate`); continue; }
@@ -603,7 +661,8 @@ export function absUrlsIn(text: string): string[] {
   const out: string[] = [];
   const re = /\bhttps?:\/\/[^\s"'`<>()\\,;]+|["'`](\/\/[a-z0-9.-]+\.[a-z]{2,}[^"'`\s]*)/gi;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) out.push(m[1] ? `https:${m[1]}` : m[0]);
+  // sentence punctuation after a URL in a comment or string ("…frame-src https://x.example.") is not part of it
+  while ((m = re.exec(text))) out.push((m[1] ? `https:${m[1]}` : m[0]).replace(/[.,;:!?'"]+$/, ''));
   return out;
 }
 

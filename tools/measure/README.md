@@ -75,8 +75,15 @@ raw.
 
 For every `<img>` (also inside `<noscript>` and declarative shadow DOM):
 - the AVIF set is the `<picture>`'s `<source type="image/avif">`, else the `<img srcset>` if it is
-  AVIF; it must use `w` descriptors, list all of 360/480/720/960/1200 w, every file must be a
-  real AVIF (ftyp brand + `ispe`) whose width equals its descriptor;
+  AVIF; it must use `w` descriptors and every file must be a real AVIF (ftyp brand + `ispe`) whose
+  width equals its descriptor;
+- **widths, never upscaled** (lead ruling from rev-c's CAT-4 review): the original's width comes
+  from the CAT-4 image manifest (`entry.original.width`, entry found by `hash` = the file stem in
+  `/img/<hash>-<w>.avif`). Original ≥ 1200 px → all of 360/480/720/960/1200 w; smaller → every
+  standard width ≤ the original plus the original-width candidate; any candidate wider than the
+  original fails. A missing manifest, entry or original width fails. Manifest:
+  `--image-manifest <file>`, else `<dist>/image-manifest.json`, else
+  `apps/storefront/.catalog/image-manifest.json`;
 - every candidate the browser could pick, **in any format** (AVIF set, other `<source>`s, the
   `<img>`'s own `srcset` and `src`), at ≤ 960 w or of unknown width must be ≤ 25,000 B;
 - failures by escape route: `<img src>` without `srcset`, a non-AVIF `srcset`, `<picture>`
