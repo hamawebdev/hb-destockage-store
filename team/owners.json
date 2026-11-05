@@ -237,5 +237,16 @@
       "reviewer": null,
       "portBase": 4340
     }
+  },
+  "forbiddenGlobs": [
+    "**/*.sql",
+    "**/*.sql.gz",
+    "**/*.dump",
+    "**/hb-restore-*/**",
+    "**/backups/**",
+    "**/d1-export-*"
+  ],
+  "maxBytesByGlob": {
+    "apps/jobs/**": 1048576
   }
 }

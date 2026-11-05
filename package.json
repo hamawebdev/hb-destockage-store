@@ -7,7 +7,7 @@
     "test": "npm run test --workspaces --if-present && vitest run --config scripts/vitest.config.ts",
     "build": "npm run build --workspaces --if-present",
     "budget": "node tools/measure/src/budget/cli.ts",
-    "lh": "scripts/not-wired.sh lh",
+    "lh": "node tools/measure/src/lh/cli.ts",
     "shots": "scripts/not-wired.sh shots",
     "axe": "scripts/not-wired.sh axe",
     "e2e": "scripts/not-wired.sh e2e",

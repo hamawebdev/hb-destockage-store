@@ -4,6 +4,7 @@
 # own branch's copy:
 #   git config core.hooksPath "/mnt/data/ecom website/.githooks"
 # Identity = branch team/<name>. On main only the lead commits, with HB_ROLE=lead.
+# Never use `git stash`: the stash is shared by every worktree (BRIEF §9). Use a WIP commit instead.
 set -euo pipefail
 hooks="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 owners_js="$hooks/../scripts/lib/owners.mjs"

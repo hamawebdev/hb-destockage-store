@@ -19,6 +19,8 @@ Every commit that reaches `main` has been reviewed under these rules. The spec i
   creates the `REV <ID> r<n> @<sha>` task and forwards it to the reviewer; the reviewer sends the
   verdict (path of the review file) to the lead, who forwards it to the author. Second-confirmation
   requests (§4) also go through the lead.
+- **Never `git stash`** (one stash shared by every worktree; BRIEF §9): set work aside with a WIP
+  commit on your own branch or a copy.
 - Work in your own worktree (`.worktrees/<you>`): one repo, so no fetch; check out the author's sha
   detached (`git checkout --detach <sha>`) or merge it into a scratch branch, `npm ci`, and run
   servers only on **your** ports (`scripts/team/port.sh <you>`, e.g. `PORT=<base> npm run dev -w @hb/web`).

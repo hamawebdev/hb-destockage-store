@@ -93,7 +93,14 @@ if [[ $full -eq 1 ]] || { [[ $real_pages -eq 1 ]] && changed_files | grep -Evq "
 hooks_ok=1
 [[ "$(git config --get core.hooksPath || true)" == "$main_root/.githooks" && -x "$main_root/.githooks/pre-commit" ]] || hooks_ok=0
 
-say "gate: $branch @ $short (tree ${tree:0:12}, $([[ $clean -eq 1 ]] && echo clean || echo DIRTY)) in $wt"
+# The storefront build needs an explicit catalogue snapshot (lead ruling, CAT-2): the gate builds the fixture.
+export HB_SNAPSHOT="${HB_SNAPSHOT:-fixture}"
+
+say "gate: $branch @ $short (tree ${tree:0:12}, $([[ $clean -eq 1 ]] && echo clean || echo DIRTY)) in $wt — HB_SNAPSHOT=$HB_SNAPSHOT"
+if [[ -n "$(git stash list 2>/dev/null | head -n1)" ]]; then
+  say "gate: WARNING — the shared git stash is not empty; never use git stash (BRIEF §9), use WIP commits. Entries:"
+  git stash list 2>/dev/null | head -n 5 | sed 's/^/         /' | tee -a "$log"
+fi
 say "gate: steps = ${steps[*]}$([[ $full -eq 1 ]] && echo ' (--full)')"
 
 if [[ $hooks_ok -eq 0 ]]; then

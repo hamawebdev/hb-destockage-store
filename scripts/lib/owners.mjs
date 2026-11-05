@@ -223,6 +223,20 @@ function checkChanges(cfg, name, { lead, changes, before, after, theirs }) {
 
   const max = cfg.maxFileBytes ?? 2 * 1024 * 1024;
   for (const t of touched) {
+    // backup dumps never enter git (JOBS-1 F5): forbidden for everyone, lead included
+    if (!t.deleted && any(t.path, cfg.forbiddenGlobs)) {
+      problems.push(`${t.path}: looks like a database dump/backup (${(cfg.forbiddenGlobs ?? []).join(', ')}); these never go into git — delete it or move it out of the repo`);
+      continue;
+    }
+    // per-directory size caps (e.g. apps/jobs/** ≤ 1 MB)
+    if (!t.deleted) {
+      const o = objs.get(A(t.path));
+      for (const [glob, cap] of Object.entries(cfg.maxBytesByGlob ?? {})) {
+        if (o && o.size > cap && match(t.path, glob)) {
+          problems.push(`${t.path}: ${(o.size / 1048576).toFixed(2)} MB is over the ${(cap / 1048576).toFixed(0)} MB limit for ${glob}`);
+        }
+      }
+    }
     // size rule (everyone, lead included)
     if (!t.deleted) {
       const o = objs.get(A(t.path));

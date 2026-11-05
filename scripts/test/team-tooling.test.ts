@@ -184,6 +184,27 @@ describe('pre-commit ownership', () => {
     expect(commit(root, 'BOOT-9: ledger', { HB_ROLE: 'lead' }).status).toBe(0);
   });
 
+  test('database dumps are refused for everyone, and apps/jobs files over 1 MB (JOBS-1 F5 backstop)', () => {
+    for (const f of ['apps/jobs/dump.sql', 'apps/jobs/x.sql.gz', 'data/geo/a.dump', 'apps/jobs/backups/b.json', 'tmp/hb-restore-1/x.db', 'd1-export-2026.json']) {
+      branch(root, 'main');
+      write(root, f, 'x\n');
+      ok(git(root, 'add', '-f', '--', f));
+      const r = commit(root, 'BOOT-9: dump', { HB_ROLE: 'lead' });
+      expect(r.status, f).not.toBe(0);
+      expect(r.stderr).toContain('dump');
+      ok(git(root, 'reset', '-q', '--hard'));
+      ok(git(root, 'clean', '-qfdx', '--', f.split('/')[0]));
+    }
+    branch(root, 'team/jobs');
+    write(root, 'apps/jobs/big.json', Buffer.alloc(1024 * 1024 + 1, 1));
+    ok(git(root, 'add', '-A'));
+    const r = commit(root, 'JOBS-9: big');
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('1 MB limit for apps/jobs/**');
+    ok(git(root, 'reset', '-q', '--hard'));
+    ok(git(root, 'clean', '-qfd'));
+  });
+
   test('pre-commit is fast (< 1 s)', () => {
     branch(root, 'team/web');
     write(root, 'apps/web/src/speed.ts', 'export {};\n');
