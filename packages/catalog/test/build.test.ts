@@ -239,3 +239,91 @@ describe('URL allow-list on built props', () => {
     expect(() => createBuildContext(fixtureSnapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: bad })).toThrow(/og image/);
   });
 });
+
+describe('CAT-3 r1: only sellable variants drive what is shown', () => {
+  type MutableSnap = { products: { id: number; variants: { id: number; isDefault: boolean; stock: number | null; priceDzd: number; compareAtDzd: number | null }[]; images: { placeholder: boolean }[] }[]; categories: { image?: unknown }[] };
+  const variant = (s: MutableSnap, id: number) => s.products.find((p) => p.id === 101)!.variants.find((v) => v.id === id)!;
+  const ctxFor = (s: MutableSnap) =>
+    createBuildContext(s as unknown as typeof fixtureSnapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: stubImageManifest(s as unknown as typeof fixtureSnapshot) });
+
+  test('F1: an out-of-stock default is not preselected while another variant is available', () => {
+    const s = structuredClone(fixtureSnapshot) as unknown as MutableSnap;
+    variant(s, 1011).isDefault = false;
+    variant(s, 1012).isDefault = true; // M/Bleu, stock 0
+    for (const lang of LANGS) {
+      const p = buildProductProps(ctxFor(s), lang, 101);
+      expect(p.orderForm.defaultVariantId).toBe(1011);
+      expect(p.variants.find((v) => v.isDefault)!.id).toBe(1011);
+      expect(p.stock.state).toBe('in_stock');
+      expect(p.price.amountDzd).toBe(1900);
+    }
+  });
+
+  test('F1: when nothing is available the admin default stays and the form is not orderable', () => {
+    const s = structuredClone(fixtureSnapshot) as unknown as MutableSnap;
+    for (const id of [1011, 1014]) variant(s, id).stock = 0;
+    const p = buildProductProps(ctxFor(s), 'fr', 101);
+    expect(p.orderForm.defaultVariantId).toBe(1011);
+    expect(p.stock.state).toBe('out_of_stock');
+    expect(p.orderForm.orderable).toBe(false);
+  });
+
+  test('F2: card from-price, discount and swatches ignore variants that cannot be bought', () => {
+    const s = structuredClone(fixtureSnapshot) as unknown as MutableSnap;
+    Object.assign(variant(s, 1012), { priceDzd: 1500, compareAtDzd: 2400 }); // cheapest, but stock 0
+    const card = buildCategoryProps(ctxFor(s), 'fr', 1).products.find((c) => c.id === 101)!;
+    expect(card.price).toMatchObject({ amountDzd: 1900, from: true, discountPercent: 21 });
+    const home = buildHomeProps(ctxFor(s), 'fr').featured.find((c) => c.id === 101)!;
+    expect(home.price.amountDzd).toBe(1900);
+    // Bleu is still sellable through L/Bleu; Rouge through M/Rouge.
+    expect(card.swatches.map((x) => x.label)).toEqual(['Rouge', 'Bleu']);
+    variant(s, 1014).stock = 0; // now no blue variant can be bought
+    expect(buildCategoryProps(ctxFor(s), 'fr', 1).products.find((c) => c.id === 101)!.swatches.map((x) => x.label)).toEqual(['Rouge']);
+  });
+
+  test('F3: placeholder photos raise hasPlaceholders on every template', () => {
+    const s = structuredClone(fixtureSnapshot) as unknown as MutableSnap & { products: { placeholder: boolean; translationPlaceholder: string[] }[]; categories: { placeholder: boolean; translationPlaceholder: string[] }[]; contentPages: { placeholder: boolean }[] };
+    for (const p of s.products) Object.assign(p, { placeholder: false, translationPlaceholder: [] });
+    for (const c of s.categories) Object.assign(c, { placeholder: false, translationPlaceholder: [] });
+    for (const p of s.products) for (const i of p.images) i.placeholder = false;
+    const clean = ctxFor(s);
+    expect(buildHomeProps(clean, 'fr').layout.hasPlaceholders).toBe(false);
+    expect(buildCategoryProps(clean, 'fr', 1).layout.hasPlaceholders).toBe(false);
+    s.products.find((p) => p.id === 104)!.images[0]!.placeholder = true; // a card photo only
+    const dirty = ctxFor(s);
+    expect(buildHomeProps(dirty, 'fr').layout.hasPlaceholders).toBe(true);
+    expect(buildCategoryProps(dirty, 'fr', 1).layout.hasPlaceholders).toBe(true);
+    expect(buildSearchProps(dirty, 'fr').layout.hasPlaceholders).toBe(true);
+    expect(buildNotFoundProps(dirty, 'fr').layout.hasPlaceholders).toBe(false); // its links show 106's photo
+    s.products.find((p) => p.id === 106)!.images[0]!.placeholder = true; // the Cuisine link photo
+    expect(buildNotFoundProps(ctxFor(s), 'fr').layout.hasPlaceholders).toBe(true);
+  });
+});
+
+describe('HB_STRICT_COPY', () => {
+  const withPlaceholder = { ar: strings.ar, fr: { ...strings.fr, 'meta.home.title': 'Accueil [PLACEHOLDER]' } };
+  const make = (strictCopy?: boolean) =>
+    createBuildContext(fixtureSnapshot, {
+      siteUrl: FIXTURE_SITE_URL,
+      strings: withPlaceholder,
+      images: stubImageManifest(fixtureSnapshot),
+      ...(strictCopy === undefined ? {} : { strictCopy }),
+    });
+  test('placeholder copy is allowed by default and in dev', () => {
+    expect(buildHomeProps(make(false), 'fr').layout.title).toContain('[PLACEHOLDER]');
+  });
+  test('strictCopy fails the build on a placeholder string', () => {
+    expect(() => buildHomeProps(make(true), 'fr')).toThrow(/meta\.home\.title.*placeholder/);
+  });
+  test('defaults to HB_STRICT_COPY=1 from the environment', () => {
+    const prev = process.env['HB_STRICT_COPY'];
+    process.env['HB_STRICT_COPY'] = '1';
+    try {
+      expect(make().strictCopy).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env['HB_STRICT_COPY'];
+      else process.env['HB_STRICT_COPY'] = prev;
+    }
+    expect(make().strictCopy).toBe(prev === '1');
+  });
+});

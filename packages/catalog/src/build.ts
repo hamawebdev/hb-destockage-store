@@ -106,6 +106,11 @@ export interface BuildInput {
   readonly lowStockThreshold?: number;
   readonly relatedCount?: number;
   readonly featuredCount?: number;
+  /**
+   * Production copy check, same rule as shell's `t()`: a UI string containing `[PLACEHOLDER]`
+   * fails the build. Default: `HB_STRICT_COPY=1` in the environment.
+   */
+  readonly strictCopy?: boolean;
 }
 
 export interface BuildContext {
@@ -117,6 +122,7 @@ export interface BuildContext {
   readonly lowStockThreshold: number;
   readonly relatedCount: number;
   readonly featuredCount: number;
+  readonly strictCopy: boolean;
   readonly products: readonly SnapshotProduct[];
   readonly categories: readonly SnapshotCategory[];
   readonly contents: readonly SnapshotContentPage[];
@@ -159,6 +165,7 @@ export function createBuildContext(snapshot: CatalogSnapshot, input: BuildInput)
     lowStockThreshold: input.lowStockThreshold ?? 3,
     relatedCount: input.relatedCount ?? 4,
     featuredCount: input.featuredCount ?? 8,
+    strictCopy: input.strictCopy ?? (typeof process !== 'undefined' && process.env['HB_STRICT_COPY'] === '1'),
     products,
     categories,
     contents: publishedContentPages(snapshot),
@@ -178,9 +185,16 @@ export function createBuildContext(snapshot: CatalogSnapshot, input: BuildInput)
 // Small helpers
 // ---------------------------------------------------------------------------------------------
 
-const t = (ctx: BuildContext, lang: Lang, key: string, vars: Readonly<Record<string, string | number>> = {}): string => {
+/** A brand string; missing ⇒ BuildError; `[PLACEHOLDER]` ⇒ BuildError when `strictCopy`. */
+function copy(ctx: BuildContext, lang: Lang, key: string): string {
   const raw = ctx.strings[lang][key];
   if (raw === undefined) throw new BuildError(`strings.${lang}: missing ${key}`);
+  if (ctx.strictCopy && raw.includes('[PLACEHOLDER]')) throw new BuildError(`strings.${lang}: "${key}" is a placeholder (HB_STRICT_COPY=1)`);
+  return raw;
+}
+
+const t = (ctx: BuildContext, lang: Lang, key: string, vars: Readonly<Record<string, string | number>> = {}): string => {
+  const raw = copy(ctx, lang, key);
   return raw.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 };
 
@@ -276,11 +290,30 @@ function productStock(ctx: BuildContext, p: SnapshotProduct): StockProps {
   return { state, qty };
 }
 
-const defaultVariant = (p: SnapshotProduct): SnapshotVariant => {
-  const v = activeVariants(p).find((x) => x.isDefault) ?? activeVariants(p)[0];
-  if (!v) throw new BuildError(`product ${p.id} has no active variant`);
-  return v;
-};
+/**
+ * The variants a customer can actually buy: active and not out of stock. Falls back to all active
+ * variants only when none is available (the product then shows as out of stock anyway).
+ * Every displayed choice (preselected variant, page price/stock, card from-price and discount,
+ * swatches) is derived from this set (CAT-3 r1 F1/F2), so the storefront never advertises a
+ * price or option the customer cannot order.
+ */
+function sellableVariants(ctx: BuildContext, p: SnapshotProduct): SnapshotVariant[] {
+  const active = activeVariants(p);
+  const available = active.filter((v) => variantStock(ctx, v).state !== 'out_of_stock');
+  return available.length ? available : active;
+}
+
+/**
+ * The variant preselected on the page and in the no-JS form: the admin's default when it is
+ * available, else the first available active variant, else the default.
+ */
+export function effectiveDefaultVariant(ctx: BuildContext, p: SnapshotProduct): SnapshotVariant {
+  const active = activeVariants(p);
+  const flagged = active.find((x) => x.isDefault) ?? active[0];
+  if (!flagged) throw new BuildError(`product ${p.id} has no active variant`);
+  if (variantStock(ctx, flagged).state !== 'out_of_stock') return flagged;
+  return active.find((v) => variantStock(ctx, v).state !== 'out_of_stock') ?? flagged;
+}
 
 function optionValueLabels(p: SnapshotProduct, lang: Lang): Map<Id, string> {
   return new Map(p.options.flatMap((o) => o.values.map((x) => [x.id, x.value[lang]] as const)));
@@ -306,7 +339,7 @@ const ref = (template: TemplateName, id?: Id, page?: number): PageRef =>
 // ---------------------------------------------------------------------------------------------
 
 export function productCard(ctx: BuildContext, p: SnapshotProduct, lang: Lang, lcp = false): ProductCard {
-  const vs = activeVariants(p);
+  const vs = sellableVariants(ctx, p);
   const cheapest = [...vs].sort((a, b) => a.priceDzd - b.priceDzd || a.id - b.id)[0]!;
   const from = new Set(vs.map((v) => v.priceDzd)).size > 1;
   const img = mainImage(p);
@@ -399,7 +432,7 @@ export function contactProps(ctx: BuildContext): ContactProps {
 function footerLinks(ctx: BuildContext, lang: Lang): FooterLink[] {
   return ctx.contents.map((c) => ({
     key: c.key,
-    label: ctx.strings[lang][`links.${c.key}`] ?? c.title[lang],
+    label: ctx.strings[lang][`links.${c.key}`] === undefined ? c.title[lang] : copy(ctx, lang, `links.${c.key}`),
     href: ctx.router.url(lang, ref('content', c.id)),
   }));
 }
@@ -444,8 +477,10 @@ function layout(ctx: BuildContext, entry: RouteEntry, x: LayoutExtras): LayoutPr
   };
 }
 
-const anyPlaceholder = (cards: readonly { placeholder: boolean; translationPlaceholder?: boolean }[]): boolean =>
-  cards.some((c) => c.placeholder || c.translationPlaceholder === true);
+/** Cards/links with placeholder content, translation or photo (CAT-3 r1 F3: photos count too). */
+const anyPlaceholder = (
+  cards: readonly { placeholder: boolean; translationPlaceholder?: boolean; image?: { placeholder: boolean } | null }[],
+): boolean => cards.some((c) => c.placeholder || c.translationPlaceholder === true || c.image?.placeholder === true);
 
 const entryFor = (ctx: BuildContext, lang: Lang, r: PageRef): RouteEntry => {
   const path = ctx.router.url(lang, r);
@@ -478,7 +513,7 @@ export function buildHomeProps(ctx: BuildContext, lang: Lang): HomeProps {
       description: t(ctx, lang, 'meta.home.description'),
       lcpImage: heroImage,
       ogImage: ogImageFor(ctx, heroImg, lang),
-      hasPlaceholders: anyPlaceholder([...featured, ...packs, ...categories]) || (hero.product?.placeholder ?? false),
+      hasPlaceholders: anyPlaceholder([...featured, ...packs, ...categories, ...(hero.product ? [hero.product] : [])]) || (heroImage?.placeholder ?? false),
     }),
     hero,
     categories,
@@ -552,7 +587,7 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
   const generalIdx = indexesWhere(isGeneral);
   const optionPos = new Map(p.options.flatMap((o) => o.values.map((x) => [x.id, o.position * 10_000 + o.id] as const)));
   const vs = activeVariants(p);
-  const def = defaultVariant(p);
+  const def = effectiveDefaultVariant(ctx, p);
 
   const variants: VariantProps[] = vs.map((v) => {
     const stock = variantStock(ctx, v);

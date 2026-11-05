@@ -434,7 +434,8 @@ export interface PriceProps {
   readonly compareAtLabel: string | null;
   /** Whole percent saved, null without `compareAt`. */
   readonly discountPercent: number | null;
-  /** Cards: true when active variants have different prices and `amountDzd` is the lowest ("from …").
+  /** Cards: true when the sellable variants (available ones; all active ones if none is available)
+   *  have different prices and `amountDzd` is the lowest ("from …").
    *  Product page / variants: always false (exact price of that variant). */
   readonly from: boolean;
 }
@@ -459,7 +460,8 @@ export interface ProductCard {
   readonly price: PriceProps;
   /** Product-level: best state among active variants (in > low > out); qty = sum, null if any untracked. */
   readonly stock: StockProps;
-  /** Distinct colour values of active variants, option-value order, max 6; `[]` when none. */
+  /** Distinct colour values of sellable variants (available; all active if none), option-value
+   *  order, max 6; `[]` when none. */
   readonly swatches: readonly { readonly label: string; readonly hex: string }[];
   readonly placeholder: boolean;
   /** This language's text is our translation. */
@@ -581,6 +583,8 @@ export interface VariantProps {
   /** Gallery for this variant, as indexes into `ProductProps.images`: images bound to the variant,
    *  then images bound to any of its option values (option order), then the general images. */
   readonly imageIndexes: readonly number[];
+  /** The effective default: the admin's default variant when it is available, else the first
+   *  available variant, else the admin's default. Preselected on the page and in the no-JS form. */
   readonly isDefault: boolean;
   /** `active && stock.state !== 'out_of_stock'`. Inactive variants are not in `variants` at all,
    *  so a combination with no entry in `variants` is unavailable too. */
@@ -616,6 +620,8 @@ export interface OrderFormProps {
   readonly kind: ProductKind;
   /** True ⇒ hide the variant picker and post `defaultVariantId`. */
   readonly singleVariant: boolean;
+  /** The effective default (see `VariantProps.isDefault`): never an out-of-stock variant while
+   *  another one is available. */
   readonly defaultVariantId: Id;
   /** Same objects as `ProductProps.variants`. */
   readonly variants: readonly VariantProps[];
@@ -659,9 +665,9 @@ export interface ProductProps {
   readonly breadcrumbs: readonly Breadcrumb[];
   /** All images in order; `images[0]` is the LCP image (`lcp: true`). */
   readonly images: readonly ProductImageProps[];
-  /** The default variant's price (`from` false). The picker swaps in `variants[i].price`. */
+  /** The effective default variant's price (`from` false). The picker swaps in `variants[i].price`. */
   readonly price: PriceProps;
-  /** The default variant's stock. Whole-product availability: `orderForm.orderable`. */
+  /** The effective default variant's stock. Whole-product availability: `orderForm.orderable`. */
   readonly stock: StockProps;
   /** Option order = `position`; values in `position` order. Empty for simple/pack. */
   readonly options: readonly OptionProps[];
