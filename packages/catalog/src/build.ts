@@ -498,9 +498,10 @@ export function buildHomeProps(ctx: BuildContext, lang: Lang): HomeProps {
   const { homeFeaturedProductIds, homeHeroProductId } = ctx.snapshot.settings;
   const named = homeFeaturedProductIds.filter((id) => ctx.publishedProductIds.has(id)).map((id) => ctx.productById.get(id)!);
   const featuredProducts = named.length ? named : ctx.products.slice(0, ctx.featuredCount);
+  // Only an explicitly chosen, published hero product: no fallback (lead: a photo with burned-in
+  // prices must never become the hero by accident; null ⇒ type-led hero without image).
   const heroProduct =
-    (homeHeroProductId !== null && ctx.publishedProductIds.has(homeHeroProductId) ? ctx.productById.get(homeHeroProductId) : undefined) ??
-    featuredProducts[0];
+    homeHeroProductId !== null && ctx.publishedProductIds.has(homeHeroProductId) ? ctx.productById.get(homeHeroProductId) : undefined;
   const heroImg = heroProduct ? mainImage(heroProduct) : undefined;
   const heroImage = heroImg ? toImageProps(ctx, heroImg, lang, 'hero', true) : null;
   const featured = featuredProducts.map((p) => productCard(ctx, p, lang));
