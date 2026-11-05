@@ -15,6 +15,7 @@ import { groupTimeline, type OrderAuditRow, type OrderDetail, type OrderEventRow
 import { flagLabel } from './list-page.tsx';
 import { m, orderFlagTone, orderStatusLabel, orderStatusTone, type OrdersMessages } from './messages.ts';
 import { CALL_CANCEL_REASONS, MANUAL_CANCEL_REASONS, manualTargets } from './workflow.ts';
+import { canEditContact } from './contact.ts';
 
 export type FormKind = 'call' | 'transition' | 'note';
 
@@ -369,6 +370,11 @@ export function OrderDetailPage(props: DetailProps) {
             </>
           ) : null}
         </dl>
+        {canEditContact(user.role, order.status) ? (
+          <p>
+            <a class="btn btn--secondary" href={`/orders/${order.ref}/contact`}>{tm('contact.link')}</a>
+          </p>
+        ) : null}
       </Section>
 
       <Section title={tm('detail.items')} id="items">
