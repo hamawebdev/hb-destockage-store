@@ -54,7 +54,7 @@ export const DetailsSchema = v.strictObject({
 
 export const CreateSchema = v.strictObject({
   ...detailsEntries,
-  kind: vPicklist(['simple', 'variable'] as const),
+  kind: vPicklist(['simple', 'variable', 'pack'] as const),
   sku: v.pipe(vText(40), v.transform(normalizeSku)),
   price: vDzd(LIMITS.price),
   compare_at: vOptionalDzd(LIMITS.price),

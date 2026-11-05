@@ -106,7 +106,7 @@ describe('create', () => {
     [{ sku: 'hb poele' }, 'sku'],
     [{ brand_latin: 'فيليبس' }, 'brand_latin'],
     [{ category_id: '999999' }, 'category_id'],
-    [{ kind: 'pack' }, 'kind'],
+    [{ kind: 'bundle' }, 'kind'],
     [{ status: 'active' }, 'mass assignment'],
   ])('rejects %j (%s) with 422, writes nothing', async (over) => {
     expect((await post(USERS.content, '/products', { ...base(), ...over })).status).toBe(422);

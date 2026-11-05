@@ -200,7 +200,7 @@ export interface FirstVariant {
 }
 
 /** Product (draft) + its default variant + audit, one batch. Returns the new id. */
-export async function createProduct(c: Ctx, kind: 'simple' | 'variable', row: ProductRow, first: FirstVariant): Promise<number> {
+export async function createProduct(c: Ctx, kind: ProductKind, row: ProductRow, first: FirstVariant): Promise<number> {
   const db = c.var.db;
   const productId = sql`(select id from products where slug_fr = ${row.slugFr})`;
   const [inserted] = await run(c, [

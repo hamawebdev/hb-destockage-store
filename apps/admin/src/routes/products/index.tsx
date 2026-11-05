@@ -48,6 +48,7 @@ import {
   type ProductAggregate,
 } from './data.ts';
 import { m } from './messages.ts';
+import { loadPackLines, loadPickable, mountPackRoutes, PackSection } from './pack.tsx';
 import {
   CreateSchema,
   DetailsSchema,
@@ -144,11 +145,13 @@ interface EditOverrides {
   options?: { values: Record<string, string>; errors?: Record<string, string> };
   grid?: { values: Record<string, string>; errors?: Record<string, string> };
   issues?: ActivationIssue[];
+  pack?: { errors: Record<string, string> };
 }
 
 async function renderEdit(c: Ctx, agg: ProductAggregate, o: EditOverrides = {}) {
   const cats = await loadCategories(c);
   const p = agg.product;
+  const [packLines, pickable] = p.kind === 'pack' ? await Promise.all([loadPackLines(c, p.id), loadPickable(c)]) : [[], []];
   return c.render(
     <>
       <DetailsForm
@@ -158,6 +161,7 @@ async function renderEdit(c: Ctx, agg: ProductAggregate, o: EditOverrides = {}) 
         categories={cats}
         slugWarning={o.details?.slugWarning}
       />
+      {p.kind === 'pack' ? <PackSection agg={agg} lines={packLines} pickable={pickable} errors={o.pack?.errors} /> : null}
       {p.kind !== 'pack' ? (
         <OptionsForm
           id={p.id}
@@ -506,5 +510,7 @@ r.post('/:id/delete', requirePerm('catalog.edit'), async (c) => {
   }
   return c.redirect(withFlash('/products', 'deleted'), 303);
 });
+
+mountPackRoutes(r, { loadAggregate, renderEdit, paramId });
 
 export default r;

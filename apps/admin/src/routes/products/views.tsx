@@ -161,6 +161,7 @@ export function CreateForm(props: { values: FormValues; errors?: FieldErrors | u
         options={[
           { value: 'simple', label: tm('kind.simple') },
           { value: 'variable', label: tm('kind.variable') },
+          { value: 'pack', label: tm('kind.pack') },
         ]}
       />
       <DetailsFields values={props.values} errors={props.errors} categories={props.categories} />
