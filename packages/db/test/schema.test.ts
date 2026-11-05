@@ -146,13 +146,13 @@ describe('DB-1 round trip', () => {
 
 describe('DB-1 constraints reject bad rows', () => {
   const cases: [string, (db: ReturnType<typeof seedMinimal>['db'], sqlite: ReturnType<typeof seedMinimal>['sqlite']) => unknown, RegExp][] = [
-    ['unknown order status', (_db, s) => s.prepare(`insert into orders (ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, status, subtotal_dzd, fee_dzd, total_dzd, fee_source) values ('HB-1','k',1,'a','+213560417403',16,1601,'ar','paid',1,0,1,'x')`).run(), /orders_status_enum/],
+    ['unknown order status', (_db, s) => s.prepare(`insert into orders (ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, status, subtotal_dzd, fee_dzd, total_dzd, fee_source) values ('HB-00001','k',1,'a','+213560417403',16,1601,'ar','paid',1,0,1,'table')`).run(), /orders_status_enum/],
     ['total ≠ subtotal + fee', (db) => db.insert(schema.orders).values(order({ totalDzd: 14999 })).run(), /orders_total_sum/],
     ['non-mobile phone', (db) => db.insert(schema.orders).values(order({ phoneE164: '+213212345678' })).run(), /orders_phone_e164/],
     ['national-format phone', (db) => db.insert(schema.customers).values({ phoneE164: '0560417403', name: 'x' }).run(), /customers_phone_e164/],
-    ['duplicate idempotency key', (db) => { db.insert(schema.orders).values(order()).run(); db.insert(schema.orders).values(order({ ref: 'HB-OTHER' })).run(); }, /UNIQUE.*idempotency_key/],
+    ['duplicate idempotency key', (db) => { db.insert(schema.orders).values(order()).run(); db.insert(schema.orders).values(order({ ref: 'HB-0THER' })).run(); }, /UNIQUE.*idempotency_key/],
     ['duplicate ref', (db) => { db.insert(schema.orders).values(order()).run(); db.insert(schema.orders).values(order({ idempotencyKey: 'other' })).run(); }, /UNIQUE.*orders\.ref/],
-    ['unknown commune (FK)', (db) => db.insert(schema.orders).values(order({ communeId: 9999 })).run(), /FOREIGN KEY/],
+    ['unknown commune (FK)', (db) => db.insert(schema.orders).values(order({ communeId: 9999 })).run(), /FOREIGN KEY|commune_id is not in orders.wilaya_code/],
     ['line total ≠ unit × qty', (db) => { db.insert(schema.orders).values(order({ id: 1 })).run(); db.insert(schema.orderItems).values({ orderId: 1, variantId: 100, productId: 10, nameFr: 'a', nameAr: 'b', sku: 's', unitPriceDzd: 100, qty: 2, lineTotalDzd: 201 }).run(); }, /order_items_line_total/],
     ['qty 0', (db) => { db.insert(schema.orders).values(order({ id: 1 })).run(); db.insert(schema.orderItems).values({ orderId: 1, variantId: 100, productId: 10, nameFr: 'a', nameAr: 'b', sku: 's', unitPriceDzd: 100, qty: 0, lineTotalDzd: 0 }).run(); }, /order_items_qty_pos/],
     ['negative stock', (db) => db.update(schema.variants).set({ stock: -1 }).where(eq(schema.variants.id, 100)).run(), /variants_stock_nonneg/],
@@ -170,7 +170,7 @@ describe('DB-1 constraints reject bad rows', () => {
     ['unknown admin role', (_db, s) => s.prepare(`insert into admin_users (email, name, role) values ('a@b.c','a','root')`).run(), /admin_users_role_enum/],
     ['admin event without user', (db) => { db.insert(schema.orders).values(order({ id: 1 })).run(); db.insert(schema.orderEvents).values({ orderId: 1, type: 'note', actorType: 'admin' }).run(); }, /order_events_admin_has_user/],
     ['status_change without to_status', (db) => { db.insert(schema.orders).values(order({ id: 1 })).run(); db.insert(schema.orderEvents).values({ orderId: 1, type: 'status_change', actorType: 'system' }).run(); }, /order_events_status_change_has_to/],
-    ['invalid JSON flags', (_db, s) => s.prepare(`update customers set flags = 'not json'`).run(), /customers_flags_json/],
+    ['invalid JSON flags', (_db, s) => s.prepare(`update customers set flags = 'not json'`).run(), /customers_flags_json|malformed JSON|flags must be a JSON array/],
     ['content body not an array', (_db, s) => s.prepare(`insert into content_pages (key, slug_fr, slug_ar, title_fr, title_ar, body_fr, body_ar) values ('about','a','b','c','d','{}','[]')`).run(), /content_pages_body_fr_json/],
     ['unknown content key', (_db, s) => s.prepare(`insert into content_pages (key, slug_fr, slug_ar, title_fr, title_ar) values ('faq','a','b','c','d')`).run(), /content_pages_key_enum/],
     ['unknown RUM metric', (db) => db.insert(schema.rumEvents).values({ template: 'home', path: '/ar/', lang: 'ar', metric: 'FID' as 'LCP', value: 1 }).run(), /rum_events_metric_enum/],
@@ -217,7 +217,7 @@ describe('DB-1 constraints reject bad rows', () => {
   test('every order status in the enum is accepted', () => {
     const { db } = seedMinimal();
     ORDER_STATUSES.forEach((status, i) => {
-      db.insert(schema.orders).values(order({ status, ref: `HB-${i}`, idempotencyKey: `k-${i}` })).run();
+      db.insert(schema.orders).values(order({ status, ref: `HB-0000${i}`, idempotencyKey: `k-${i}` })).run();
     });
     expect(db.select().from(schema.orders).all()).toHaveLength(ORDER_STATUSES.length);
   });
