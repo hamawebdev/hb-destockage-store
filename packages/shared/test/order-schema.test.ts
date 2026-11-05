@@ -1,9 +1,14 @@
 import { describe, expect, test } from 'vitest';
 import {
+  ERROR_CODES,
   HONEYPOT_FIELD,
+  MIN_REVIEW_MS,
   ORDER_ERROR_CODES,
   ORDER_ERROR_HTTP_STATUS,
   ORDER_REF_RE,
+  failureCode,
+  formFieldsToBody,
+  isOrderRef,
   makeOrderRef,
   orderErrorKey,
   parseOrderDraft,
@@ -21,15 +26,15 @@ const valid = {
   wilayaCode: 16,
   communeId: 1601,
   idempotencyKey: KEY,
-  formStartedAt: 1_700_000_000_000,
+  expectedTotalDzd: 29800,
+  fillMs: 8423,
   turnstileToken: 'tok',
   'cf-turnstile-response': 'stripped',
 };
 
 describe('parseOrderInput', () => {
   test('valid JSON body: normalised output, unknown keys stripped', () => {
-    const r = parseOrderInput(valid);
-    expect(r).toEqual({
+    expect(parseOrderInput(valid)).toEqual({
       ok: true,
       value: {
         lang: 'ar',
@@ -39,36 +44,60 @@ describe('parseOrderInput', () => {
         wilayaCode: 16,
         communeId: 1601,
         idempotencyKey: KEY.toLowerCase(),
+        expectedTotalDzd: 29800,
         [HONEYPOT_FIELD]: '',
-        formStartedAt: 1_700_000_000_000,
+        fillMs: 8423,
         turnstileToken: 'tok',
       },
     });
   });
 
-  test('form-encoded body: numeric strings coerced', () => {
-    const r = parseOrderInput({
-      ...valid,
-      items: [{ variantId: '12', qty: ' 2 ' }],
-      wilayaCode: '١٦',
-      communeId: '1601',
-      formStartedAt: 'garbage',
-      turnstileToken: undefined,
-    });
+  test('form-encoded confirm step: flat fields, numeric strings and Arabic digits coerced', () => {
+    const body = formFieldsToBody([
+      ['step', 'confirm'],
+      ['lang', 'fr'],
+      ['variantId', '12'],
+      ['qty', ' 2 '],
+      ['name', 'Amine'],
+      ['phone', '0560417403'],
+      ['wilayaCode', '١٦'],
+      ['communeId', '1601'],
+      ['idempotencyKey', KEY],
+      ['expectedTotalDzd', '29800'],
+      ['website', ''],
+    ]);
+    const r = parseOrderInput(body);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.items).toEqual([{ variantId: 12, qty: 2 }]);
       expect(r.value.wilayaCode).toBe(16);
-      expect(r.value.formStartedAt).toBeUndefined();
+      expect(r.value.fillMs).toBeUndefined();
       expect(r.value.turnstileToken).toBeUndefined();
+    }
+  });
+
+  test('malformed fillMs counts as missing, never fails', () => {
+    for (const fillMs of ['garbage', -5, 86_400_001, 1.5]) {
+      const r = parseOrderInput({ ...valid, fillMs });
+      expect(r.ok && r.value.fillMs).toBeUndefined();
     }
   });
 
   test.each([
     [{ lang: 'en' }, [{ field: 'lang', code: 'lang_invalid' }]],
+    [{ name: '' }, [{ field: 'name', code: 'name_required' }]],
+    [{ name: ' ‏ ' }, [{ field: 'name', code: 'name_required' }]],
+    [{ name: undefined }, [{ field: 'name', code: 'name_required' }]],
     [{ name: 'a' }, [{ field: 'name', code: 'name_invalid' }]],
+    [{ name: '12345' }, [{ field: 'name', code: 'name_invalid' }]],
     [{ name: 'x'.repeat(81) }, [{ field: 'name', code: 'name_invalid' }]],
     [{ name: 'ab\u0000' }, [{ field: 'name', code: 'name_invalid' }]],
+    // review r1 I-2: invisible-only names; leftover format characters
+    [{ name: '\u200B\u200B' }, [{ field: 'name', code: 'name_required' }]],
+    [{ name: '\u2060\uFEFF\u202E' }, [{ field: 'name', code: 'name_required' }]],
+    [{ name: '\u200C\u200D' }, [{ field: 'name', code: 'name_invalid' }]],
+    [{ name: 'ab\u00AD' }, [{ field: 'name', code: 'name_invalid' }]],
+    [{ name: 'ab\u{E0041}' }, [{ field: 'name', code: 'name_invalid' }]],
     [{ phone: '' }, [{ field: 'phone', code: 'phone_required' }]],
     [{ phone: undefined }, [{ field: 'phone', code: 'phone_required' }]],
     [{ phone: '0501234567' }, [{ field: 'phone', code: 'phone_not_mobile' }]],
@@ -91,6 +120,8 @@ describe('parseOrderInput', () => {
     ],
     [{ idempotencyKey: 'nope' }, [{ field: 'idempotencyKey', code: 'idempotency_key_invalid' }]],
     [{ idempotencyKey: undefined }, [{ field: 'idempotencyKey', code: 'idempotency_key_invalid' }]],
+    [{ expectedTotalDzd: undefined }, [{ field: 'expectedTotalDzd', code: 'invalid_request' }]],
+    [{ expectedTotalDzd: 10.5 }, [{ field: 'expectedTotalDzd', code: 'invalid_request' }]],
   ])('%j → %j', (patch, errors) => {
     expect(parseOrderInput({ ...valid, ...patch })).toEqual({ ok: false, errors });
   });
@@ -105,6 +136,22 @@ describe('parseOrderInput', () => {
     expect(parseOrderInput(body)).toEqual({ ok: false, errors: [{ field: 'form', code: 'invalid_request' }] });
   });
 
+  test('review r1 I-2: bidi controls and zero-width characters are stripped, ZWNJ/ZWJ kept', () => {
+    const cases: [string, string][] = [
+      ['a\u202Eb', 'ab'],
+      ['x\u2066y\u2069', 'xy'],
+      ['\u200FAmine\u200E', 'Amine'],
+      ['Ami\u200Bne', 'Amine'],
+      ['\u202Bمحمد\u202C', 'محمد'],
+      ['می\u200Cخواهم', 'می\u200Cخواهم'],
+      ['ab\u200D', 'ab\u200D'],
+    ];
+    for (const [name, stored] of cases) {
+      const r = parseOrderInput({ ...valid, name });
+      expect(r.ok && r.value.name, JSON.stringify(name)).toBe(stored);
+    }
+  });
+
   test('honeypot never fails validation', () => {
     const r = parseOrderInput({ ...valid, [HONEYPOT_FIELD]: 'http://spam' });
     expect(r.ok && r.value[HONEYPOT_FIELD]).toBe('http://spam');
@@ -112,10 +159,111 @@ describe('parseOrderInput', () => {
   });
 });
 
-test('parseOrderDraft does not require the idempotency key', () => {
-  const { idempotencyKey: _k, ...draft } = valid;
-  expect(parseOrderDraft(draft).ok).toBe(true);
-  expect(parseOrderInput(draft).ok).toBe(false);
+describe('failureCode', () => {
+  test('validation unless a request-level code is present', () => {
+    expect(failureCode([{ field: 'phone', code: 'phone_invalid' }])).toBe('validation');
+    expect(failureCode([{ field: 'phone', code: 'phone_invalid' }, { field: 'expectedTotalDzd', code: 'invalid_request' }])).toBe(
+      'invalid_request',
+    );
+    expect(failureCode([{ field: 'idempotencyKey', code: 'idempotency_key_invalid' }])).toBe('idempotency_key_invalid');
+  });
+});
+
+describe('formFieldsToBody', () => {
+  test('variant form', () => {
+    expect(formFieldsToBody({ variantId: '3', qty: '2', lang: 'ar' })).toEqual({ lang: 'ar', items: [{ variantId: '3', qty: '2' }] });
+  });
+  test('options form; first value wins; no prototype pollution', () => {
+    const body = formFieldsToBody([
+      ['productId', '7'],
+      ['opt.1', '11'],
+      ['opt.2', '21'],
+      ['opt.2', '22'],
+      ['qty', '1'],
+      ['__proto__', 'x'],
+      ['opt.__proto__', 'y'],
+    ]);
+    expect(body['productId']).toBe('7');
+    expect(body['qty']).toBe('1');
+    expect(Object.entries(body['options'] as object)).toEqual([
+      ['1', '11'],
+      ['2', '21'],
+      ['__proto__', 'y'],
+    ]);
+    expect(({} as Record<string, unknown>)['x']).toBeUndefined();
+    expect(Object.getPrototypeOf(body)).toBe(Object.prototype);
+  });
+});
+
+describe('parseOrderDraft (no-JS step 1)', () => {
+  const base = { lang: 'fr', name: 'Amine', phone: '0560417403', wilayaCode: '16', website: '' };
+
+  test('variant selection; commune optional', () => {
+    expect(parseOrderDraft(formFieldsToBody({ ...base, variantId: '12', qty: '2' }))).toEqual({
+      ok: true,
+      value: {
+        lang: 'fr',
+        name: 'Amine',
+        phone: { e164: '+213560417403', national: '0560417403' },
+        wilayaCode: 16,
+        website: '',
+        selection: { kind: 'variant', variantId: 12, qty: 2 },
+      },
+    });
+  });
+
+  test('size × colour selection', () => {
+    const r = parseOrderDraft(formFieldsToBody({ ...base, communeId: '1601', productId: '7', 'opt.1': '11', 'opt.2': '٢١', qty: '1' }));
+    expect(r).toEqual({
+      ok: true,
+      value: expect.objectContaining({
+        communeId: 1601,
+        selection: { kind: 'options', productId: 7, options: { 1: 11, 2: 21 }, qty: 1 },
+      }),
+    });
+  });
+
+  test('no selection ⇒ variant_required, alongside other field errors', () => {
+    expect(parseOrderDraft(formFieldsToBody(base))).toEqual({ ok: false, errors: [{ field: 'items', code: 'variant_required' }] });
+    expect(parseOrderDraft(formFieldsToBody({ ...base, productId: '7', qty: '1' }))).toEqual({
+      ok: false,
+      errors: [{ field: 'items', code: 'variant_required' }],
+    });
+    const r = parseOrderDraft(formFieldsToBody({ ...base, phone: '0501234567' }));
+    expect(r).toEqual({
+      ok: false,
+      errors: [
+        { field: 'phone', code: 'phone_not_mobile' },
+        { field: 'items', code: 'variant_required' },
+      ],
+    });
+  });
+
+  test('review r2 nit: options that the schema drops leave no selection', () => {
+    expect(parseOrderDraft(formFieldsToBody({ ...base, productId: '7', 'opt.__proto__': '3', qty: '1' }))).toEqual({
+      ok: false,
+      errors: [{ field: 'items', code: 'variant_required' }],
+    });
+  });
+
+  test('bad option ids and quantities', () => {
+    expect(parseOrderDraft(formFieldsToBody({ ...base, productId: '7', 'opt.x': '1', qty: '1' }))).toEqual({
+      ok: false,
+      errors: [{ field: 'items', code: 'items_invalid' }],
+    });
+    expect(parseOrderDraft(formFieldsToBody({ ...base, productId: '7', 'opt.1': '1', qty: '11' }))).toEqual({
+      ok: false,
+      errors: [{ field: 'items', code: 'qty_invalid' }],
+    });
+    expect(parseOrderDraft(formFieldsToBody({ ...base, variantId: '1', qty: '0' }))).toEqual({
+      ok: false,
+      errors: [{ field: 'items', code: 'qty_invalid', index: 0 }],
+    });
+  });
+
+  test('no idempotency key or total needed', () => {
+    expect(parseOrderDraft({ ...base, items: [{ variantId: 1, qty: 1 }] }).ok).toBe(true);
+  });
 });
 
 describe('parseQuoteInput', () => {
@@ -143,32 +291,37 @@ test('error codes: keys, HTTP status for each', () => {
     expect(ORDER_ERROR_HTTP_STATUS[c]).toBeGreaterThanOrEqual(400);
   }
   expect(Object.keys(ORDER_ERROR_HTTP_STATUS).sort()).toEqual([...ORDER_ERROR_CODES].sort());
+  expect(ORDER_ERROR_HTTP_STATUS.total_changed).toBe(409);
+  expect(ORDER_ERROR_HTTP_STATUS.server_error).toBe(503);
+  expect(ERROR_CODES).toBe(ORDER_ERROR_CODES);
+  // Phone error codes are order error codes too.
+  for (const c of ['phone_required', 'phone_invalid', 'phone_not_mobile'] as const) expect(ERROR_CODES).toContain(c);
 });
 
-test('makeOrderRef', () => {
+test('order ref', () => {
   expect(makeOrderRef(new Uint8Array([0, 1, 31, 32, 255]))).toBe('HB-01Z0Z');
   for (let i = 0; i < 200; i++) {
-    expect(makeOrderRef(crypto.getRandomValues(new Uint8Array(5)))).toMatch(ORDER_REF_RE);
+    expect(isOrderRef(makeOrderRef(crypto.getRandomValues(new Uint8Array(5))))).toBe(true);
   }
   expect(() => makeOrderRef(new Uint8Array(4))).toThrow(RangeError);
   expect(ORDER_REF_RE.test('HB-7K2Q9')).toBe(true);
-  expect(ORDER_REF_RE.test('HB-7K2O9')).toBe(false);
+  for (const bad of ['HB-7K2O9', 'HB-7K2Q', 'hb-7K2Q9', 'HB-7K2Q9 ', 42]) expect(isOrderRef(bad)).toBe(false);
 });
 
 describe('submissionFlags', () => {
-  const now = 1_700_000_010_000;
   test('clean submission', () => {
-    expect(submissionFlags({ [HONEYPOT_FIELD]: '', formStartedAt: now - 30_000 }, 'valid', now)).toEqual([]);
+    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 30_000 }, 'ok')).toEqual([]);
   });
   test('every signal', () => {
-    expect(submissionFlags({ [HONEYPOT_FIELD]: 'x', formStartedAt: now - 500 }, 'invalid', now)).toEqual([
-      'honeypot',
-      'fast_fill',
-      'turnstile_invalid',
-    ]);
-    expect(submissionFlags({ [HONEYPOT_FIELD]: ' ', formStartedAt: undefined }, 'missing', now)).toEqual([
+    expect(submissionFlags({ [HONEYPOT_FIELD]: 'x', fillMs: 500 }, 'invalid')).toEqual(['honeypot', 'fast_fill', 'turnstile_invalid']);
+    expect(submissionFlags({ [HONEYPOT_FIELD]: ' ', fillMs: undefined }, 'missing')).toEqual([
       'fill_time_missing',
       'turnstile_missing',
     ]);
+    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 2_499 }, 'error')).toEqual(['fast_fill', 'turnstile_invalid']);
+  });
+  test('no-JS threshold', () => {
+    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 2_000 }, 'ok', MIN_REVIEW_MS)).toEqual([]);
+    expect(submissionFlags({ [HONEYPOT_FIELD]: '', fillMs: 1_000 }, 'ok', MIN_REVIEW_MS)).toEqual(['fast_fill']);
   });
 });
