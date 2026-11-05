@@ -13,6 +13,7 @@ import {
   orderBy,
   postDataDdl,
   precisionCheckSql,
+  schemaSha256,
   type DiscoveredSchema,
   type MasterRow,
   type TableInfo,
@@ -22,7 +23,14 @@ import { log } from '../log.ts';
 
 export const DATABASE_NAME = 'hb-destockage';
 export const BACKUP_PREFIX = 'd1/';
-export const FORMAT_VERSION = 1;
+export const FORMAT_VERSION = 2;
+/**
+ * Written in a run's prefix (before its manifest) when the snapshot is not consistent. Such a dump
+ * may not load (FK/UNIQUE violations across tables read at different moments): retention never
+ * counts it among the kept-good runs, status records it as a failure, and RESTORE.md says to pick
+ * another run.
+ */
+export const INCONSISTENT_MARKER = 'INCONSISTENT';
 /** Above this D1 size the export switches from one atomic batch to keyset pages (Worker memory: 128 MB). */
 export const ATOMIC_MAX_BYTES = 16 * 1024 * 1024;
 
@@ -38,14 +46,17 @@ export interface BackupManifest {
   finishedAt: string;
   durationMs: number;
   mode: BackupMode;
-  /** false only when paginated mode saw writes on every attempt (see `attempts`). */
+  /**
+   * false only when paginated mode saw writes on every attempt (see `attempts`). Such a run is
+   * treated as FAILED everywhere (marker object, status, alerts, retention).
+   */
   consistent: boolean;
   attempts: number;
   /** D1 session bookmark at the snapshot (informational: a Time Travel reference point). */
   bookmark: string | null;
   /** Latest applied migration (d1_migrations.name), null if the table is absent or empty. */
   schemaVersion: string | null;
-  /** sha256 of the user DDL in sqlite_master order. */
+  /** schemaSha256() of the user DDL (order-independent); verifyRestore recomputes it. */
   schemaSha256: string;
   dbSizeBytes: number | null;
   object: {
@@ -153,6 +164,12 @@ export async function runBackup(env: BackupEnv, opts: BackupOptions = {}): Promi
     if (!snap) throw new SchemaChangedError('schema kept changing');
 
     stage = 'upload';
+    if (!snap.consistent) {
+      // Marker first: a manifest must never be visible without it.
+      await env.BACKUPS.put(`${prefix}${INCONSISTENT_MARKER}`, 'writes during export; this dump may not load', {
+        httpMetadata: { contentType: 'text/plain' },
+      });
+    }
     const key = `${prefix}dump.sql.gz`;
     await env.BACKUPS.put(key, snap.gz.gz, {
       httpMetadata: { contentType: 'application/gzip' },
@@ -219,11 +236,6 @@ interface Snapshot {
   schemaVersion: string | null;
   bookmark: string | null;
   consistent: boolean;
-}
-
-function schemaSha256(master: readonly MasterRow[]): string {
-  const ddl = master.filter((m) => m.sql !== null && !/^(sqlite_|_cf_)/i.test(m.name)).map((m) => m.sql);
-  return createHash('sha256').update(ddl.join(';\n')).digest('hex');
 }
 
 function sameMaster(a: readonly MasterRow[], b: readonly MasterRow[]): boolean {
@@ -325,31 +337,42 @@ async function writeRows(sink: GzipSink, t: TableInfo, rows: Iterable<Record<str
 
 interface Watermark {
   master: string;
-  tables: Record<string, { n: number; maxRowid: number | null; maxUpdatedAt: number | null }>;
+  tables: Record<string, { maxRowid: number | null; n: number; sumRowid: number; sumUpdatedAt: number | null }>;
 }
 
-async function watermark(s: D1DatabaseSession, schema: DiscoveredSchema): Promise<Watermark> {
+/**
+ * Change detector over the rows that existed when the export started (review r1 N1): per table,
+ * count, total(rowid) and total(updated_at) over `rowid <= bound`. New rows past the bound are
+ * excluded from the export anyway, so they no longer flip the run; deletes, delete+reinsert and
+ * updates that bump updated_at are caught. Not caught: an in-place UPDATE of a table without
+ * updated_at (in DB-1: notification_deliveries, publish_runs, rum_daily: operational tables).
+ * `bounds` = the first call's max(rowid) per table.
+ */
+async function watermark(s: D1DatabaseSession, schema: DiscoveredSchema, bounds?: Watermark): Promise<Watermark> {
   const res = await s.batch<Record<string, unknown>>([
     s.prepare(MASTER_SQL),
-    ...schema.tables.map((t) =>
-      s.prepare(
-        `SELECT count(*) AS n, ${t.withoutRowid ? 'NULL' : 'max(rowid)'} AS m, ${t.hasUpdatedAt ? 'max("updated_at")' : 'NULL'} AS u FROM ${quoteIdent(t.name)}`,
-      ),
-    ),
+    ...schema.tables.map((t) => {
+      const u = t.hasUpdatedAt ? 'total("updated_at")' : 'NULL';
+      if (t.withoutRowid) return s.prepare(`SELECT NULL AS m, count(*) AS n, 0 AS sr, ${u} AS su FROM ${quoteIdent(t.name)}`);
+      const bound = bounds?.tables[t.name]?.maxRowid;
+      return bounds
+        ? s.prepare(`SELECT ?1 AS m, count(*) AS n, total(rowid) AS sr, ${u} AS su FROM ${quoteIdent(t.name)} WHERE rowid <= ?1`).bind(bound ?? Number.MIN_SAFE_INTEGER)
+        : s.prepare(`SELECT max(rowid) AS m, count(*) AS n, total(rowid) AS sr, ${u} AS su FROM ${quoteIdent(t.name)}`);
+    }),
   ]);
   const tables: Watermark['tables'] = {};
   schema.tables.forEach((t, i) => {
     const r = res[1 + i]!.results[0]!;
-    tables[t.name] = { n: Number(r['n']), maxRowid: r['m'] as number | null, maxUpdatedAt: r['u'] as number | null };
+    const m = bounds ? (bounds.tables[t.name]?.maxRowid ?? null) : (r['m'] as number | null);
+    tables[t.name] = { maxRowid: m, n: Number(r['n']), sumRowid: Number(r['sr']), sumUpdatedAt: r['su'] as number | null };
   });
   return { master: JSON.stringify(res[0]!.results), tables };
 }
 
 /**
- * Keyset pages bounded by the starting watermark. Consistency: the watermark (schema, and per table
- * count, max(rowid), max(updated_at)) is read before and after; any difference means writes
- * happened during the export and the caller retries. Every admin and order mutation in this schema
- * also appends to audit_log or order_events, so application writes move the watermark.
+ * Keyset pages bounded by the starting watermark. Consistency: the watermark (see watermark()) is
+ * read before and after; any difference means existing rows changed during the export and the
+ * caller retries.
  */
 async function exportPaginated(db: D1Database, schema: DiscoveredSchema, runId: string, opts: BackupOptions): Promise<Snapshot> {
   const pageSize = opts.pageSize ?? 1000;
@@ -405,7 +428,7 @@ async function exportPaginated(db: D1Database, schema: DiscoveredSchema, runId: 
     }
     const seq = schema.hasSequence ? (await s.prepare('SELECT name, seq FROM sqlite_sequence ORDER BY name').all<{ name: string; seq: number }>()).results : [];
     await writeTail(sink, schema, seq);
-    const after = await watermark(s, schema);
+    const after = await watermark(s, schema, before);
     const consistent = JSON.stringify(after) === JSON.stringify(before);
     return {
       gz: await sink.finish(),

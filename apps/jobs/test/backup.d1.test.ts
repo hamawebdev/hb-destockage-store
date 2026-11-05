@@ -1,16 +1,12 @@
 // JOBS-1 end to end on local workerd: D1 (DB-1 migrations + fixtures) → backup → local R2 →
 // download + sha256 check → restore into a FRESH D1 with `wrangler d1 execute --local --file` →
 // verifyRestore. Nothing remote.
-import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { BackupError, runBackup, type BackupManifest } from '../src/backup/export.ts';
-import { backupJob } from '../src/backup/job.ts';
-import { readStatus } from '../src/backup/status.ts';
+import { backupHealthCheck, backupJob } from '../src/backup/job.ts';
+import { readStatus, type BackupStatus } from '../src/backup/status.ts';
 import { verifyRestore } from '../src/backup/verify.ts';
 import { captureConsole } from './helpers/batch.ts';
 import { PII, seedBackupFixtures } from './helpers/fixtures.ts';
@@ -22,7 +18,6 @@ type E = { DB: D1Database; BACKUPS: R2Bucket };
 let p: LocalPlatform<E>;
 let manifest: BackupManifest;
 let dumpSql: string;
-let gzBytes: Uint8Array;
 let restored: Restored;
 const logs: string[] = [];
 const T0 = Date.UTC(2026, 10, 4, 2, 0, 0);
@@ -40,7 +35,6 @@ beforeAll(async () => {
   }
   const obj = await p.env.BACKUPS.get(manifest.object.key);
   const gz = new Uint8Array(await obj!.arrayBuffer());
-  gzBytes = gz;
   expect(createHash('sha256').update(gz).digest('hex')).toBe(manifest.object.sha256);
   const raw = gunzipSync(gz);
   expect(createHash('sha256').update(raw).digest('hex')).toBe(manifest.object.rawSha256);
@@ -93,7 +87,8 @@ describe('backup run', { timeout: 60_000 }, () => {
 
   test('status.json records the success; logs hold no personal data', async () => {
     const s = await readStatus(p.env.BACKUPS);
-    expect(s.lastSuccess).toMatchObject({ runId: '20261104T020000Z', consistent: true, schemaVersion: manifest.schemaVersion });
+    expect(s.lastSuccess).toMatchObject({ runId: '20261104T020000Z', schemaVersion: manifest.schemaVersion });
+    expect(s.lastFailure).toBeNull();
     const out = logs.join('\n');
     expect(out).toContain('backup.done');
     for (const v of [PII.name, PII.phone, '560417403', PII.note, 'Oliviers']) expect(out).not.toContain(v);
@@ -105,28 +100,6 @@ describe('restore into a fresh D1 (wrangler d1 execute --local --file)', { timeo
     const r = await verifyRestore(restored.db, manifest);
     expect(r.mismatches).toEqual([]);
     expect(r.ok).toBe(true);
-  });
-
-  test('npm run restore:verify (the operator script) passes on the restore and rejects a tampered dump', () => {
-    const appDir = join(dirname(fileURLToPath(import.meta.url)), '..');
-    writeFileSync(join(restored.dir, 'manifest.json'), JSON.stringify(manifest));
-    writeFileSync(join(restored.dir, 'dump.sql.gz'), gzBytes);
-    const tampered = Uint8Array.from(gzBytes);
-    tampered[tampered.length - 9] = tampered[tampered.length - 9]! ^ 0xff;
-    writeFileSync(join(restored.dir, 'tampered.sql.gz'), tampered);
-    const run = (dump: string) =>
-      spawnSync(process.execPath, ['scripts/restore-verify.ts', '--manifest', join(restored.dir, 'manifest.json'), '--dump', join(restored.dir, dump), '--persist-to', join(restored.dir, 'state')], {
-        cwd: appDir,
-        encoding: 'utf8',
-      });
-    const ok = run('dump.sql.gz');
-    expect(ok.stdout).toContain('dump sha256: OK');
-    expect(ok.stdout).toContain(`RESTORE VERIFIED: ${manifest.tables.length} tables`);
-    expect(ok.status).toBe(0);
-    for (const v of [PII.name, PII.phone, PII.note]) expect(ok.stdout + ok.stderr).not.toContain(v);
-    const bad = run('tampered.sql.gz');
-    expect(bad.stdout).toContain('dump sha256: MISMATCH');
-    expect(bad.status).toBe(1);
   });
 
   test('values round-trip exactly (blob, real, NUL, Arabic, quotes, untyped column)', async () => {
@@ -156,21 +129,55 @@ describe('restore into a fresh D1 (wrangler d1 execute --local --file)', { timeo
     await restored.db.prepare(`CREATE TABLE zz_extra (id INTEGER PRIMARY KEY)`).run();
     const r = await verifyRestore(restored.db, manifest);
     expect(r.ok).toBe(false);
-    expect(r.mismatches.map((m) => m.table).sort()).toEqual(['order_events', 'settings', 'zz_edge', 'zz_extra']); // zz_edge: row added by the previous test
+    // zz_edge: row added by the previous test; (schema): zz_extra changed the DDL
+    expect(r.mismatches.map((m) => m.table).sort()).toEqual(['(schema)', 'order_events', 'settings', 'zz_edge', 'zz_extra']);
+  });
+
+  test('schema hash catches a missing index or trigger even when every row matches (review r1 F3)', async () => {
+    const fresh = await restoreWithWrangler(dumpSql);
+    try {
+      expect((await verifyRestore(fresh.db, manifest)).ok).toBe(true);
+      await fresh.db.prepare(`DROP TRIGGER zz_edge_no_update`).run();
+      const r = await verifyRestore(fresh.db, manifest);
+      expect(r.mismatches.map((m) => m.table)).toEqual(['(schema)']);
+    } finally {
+      await fresh.dispose();
+    }
   });
 });
 
 describe('modes and failures', { timeout: 60_000 }, () => {
   test('paginated mode (page size 2) yields the same digests as the atomic snapshot', async () => {
+    // compare with an atomic run taken just before (backupJob mirrors its status into settings,
+    // so the first manifest's settings digest is legitimately out of date by now)
+    const atomic = await runBackup(p.env, { startedAt: T0 + 50_000, mode: 'atomic' });
     const m = await runBackup(p.env, { startedAt: T0 + 60_000, mode: 'paginated', pageSize: 2 });
     expect(m.mode).toBe('paginated');
     expect(m.consistent).toBe(true);
     expect(m.attempts).toBe(1);
-    expect(m.tables).toEqual(manifest.tables);
+    expect(m.tables).toEqual(atomic.tables);
+    expect(m.schemaSha256).toBe(atomic.schemaSha256);
     expect(m.schemaVersion).toBe(manifest.schemaVersion);
   });
 
-  test('paginated: a write during the export triggers a retry; the retry is consistent', async () => {
+  const touchShop = async () => {
+    await p.env.DB.prepare(`UPDATE settings SET updated_at = updated_at + 1 WHERE key = 'shop'`).run();
+  };
+
+  test('paginated: inserts during the export (beacons, new orders) do not make it inconsistent (review r1 N1)', async () => {
+    const m = await runBackup(p.env, {
+      startedAt: T0 + 90_000,
+      mode: 'paginated',
+      pageSize: 1,
+      onPage: async () => {
+        await p.env.DB.prepare(`INSERT INTO audit_log (actor_type, action, entity) VALUES ('system', 'test.write', 'x')`).run();
+      },
+    });
+    expect(m.attempts).toBe(1);
+    expect(m.consistent).toBe(true);
+  });
+
+  test('paginated: an update of an existing row during the export triggers a retry; the retry is consistent', async () => {
     let wrote = false;
     const m = await runBackup(p.env, {
       startedAt: T0 + 120_000,
@@ -179,33 +186,65 @@ describe('modes and failures', { timeout: 60_000 }, () => {
       onPage: async () => {
         if (wrote) return;
         wrote = true;
-        await p.env.DB.prepare(`INSERT INTO audit_log (actor_type, action, entity) VALUES ('system', 'test.write', 'x')`).run();
+        await touchShop();
       },
     });
     expect(m.attempts).toBe(2);
     expect(m.consistent).toBe(true);
   });
 
-  test('paginated: writes on every attempt → stored with consistent:false and an alert', async () => {
-    const alert = vi.fn(async () => undefined);
-    const m = await backupJob(p.env, {
-      startedAt: T0 + 180_000,
-      mode: 'paginated',
-      pageSize: 50,
-      alert,
-      onPage: async (table) => {
-        if (table === 'audit_log') await p.env.DB.prepare(`INSERT INTO audit_log (actor_type, action, entity) VALUES ('system', 'test.write', 'x')`).run();
-      },
-    });
-    expect(m.attempts).toBe(3);
-    expect(m.consistent).toBe(false);
+  test('paginated: changes on every attempt → marked INCONSISTENT, counted as a FAILED run everywhere (review r1 F1)', async () => {
+    const before = await readStatus(p.env.BACKUPS);
+    const alert = vi.fn(async (_subject: string, _text: string, _id: string) => undefined);
+    const err = await backupJob(p.env, { startedAt: T0 + 180_000, mode: 'paginated', pageSize: 50, alert, onPage: touchShop }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(BackupError);
+    expect((err as BackupError).stage).toBe('consistency');
+    const prefix = 'd1/2026/11/04/020300Z/';
+    expect(await p.env.BACKUPS.head(`${prefix}INCONSISTENT`)).not.toBeNull();
+    const m = (await (await p.env.BACKUPS.get(`${prefix}manifest.json`))!.json()) as BackupManifest;
+    expect(m).toMatchObject({ consistent: false, attempts: 3 });
+    const s = await readStatus(p.env.BACKUPS);
+    expect(s.lastSuccess).toEqual(before.lastSuccess); // not recorded as a success
+    expect(s.lastFailure).toMatchObject({ runId: '20261104T020300Z', stage: 'consistency', error: 'InconsistentSnapshot' });
     expect(alert).toHaveBeenCalledOnce();
+    expect(alert.mock.calls[0]![0]).toBe('HB backup FAILED');
+    expect(await p.env.BACKUPS.head('d1/in_progress.json')).toBeNull();
+  });
+
+  test('a run killed mid-way is reported by the next run (review r1 F2)', async () => {
+    await p.env.BACKUPS.put('d1/in_progress.json', JSON.stringify({ runId: '20261103T020000Z', startedAt: '2026-11-03T02:00:00.000Z' }));
+    const alert = vi.fn(async (_subject: string, _text: string, _id: string) => undefined);
+    await backupJob(p.env, { startedAt: T0 + 200_000, alert });
+    const s = await readStatus(p.env.BACKUPS);
+    expect(s.lastFailure).toMatchObject({ runId: '20261103T020000Z', stage: 'killed', error: 'NoCompletion' });
+    expect(s.lastSuccess?.runId).toBe('20261104T020320Z');
+    expect(alert).toHaveBeenCalledOnce();
+    expect(alert.mock.calls[0]![1]).toContain('killed');
+    expect(await p.env.BACKUPS.head('d1/in_progress.json')).toBeNull();
+  });
+
+  test('status is mirrored to D1 settings for the admin dashboard; no row data in it', async () => {
+    const row = await p.env.DB.prepare(`SELECT value FROM settings WHERE key = 'jobs.backup_status'`).first<{ value: string }>();
+    const mirrored = JSON.parse(row!.value) as BackupStatus;
+    expect(mirrored.lastSuccess?.runId).toBe('20261104T020320Z');
+    for (const v of [PII.name, PII.phone, PII.note]) expect(row!.value).not.toContain(v);
+  });
+
+  test('health check: stale after 26 h without a good backup → alert; fresh → silent', async () => {
+    const alert = vi.fn(async (_subject: string, _text: string, _id: string) => undefined);
+    const last = Date.parse((await readStatus(p.env.BACKUPS)).lastSuccess!.at);
+    expect(await backupHealthCheck(p.env, { now: () => last + 25 * 3_600_000, alert })).toBe(true);
+    expect(alert).not.toHaveBeenCalled();
+    expect(await backupHealthCheck(p.env, { now: () => last + 27 * 3_600_000, alert })).toBe(false);
+    expect(alert).toHaveBeenCalledOnce();
+    expect(alert.mock.calls[0]![0]).toBe('HB backup STALE');
+    expect((await readStatus(p.env.BACKUPS)).health).toMatchObject({ stale: true, lastSuccessAgeHours: 27 });
   });
 
   test('precision guard: an integer beyond 2^53 fails the run loudly, no manifest, status + alert', async () => {
     await p.env.DB.prepare(`CREATE TABLE zz_big (id INTEGER PRIMARY KEY, v INTEGER)`).run();
     await p.env.DB.prepare(`INSERT INTO zz_big VALUES (1, 9007199254740993)`).run();
-    const alert = vi.fn(async () => undefined);
+    const alert = vi.fn(async (_subject: string, _text: string, _id: string) => undefined);
     const cap = captureConsole();
     let err: unknown;
     try {

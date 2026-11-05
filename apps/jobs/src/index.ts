@@ -1,8 +1,8 @@
 // hb-jobs Worker. Owner: jobs.
 // - queue: `order.created` notifications (JOBS-2)
 // - scheduled: daily D1 -> R2 backup (JOBS-1), RUM rollup (JOBS-5)
-import { backupJob } from './backup/job.ts';
-import { CRON_DAILY_BACKUP, ORDER_NOTIFICATIONS_QUEUE, type Env } from './env.ts';
+import { backupHealthCheck, backupJob } from './backup/job.ts';
+import { CRON_BACKUP_HEALTH, CRON_DAILY_BACKUP, ORDER_NOTIFICATIONS_QUEUE, type Env } from './env.ts';
 import { handleOrderNotifications } from './notify/consumer.ts';
 import { D1DeliveryStore } from './notify/deliveries.ts';
 import type { EmailMessageFactory } from './notify/email.ts';
@@ -33,6 +33,11 @@ export default {
         // Throws on failure so the cron invocation is recorded as failed.
         const alert = await staffAlert(env);
         await backupJob(env, { startedAt: controller.scheduledTime, ...(alert ? { alert } : {}) });
+        return;
+      }
+      case CRON_BACKUP_HEALTH: {
+        const alert = await staffAlert(env);
+        await backupHealthCheck(env, alert ? { alert } : {});
         return;
       }
       default:

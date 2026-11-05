@@ -68,6 +68,23 @@ describe('applyRetention', { timeout: 60_000 }, () => {
     expect(r.complete).toBe(0);
   });
 
+  test('INCONSISTENT runs never take a protected slot and do not count as complete (review r1 F1)', async () => {
+    const old = NOW - 60 * DAY;
+    const good: string[] = [];
+    for (let d = 0; d < 7; d++) good.push(await putRun(old - (d + 5) * DAY));
+    const bad: string[] = [];
+    for (let d = 0; d < 5; d++) {
+      const prefix = await putRun(old - d * DAY); // newer than every good run
+      await p.env.BACKUPS.put(`${prefix}INCONSISTENT`, 'x');
+      bad.push(prefix);
+    }
+    const r = await applyRetention(p.env.BACKUPS, NOW);
+    expect(r.complete).toBe(7);
+    expect(r.inconsistent).toBe(5);
+    expect(r.kept.sort()).toEqual(good.sort());
+    expect(r.deletedRuns).toEqual(bad.sort());
+  });
+
   test('custom limits', async () => {
     for (let d = 0; d < 5; d++) await putRun(NOW - d * DAY - 60_000);
     const r = await applyRetention(p.env.BACKUPS, NOW, { retentionDays: 2, keepLatest: 1 });

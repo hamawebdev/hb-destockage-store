@@ -1,4 +1,5 @@
 // Discovers every user table from sqlite_master (nothing hard-coded) plus the DDL to recreate it.
+import { createHash } from 'node:crypto';
 import { quoteIdent } from './sql.ts';
 
 export interface MasterRow {
@@ -114,6 +115,20 @@ export function precisionCheckSql(t: TableInfo): string | null {
 
 export function orderBy(t: TableInfo): string {
   return t.withoutRowid ? t.pk.map(quoteIdent).join(', ') : 'rowid';
+}
+
+/**
+ * Order-independent hash of the user schema: every non-internal sqlite_master entry with SQL,
+ * as `type\0name\0tbl_name\0sql`, sorted. A restore replays the same statements in a different
+ * order (indexes and triggers after the data), so creation order must not matter. Missing or
+ * extra indexes, triggers, views, constraints or columns all change it.
+ */
+export function schemaSha256(master: readonly MasterRow[]): string {
+  const entries = master
+    .filter((m) => m.sql !== null && isUserTable(m.name) && isUserTable(m.tbl_name))
+    .map((m) => [m.type, m.name, m.tbl_name, m.sql].join('\0'))
+    .sort();
+  return createHash('sha256').update(entries.join('\n')).digest('hex');
 }
 
 /** DDL that is replayed after the data: indexes, views, triggers (append-only triggers last). */

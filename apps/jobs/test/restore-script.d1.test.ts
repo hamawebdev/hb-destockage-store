@@ -1,0 +1,107 @@
+// The operator scripts end to end (review r1 F3/F5 + the flaky-test fix): the source platform is
+// disposed BEFORE any script runs, so no two workerd processes ever share persisted state.
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { backupJob } from '../src/backup/job.ts';
+import { runBackup, type BackupManifest } from '../src/backup/export.ts';
+import { PII, seedBackupFixtures } from './helpers/fixtures.ts';
+import { localPlatform, type LocalPlatform } from './helpers/platform.ts';
+
+type E = { DB: D1Database; BACKUPS: R2Bucket };
+const APP = join(dirname(fileURLToPath(import.meta.url)), '..');
+const T0 = Date.UTC(2026, 10, 4, 2, 0, 0);
+let p: LocalPlatform<E>;
+let good: BackupManifest;
+let files: string; // manifest + dump copies, outside any git worktree
+let gz: Uint8Array;
+
+const node = (script: string, args: string[]) =>
+  spawnSync(process.execPath, [script, ...args], { cwd: APP, encoding: 'utf8', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
+
+beforeAll(async () => {
+  p = await localPlatform<E>({ r2_buckets: [{ binding: 'BACKUPS', bucket_name: 'hb-backups' }] });
+  await seedBackupFixtures(p.env.DB);
+  good = await backupJob(p.env, { startedAt: T0 });
+  // a newer run marked INCONSISTENT (forced: paginated with an update on every page)
+  await runBackup(p.env, {
+    startedAt: T0 + 3_600_000,
+    mode: 'paginated',
+    pageSize: 50,
+    onPage: async () => {
+      await p.env.DB.prepare(`UPDATE settings SET updated_at = updated_at + 1 WHERE key = 'shop'`).run();
+    },
+  });
+  gz = new Uint8Array(await (await p.env.BACKUPS.get(good.object.key))!.arrayBuffer());
+  files = mkdtempSync(join(tmpdir(), 'hb-restore-test-files-'));
+  writeFileSync(join(files, 'manifest.json'), JSON.stringify(good));
+  writeFileSync(join(files, 'dump.sql.gz'), gz);
+  await p.dispose(false); // keep the files: the scripts read them next
+}, 180_000);
+
+afterAll(() => {
+  rmSync(p.dir, { recursive: true, force: true });
+  rmSync(files, { recursive: true, force: true });
+});
+
+describe('scripts/restore.ts (download → check → load → verify)', { timeout: 180_000 }, () => {
+  test('--run latest: restores the newest GOOD run, verifies schema and data, deletes its work dir', () => {
+    const r = node('scripts/restore.ts', ['--run', 'latest', '--target', 'hb-restore-test', '--source-persist-to', p.persistTo]);
+    expect(r.stdout).toContain('dump sha256: OK (20261104T020000Z');
+    expect(r.stdout).toContain(`RESTORE VERIFIED: ${good.tables.length} tables`);
+    expect(r.status).toBe(0);
+    const work = /work dir \(0700, outside any git worktree\): (\S+)/.exec(r.stdout)![1]!;
+    expect(work.startsWith(tmpdir())).toBe(true);
+    expect(r.stdout).toContain(`deleted ${work}`);
+    expect(existsSync(work)).toBe(false);
+    for (const v of [PII.name, PII.phone, PII.note]) expect(r.stdout + r.stderr).not.toContain(v);
+  });
+
+  test('refuses a run marked INCONSISTENT (and still cleans up)', () => {
+    const r = node('scripts/restore.ts', ['--run', 'd1/2026/11/04/030000Z', '--target', 'hb-restore-test', '--source-persist-to', p.persistTo]);
+    expect(r.stderr).toContain('marked INCONSISTENT');
+    expect(r.status).toBe(1);
+    const work = /work dir \(0700, outside any git worktree\): (\S+)/.exec(r.stdout)![1]!;
+    expect(existsSync(work)).toBe(false);
+  });
+
+  test('refuses a restore target inside a git worktree, and the live database name', () => {
+    const inRepo = join(APP, '.restore-should-not-exist');
+    const r = node('scripts/restore.ts', ['--run', 'latest', '--target', 'hb-restore-test', '--target-persist-to', inRepo, '--source-persist-to', p.persistTo]);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/inside the git worktree/);
+    expect(existsSync(inRepo)).toBe(false);
+    expect(node('scripts/restore.ts', ['--run', 'latest', '--target', 'hb-destockage']).status).toBe(2);
+  });
+});
+
+describe('scripts/restore-verify.ts', { timeout: 120_000 }, () => {
+  test('--dump is required; paths inside a git worktree are refused', () => {
+    expect(node('scripts/restore-verify.ts', ['--manifest', join(files, 'manifest.json'), '--dump-only']).status).toBe(2);
+    const inRepo = join(APP, '.verify-should-not-exist');
+    mkdirSync(inRepo, { recursive: true });
+    try {
+      writeFileSync(join(inRepo, 'manifest.json'), '{}');
+      const r = node('scripts/restore-verify.ts', ['--manifest', join(inRepo, 'manifest.json'), '--dump', join(files, 'dump.sql.gz'), '--dump-only']);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toMatch(/inside the git worktree/);
+    } finally {
+      rmSync(inRepo, { recursive: true, force: true });
+    }
+  });
+
+  test('--dump-only: OK on the real dump, MISMATCH on a corrupted one, before anything is loaded', () => {
+    const ok = node('scripts/restore-verify.ts', ['--manifest', join(files, 'manifest.json'), '--dump', join(files, 'dump.sql.gz'), '--dump-only']);
+    expect(ok.stdout).toContain('dump sha256: OK');
+    expect(ok.status).toBe(0);
+    const bad = Uint8Array.from(gz);
+    bad[bad.length - 9] = bad[bad.length - 9]! ^ 0xff;
+    writeFileSync(join(files, 'bad.sql.gz'), bad);
+    const r = node('scripts/restore-verify.ts', ['--manifest', join(files, 'manifest.json'), '--dump', join(files, 'bad.sql.gz'), '--dump-only']);
+    expect(r.stdout).toContain('dump sha256: MISMATCH');
+    expect(r.status).toBe(1);
+  });
+});

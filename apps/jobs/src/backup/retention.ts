@@ -1,7 +1,9 @@
 // Retention for d1/ backups: delete runs older than `retentionDays`, but always keep the
-// `keepLatest` newest complete runs (a stopped cron must never empty the bucket). Runs without a
-// manifest (failed uploads) are removed after `orphanGraceMs`.
-import { BACKUP_PREFIX } from './export.ts';
+// `keepLatest` newest GOOD runs (manifest present, no INCONSISTENT marker), so a stopped cron
+// never empties the bucket and inconsistent runs never take a protected slot (review r1 F1).
+// Runs without a manifest (failed uploads) are removed after `orphanGraceMs`; inconsistent runs
+// age out like good ones but are never protected.
+import { BACKUP_PREFIX, INCONSISTENT_MARKER } from './export.ts';
 
 export interface RetentionOptions {
   retentionDays?: number;
@@ -10,7 +12,9 @@ export interface RetentionOptions {
 }
 
 export interface RetentionResult {
+  /** Good runs (manifest, no INCONSISTENT marker). */
   complete: number;
+  inconsistent: number;
   kept: string[];
   deletedRuns: string[];
   deletedObjects: number;
@@ -40,17 +44,18 @@ export async function applyRetention(bucket: R2Bucket, now: number, opts: Retent
   const keepLatest = opts.keepLatest ?? 7;
   const orphanGraceMs = opts.orphanGraceMs ?? 86_400_000;
 
-  const runs = new Map<string, { at: number; keys: string[]; complete: boolean }>();
+  const runs = new Map<string, { at: number; keys: string[]; complete: boolean; inconsistent: boolean }>();
   for (const key of await listAll(bucket, BACKUP_PREFIX)) {
     const at = runTime(key);
     if (at === null) continue; // status.json and anything foreign is never touched
     const run = key.slice(0, RUN_RE.exec(key)![0].length);
-    const r = runs.get(run) ?? { at, keys: [], complete: false };
+    const r = runs.get(run) ?? { at, keys: [], complete: false, inconsistent: false };
     r.keys.push(key);
     if (key === `${run}manifest.json`) r.complete = true;
+    if (key === `${run}${INCONSISTENT_MARKER}`) r.inconsistent = true;
     runs.set(run, r);
   }
-  const complete = [...runs].filter(([, r]) => r.complete).sort((a, b) => b[1].at - a[1].at);
+  const complete = [...runs].filter(([, r]) => r.complete && !r.inconsistent).sort((a, b) => b[1].at - a[1].at);
   const protectedRuns = new Set(complete.slice(0, keepLatest).map(([k]) => k));
 
   const doomed = [...runs].filter(([run, r]) => {
@@ -62,6 +67,7 @@ export async function applyRetention(bucket: R2Bucket, now: number, opts: Retent
   for (let i = 0; i < keys.length; i += 1000) await bucket.delete(keys.slice(i, i + 1000));
   return {
     complete: complete.length,
+    inconsistent: [...runs.values()].filter((r) => r.inconsistent).length,
     kept: [...protectedRuns],
     deletedRuns: doomed.map(([k]) => k).sort(),
     deletedObjects: keys.length,

@@ -1,11 +1,13 @@
 // Interim shim of DB-5's `verifyRestore(db, manifest)` (owner `db`), same signature and digest
 // rules (backup/digest.ts). Swapped for the @hb/db export when DB-5 lands.
 import { createRowDigest, type TableDigest } from './digest.ts';
-import { discover, orderBy, type TableInfo } from './schema.ts';
+import { discover, orderBy, schemaSha256, type TableInfo } from './schema.ts';
 import { quoteIdent } from './sql.ts';
 
 export interface VerifiableManifest {
   schemaVersion: string | null;
+  /** Order-independent DDL hash (indexes, triggers, views, constraints): review r1 F3. */
+  schemaSha256: string;
   tables: ({ name: string } & TableDigest)[];
 }
 
@@ -57,6 +59,10 @@ export async function verifyRestore(db: D1Database, manifest: VerifiableManifest
     if ((last?.name ?? null) !== manifest.schemaVersion) {
       mismatches.push({ table: '(schemaVersion)', expected: manifest.schemaVersion, actual: last?.name ?? null });
     }
+  }
+  const actualSchema = schemaSha256(schema.master);
+  if (actualSchema !== manifest.schemaSha256) {
+    mismatches.push({ table: '(schema)', expected: manifest.schemaSha256, actual: actualSchema });
   }
   return { ok: mismatches.length === 0, mismatches };
 }
