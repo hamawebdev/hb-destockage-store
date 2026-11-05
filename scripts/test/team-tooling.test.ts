@@ -193,7 +193,7 @@ describe('pre-commit ownership', () => {
       expect(r.status, f).not.toBe(0);
       expect(r.stderr).toContain('dump');
       ok(git(root, 'reset', '-q', '--hard'));
-      ok(git(root, 'clean', '-qfdx', '--', f.split('/')[0]));
+      ok(git(root, 'clean', '-qfdx', '--', f.split('/')[0] ?? f));
     }
     branch(root, 'team/jobs');
     write(root, 'apps/jobs/big.json', Buffer.alloc(1024 * 1024 + 1, 1));
@@ -387,6 +387,8 @@ describe('gate.sh', () => {
       ['team/brand', 'brand/guide.md', 'BRAND-9', true],
       ['team/admin-core', 'apps/admin/src/app.ts', 'ADMIN-9', false],
       ['team/db', 'packages/db/src/schema.ts', 'DB-9', false],
+      ['team/shell', 'apps/storefront/public/js/test/x.js', 'SHELL-9', true], // served file under a test/ dir
+      ['team/web', 'apps/web/test/api.test.ts', 'WEB-8', false],
     ];
     for (const [b, file, id, wantLh] of cases) {
       branch(root, b);
@@ -399,6 +401,24 @@ describe('gate.sh', () => {
     }
   });
 
+  test('check-tap runs after build when storefront output can change and the script exists; RED on violations', () => {
+    const root = makeRepo({ budget: 'true', lh: 'true' });
+    prepNodeModules(root);
+    write(root, 'apps/storefront/src/pages/ar/index.astro', '<html lang="ar"></html>\n');
+    write(root, 'apps/storefront/package.json', JSON.stringify({ name: 's', private: true, scripts: { 'check:tap': 'node scripts/tap-targets.mjs' } }));
+    write(root, 'apps/storefront/scripts/tap-targets.mjs', 'console.error("2 targets < 44px"); process.exit(1);\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-1: page + tap', { HB_ROLE: 'lead' }));
+    branch(root, 'team/shell');
+    write(root, 'apps/storefront/src/pages/fr/index.astro', '<html lang="fr"></html>\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'SHELL-9: fr'));
+    const r = gate(root, '--no-cache');
+    expect(r.stdout).toContain('steps = typecheck test build budget check-tap lh');
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('RED   check-tap (exit 1');
+  });
+
   test('gate refuses when core.hooksPath is not the absolute main hooks path (review F5)', () => {
     const root = makeRepo();
     prepNodeModules(root);
@@ -408,6 +428,22 @@ describe('gate.sh', () => {
     expect(r.stdout).toContain('RED at hooks');
     ok(git(root, 'config', '--unset', 'core.hooksPath'));
     expect(gate(root, '--no-cache').stdout).toContain('RED at hooks');
+  });
+
+  test('a hung step is killed at HB_STEP_TIMEOUT, goes RED (124) and frees the slot', () => {
+    const root = makeRepo({ test: 'sleep 300' });
+    prepNodeModules(root);
+    const dir = mkdtempSync(join(tmpdir(), 'hb-locks-hang-'));
+    tmpRoots.push(dir);
+    const env = { HB_LOCK_DIR: dir, HB_GATE_SLOTS: '1', HB_HEAVY_SLOTS: '1', HB_GATE_WAIT: '3', HB_STEP_TIMEOUT: '2' };
+    const t0 = Date.now();
+    const r = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('RED   test (exit 124');
+    expect(Date.now() - t0).toBeLessThan(60_000);
+    expect(spawnSync('pgrep', ['-f', '^sleep 300$']).status).toBe(1);
+    const free = sh(root, join(root, 'scripts/lib/locks.sh'), ['heavy', '--wait', '2', '--', 'true'], env);
+    expect(free.status, free.stderr).toBe(0); // the slot was released
   });
 
   test('a step that leaves an orphan behind neither keeps the slot nor survives the gate (review F3)', () => {

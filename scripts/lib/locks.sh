@@ -82,9 +82,11 @@ hb_acquire_gate_slot() {
 # hb_run_group <cmd…>: run <cmd> in a new process group (setsid) with every inherited fd above 2
 # closed (so no descendant can keep a lock alive), wait for it, then kill whatever is left in that
 # group (a wrangler/workerd or Chrome a test forgot). TERM/INT kill the group too.
+# HB_RUN_TIMEOUT (seconds, 0 = none): hard limit; the command is TERMed, then KILLed 30 s later, exit 124.
 hb_run_group() {
   local rc=0 pid
-  setsid bash -c 'for f in /proc/$$/fd/*; do n=${f##*/}; [[ $n =~ ^[0-9]+$ ]] && ((n > 2)) && eval "exec $n>&-"; done; exec "$@"' hb-step "$@" &
+  setsid bash -c 'for f in /proc/$$/fd/*; do n=${f##*/}; [[ $n =~ ^[0-9]+$ ]] && ((n > 2)) && eval "exec $n>&-"; done
+    t="${HB_RUN_TIMEOUT:-0}"; if [[ "$t" != 0 ]]; then exec timeout --kill-after=30s "$t" "$@"; fi; exec "$@"' hb-step "$@" &
   pid=$!
   HB_GROUP_PID=$pid
   trap 'kill -TERM -- "-$HB_GROUP_PID" 2>/dev/null; exit 143' TERM INT
@@ -131,7 +133,9 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   if [[ "$mode" == heavy ]]; then
     hb_acquire_heavy_slot "$wait" "heavy $* ($PWD)"
     rc=0
-    hb_run_group "$@" || rc=$?
+    # like /tmp/hb-locks/heavy.sh: a hung command cannot hold a slot forever
+    HB_RUN_TIMEOUT="${HB_HEAVY_TIMEOUT:-2700}" hb_run_group "$@" || rc=$?
+    [[ $rc -eq 124 ]] && echo "locks: command exceeded ${HB_HEAVY_TIMEOUT:-2700}s and was killed (slot released)" >&2
     flock -u "$HB_HEAVY_SLOT_FD"
     exit $rc
   else
