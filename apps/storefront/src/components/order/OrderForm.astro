@@ -22,7 +22,7 @@ interface Props {
 }
 
 const p = Astro.props;
-const m = orderFormModel({ ...p, jsVersion: publicFileVersion('js/order.js') });
+const m = orderFormModel({ ...p, jsVersion: publicFileVersion('js/order.js'), tsJsVersion: publicFileVersion('js/order-ts.js') });
 const { t, summary: s } = m;
 ---
 <section id="order" class="of" aria-labelledby="of-title">

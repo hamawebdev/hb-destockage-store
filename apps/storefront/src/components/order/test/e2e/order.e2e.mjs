@@ -14,6 +14,9 @@ const outDir = process.argv[3] ?? null;
 const PORT = Number(process.env.ORDER_E2E_PORT ?? 4231);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 const orderJs = readFileSync(fileURLToPath(new URL('../../../../../public/js/order.js', import.meta.url)));
+const orderTsJs = readFileSync(fileURLToPath(new URL('../../../../../public/js/order-ts.js', import.meta.url)));
+// Stand-in for Cloudflare's api.js (the real origin is never contacted by these tests).
+const TS_STUB = `window.__tsN=0;window.turnstile={render(el,o){window.__tsOpts={...o};const f=()=>setTimeout(()=>o.callback('tok-'+(++window.__tsN)),50);window.__tsIssue=f;f();return 'w1'},reset(){window.__tsResets=(window.__tsResets||0)+1;window.__tsIssue()}};`;
 
 // ---- mock Worker --------------------------------------------------------------------------------------
 const FEES = { 16: 600, 1: 900 }; // wilaya 5 is "not served"
@@ -39,6 +42,7 @@ const server = createServer(async (req, res) => {
   const body = await new Promise((ok) => { let b = ''; req.on('data', (c) => (b += c)).on('end', () => ok(b)); });
   log.push({ method: req.method, path: url.pathname, type: req.headers['content-type'] ?? '', body });
   if (url.pathname.startsWith('/page/')) { const [, , lang, name] = url.pathname.split('/'); res.writeHead(200, { 'content-type': 'text/html' }); return res.end(page(lang, name)); }
+  if (url.pathname.startsWith('/js/order-ts.js')) { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(orderTsJs); }
   if (url.pathname.startsWith('/js/order.js')) { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(orderJs); }
   const m = url.pathname.match(/^\/geo\/communes\/(ar|fr)\/(\d+)\.json$/);
   if (m) { if (mode.communesDown) { res.writeHead(503); return res.end(); } return json(res, 200, COMMUNES[m[2]] ?? []); }
@@ -76,17 +80,25 @@ async function fill(p, { phone = '0555123456', wilaya = '16' } = {}) {
 const total = (p) => p.textContent('#of-s-total');
 
 async function run(browser, lang) {
-  const t = async (name, fn, { js = true } = {}) => {
+  const t = async (name, fn, { js = true, page: pageName = 'single', ts = null } = {}) => {
     mode = {}; orders = new Map(); log = [];
     const ctx = await browser.newContext({ javaScriptEnabled: js, locale: lang === 'ar' ? 'ar-DZ' : 'fr-FR' });
+    const tsReqs = [];
+    if (ts) await ctx.route('https://challenges.cloudflare.com/**', (route) => {
+      tsReqs.push(route.request().url());
+      if (ts === 'stub') return route.fulfill({ status: 200, contentType: 'text/javascript', body: TS_STUB });
+      if (ts === 'abort') return route.abort('blockedbyclient');
+      // 'hang': never answer
+    });
     const p = await ctx.newPage();
     const external = [];
-    p.on('request', (r) => { if (!r.url().startsWith(ORIGIN)) external.push(r.url()); });
+    p.on('request', (r) => { if (!r.url().startsWith(ORIGIN) && !r.url().startsWith('https://challenges.cloudflare.com/')) external.push(r.url()); });
     try {
-      await p.goto(`${ORIGIN}/page/${lang}/single`);
+      await p.goto(`${ORIGIN}/page/${lang}/${pageName}`);
       if (js) await p.waitForSelector('#order-form.of-js');
-      await fn(p);
+      await fn(p, tsReqs);
       assert.deepEqual(external, [], 'no third-party request');
+      if (!ts) assert.deepEqual(tsReqs, []);
       results.push(`PASS ${lang} ${name}`);
     } catch (e) {
       results.push(`FAIL ${lang} ${name}: ${e.message.split('\n')[0]}`);
@@ -224,6 +236,67 @@ async function run(browser, lang) {
     assert.match(post.type, /x-www-form-urlencoded/);
     assert.equal(new URLSearchParams(post.body).get('idempotencyKey'), '');
   });
+
+  // ---- ORDER-3: lazy Turnstile -----------------------------------------------------------------------
+  const tsJsReqs = () => log.filter((r) => r.path.startsWith('/js/order-ts.js'));
+  await t('Turnstile: nothing from challenges.cloudflare.com (nor the loader) before interaction', async (p, tsReqs) => {
+    await p.waitForTimeout(2500); // load + idle, no interaction
+    assert.deepEqual(tsReqs, []); assert.equal(tsJsReqs().length, 0);
+    assert.equal(await p.evaluate(() => typeof window.turnstile), 'undefined');
+  }, { page: 'ts', ts: 'stub' });
+
+  await t('Turnstile: first focusin loads api.js once; token sent with the order; options invisible/interaction-only', async (p, tsReqs) => {
+    await p.focus('#of-name'); await p.focus('#of-phone'); await p.click('#of-name');
+    await p.waitForFunction(() => window.__tsOpts);
+    assert.deepEqual(tsReqs, ['https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit']);
+    assert.equal(tsJsReqs().length, 1);
+    const o = await p.evaluate(() => window.__tsOpts);
+    assert.equal(o.sitekey, '1x00000000000000000000AA'); assert.equal(o.action, 'order'); assert.equal(o.appearance, 'interaction-only');
+    assert.equal(o.language, lang); assert.equal(o['response-field'], false);
+    await fill(p);
+    await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
+    await Promise.all([p.waitForURL('**/confirmation/**'), p.click('#of-submit')]);
+    assert.equal(JSON.parse(orderPosts()[0].body).turnstileToken, 'tok-1');
+    assert.equal(tsReqs.length, 1);
+  }, { page: 'ts', ts: 'stub' });
+
+  await t('Turnstile: pointerdown (no focus) also triggers the one load', async (p, tsReqs) => {
+    await p.dispatchEvent('#of-sum', 'pointerdown');
+    await p.waitForFunction(() => window.__tsOpts);
+    assert.equal(tsReqs.length, 1);
+  }, { page: 'ts', ts: 'stub' });
+
+  await t('Turnstile: spent token is reset after a server answer (total_changed → fresh token)', async (p) => {
+    mode.totalChangedOnce = true;
+    await fill(p);
+    await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
+    await p.click('#of-submit');
+    await p.waitForFunction(() => document.getElementById('of-alert').textContent.length > 0);
+    await p.waitForFunction(() => window.__tsResets === 1 && window.__tsN === 2);
+    await Promise.all([p.waitForURL('**/confirmation/**'), p.click('#of-submit')]);
+    const [a, b] = orderPosts().map((r) => JSON.parse(r.body));
+    assert.equal(a.turnstileToken, 'tok-1'); assert.equal(b.turnstileToken, 'tok-2'); assert.equal(a.idempotencyKey, b.idempotencyKey);
+  }, { page: 'ts', ts: 'stub' });
+
+  await t('Turnstile blocked: the order goes through without a token', async (p, tsReqs) => {
+    await fill(p);
+    await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
+    const t0 = Date.now();
+    await Promise.all([p.waitForURL('**/confirmation/**'), p.click('#of-submit')]);
+    assert.ok(Date.now() - t0 < 4000, 'not held back');
+    assert.equal(tsReqs.length, 1);
+    assert.equal(JSON.parse(orderPosts()[0].body).turnstileToken, undefined);
+  }, { page: 'ts', ts: 'abort' });
+
+  await t('Turnstile hanging: the order waits at most ~3 s for a token, then goes without one', async (p) => {
+    await fill(p);
+    await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
+    const t0 = Date.now();
+    await Promise.all([p.waitForURL('**/confirmation/**', { timeout: 10000 }), p.click('#of-submit')]);
+    const dt = Date.now() - t0;
+    assert.ok(dt >= 2500 && dt < 6000, `waited ${dt} ms`);
+    assert.equal(JSON.parse(orderPosts()[0].body).turnstileToken, undefined);
+  }, { page: 'ts', ts: 'hang' });
 }
 
 await new Promise((ok) => server.listen(PORT, '127.0.0.1', ok));

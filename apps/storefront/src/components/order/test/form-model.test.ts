@@ -61,9 +61,14 @@ describe('orderFormModel', () => {
     expect(js).toMatch(/^\/js\/[\w.-]+\.js(\?v=[\w-]+)?$/);
   });
 
-  it('carries the Turnstile site key only when set', () => {
+  it('wires lazy Turnstile only with a site key and the first-party loader, never a third-party URL', () => {
     expect(model('ar').dataAttrs['data-ts-key']).toBeUndefined();
-    expect(model('ar', variableForm('ar')).dataAttrs['data-ts-key']).toBe('0x4AAAAAAA-test');
+    expect(model('ar', variableForm('ar')).dataAttrs['data-ts-js']).toBeUndefined(); // loader not built
+    const m = model('ar', variableForm('ar'), { tsJsVersion: 'Ab_9-xyz01' });
+    expect(m.dataAttrs['data-ts-key']).toBe('0x4AAAAAAA-test');
+    expect(m.dataAttrs['data-ts-js']).toBe('/js/order-ts.js?v=Ab_9-xyz01');
+    expect(model('ar', singleForm('ar'), { tsJsVersion: 'x' }).dataAttrs['data-ts-js']).toBeUndefined(); // no key
+    expect(JSON.stringify(m.dataAttrs)).not.toMatch(/https?:\/\//);
   });
 
   it.each(LANGS)('resolves every client message from brand copy (%s)', (lang) => {
@@ -137,5 +142,22 @@ describe('real CAT-3 props fixtures (packages/catalog/fixtures/props.<lang>.json
       expect(m.hidden.some((h) => h.name === 'variantId'), path).toBe(props.orderForm.singleVariant);
     }
     expect(products.some(([, p]) => p.props.orderForm.orderable === false)).toBe(true);
+  });
+});
+
+describe('Turnstile origin appears only in the lazily imported first-party loader', () => {
+  const read = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
+  it('is in public/js/order-ts.js and nowhere in the component or order.js', () => {
+    expect(read('../../../../public/js/order-ts.js')).toContain('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit');
+    expect(read('../../../../public/js/order.js')).not.toContain('cloudflare');
+    expect(read('../OrderForm.astro')).not.toContain('cloudflare');
+  });
+  it('is imported by order.js only from the first focusin/pointerdown inside the form', () => {
+    const js = read('../../../../public/js/order.js');
+    expect(js.match(/import\(ds\.tsJs\)/g)).toHaveLength(1);
+    const start = js.slice(js.indexOf('const start = () =>'), js.indexOf("f.addEventListener('pointerdown', start);") + 40);
+    expect(start).toContain('if (started) return;');
+    expect(start).toContain("f.addEventListener('focusin', start);");
+    expect(js).not.toMatch(/requestIdleCallback|IntersectionObserver|addEventListener\('(load|scroll)'/);
   });
 });

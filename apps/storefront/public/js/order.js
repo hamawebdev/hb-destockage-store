@@ -413,6 +413,7 @@ function init(f) {
     btn.removeAttribute('aria-disabled');
     text(btn, msg('submit'));
     say('');
+    if (r.status) ts?.reset(); // the server has seen (and spent) this Turnstile token
     const c = d.code;
     // 409 answers carry a fresh quote (WEB-0 §2.2): show it; the next press confirms against it.
     if (d.quote) apply(inputs(), { ...d.quote, ok: true, status: 200 });

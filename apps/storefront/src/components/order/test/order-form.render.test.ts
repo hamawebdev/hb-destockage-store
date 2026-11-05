@@ -78,6 +78,13 @@ describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
     expect(attrs(html, 'of-qty')).toContain('max="3"');
   });
 
+  it('renders the Turnstile hooks without any third-party URL (rendered for the ORDER-3 browser test)', async () => {
+    const html = await render(lang, singleForm(lang, { turnstileSiteKey: '1x00000000000000000000AA' }), 'ts');
+    expect(html).toMatch(/data-ts-key="1x00000000000000000000AA"/);
+    expect(html).toMatch(/data-ts-js="\/js\/order-ts\.js\?v=[\w-]+"/);
+    expect(html).not.toMatch(/challenges\.cloudflare\.com|preconnect|dns-prefetch/);
+  });
+
   it('disables the form and offers WhatsApp when nothing is orderable', async () => {
     const html = await render(lang, singleForm(lang, { orderable: false }), 'oos');
     expect(html).toMatch(/<fieldset class="of-fields" disabled>/);

@@ -28,6 +28,8 @@ export interface OrderFormInput {
   readonly privacyHref?: string | null;
   /** `?v=` content hash of /js/order.js; null ⇒ no `data-js` (script not built yet). */
   readonly jsVersion?: string | null;
+  /** `?v=` content hash of /js/order-ts.js (lazy Turnstile loader, ORDER-3). */
+  readonly tsJsVersion?: string | null;
 }
 
 /** Messages order.js needs at runtime, keyed by the code it looks up. Values are brand keys. */
@@ -137,7 +139,11 @@ export function orderFormModel(input: OrderFormInput): OrderFormModel {
   dataAttrs['data-confirm'] = form.confirmationHref;
   dataAttrs['data-variants'] = variantsAttr(form.variants);
   dataAttrs['data-phone-re'] = DZ_MOBILE_NSN_PATTERN;
-  if (form.turnstileSiteKey) dataAttrs['data-ts-key'] = form.turnstileSiteKey;
+  // Turnstile: first-party loader imported by order.js on the first interaction; never a third-party URL here.
+  if (form.turnstileSiteKey && input.tsJsVersion) {
+    dataAttrs['data-ts-key'] = form.turnstileSiteKey;
+    dataAttrs['data-ts-js'] = `/js/order-ts.js?v=${input.tsJsVersion}`;
+  }
 
   const hidden = [
     { name: 'lang', value: lang },
