@@ -6,7 +6,7 @@ import { fr } from '../src/i18n/fr.ts';
 import { defineMessages, format, translator } from '../src/i18n/index.ts';
 import { CSRF_TTL_MS, issueCsrfToken, verifyCsrfToken } from '../src/lib/csrf.ts';
 import { toAsciiDigits } from '../src/lib/digits.ts';
-import { vCheckbox, vEmail, vInt, vMoneyDzd, vOptionalText, vText } from '../src/lib/forms.ts';
+import { vCheckbox, vEmail, vInt, vMoneyDzd, vOptionalInt, vOptionalText, vText } from '../src/lib/forms.ts';
 import { cursorPage, decodeCursor, encodeCursor } from '../src/lib/pagination.ts';
 import { fromAlgiersInput, startOfAlgiersDay, toAlgiersInput } from '../src/lib/time.ts';
 import { safeReturnPath } from '../src/routes/settings/index.tsx';
@@ -75,6 +75,14 @@ describe('forms', () => {
     expect(v.parse(vCheckbox(), 'on')).toBe(true);
     expect(v.parse(vCheckbox(), undefined)).toBe(false);
     expect(v.parse(vEmail(), ' A@B.dz ')).toBe('a@b.dz');
+  });
+  test('every field helper accepts an absent key inside object/strictObject', () => {
+    const S = v.strictObject({ n: vOptionalInt(1, 9), t: vOptionalText(5), c: vCheckbox() });
+    expect(v.parse(S, {})).toEqual({ n: null, t: null, c: false });
+    expect(v.parse(S, { n: '', t: '', c: 'on' })).toEqual({ n: null, t: null, c: true });
+    expect(v.parse(S, { n: '٧' })).toMatchObject({ n: 7 });
+    expect(v.safeParse(S, { n: '10' }).success).toBe(false);
+    expect(v.safeParse(v.strictObject({ r: vText(5) }), {}).issues?.[0]?.message).toBe('form.required');
   });
   test('toAsciiDigits', () => {
     expect(toAsciiDigits('٠٥٦٠٤١٧٤٠٣')).toBe('0560417403');
