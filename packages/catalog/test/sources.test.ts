@@ -56,12 +56,9 @@ describe('fromSeed', () => {
     expect(snap.wilayas).toEqual(ALL_WILAYAS);
   });
 
-  test('missing geo/content fail unless partial', async () => {
-    const root = await fakeRepo({ geo: 'none', content: false });
-    await expect(fromSeed(root)).rejects.toThrow(SnapshotError);
-    const snap = await fromSeed(root, { partial: true, generatedAt: 1 });
-    expect(snap.wilayas).toEqual([]);
-    expect(snap.contentPages).toEqual([]);
+  test('missing geo or content always fails (no partial mode for seed)', async () => {
+    await expect(fromSeed(await fakeRepo({ geo: 'none' }))).rejects.toThrow(/wilayas\.json|cannot read/);
+    await expect(fromSeed(await fakeRepo({ content: false }))).rejects.toThrow(/data\/content/);
   });
 
   test('issues name the product file', async () => {
@@ -123,6 +120,13 @@ describe('fromExport / loadSnapshot', () => {
     const full = { ...fixtureSnapshot, meta: { ...fixtureSnapshot.meta, source: 'd1', publishRunId: 1 }, wilayas: ALL_WILAYAS };
     await put(root, 'snap.json', full);
     expect(await loadSnapshot({ repoRoot: root, env: { HB_SNAPSHOT: 'snap.json' } })).toEqual(full);
+    // HB_SNAPSHOT_PARTIAL only with the fixture (lead's rule).
+    for (const which of ['seed', 'snap.json']) {
+      await expect(loadSnapshot({ repoRoot: root, env: { HB_SNAPSHOT: which, HB_SNAPSHOT_PARTIAL: '1' } })).rejects.toThrow(
+        /partial snapshots are allowed only with HB_SNAPSHOT=fixture/,
+      );
+    }
+    expect((await loadSnapshot({ repoRoot: root, env: { HB_SNAPSHOT: 'fixture', HB_SNAPSHOT_PARTIAL: '1' } })).meta.source).toBe('fixture');
     await put(root, 'partial.json', fixtureSnapshot);
     await expect(loadSnapshot({ repoRoot: root, env: { HB_SNAPSHOT: 'partial.json' } })).rejects.toThrow(/missing wilaya codes/);
   });
