@@ -11,6 +11,7 @@
 import type { Context } from 'hono';
 import * as v from 'valibot';
 import type { Category } from '@hb/db';
+import { noAudit } from '../../audit/audit.ts';
 import { can, rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import type { AppEnv } from '../../env.ts';
@@ -215,6 +216,7 @@ r.post('/:id', requirePerm('catalog.edit'), async (c) => {
 
   try {
     const outcome = await updateCategory(c, before, version, done.row);
+    if (outcome === 'unchanged') noAudit(c, 'category form submitted without changes: nothing written');
     if (outcome === 'conflict') {
       const fresh = await loadCategory(c, id);
       if (fresh === undefined) return c.notFound();
