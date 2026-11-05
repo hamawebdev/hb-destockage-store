@@ -8,7 +8,7 @@ build, and `packages/db` loads it into local D1.
 |---|---|
 | `categories.json` | `SnapshotCategory[]`: a flat list, with the tree given by `parentId` |
 | `products/<fr-slug>.json` | one `SnapshotProduct` per file, holding its options, variants, pack items and images |
-| `settings.json` | `SnapshotSettings`: store name, contact phone, WhatsApp, home featured and hero products |
+| `settings.json` | `SnapshotSettings`: store name, contact phone, WhatsApp, home featured products. `homeHeroProductId` is `null` (no image hero) until the client supplies hero photography: every real photo has prices printed on it (lead ruling, 2026-11-05) |
 | `provenance.json` | **not part of the snapshot**: where each real product comes from (see below) |
 | `source/` | raw scrape of the client's current site (SEED-1); never read at build time |
 

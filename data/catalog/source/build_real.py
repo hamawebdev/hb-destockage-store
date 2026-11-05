@@ -187,7 +187,8 @@ for p in P:
     dump(os.path.join(OUT, 'products', p['slug']['fr'] + '.json'), p)
 dump(os.path.join(OUT, 'settings.json'), dict(
     storeName=L('HB Destockage', 'HB Destockage'), contactPhone='0560417403', whatsapp='213779942022', contactEmail=None,
-    homeFeaturedProductIds=[101, 103, 102], homeHeroProductId=101, turnstileSiteKey=None))
+    homeFeaturedProductIds=[101, 103, 102], homeHeroProductId=None,  # no hero-grade photo yet (lead, 2026-11-05)
+    turnstileSiteKey=None))
 WC = [
   dict(wcId=4465, url=SRC + 'pack/', name='Pack', priceDzd=14600, compareAtDzd=18900, seedProductIds=[101, 102],
        mapping='Ordered at 14 600 = Pack A (101). Its description also lists Pack B 13 600 (102). Photo kept on 101.'),
