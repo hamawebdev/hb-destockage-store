@@ -20,6 +20,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fixtureSnapshot } from './fixtures/snapshot.ts';
 import { parseSnapshot, SnapshotError, type SnapshotIssue } from './schema.ts';
+import { isSiteOrigin } from './url.ts';
 import { SNAPSHOT_VERSION, type CatalogSnapshot, type Localized, type SnapshotWilaya, type StringTable } from './types.ts';
 
 export interface SeedOptions {
@@ -231,4 +232,23 @@ export async function loadStrings(repoRoot: string): Promise<Localized<StringTab
     return out;
   };
   return { ar: await one('ar'), fr: await one('fr') };
+}
+
+/** The fixture's origin: only ever used with HB_SNAPSHOT=fixture. */
+export const FIXTURE_ORIGIN = 'https://hbdestockage.example';
+
+/**
+ * The one canonical origin for pages, canonical/hreflang/og:url, sitemap and robots (lead ruling on
+ * CAT-6 r1): `HB_SITE_ORIGIN`. Required unless `HB_SNAPSHOT=fixture` (then FIXTURE_ORIGIN). Must be
+ * an origin (`https://host[:port]`, or http://localhost for local builds). A trailing `/` is dropped.
+ * shell's storefront build calls this too, so both layers resolve the same value.
+ */
+export function siteOriginFromEnv(env: Readonly<Record<string, string | undefined>> = process.env): string {
+  const raw = env['HB_SITE_ORIGIN']?.trim().replace(/\/+$/, '');
+  if (!raw) {
+    if (env['HB_SNAPSHOT'] === 'fixture') return FIXTURE_ORIGIN;
+    throw new Error("HB_SITE_ORIGIN is not set: required for every build except HB_SNAPSHOT=fixture (e.g. https://hbdestockagedz.com)");
+  }
+  if (!isSiteOrigin(raw)) throw new Error(`HB_SITE_ORIGIN is not an origin (https://host[:port]): ${JSON.stringify(raw)}`);
+  return raw;
 }
