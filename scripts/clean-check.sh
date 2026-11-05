@@ -3,10 +3,14 @@
 # Clones the repo at <ref> (default HEAD) into a temp dir, then runs
 # npm ci, typecheck, test, build. Stops at the first non-zero exit and exits non-zero.
 # Log: <main checkout>/artifacts/TOOL-3/clean-check-<short-sha>.log
+# Holds one machine heavy slot (scripts/lib/locks.sh) for the whole run; each step runs in its own
+# process group without the lock fd.
 set -euo pipefail
 
 ref="${1:-HEAD}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/locks.sh
+. "$here/lib/locks.sh"
 common="$(git -C "$here" rev-parse --path-format=absolute --git-common-dir)"
 main_root="$(dirname "$common")"
 sha="$(git -C "$here" rev-parse --verify "${ref}^{commit}")"
@@ -24,7 +28,7 @@ run_step() {
   local name="$1"; shift
   local t0=$SECONDS rc=0
   say "== $name: $*"
-  "$@" >>"$log" 2>&1 || rc=$?
+  hb_run_group "$@" >>"$log" 2>&1 </dev/null || rc=$?
   if [[ $rc -ne 0 ]]; then
     say "RED   $name (exit $rc, $((SECONDS - t0))s)"
     say "clean-check: RED at $name for $short — log: $log"
@@ -34,6 +38,8 @@ run_step() {
 }
 
 say "clean-check $sha ($(date -u +%FT%TZ)) node $(node -v) npm $(npm -v)"
+hb_acquire_heavy_slot "${HB_GATE_WAIT:-3600}" "clean-check $short" || { say "clean-check: RED — no heavy slot"; exit 1; }
+say "holding heavy slot $HB_HEAVY_SLOT"
 run_step clone git clone --quiet --no-hardlinks "$main_root" "$tmp/repo"
 cd "$tmp/repo"
 run_step checkout git checkout --quiet --detach "$sha"
