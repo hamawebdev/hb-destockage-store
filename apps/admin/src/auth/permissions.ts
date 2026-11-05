@@ -30,6 +30,10 @@ export const PERMISSIONS = {
 
   // Customers (admin-orders). `content` never sees customer personal data.
   'customers.view': ['owner', 'confirmer', 'logistics'],
+  // Notes, flags, block state, risk/anti-fraud fields, ip_hash, order history and counters.
+  // Without it (logistics) only delivery fields are ever SELECTed: see lib/projection.ts.
+  // Lead decision 2026-11-05.
+  'customers.sensitive': ['owner', 'confirmer'],
   'customers.flag': ['owner', 'confirmer'],
   'customers.block': ['owner', 'confirmer'],
   'customers.unblock': ['owner'],
