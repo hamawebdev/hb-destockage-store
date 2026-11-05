@@ -1,0 +1,96 @@
+---
+/**
+ * Variant picker: one fieldset of radios per option (sizes as pills, colours as swatches).
+ * Radios live outside orderform's <form> and join it with form="order-form" (contract in
+ * lib/variants.ts). Works without JS: the default is `checked` server-side, the selected value's
+ * name and the matching price/stock block are switched by the page's generated `:has()` rules.
+ * Values with no available variant at all are `disabled`. In multi mode variant.js marks values
+ * that clash with the other option's current choice (data-na) and shows the "not available" note.
+ */
+import type { OptionProps, StringTable, VariantProps } from '@hb/catalog';
+import { t } from './lib/i18n.ts';
+import { defaultVariant, pickerMode, radioId, radioName, swatchFill, variantByValue } from './lib/variants.ts';
+
+interface Props {
+  options: readonly OptionProps[];
+  variants: readonly VariantProps[];
+  strings: StringTable;
+}
+const { options, variants, strings } = Astro.props;
+const mode = pickerMode({ options, variants });
+const def = defaultVariant(variants);
+const byValue = variantByValue(variants);
+const checkedIds = new Set(def?.optionValueIds ?? []);
+---
+{mode !== 'none' && (
+  <div class="cat-picker" data-mode={mode}>
+    {options.map((o) => (
+      <fieldset class={`cat-opt cat-opt--${o.type}`}>
+        <legend class="cat-opt-legend">
+          <span class="cat-opt-name">{o.name}</span>
+          <span class="cat-curs">{o.values.map((v) => <span class="cat-cur">{v.label}</span>)}</span>
+        </legend>
+        <div class="cat-opt-values">
+          {o.values.map((v) => {
+            const single = mode === 'single' ? byValue.get(v.id) : undefined;
+            const value = mode === 'single' ? (single ? String(single.id) : '') : String(v.id);
+            const disabled = !v.available || (mode === 'single' && !single);
+            return (
+              <label class:list={['cat-val', { 'cat-val--na': disabled }]}>
+                <input
+                  class="cat-val-in"
+                  type="radio"
+                  id={radioId(v.id)}
+                  name={radioName(mode, o.id)}
+                  value={value}
+                  form="order-form"
+                  checked={checkedIds.has(v.id)}
+                  disabled={disabled && !checkedIds.has(v.id)}
+                  data-ov={v.id}
+                />
+                {o.type === 'colour' && swatchFill(v.swatchHex) ? (
+                  <span class="cat-val-face cat-val-face--sw">
+                    <svg class="cat-sw" viewBox="0 0 1 1" aria-hidden="true"><rect width="1" height="1" fill={swatchFill(v.swatchHex)} /></svg>
+                    <span class="cat-sr">{v.label}{disabled && ` (${t(strings, 'product.option.unavailable')})`}</span>
+                  </span>
+                ) : (
+                  <span class="cat-val-face">
+                    {v.label}{disabled && <span class="cat-sr"> ({t(strings, 'product.option.unavailable')})</span>}
+                  </span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+    ))}
+    {mode === 'multi' && <input type="hidden" name="variantId" value="" form="order-form" />}
+  </div>
+)}
+
+<style is:global>
+  .cat-picker{display:grid;gap:var(--space-5)}
+  .cat-opt{margin:0;padding:0;border:0;min-inline-size:0}
+  .cat-opt-legend{display:flex;gap:var(--space-2);padding:0;margin-block-end:var(--space-3);font-size:var(--fs-small);line-height:var(--lh-ui)}
+  .cat-opt-name{font-weight:var(--fw-emphasis)}
+  .cat-opt-name::after{content:":"}
+  .cat-cur{display:none;color:var(--color-text-secondary)}
+  .cat-curs.is-js>.cat-cur{display:none}
+  .cat-curs.is-js>.is-on{display:inline}
+  .cat-opt-values{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+  .cat-val{position:relative;display:inline-flex}
+  .cat-val-in{position:absolute;inset:0;inline-size:100%;block-size:100%;margin:0;opacity:0;cursor:pointer}
+  .cat-val-in:disabled{cursor:not-allowed}
+  .cat-val-face{--na:0;position:relative;display:inline-flex;align-items:center;justify-content:center;min-inline-size:var(--tap-min);min-block-size:var(--tap-min);padding-inline:var(--space-4);border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-border-control);background:var(--color-surface);color:var(--color-text);font-size:var(--fs-small);line-height:var(--lh-ui);transition:box-shadow var(--dur-fast) var(--ease-standard);pointer-events:none}
+  .cat-val-in:hover+.cat-val-face{box-shadow:inset 0 0 0 1px var(--color-text)}
+  .cat-val-in:checked+.cat-val-face{box-shadow:inset 0 0 0 2px var(--color-accent)}
+  .cat-val-in:focus-visible+.cat-val-face{outline:var(--focus-width,2px) solid var(--color-focus);outline-offset:var(--focus-offset,2px)}
+  .cat-val--na .cat-val-face,.cat-val[data-na] .cat-val-face{--na:1}
+  .cat-val-face::after{content:"";position:absolute;inset:0;border-radius:inherit;opacity:var(--na);background:linear-gradient(to top right,transparent calc(50% - .75px),var(--color-text-secondary) calc(50% - .75px),var(--color-text-secondary) calc(50% + .75px),transparent calc(50% + .75px))}
+  .cat-val-face--sw{padding:0;border-radius:var(--radius-round)}
+  .cat-sw{display:block;inline-size:32px;block-size:32px;border-radius:var(--radius-round);outline:1px solid rgba(0,0,0,.12);outline-offset:-1px}
+  /* Constant positional switches (same bytes on every product page). Values beyond 12: variant.js. */
+  .cat-opt:has(.cat-val:nth-child(1)>:checked) .cat-curs>:nth-child(1),.cat-opt:has(.cat-val:nth-child(2)>:checked) .cat-curs>:nth-child(2),.cat-opt:has(.cat-val:nth-child(3)>:checked) .cat-curs>:nth-child(3),.cat-opt:has(.cat-val:nth-child(4)>:checked) .cat-curs>:nth-child(4),.cat-opt:has(.cat-val:nth-child(5)>:checked) .cat-curs>:nth-child(5),.cat-opt:has(.cat-val:nth-child(6)>:checked) .cat-curs>:nth-child(6),.cat-opt:has(.cat-val:nth-child(7)>:checked) .cat-curs>:nth-child(7),.cat-opt:has(.cat-val:nth-child(8)>:checked) .cat-curs>:nth-child(8),.cat-opt:has(.cat-val:nth-child(9)>:checked) .cat-curs>:nth-child(9),.cat-opt:has(.cat-val:nth-child(10)>:checked) .cat-curs>:nth-child(10),.cat-opt:has(.cat-val:nth-child(11)>:checked) .cat-curs>:nth-child(11),.cat-opt:has(.cat-val:nth-child(12)>:checked) .cat-curs>:nth-child(12){display:inline}
+  .cat-pdp:has([data-mode=single] .cat-val-in:checked) .cat-vp-d{display:none}
+  .cat-pdp:has([data-mode=single] .cat-val:nth-child(1)>:checked) .cat-vps>:nth-child(1),.cat-pdp:has([data-mode=single] .cat-val:nth-child(2)>:checked) .cat-vps>:nth-child(2),.cat-pdp:has([data-mode=single] .cat-val:nth-child(3)>:checked) .cat-vps>:nth-child(3),.cat-pdp:has([data-mode=single] .cat-val:nth-child(4)>:checked) .cat-vps>:nth-child(4),.cat-pdp:has([data-mode=single] .cat-val:nth-child(5)>:checked) .cat-vps>:nth-child(5),.cat-pdp:has([data-mode=single] .cat-val:nth-child(6)>:checked) .cat-vps>:nth-child(6),.cat-pdp:has([data-mode=single] .cat-val:nth-child(7)>:checked) .cat-vps>:nth-child(7),.cat-pdp:has([data-mode=single] .cat-val:nth-child(8)>:checked) .cat-vps>:nth-child(8),.cat-pdp:has([data-mode=single] .cat-val:nth-child(9)>:checked) .cat-vps>:nth-child(9),.cat-pdp:has([data-mode=single] .cat-val:nth-child(10)>:checked) .cat-vps>:nth-child(10),.cat-pdp:has([data-mode=single] .cat-val:nth-child(11)>:checked) .cat-vps>:nth-child(11),.cat-pdp:has([data-mode=single] .cat-val:nth-child(12)>:checked) .cat-vps>:nth-child(12){display:block}
+</style>
