@@ -140,7 +140,7 @@ run_step() {
 }
 
 script_wired() { # RED when the root script is missing or still the TOOL-2 stub
-  node -e 'const s=(require("./package.json").scripts||{})[process.argv[1]]||"";process.exit(!s||/not wired yet/.test(s)?1:0)' "$1"
+  node -e 'const s=(require("./package.json").scripts||{})[process.argv[1]]||"";process.exit(!s||/not wired yet|scripts\/not-wired\.sh/.test(s)?1:0)' "$1"
 }
 
 lock_hash="$(sha256sum package-lock.json | cut -d' ' -f1)"
