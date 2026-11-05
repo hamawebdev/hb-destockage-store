@@ -2,10 +2,11 @@
 // and as a SQL CHECK constraint in the migration, so a raw `wrangler d1 execute` cannot write an
 // unknown value either.
 //
-// ORDER_STATUSES and ADMIN_ROLES must stay equal to the lists in `@hb/shared` (order-state.ts);
-// `packages/db/test/enums.test.ts` will assert that once SHARED-1 is on main.
+// LANGS, ORDER_STATUSES and ADMIN_ROLES are owned by `@hb/shared` and re-exported here (DB-4);
+// test/enums.test.ts asserts the SQL CHECK lists in the migrations equal them.
+import { ADMIN_ROLES, LANGS, ORDER_STATUSES } from '@hb/shared';
+export { ADMIN_ROLES, LANGS, ORDER_STATUSES };
 
-export const LANGS = ['ar', 'fr'] as const;
 export type DbLang = (typeof LANGS)[number];
 
 export const PRODUCT_KINDS = ['simple', 'variable', 'pack'] as const;
@@ -17,16 +18,6 @@ export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
 export const OPTION_KINDS = ['size', 'colour', 'other'] as const;
 export type OptionKind = (typeof OPTION_KINDS)[number];
 
-export const ORDER_STATUSES = [
-  'new',
-  'called',
-  'confirmed',
-  'unreachable',
-  'cancelled',
-  'shipped',
-  'delivered',
-  'returned',
-] as const;
 export type DbOrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const ORDER_EVENT_TYPES = ['created', 'status_change', 'call_attempt', 'note'] as const;
@@ -36,7 +27,6 @@ export type OrderEventType = (typeof ORDER_EVENT_TYPES)[number];
 export const ACTOR_TYPES = ['customer', 'system', 'admin'] as const;
 export type ActorType = (typeof ACTOR_TYPES)[number];
 
-export const ADMIN_ROLES = ['owner', 'confirmer', 'logistics', 'content'] as const;
 export type DbAdminRole = (typeof ADMIN_ROLES)[number];
 
 /** Result of the server-side Turnstile check. Missing/invalid ⇒ order accepted and flagged. */

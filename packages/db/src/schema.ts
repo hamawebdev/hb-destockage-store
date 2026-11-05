@@ -14,6 +14,7 @@
 //   `/api/rum`, the admin and jobs touch it.
 
 import { relations, sql, type SQL } from 'drizzle-orm';
+import type { OrderFlag } from '@hb/shared';
 import {
   check,
   index,
@@ -447,7 +448,7 @@ export const orders = sqliteTable(
     /** Which FeeProvider priced the delivery (`@hb/shared` FeeSource, e.g. `table`). */
     feeSource: text('fee_source').notNull(),
     /** JSON array of flag strings (`@hb/shared` ORDER_FLAGS). Non-empty ⇒ review before shipping. */
-    flags: text('flags', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+    flags: text('flags', { mode: 'json' }).$type<OrderFlag[]>().notNull().default(sql`'[]'`),
     turnstile: text('turnstile', { enum: TURNSTILE_RESULTS }),
     /** Form fill time in ms (render → submit), for the minimum-fill-time rule. */
     fillMs: integer('fill_ms'),
