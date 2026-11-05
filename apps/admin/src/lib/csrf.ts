@@ -35,3 +35,30 @@ export function isSameOriginRequest(req: Request): boolean {
     return false;
   }
 }
+
+const FORM_TYPES = /^(application\/x-www-form-urlencoded|multipart\/form-data)\s*(;|$)/i;
+const SAFE_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+export type CsrfFailure = 'content-type' | 'origin' | 'token';
+
+/**
+ * Checks an unsafe request: form content type, same origin, and the user-bound token in the
+ * `_csrf` field. Returns null when the request may proceed. Reads the body through Hono's
+ * cached parser, so handlers can parse it again.
+ */
+export async function checkCsrf(
+  req: { method: string; raw: Request; header(name: string): string | undefined; parseBody(): Promise<Record<string, unknown>> },
+  secret: string,
+  userId: number,
+): Promise<CsrfFailure | null> {
+  if (SAFE_METHODS.has(req.method)) return null;
+  if (!FORM_TYPES.test(req.header('Content-Type') ?? '')) return 'content-type';
+  if (!isSameOriginRequest(req.raw)) return 'origin';
+  let body: Record<string, unknown>;
+  try {
+    body = await req.parseBody();
+  } catch {
+    return 'token';
+  }
+  return (await verifyCsrfToken(secret, userId, body[CSRF_FIELD])) ? null : 'token';
+}

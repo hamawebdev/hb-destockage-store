@@ -5,7 +5,7 @@ import { PERMISSIONS, roleCan, type Permission } from '../src/auth/permissions.t
 import { requireRole } from '../src/auth/require-role.ts';
 import type { Role } from '../src/env.ts';
 import { CSP_HTML, CSP_OTHER } from '../src/lib/headers.ts';
-import { csrfFrom, form, harness, testEnv, USERS, type Harness } from './helpers.ts';
+import { csrfFrom, form, harness, postAs, testEnv, tokenFor, USERS, type Harness } from './helpers.ts';
 
 let h: Harness;
 beforeAll(async () => {
@@ -241,12 +241,12 @@ describe('language toggle (audited mutation)', () => {
   });
   test('open redirect is neutralised', async () => {
     for (const evil of ['//evil.example', 'https://evil.example', '/\\evil.example', 'javascript:alert(1)']) {
-      const res = await h.as(USERS.content, '/settings/language', form({ lang: 'fr', return_to: evil }));
+      const res = await postAs(h, USERS.content, '/settings/language', { lang: 'fr', return_to: evil });
       expect(res.headers.get('Location'), evil).toBe('/');
     }
   });
   test('invalid language is refused', async () => {
-    expect((await h.as(USERS.content, '/settings/language', form({ lang: 'en' }))).status).toBe(403);
+    expect((await postAs(h, USERS.content, '/settings/language', { lang: 'en' })).status).toBe(403);
   });
 });
 
@@ -269,11 +269,13 @@ describe('audit() contract', () => {
       ]);
       return c.text('done');
     });
-    expect((await app.request('/t/guard/0', { method: 'POST' }, h.env)).status).toBe(200);
+    const tok = await tokenFor(h.db, USERS.owner);
+    const post = () => form({ _csrf: tok });
+    expect((await app.request('/t/guard/0', post(), h.env)).status).toBe(200);
     expect(await auditRows('test.guarded')).toHaveLength(0);
-    expect((await app.request('/t/guard/1', { method: 'POST' }, h.env)).status).toBe(200);
+    expect((await app.request('/t/guard/1', post(), h.env)).status).toBe(200);
     expect(await auditRows('test.guarded')).toEqual([{ entity_id: '1', before: null, after: '{"ok":true}', actor_email: USERS.owner }]);
-    expect((await app.request('/t/expr', { method: 'POST' }, h.env)).status).toBe(200);
+    expect((await app.request('/t/expr', post(), h.env)).status).toBe(200);
     const contentId = await h.db.prepare('select id from admin_users where email = ?').bind(USERS.content).first<{ id: number }>();
     expect((await auditRows('test.expr'))[0]?.entity_id).toBe(String(contentId?.id));
   });
@@ -284,6 +286,6 @@ describe('audit() contract', () => {
       audit(c, { action: 'Drop Table', entity: 'x;--', entityId: null });
       return c.text('unreachable');
     });
-    expect((await app.request('/t/bad', { method: 'POST' }, h.env)).status).toBe(500);
+    expect((await app.request('/t/bad', form({ _csrf: await tokenFor(h.db, USERS.owner) }), h.env)).status).toBe(500);
   });
 });

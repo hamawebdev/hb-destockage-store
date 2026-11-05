@@ -13,7 +13,8 @@
 //  7. Your strings: `defineMessages({ fr, ar })` in your own folder.
 //
 // Pipeline (order matters): security headers → request id → env check → body limit →
-// db → [dev login, local only] → authenticate → language/renderer → role guard → routes.
+// db → [dev login, local only] → authenticate → language/renderer → CSRF guard → audit guard →
+// role guard → routes.
 
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
@@ -25,6 +26,7 @@ import devRoutes, { DEV_PREFIX } from './auth/dev-routes.tsx';
 import { requirePerm, roleGuard } from './auth/require-role.ts';
 import { checkEnv, type AppEnv } from './env.ts';
 import { dirOf, translator } from './i18n/index.ts';
+import { auditGuard, csrfGuard } from './lib/guards.ts';
 import { securityHeaders } from './lib/headers.ts';
 import { setLayoutRenderer } from './ui/layout.tsx';
 import { renderError } from './ui/error-page.tsx';
@@ -41,6 +43,7 @@ import fees from './routes/fees/index.tsx';
 import content from './routes/content/index.tsx';
 import media from './routes/media/index.tsx';
 import publish from './routes/publish/index.tsx';
+import auditRoutes from './audit/routes.tsx';
 
 export const MAX_BODY_BYTES = 1024 * 1024;
 export const LARGE_BODY_BYTES = 10 * 1024 * 1024;
@@ -74,7 +77,7 @@ const envGuard = createMiddleware<AppEnv>(async (c, next) => {
 
 const limitBody = createMiddleware<AppEnv>(async (c, next) => {
   const maxSize = LARGE_BODY_PATHS.has(c.req.path) ? LARGE_BODY_BYTES : MAX_BODY_BYTES;
-  return bodyLimit({ maxSize, onError: (c) => c.text('Payload Too Large', 413) })(c, next);
+  return bodyLimit({ maxSize, onError: (c) => renderError(c, 413) })(c, next);
 });
 
 const withDb = createMiddleware<AppEnv>(async (c, next) => {
@@ -97,7 +100,7 @@ export function createApp(opts: AppOptions = {}): Hono<AppEnv> {
   app.use('*', securityHeaders, requestId, envGuard, limitBody, withDb);
   // Local dev login: registered before authenticate; 404 unless ENV=development on a loopback host.
   app.route(DEV_PREFIX, devRoutes);
-  app.use('*', authenticate(opts.identify ?? createDefaultIdentify()), withLang, roleGuard);
+  app.use('*', authenticate(opts.identify ?? createDefaultIdentify()), withLang, csrfGuard, auditGuard, roleGuard);
 
   // Static assets (after auth; `run_worker_first: true` in wrangler.jsonc).
   app.get(ASSET.tokens, requirePerm('dashboard.view'), (c) =>
@@ -119,10 +122,14 @@ export function createApp(opts: AppOptions = {}): Hono<AppEnv> {
   app.route('/content', content);
   app.route('/media', media);
   app.route('/publish', publish);
+  app.route('/audit', auditRoutes);
 
   app.notFound((c) => renderError(c, 404));
   app.onError((err, c) => {
     console.error(JSON.stringify({ level: 'error', msg: 'unhandled', error: err.name, requestId: c.get('requestId') }));
+    // Hono assigns this result to c.res, which would merge the headers of any response produced
+    // before the throw (e.g. a redirect's Location); clear it first.
+    c.res = undefined as unknown as Response;
     return renderError(c, 500);
   });
 
