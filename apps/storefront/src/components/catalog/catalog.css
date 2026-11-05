@@ -1,5 +1,4 @@
 /* Catalogue primitives shared by the category, product and search templates (pages). Tokens only, logical properties only. */
-.cat-sr{position:absolute;inline-size:1px;block-size:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .cat-page{inline-size:min(100% - 2 * var(--gutter), var(--container-max));margin-inline:auto;padding-block:var(--space-4) var(--section-block)}
 .cat-title{margin:0;font-size:var(--fs-h1);font-weight:var(--fw-emphasis);line-height:var(--lh-heading);letter-spacing:var(--ls-display);text-wrap:balance}
 .cat-btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);min-block-size:var(--tap-min);padding-inline:var(--space-6);border-radius:var(--radius-pill);background:var(--color-accent);color:var(--color-on-accent);font-weight:var(--fw-emphasis);line-height:var(--lh-ui);text-decoration:none;transition:background-color var(--dur-fast) var(--ease-standard)}
