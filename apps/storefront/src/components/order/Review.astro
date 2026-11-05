@@ -1,0 +1,117 @@
+---
+/**
+ * No-JS review step template (ORDER-6). Built at /{lang}/order/review/ (noindex, never linked, not in the sitemap or
+ * Speculation Rules). web's Worker fetches it from static assets and fills it with HTMLRewriter on the frozen slots in
+ * artifacts/WEB-3/review-slots.md: it sets values, appends options/hidden inputs, replaces [data-hb="lines"], and only
+ * removes `hidden`. It inserts no UI strings: every message is pre-rendered here, hidden, from brand copy.
+ * The inline <style> must stay byte-identical across ar/fr (one CSP hash): nothing data-driven in it.
+ * Owner: orderform.
+ */
+import type { ContactProps, Lang, StringTable } from '@hb/catalog';
+import { ORDER_MAX_QTY } from '@hb/catalog';
+import { PHONE_INPUT_MAX_LENGTH } from './form-model.ts';
+import { ltr, str } from './str.ts';
+import { REVIEW_ERROR_CODES, REVIEW_FIELD_CODES } from './review-codes.ts';
+
+interface Props {
+  lang: Lang;
+  strings: StringTable;
+  contact: ContactProps;
+}
+const { lang, strings, contact } = Astro.props;
+const t = (k: string) => str(strings, k);
+const err = (code: string) => str(strings, `order.errors.${code}`, { phone: ltr(contact.phoneDisplay), max: ORDER_MAX_QTY });
+
+const FIELD_CODES = REVIEW_FIELD_CODES;
+---
+<div class="or">
+  <h1 class="or-title">{t('order.review.title')}</h1>
+  <p class="or-intro">{t('order.review.intro')}</p>
+
+  <div class="note note-danger or-errors" role="alert" data-hb-when="has-errors" hidden>
+    <div>
+      <p class="or-errors-h">{t('order.errors.summary')}</p>
+      <ul class="or-errors-list">
+        {REVIEW_ERROR_CODES.map((c) => <li data-hb-error={c} hidden>{err(c)}</li>)}
+      </ul>
+      <p class="or-help">
+        <a class="or-link" href={contact.phoneHref}><bdi dir="ltr">{contact.phoneDisplay}</bdi></a>
+        <a class="or-link" href={contact.whatsappHref}>{t('order.whatsappCta')}</a>
+      </p>
+    </div>
+  </div>
+
+  <form class="or-form" data-hb="form" method="post" action="/api/order" novalidate>
+    <section class="or-sum" aria-labelledby="or-sum-h" data-hb-when="can-confirm" hidden>
+      <h2 id="or-sum-h" class="or-h2">{t('order.summary.title')}</h2>
+      <ul class="or-lines" data-hb="lines"></ul>
+      <dl class="or-dl">
+        <div><dt>{t('order.summary.subtotal')}</dt><dd data-hb="subtotal"></dd></div>
+        <div><dt>{t('order.summary.delivery')}</dt><dd data-hb="fee"></dd></div>
+        <div class="or-total"><dt>{t('order.summary.total')}</dt><dd data-hb="total"></dd></div>
+      </dl>
+      <p class="hint">{t('order.summary.note')}</p>
+    </section>
+
+    <div class="field">
+      <label for="or-name" class="label">{t('order.name.label')} <span aria-hidden="true">*</span></label>
+      <input id="or-name" class="input" name="name" type="text" autocomplete="name" required
+        data-hb="name" data-hb-field="name" aria-describedby="or-name-err" />
+      <div id="or-name-err" class="or-ferr">{FIELD_CODES.name.map((c) => <p class="error" data-hb-error={c} hidden>{err(c)}</p>)}</div>
+    </div>
+
+    <div class="field">
+      <label for="or-phone" class="label">{t('order.phone.label')} <span aria-hidden="true">*</span></label>
+      <input id="or-phone" class="input" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" required
+        maxlength={PHONE_INPUT_MAX_LENGTH} data-hb="phone" data-hb-field="phone" aria-describedby="or-phone-err" />
+      <div id="or-phone-err" class="or-ferr">{FIELD_CODES.phone.map((c) => <p class="error" data-hb-error={c} hidden>{err(c)}</p>)}</div>
+    </div>
+
+    <div class="field">
+      <label for="or-commune" class="label">{t('order.commune.label')} <span aria-hidden="true">*</span></label>
+      <select id="or-commune" class="input" name="communeId" required autocomplete="address-level2"
+        data-hb="commune-select" data-hb-field="communeId" aria-describedby="or-commune-err">
+        <option value="">{t('order.commune.placeholder')}</option>
+      </select>
+      <div id="or-commune-err" class="or-ferr">{FIELD_CODES.commune.map((c) => <p class="error" data-hb-error={c} hidden>{err(c)}</p>)}</div>
+    </div>
+
+    <div class="or-confirm" data-hb-when="can-confirm" hidden>
+      <button type="submit" class="btn btn-primary btn-block">{t('order.review.confirm')}</button>
+      <p class="hint">{t('order.callNote')}</p>
+    </div>
+    <p class="or-back"><a class="or-link" data-hb="back" href={`/${lang}/`}>{t('order.review.edit')}</a></p>
+  </form>
+</div>
+
+<style is:global>
+  /* The Worker shows and hides blocks only through the `hidden` attribute, so it must win over every display rule:
+     ours (.or-sum is a grid) and tokens' (.note, .error are flex), which otherwise override the UA's [hidden]. */
+  .or [hidden] { display: none !important; }
+  .or { max-inline-size: var(--reading-max); margin-inline: auto; padding-block: var(--section-block); padding-inline: var(--gutter); display: grid; gap: var(--space-5); }
+  .or-title { font-size: var(--fs-h1); line-height: var(--lh-heading); margin: 0; }
+  .or-intro { margin: 0; color: var(--color-text-secondary); }
+  .or-errors-h, .or-errors-list, .or-help { margin: 0; }
+  .or-errors-list { padding-inline-start: var(--space-5); display: grid; gap: var(--space-1); }
+  .or-help { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+  .or-form { display: grid; gap: var(--space-5); }
+  .or-form p { margin: 0; }
+  /* .or-ferr stays rendered even when every message is hidden: it is the aria-describedby target, and a hidden
+     target would expose all its hidden messages as the description. */
+  .or-sum { background: var(--color-surface-alt); border-radius: var(--radius-lg); padding: var(--space-4); display: grid; gap: var(--space-3); }
+  .or-h2 { font-size: var(--fs-lead); margin: 0; }
+  .or-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+  .of-line { display: grid; grid-template-columns: 1fr auto; gap: var(--space-1) var(--space-3); }
+  .of-line-name { font-weight: var(--fw-emphasis); }
+  .of-line-variant, .of-line-qty { grid-column: 1; color: var(--color-text-secondary); font-size: var(--fs-small); }
+  .of-line-total { grid-column: 2; grid-row: 1; text-align: end; }
+  .or-dl { margin: 0; display: grid; gap: var(--space-2); }
+  .or-dl div { display: flex; justify-content: space-between; gap: var(--space-3); }
+  .or-dl dt { color: var(--color-text-secondary); }
+  .or-dl dd { margin: 0; text-align: end; }
+  .or-total { border-block-start: var(--bw-hairline) solid var(--color-border); padding-block-start: var(--space-2); }
+  .or-total dt { color: var(--color-text); font-weight: var(--fw-emphasis); }
+  .or-total dd { color: var(--color-price); font-size: var(--fs-lead); font-weight: var(--fw-emphasis); }
+  .or-confirm:not([hidden]) { display: grid; gap: var(--space-2); }
+  .or-link { color: var(--color-accent-text); display: inline-flex; align-items: center; min-block-size: var(--tap-min); }
+</style>
