@@ -5,16 +5,24 @@
 # acts on the main checkout, which must be on main, clean, with no merge in progress.
 #
 # Checks every commit in main..<sha> (<sha> defaults to <branch>'s tip and must be on <branch>):
-#   non-merge commit  - subject "<ID>: …" and exactly one "Risk tier: low|high" line
-#                     - files within the author's paths (author = team/<name> of <branch>), using
-#                       main's team/owners.json — the backstop for worktrees without the hooks
-#                     - an artifacts/<ID>/review-r<n>.md with "Verdict: APPROVED" whose "Commits:"
-#                       line lists this sha (≥ 7-char prefix)
-#                     - the latest round for <ID> is APPROVED and has no open Important finding
-#                     - Risk tier: high ⇒ a line "<ID> <sha-prefix> — signed off …" in main's team/SIGNOFFS.md
-#   merge commit      - clean (`git show --remerge-diff` empty), or covered by an APPROVED review of
-#                       any ID listing its sha
-# Then: merge --no-ff in a temporary worktree, run scripts/gate.sh there (--base = current main),
+#   non-merge commit  - the full commit-msg format (main's .githooks/commit-msg) and exactly one
+#                       "Risk tier: low|high" line
+#                     - files within its author's paths, using main's team/owners.json — the backstop
+#                       for --no-verify and worktrees without hooks. Author = <branch>'s owner for
+#                       commits on its first-parent line; a commit merged in from another team
+#                       branch is attributed to the team/* branch(es) whose first-parent line has it
+#                     - approved per the lead-only ledger main:team/APPROVALS.md (review files under
+#                       artifacts/ are evidence, never authority): the full sha is listed on SOME
+#                       ledger line for its ID, and the LATEST line for that ID (highest r<n>) is
+#                       APPROVED. Ledger lines are parsed strictly (anchored, full shas, reviewer =
+#                       a rev-* teammate in owners.json); a malformed ledger line refuses everything
+#                     - effective tier = max(commit's "Risk tier:", tier= of any ledger line for the
+#                       ID); high ⇒ main:team/SIGNOFFS.md has "<ID> <full sha> — signed off …"
+#   merge commit      - exactly 2 parents (octopus refused), and clean (`git show --remerge-diff`
+#                       empty) or listed on a ledger line of an ID whose latest line is APPROVED
+# Then: merge --no-ff in a temporary worktree; NET-DIFF ownership on the result (every path it would
+# change on main is the author's, or exactly the version a reviewed commit of that path's owner made —
+# catches reverts and edits hidden in merges); run scripts/gate.sh there (--base = current main),
 # and fast-forward main to the merge only when the gate is green. Main never holds a red merge.
 #   --dry-run   checks + a trial merge for conflicts; main untouched; no gate unless --gate
 # Exit 0 merged (or dry-run clean), 1 refused/red, 2 usage. Gate command override for tests: HB_GATE.
@@ -58,7 +66,7 @@ while IFS= read -r c; do [[ -n "$c" ]] && commits+=("$c"); done < <(g rev-list -
 owners_tmp="$(mktemp)"; signoffs_tmp="$(mktemp)"
 tmp_wt="" tmp_branch=""
 cleanup() {
-  rm -f "$owners_tmp" "$signoffs_tmp"
+  rm -f "$owners_tmp" "$signoffs_tmp" "${msg_tmp:-}" "${ledger_tmp:-}"
   if [[ -n "$tmp_wt" ]]; then g worktree remove --force "$tmp_wt" >/dev/null 2>&1 || rm -rf "$tmp_wt"; g worktree prune >/dev/null 2>&1 || true; fi
   if [[ -n "$tmp_branch" ]]; then g branch -D "$tmp_branch" >/dev/null 2>&1 || true; fi
 }
@@ -66,38 +74,54 @@ trap cleanup EXIT
 g show main:team/owners.json >"$owners_tmp" 2>/dev/null || { echo "merge: main has no team/owners.json" >&2; exit 1; }
 g show main:team/SIGNOFFS.md >"$signoffs_tmp" 2>/dev/null || : >"$signoffs_tmp"
 
-# review helpers ----------------------------------------------------------------------------
-covers() { # covers <review-file> <sha>: APPROVED and the Commits: line lists a prefix of sha
-  local f="$1" s="$2" t
-  grep -Eq '^Verdict: APPROVED[[:space:]]*$' "$f" || return 1
-  for t in $(sed -n 's/^Commits:[[:space:]]*//p' "$f" | head -n1 | tr ',' ' '); do
-    [[ ${#t} -ge 7 && "$s" == "$t"* ]] && return 0
+# ledger (lead's ruling 2026-11-05: team/APPROVALS.md on main is the only authority) -------------
+ledger_tmp="$(mktemp)"
+g show main:team/APPROVALS.md >"$ledger_tmp" 2>/dev/null || : >"$ledger_tmp"
+reviewers=" $(node -e 'const o=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).owners;process.stdout.write(Object.keys(o).filter(n=>/^rev-[a-z]$/.test(n)).join(" "))' "$owners_tmp") "
+declare -A L_listed=() L_n=() L_verdict=() L_who=() L_review=() L_high=()
+ledger_errors=()
+id_re='[A-Z]+(-[A-Z]+)?-[0-9]+'
+line_re="^($id_re) r([0-9]+) (APPROVED|CHANGES_REQUESTED) tier=(low|high) reviewer=(rev-[a-z]) commits=([0-9a-f]{40}(,[0-9a-f]{40})*) review=([^[:space:]]+)\$"
+looks_re="^$id_re r[0-9]+[[:space:]]"
+lnum=0
+while IFS= read -r line || [[ -n "$line" ]]; do
+  lnum=$((lnum + 1))
+  line="${line%$'\r'}"
+  if [[ "$line" =~ $line_re ]]; then
+    lid="${BASH_REMATCH[1]}" ln="${BASH_REMATCH[3]}" lv="${BASH_REMATCH[4]}" lt="${BASH_REMATCH[5]}"
+    lw="${BASH_REMATCH[6]}" lc="${BASH_REMATCH[7]}" lr="${BASH_REMATCH[9]}"
+    if [[ "$reviewers" != *" $lw "* ]]; then ledger_errors+=("team/APPROVALS.md:$lnum reviewer '$lw' is not a reviewer in team/owners.json"); continue; fi
+    for x in ${lc//,/ }; do L_listed["$lid $x"]=1; done
+    [[ "$lt" == high ]] && L_high[$lid]=1
+    if (( ln >= ${L_n[$lid]:--1} )); then L_n[$lid]=$ln L_verdict[$lid]=$lv L_who[$lid]=$lw L_review[$lid]=$lr; fi
+  elif [[ "$line" =~ $looks_re ]]; then
+    ledger_errors+=("team/APPROVALS.md:$lnum malformed ledger line: $line")
+  fi
+done <"$ledger_tmp"
+if [[ ${#ledger_errors[@]} -gt 0 ]]; then
+  echo "merge: REFUSED — the approvals ledger has errors (fix it on main first):" >&2
+  printf '  - %s\n' "${ledger_errors[@]}" >&2
+  exit 1
+fi
+merge_covered() { # a merge commit listed on a ledger line of an ID whose latest line is APPROVED
+  local k
+  for k in "${!L_listed[@]}"; do
+    [[ "$k" == *" $1" && "${L_verdict[${k% *}]:-}" == APPROVED ]] && return 0
   done
   return 1
 }
-covered_by_any_id() { # an APPROVED review of any ID covering sha
-  local f
-  for f in "$artifacts"/*/review-r*.md; do [[ -f "$f" ]] && covers "$f" "$1" && return 0; done
-  return 1
-}
-latest_round() { # latest_round <ID> → path of the highest r<n>
-  local id="$1" f best="" bn=-1 n
-  for f in "$artifacts/$id"/review-r*.md; do
-    [[ -f "$f" ]] || continue
-    n="${f##*/review-r}"; n="${n%.md}"
-    [[ "$n" =~ ^[0-9]+$ ]] && ((n > bn)) && { bn=$n; best="$f"; }
-  done
-  printf '%s' "$best"
-}
-open_importants() { # print open Important finding lines (not downgraded by "not confirmed")
-  awk '
-    function flush() { if (blk != "" && blk ~ /status:[[:space:]]*open/ && blk !~ /not confirmed/) print first }
-    /^[[:space:]]*-[[:space:]]*\[Important\]/ { flush(); blk=$0; first=$0; next }
-    /^[[:space:]]*-[[:space:]]*\[/ { flush(); blk=""; next }
-    /^[[:space:]]+/ { if (blk != "") blk = blk "\n" $0; next }
-    { flush(); blk="" }
-    END { flush() }' "$1"
-}
+
+# --- attribution: which teammate authored each commit ------------------------------------------
+declare -A fp_owners=()   # sha -> space-separated owners whose team/* first-parent line has it
+while IFS= read -r ref; do
+  o="${ref#refs/heads/team/}"
+  while IFS= read -r s; do fp_owners[$s]+="$o "; done < <(g rev-list --first-parent "main..$ref" 2>/dev/null)
+done < <(g for-each-ref --format='%(refname)' 'refs/heads/team/')
+declare -A on_branch_fp=()
+while IFS= read -r s; do on_branch_fp[$s]=1; done < <(g rev-list --first-parent "main..$sha")
+
+msg_tmp="$(mktemp)"
+attributed=()   # "sha owner" for commits that passed
 
 # --- per-commit checks ----------------------------------------------------------------------
 refusals=()
@@ -106,14 +130,19 @@ printf '%-9s %-10s %-5s %s\n' sha ID tier result
 for c in "${commits[@]}"; do
   short="${c:0:9}"
   parents=$(($(g rev-list --parents -n1 "$c" | wc -w) - 1))
-  if ((parents > 1)); then
+  if ((parents > 2)); then
+    printf '%-9s %-10s %-5s %s\n' "$short" merge - REFUSED
+    refusals+=("$short octopus merge ($parents parents): not supported; merge one branch at a time")
+    continue
+  fi
+  if ((parents == 2)); then
     if [[ -z "$(g show --remerge-diff --format= "$c")" ]]; then
       printf '%-9s %-10s %-5s %s\n' "$short" merge - "OK (clean merge)"
-    elif covered_by_any_id "$c"; then
+    elif merge_covered "$c"; then
       printf '%-9s %-10s %-5s %s\n' "$short" merge - "OK (resolution reviewed)"
     else
       printf '%-9s %-10s %-5s %s\n' "$short" merge - REFUSED
-      refusals+=("$short merge commit carries conflict-resolution changes (git show --remerge-diff $short) and no APPROVED review lists it")
+      refusals+=("$short merge commit carries conflict-resolution changes (git show --remerge-diff $short) and no APPROVED ledger line lists it")
     fi
     continue
   fi
@@ -133,30 +162,51 @@ for c in "${commits[@]}"; do
     why+=("malformed '$tier_lines' (must be 'Risk tier: low' or 'Risk tier: high')")
   fi
 
-  own="$(cd "$main_root" && HB_OWNERS_FILE="$owners_tmp" node "$here/../lib/owners.mjs" check-commit "$author" "$c" 2>&1)" || why+=("ownership: ${own//$'\n'/ }")
+  g log -1 --format=%B "$c" >"$msg_tmp"
+  fmt="$(cd "$main_root" && "$here/../../.githooks/commit-msg" "$msg_tmp" 2>&1 | head -n1)" || why+=("message format: $fmt")
+
+  # Candidates: every team whose first-parent line has the commit (a fast-forward merge puts another
+  # team's commits on this branch's own first-parent line too), plus this branch's owner.
+  cands="${fp_owners[$c]:-}"
+  [[ -n "${on_branch_fp[$c]:-}" && " $cands " != *" $author "* ]] && cands="$author $cands"
+  owner_ok=""
+  own=""
+  for o in $cands; do
+    if out="$(cd "$main_root" && HB_OWNERS_FILE="$owners_tmp" node "$here/../lib/owners.mjs" check-commit "$o" "$c" 2>&1)"; then owner_ok="$o"; break; fi
+    own+="[$o] ${out//$'\n'/ } "
+  done
+  if [[ -z "$cands" ]]; then
+    why+=("ownership: cannot attribute this commit to a team/* branch (merged from a non-team branch?)")
+  elif [[ -z "$owner_ok" ]]; then
+    why+=("ownership: $own")
+  fi
 
   if [[ -n "$id" ]]; then
     ids+=("$id")
-    approved=0
-    for f in "$artifacts/$id"/review-r*.md; do [[ -f "$f" ]] && covers "$f" "$c" && { approved=1; break; }; done
-    ((approved)) || why+=("no APPROVED review in artifacts/$id/ lists this sha on its Commits: line")
-    latest="$(latest_round "$id")"
-    if [[ -n "$latest" ]]; then
-      grep -Eq '^Verdict: APPROVED[[:space:]]*$' "$latest" || why+=("latest round ${latest##*/} is not APPROVED")
-      oi="$(open_importants "$latest")"
-      [[ -z "$oi" ]] || why+=("open Important finding(s) in ${latest##*/}: ${oi//$'\n'/ | }")
+    [[ -n "${L_listed["$id $c"]:-}" ]] || why+=("not listed for $id in team/APPROVALS.md (full sha)")
+    relied="no ledger line"
+    if [[ -n "${L_n[$id]:-}" ]]; then
+      relied="ledger $id r${L_n[$id]} ${L_verdict[$id]} by ${L_who[$id]} (${L_review[$id]})"
+      [[ "${L_verdict[$id]}" == APPROVED ]] || why+=("latest ledger line for $id is r${L_n[$id]} ${L_verdict[$id]}")
+    else
+      why+=("no line for $id in team/APPROVALS.md")
     fi
+    # effective tier = max(commit, ledger): a reviewer may raise it, never lower it
+    [[ -n "${L_high[$id]:-}" ]] && tier=high
     if [[ "$tier" == high ]]; then
       signed=0
-      while read -r sid spre _; do
-        [[ "$sid" == "$id" && ${#spre} -ge 7 && "$c" == "$spre"* ]] && { signed=1; break; }
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" =~ ^($id_re)\ ([0-9a-f]{40})\ —\ signed\ off([[:space:]]|$) ]]; then
+          [[ "${BASH_REMATCH[1]}" == "$id" && "${BASH_REMATCH[3]}" == "$c" ]] && { signed=1; break; }
+        fi
       done <"$signoffs_tmp"
-      ((signed)) || why+=("Risk tier: high but no '$id <sha> — signed off …' line in team/SIGNOFFS.md")
+      ((signed)) || why+=("effective tier high but team/SIGNOFFS.md has no '$id $c — signed off …' line")
     fi
   fi
 
   if [[ ${#why[@]} -eq 0 ]]; then
-    printf '%-9s %-10s %-5s %s\n' "$short" "$id" "$tier" OK
+    attributed+=("$c $owner_ok")
+    printf '%-9s %-10s %-5s %s\n' "$short" "$id" "$tier" "OK (author $owner_ok; $relied)"
   else
     printf '%-9s %-10s %-5s %s\n' "$short" "${id:-?}" "${tier:-?}" REFUSED
     for w in "${why[@]}"; do refusals+=("$short ${id:-?}: $w"); done
@@ -181,6 +231,12 @@ if ! git -C "$tmp_wt" -c core.hooksPath=/dev/null merge -q --no-ff --no-edit -m 
   exit 1
 fi
 merge_sha="$(git -C "$tmp_wt" rev-parse HEAD)"
+
+if ! net="$(cd "$main_root" && printf '%s\n' "${attributed[@]}" | HB_OWNERS_FILE="$owners_tmp" node "$here/../lib/owners.mjs" check-net "$author" "$main_sha" "$merge_sha" 2>&1)"; then
+  echo "merge: REFUSED — net-diff ownership on the merge result:" >&2
+  printf '%s\n' "$net" | sed 's/^/  - /' >&2
+  exit 1
+fi
 
 if ((dry)) && ! ((dry_gate)); then
   echo "merge: DRY-RUN OK — all commits approved, merges cleanly (trial ${merge_sha:0:9}); main untouched"
