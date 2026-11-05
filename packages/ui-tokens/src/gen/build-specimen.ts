@@ -39,20 +39,20 @@ const T = {
   },
   ar: {
     title: 'النظام البصري',
-    intro: 'رموز التصميم والخط والأيقونات ومكوّنات متجر HB Destockage. صفحة مولَّدة، لا تُعدَّل يدويًا.',
+    intro: 'رموز التصميم والخط والأيقونات ومكوّنات متجر [[fr|HB Destockage]]. صفحة مولَّدة، لا تُعدَّل يدويًا.',
     other: 'Français', otherLabel: 'Lire cette page en français',
     colours: 'الألوان', pairs: 'تباين الأزواج المسموح بها', ratio: 'النسبة', min: 'الأدنى', use: 'الاستعمال',
     type: 'سلّم الخطوط', typeNote: 'متدرّج من 360 إلى 1440 بكسل. القيم عند 360 / 1440 بكسل.',
     sample: 'طقم أواني المطبخ 12 قطعة، يصلك إلى البيت', para: 'أسعار التصفية بجودة مختارة. التوصيل إلى باب بيتك والدفع عند الاستلام، في 69 ولاية. ڨالمة، ڤيتامين، ڢ، ڧ.',
     space: 'المسافات', radius: 'الزوايا', shadow: 'الظلال', motion: 'الحركة',
-    motionNote: 'بـ CSS فقط. تصبح المدد 0.01 ملّي ثانية عند تفعيل «تقليل الحركة».',
-    icons: 'الأيقونات', mirrored: 'معكوسة في RTL', island: 'داخل جزيرة § (لا تنعكس أبدًا):',
+    motionNote: 'بـ [[en|CSS]] فقط. تصبح المدد 0.01 ملّي ثانية عند تفعيل «تقليل الحركة».',
+    icons: 'الأيقونات', mirrored: 'معكوسة في [[en|RTL]]', island: 'داخل جزيرة § (لا تنعكس أبدًا):',
     comps: 'المكوّنات', order: 'اطلب الآن', whatsapp: 'واتساب', disabled: 'غير متوفر', menu: 'القائمة',
     name: 'الاسم الكامل', nameHint: 'كما هو في بطاقة التعريف', phone: 'رقم الهاتف',
     phoneErr: 'رقم هاتف جزائري غير صالح', wilaya: 'الولاية', size: 'المقاس', colour: 'اللون',
     red: 'أحمر', blue: 'أزرق', grey: 'رمادي', delivery: 'التوصيل إلى المنزل', pickup: 'الاستلام من المكتب',
     info: 'الدفع عند الاستلام: تدفع لعامل التوصيل.', ok: 'تم تأكيد الطلب.', low: 'بقيت 3 قطع فقط.', err: 'صحّح الحقلين المشار إليهما.',
-    eyebrow: 'جديد', price: '14.600 د.ج.', was: '16.500 د.ج.', popover: 'افتح نافذة منبثقة', popoverBody: 'دخول بـ CSS عبر @starting-style.',
+    eyebrow: 'جديد', price: '14.600 د.ج.', was: '16.500 د.ج.', popover: 'افتح نافذة منبثقة', popoverBody: 'دخول بـ [[en|CSS]] عبر [[en|@starting-style]].',
   },
 } as const;
 
@@ -68,6 +68,15 @@ export function contrast(a: string, b: string): number {
 }
 
 const escHtml = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/**
+ * Escape copy and isolate the foreign-language spans the copy marks explicitly as [[lang|text]]:
+ * each becomes one <bdi dir="ltr|rtl" lang="…"> around the whole text. Nothing is guessed from
+ * the characters (a regex over "Latin letters" splits at é/ç/à or digits and scrambles the run).
+ */
+export function isolate(s: string): string {
+  return escHtml(s).replace(/\[\[([a-z]{2})\|(.+?)\]\]/g, (_, lang: string, text: string) => `<bdi dir="${lang === 'ar' ? 'rtl' : 'ltr'}" lang="${lang}">${text}</bdi>`);
+}
 
 const SPECIMEN_CSS = `
 @layer components {
@@ -99,11 +108,7 @@ const SPECIMEN_CSS = `
 
 export function buildSpecimen(lang: Lang, x: SpecimenInput): string {
   const t = T[lang];
-  // Escape, and in Arabic isolate Latin runs (brand names, CSS terms) so bidi never reorders them.
-  const esc = (s: string): string =>
-    lang === 'ar'
-      ? s.split(/([A-Za-z@][A-Za-z0-9@.\- ]*[A-Za-z0-9])/).map((part, i) => (i % 2 ? `<bdi dir="ltr">${escHtml(part)}</bdi>` : escHtml(part))).join('')
-      : escHtml(s);
+  const esc = isolate;
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   const other: Lang = lang === 'ar' ? 'fr' : 'ar';
   const colours = Object.entries(x.brand.color).filter(([k]) => !k.startsWith('$'));
@@ -124,9 +129,9 @@ export function buildSpecimen(lang: Lang, x: SpecimenInput): string {
       // Text pairs (min 4.5) show text in fg on bg; non-text pairs (min 3: outlines, rings) show a 3px
       // ring in fg on bg. The caption sits on the page surface so it is always readable.
       const sample = p.min >= 4.5
-        ? `<span style="color:var(--color-${p.fg})">${lang === 'ar' ? 'نص Aa 14.600' : 'Texte Aa 14 600'}</span>`
+        ? `<span style="color:var(--color-${p.fg})">${isolate(lang === 'ar' ? 'نص [[fr|Aa]] 14.600' : 'Texte Aa 14 600')}</span>`
         : `<span class="sp-ring" style="border-color:var(--color-${p.fg})"></span>`;
-      return `<div class="sp-pair"><div class="sp-pair-sample" style="background:var(--color-${p.bg})">${sample}</div><p><bdi dir="ltr">${p.fg} / ${p.bg}</bdi> · <span class="nums">${r.toFixed(2)}:1 ${ok ? '✓' : '✗'} <bdi dir="ltr">≥ ${p.min}</bdi></span><br><span class="muted">${esc(p.use)}</span></p></div>`;
+      return `<div class="sp-pair"><div class="sp-pair-sample" style="background:var(--color-${p.bg})">${sample}</div><p><bdi dir="ltr">${p.fg} / ${p.bg}</bdi> · <span class="nums">${r.toFixed(2)}:1 ${ok ? '✓' : '✗'} <bdi dir="ltr">≥ ${p.min}</bdi></span><br><span class="muted">${lang === 'ar' ? `<bdi dir="ltr" lang="en">${escHtml(p.use)}</bdi>` : `<span lang="en">${escHtml(p.use)}</span>`}</span></p></div>`;
     })
     .join('');
   const type = Object.entries(x.fontSize)
@@ -147,7 +152,7 @@ export function buildSpecimen(lang: Lang, x: SpecimenInput): string {
     ...Object.entries(x.motion.easing).map(([k, v]) => `<bdi dir="ltr">--ease-${k}: ${v}</bdi>`),
   ].join('<br>');
   const icons = Object.entries(x.icons)
-    .map(([n, i]) => `<div class="sp-icon">${icon(n, '')}<bdi dir="ltr">${n}</bdi>${i.mirror ? `<span class="muted">${t.mirrored}</span>` : ''}</div>`)
+    .map(([n, i]) => `<div class="sp-icon">${icon(n, '')}<bdi dir="ltr">${n}</bdi>${i.mirror ? `<span class="muted">${esc(t.mirrored)}</span>` : ''}</div>`)
     .join('');
 
   return `<!doctype html>
@@ -165,7 +170,7 @@ ${css}
 <a class="skip-link" href="#main">${lang === 'ar' ? 'انتقل إلى المحتوى' : 'Aller au contenu'}</a>
 <header class="container sp-header">
 <div class="stack" style="--stack-gap:var(--space-1)"><p class="eyebrow"><bdi dir="ltr">@hb/ui-tokens</bdi></p><h1>${esc(t.title)}</h1><p class="muted">${esc(t.intro)}</p></div>
-<a class="btn btn-secondary sp-switch" href="${other}.html" lang="${other}" hreflang="${other}" aria-label="${escHtml(t.otherLabel)}">${esc(t.other)}</a>
+<a class="btn btn-secondary sp-switch" href="${other}.html" lang="${other}" dir="${other === 'ar' ? 'rtl' : 'ltr'}" hreflang="${other}" aria-label="${escHtml(t.otherLabel)}">${escHtml(t.other)}</a>
 </header>
 <main id="main" class="container">
 <section class="sp-section"><h2>${esc(t.colours)}</h2><div class="sp-swatches">${swatches}</div>
