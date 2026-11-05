@@ -327,3 +327,21 @@ describe('HB_STRICT_COPY', () => {
     expect(make().strictCopy).toBe(prev === '1');
   });
 });
+
+describe('home hero (lead ruling: no implicit hero)', () => {
+  const ctxWith = (hero: number | null) => {
+    const s = structuredClone(fixtureSnapshot) as unknown as { settings: { homeHeroProductId: number | null } };
+    s.settings.homeHeroProductId = hero;
+    return createBuildContext(s as unknown as typeof fixtureSnapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: stubImageManifest(fixtureSnapshot) });
+  };
+  test.each([null, 107])('hero id %s ⇒ type-led hero: no image, no product, no LCP, no og:image', (hero) => {
+    const h = buildHomeProps(ctxWith(hero), 'ar');
+    expect(h.hero).toEqual({ image: null, product: null });
+    expect(h.layout.lcpImage).toBeNull();
+    expect(h.layout.ogImage).toBeNull();
+    expect(h.featured.length).toBe(3); // featured products are unaffected
+  });
+  test('an explicit published hero is used', () => {
+    expect(buildHomeProps(ctxWith(104), 'fr').hero.product?.id).toBe(104);
+  });
+});

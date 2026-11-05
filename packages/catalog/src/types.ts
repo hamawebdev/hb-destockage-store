@@ -238,7 +238,11 @@ export interface SnapshotSettings {
    * archiving a featured product never fails a publish. None published ⇒ first products by `sort`.
    */
   readonly homeFeaturedProductIds: readonly Id[];
-  /** Product whose main image is the home hero (LCP). Null or unpublished ⇒ first featured product. */
+  /**
+   * Product whose main image is the home hero (LCP). Null or unpublished ⇒ no hero product and no
+   * hero image: the home page uses a type-led hero (no fallback to a featured product, whose photo
+   * may carry burned-in prices). Only set it for photography fit to be a hero.
+   */
   readonly homeHeroProductId: Id | null;
   /** Public Turnstile site key; null ⇒ the form does not load Turnstile (orders are flagged). */
   readonly turnstileSiteKey: string | null;
