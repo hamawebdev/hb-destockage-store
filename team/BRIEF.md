@@ -78,9 +78,9 @@ customer confirms**.
 | `db` | `packages/db/` | `rev-d` |
 | `shared` | `packages/shared/` | `rev-d` |
 | `web` | `apps/web/` | `rev-d` |
-| `pages` | `apps/storefront/src/pages/{ar,fr}/{c,p,search}/**`, `apps/storefront/src/components/catalog/**`, `apps/storefront/public/js/search*.js` | `rev-e` |
+| `pages` | `apps/storefront/src/pages/{ar,fr}/{c,p,search}/**`, `apps/storefront/src/components/catalog/**`, `apps/storefront/public/js/search*.js`, `apps/storefront/public/js/variant*.js` | `rev-e` |
 | `orderform` | `apps/storefront/src/components/order/**`, `apps/storefront/src/pages/{ar,fr}/order/**` (confirmation), `apps/storefront/public/js/order*.js` | `rev-e` |
-| `admin-core` | `apps/admin/src/{app.ts,index.ts,env.ts}`, `apps/admin/src/{auth,audit,ui,i18n,lib}/**`, `apps/admin/src/routes/{dashboard,users,settings}/**`, `apps/admin/wrangler.jsonc`, `apps/admin/public/**`, `apps/admin/test/**` except `test/{orders,catalog}/**`, `apps/admin/.dev.vars.example` | `rev-f` |
+| `admin-core` | `apps/admin/src/{app.ts,index.ts,env.ts}`, `apps/admin/src/{auth,audit,ui,i18n,lib}/**`, `apps/admin/src/routes/{dashboard,users,settings}/**`, `apps/admin/wrangler.jsonc`, `apps/admin/public/**`, `apps/admin/test/**` except `test/{orders,catalog}/**`, `apps/admin/.dev.vars.example`, all other top-level files in `apps/admin/` | `rev-f` |
 | `admin-orders` | `apps/admin/src/routes/{orders,customers}/**`, `apps/admin/test/orders/**` | `rev-f` |
 | `admin-catalog` | `apps/admin/src/routes/{products,categories,fees,content,media,publish}/**`, `apps/admin/test/catalog/**` | `rev-f` |
 | `qa` | nothing in source; writes `artifacts/QA-*/` and files tasks | — |
