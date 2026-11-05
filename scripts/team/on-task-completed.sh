@@ -83,7 +83,7 @@ has_commit main..HEAD || has_commit main \
 # decision and the task would complete. So the gate runs detached (its own session) and this hook
 # waits at most HB_HOOK_BUDGET seconds (default 1500, under the 1800 s timeout). Still running ⇒
 # exit 2 "gate still running"; the next completion attempt for the same tree picks up the result.
-gate_cmd="${HB_GATE:-$here/../gate.sh}"
+gate_cmd="${HB_GATE_CMD:-$here/../gate.sh}"
 budget="${HB_HOOK_BUDGET:-1500}"
 tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
 runs="$main_root/artifacts/gate/runs"

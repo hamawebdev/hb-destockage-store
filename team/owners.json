@@ -239,12 +239,14 @@
     }
   },
   "forbiddenGlobs": [
-    "**/*.sql",
     "**/*.sql.gz",
     "**/*.dump",
     "**/hb-restore-*/**",
     "**/backups/**",
     "**/d1-export-*"
+  ],
+  "forbiddenExcept": [
+    "packages/db/migrations/**"
   ],
   "maxBytesByGlob": {
     "apps/jobs/**": 1048576

@@ -301,6 +301,19 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     expect(r.stderr).toContain('not listed for WEB-17');
   });
 
+  test('a D1/Drizzle migration (packages/db/migrations/*.sql) from team/db passes merge.sh (rev-a TOOL-7)', () => {
+    ok(git(root, 'branch', '-f', 'team/db', 'main'));
+    const dbw = join(root, '.worktrees/db');
+    if (!existsSync(dbw)) ok(git(root, 'worktree', 'add', '-q', dbw, 'team/db'));
+    ok(git(dbw, 'reset', '-q', '--hard', 'main'));
+    write(dbw, 'packages/db/migrations/0006_new.sql', 'CREATE TABLE t (id INTEGER PRIMARY KEY);\n');
+    const c = commitIn(dbw, 'DB-9: migration 0006');
+    approve('DB-9', 1, 'APPROVED', [c], 'low', 'rev-d');
+    const r = merge(['team/db', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('OK (author db');
+  });
+
   // ---- mechanics -----------------------------------------------------------------------------------
   test('red gate leaves main and branches untouched; dry-run never moves main', () => {
     resetBranch();

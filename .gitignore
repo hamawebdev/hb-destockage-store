@@ -13,7 +13,6 @@ coverage/
 apps/web/.assets/
 apps/web/src/generated/
 # database dumps / backups never go into git (JOBS-1 F5; also refused by pre-commit)
-*.sql
 *.sql.gz
 *.dump
 **/hb-restore-*/

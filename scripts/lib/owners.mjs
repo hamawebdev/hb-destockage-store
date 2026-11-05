@@ -224,7 +224,8 @@ function checkChanges(cfg, name, { lead, changes, before, after, theirs }) {
   const max = cfg.maxFileBytes ?? 2 * 1024 * 1024;
   for (const t of touched) {
     // backup dumps never enter git (JOBS-1 F5): forbidden for everyone, lead included
-    if (!t.deleted && any(t.path, cfg.forbiddenGlobs)) {
+    // (Drizzle/D1 migrations are SQL by design: cfg.forbiddenExcept, rev-a TOOL-7 blocker)
+    if (!t.deleted && any(t.path, cfg.forbiddenGlobs) && !any(t.path, cfg.forbiddenExcept)) {
       problems.push(`${t.path}: looks like a database dump/backup (${(cfg.forbiddenGlobs ?? []).join(', ')}); these never go into git — delete it or move it out of the repo`);
       continue;
     }

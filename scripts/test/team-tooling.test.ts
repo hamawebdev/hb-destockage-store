@@ -184,8 +184,29 @@ describe('pre-commit ownership', () => {
     expect(commit(root, 'BOOT-9: ledger', { HB_ROLE: 'lead' }).status).toBe(0);
   });
 
+  test('D1/Drizzle migrations (packages/db/migrations/*.sql) are not dumps: not ignored, and they commit (rev-a TOOL-7)', () => {
+    branch(root, 'team/db');
+    write(root, 'packages/db/migrations/0006_new.sql', 'CREATE TABLE t (id INTEGER);\n');
+    expect(ok(git(root, 'status', '--porcelain', '--untracked-files=all', '--', 'packages/db/migrations')).stdout).toContain('0006_new.sql');
+    ok(git(root, 'add', '--', 'packages/db/migrations/0006_new.sql')); // no -f needed
+    const r = commit(root, 'DB-9: migration');
+    expect(r.status, r.stderr).toBe(0);
+    branch(root, 'main');
+    write(root, 'packages/db/migrations/0007_lead.sql', 'SELECT 1;\n');
+    ok(git(root, 'add', '--', 'packages/db/migrations/0007_lead.sql'));
+    expect(commit(root, 'BOOT-9: migration', { HB_ROLE: 'lead' }).status).toBe(0);
+    // a dump next to them is still refused
+    write(root, 'packages/db/dump.sql.gz', 'x\n');
+    ok(git(root, 'add', '-f', '--', 'packages/db/dump.sql.gz'));
+    const d = commit(root, 'BOOT-9: dump', { HB_ROLE: 'lead' });
+    expect(d.status).not.toBe(0);
+    expect(d.stderr).toContain('dump');
+    ok(git(root, 'reset', '-q', '--hard'));
+    ok(git(root, 'clean', '-qfdx', '--', 'packages/db'));
+  });
+
   test('database dumps are refused for everyone, and apps/jobs files over 1 MB (JOBS-1 F5 backstop)', () => {
-    for (const f of ['apps/jobs/dump.sql', 'apps/jobs/x.sql.gz', 'data/geo/a.dump', 'apps/jobs/backups/b.json', 'tmp/hb-restore-1/x.db', 'd1-export-2026.json']) {
+    for (const f of ['apps/jobs/x.sql.gz', 'data/geo/a.dump', 'apps/jobs/backups/b.json', 'tmp/hb-restore-1/x.db', 'd1-export-2026.json', 'packages/db/backups/m.sql']) {
       branch(root, 'main');
       write(root, f, 'x\n');
       ok(git(root, 'add', '-f', '--', f));
@@ -374,7 +395,7 @@ describe('gate.sh', () => {
   });
 
   test('with real pages, lh runs for anything that can affect the storefront and skips only no-effect paths (review F4)', () => {
-    const root = makeRepo({ budget: 'true', lh: 'echo LH-RAN' });
+    const root = makeRepo({ budget: 'true', axe: 'true', lh: 'test "$HB_GATE" = 1 && echo LH-RAN-IN-GATE-MODE' });
     prepNodeModules(root);
     write(root, 'apps/storefront/src/pages/ar/index.astro', '<html lang="ar"></html>\n');
     ok(git(root, 'add', '-A'));
@@ -397,12 +418,12 @@ describe('gate.sh', () => {
       ok(commit(root, `${id}: change`));
       const r = gate(root, '--no-cache');
       expect(r.status, `${file}\n${r.stdout}`).toBe(0);
-      expect(r.stdout.includes('steps = typecheck test build budget lh'), file).toBe(wantLh);
+      expect(r.stdout.includes('steps = typecheck test build budget axe lh'), file).toBe(wantLh);
     }
   });
 
   test('check-tap runs after build when storefront output can change and the script exists; RED on violations', () => {
-    const root = makeRepo({ budget: 'true', lh: 'true' });
+    const root = makeRepo({ budget: 'true', axe: 'true', lh: 'true' });
     prepNodeModules(root);
     write(root, 'apps/storefront/src/pages/ar/index.astro', '<html lang="ar"></html>\n');
     write(root, 'apps/storefront/package.json', JSON.stringify({ name: 's', private: true, scripts: { 'check:tap': 'node scripts/tap-targets.mjs' } }));
@@ -414,7 +435,7 @@ describe('gate.sh', () => {
     ok(git(root, 'add', '-A'));
     ok(commit(root, 'SHELL-9: fr'));
     const r = gate(root, '--no-cache');
-    expect(r.stdout).toContain('steps = typecheck test build budget check-tap lh');
+    expect(r.stdout).toContain('steps = typecheck test build budget check-tap axe lh');
     expect(r.status).toBe(1);
     expect(r.stdout).toContain('RED   check-tap (exit 1');
   });
@@ -536,11 +557,11 @@ describe('TaskCompleted hook', () => {
     const slow = join(bin, 'gate.sh');
     writeFileSync(slow, '#!/bin/sh\nsleep 4\necho "gate: GREEN — log: /tmp/fake.log"\n', { mode: 0o755 });
     const p = { task_subject: 'WEB-1: x', teammate_name: 'web', cwd: root };
-    const r1 = hook(p, { HB_GATE: slow, HB_HOOK_BUDGET: '1' });
+    const r1 = hook(p, { HB_GATE_CMD: slow, HB_HOOK_BUDGET: '1' });
     expect(r1.status).toBe(2);
     expect(r1.stderr).toContain('gate still running');
     spawnSync('sleep', ['5']);
-    const r2 = hook(p, { HB_GATE: slow, HB_HOOK_BUDGET: '1' });
+    const r2 = hook(p, { HB_GATE_CMD: slow, HB_HOOK_BUDGET: '1' });
     expect(r2.status, r2.stderr).toBe(0);
   });
 

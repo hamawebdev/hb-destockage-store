@@ -10,13 +10,14 @@
 #   npm run budget    when apps/storefront/src/pages has a real (non-placeholder) page
 #   check-tap         `npm run check:tap` in apps/storefront (tap targets ≥ 44 px) under the lh rule
 #                     below, when apps/storefront/scripts/tap-targets.mjs exists
+#   npm run axe       (zero violations + keyboard pass) under the lh rule below
 #   npm run lh        when real pages exist, unless EVERY path changed vs <base> (default: merge-base
 #                     with main) is known not to affect the built storefront or its server
 #                     (admin, jobs, db, docs, team, tooling scripts/hooks, tests, *.md); --full forces it
 # Once apps/storefront has real pages, a missing or stub ("not wired yet") budget/lh script is RED.
 # Refuses (RED "hooks") unless core.hooksPath is the ABSOLUTE path of the main checkout's .githooks.
 # Each step runs in its own process group without lock fds; leftovers are killed when it ends; each
-# step has a hard limit (HB_STEP_TIMEOUT 2700 s, lh HB_LH_TIMEOUT 7200 s); a timeout is RED (exit 124).
+# step has a hard limit (HB_STEP_TIMEOUT 2700 s, lh HB_LH_TIMEOUT 14400 s); a timeout is RED (exit 124).
 #
 # Machine-wide: at most HB_GATE_SLOTS (2) gates at once, each also holding one of the HB_HEAVY_SLOTS (3)
 # heavy slots shared with every other heavy job (scripts/lib/locks.sh); waits up to
@@ -102,7 +103,8 @@ storefront_affected=0
 if [[ $full -eq 1 ]] || { [[ $real_pages -eq 1 ]] && affects_storefront; }; then storefront_affected=1; fi
 # Tap targets ≥ 44 px (shell's check, needs dist/ + Chrome; runs inside this gate's heavy slot).
 if [[ $storefront_affected -eq 1 && -f apps/storefront/scripts/tap-targets.mjs ]]; then steps+=(check-tap); fi
-[[ $storefront_affected -eq 1 ]] && steps+=(lh)
+# axe: zero violations + keyboard pass (measure MEAS-3) — blocking, same rule as lh (stub ⇒ RED with real pages)
+[[ $storefront_affected -eq 1 ]] && steps+=(axe lh)
 
 hooks_ok=1
 [[ "$(git config --get core.hooksPath || true)" == "$main_root/.githooks" && -x "$main_root/.githooks/pre-commit" ]] || hooks_ok=0
@@ -152,7 +154,7 @@ run_step() {
   printf '\n===== %s: %s\n' "$name" "$*" >>"$log"
   # Hang-proof: every step has a hard limit, so a hung step cannot hold the gate and heavy slots.
   local limit="${HB_STEP_TIMEOUT:-2700}"
-  [[ "$name" == lh ]] && limit="${HB_LH_TIMEOUT:-7200}"
+  [[ "$name" == lh ]] && limit="${HB_LH_TIMEOUT:-14400}"
   HB_RUN_TIMEOUT="$limit" hb_run_group "$@" >>"$log" 2>&1 </dev/null || rc=$?
   [[ $rc -eq 124 ]] && printf '\n===== %s: TIMED OUT after %ss (killed with its process group)\n' "$name" "$limit" >>"$log"
   if [[ $rc -eq 0 ]]; then
@@ -176,7 +178,7 @@ fi
 
 for s in "${steps[@]}"; do
   [[ -n "$red" ]] && { summary+=("SKIP  $s (after red)"); continue; }
-  if [[ "$s" == budget || "$s" == lh ]] && ! script_wired "$s"; then
+  if [[ "$s" == budget || "$s" == lh || "$s" == axe ]] && ! script_wired "$s"; then
     if [[ $real_pages -eq 1 ]]; then
       summary+=("RED   $s (script missing or a stub while apps/storefront has real pages — owner: measure)")
       red="$s"
@@ -190,6 +192,8 @@ for s in "${steps[@]}"; do
     data-catalog-validate) run_step "$s" node data/catalog/validate.mjs ;;
     data-catalog-test) mapfile -t f < <(data_files data/catalog/test); run_step "$s" node --test "${f[@]}" ;;
     check-tap) run_step "$s" npm --prefix apps/storefront run check:tap ;;
+    # measure's gate mode: refuses any option that narrows or relaxes the run (--runs, --url, …)
+    lh) run_step "$s" env HB_GATE=1 npm run lh ;;
     *) run_step "$s" npm run "$s" ;;
   esac
 done
