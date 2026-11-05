@@ -196,6 +196,20 @@ async function run(browser, lang) {
     assert.equal(orderPosts().length, 0);
   });
 
+  await t('long accepted spelling is typed in full, not truncated (ORDER-1 review r1 F1)', async (p) => {
+    const spelling = '00213 (0) 555 12 34 56';
+    await p.click('#of-phone');
+    await p.keyboard.type(spelling);
+    assert.equal(await p.inputValue('#of-phone'), spelling);
+    await p.fill('#of-name', 'Amine Benali');
+    await p.selectOption('#of-wilaya', '16');
+    await p.waitForFunction(() => !document.getElementById('of-commune').disabled && document.getElementById('of-commune').options.length > 1);
+    await p.selectOption('#of-commune', { index: 1 });
+    await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
+    await Promise.all([p.waitForURL('**/confirmation/**'), p.click('#of-submit')]);
+    assert.equal(JSON.parse(orderPosts()[0].body).phone, spelling);
+  });
+
   await t('Eastern Arabic digits accepted as typed (server normalises)', async (p) => {
     await fill(p, { phone: '٠٥٥٥ ١٢ ٣٤ ٥٦' });
     await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DZ_MOBILE_NSN_PATTERN } from '@hb/shared/phone';
-import { CLIENT_MESSAGE_KEYS, orderFormModel, variantsAttr } from '../form-model.ts';
+import { DZ_MOBILE_NSN_PATTERN, normalizePhone } from '@hb/shared/phone';
+import { CLIENT_MESSAGE_KEYS, PHONE_INPUT_MAX_LENGTH, orderFormModel, variantsAttr } from '../form-model.ts';
 import { str } from '../str.ts';
 import { contact, singleForm, strings, variableForm } from './fixtures.ts';
 
@@ -87,6 +87,35 @@ describe('orderFormModel', () => {
     expect(m.summary.unitPrice).toBe(m.summary.subtotal);
     expect(m.summary.unitPrice).toMatch(/14\.600/);
     expect(m.summary.total).toBe('—');
+  });
+});
+
+describe('no client length cap below what the server accepts (ORDER-1 review r1 F1)', () => {
+  // The longest accepted spellings in @hb/shared's phone tests (packages/shared/test/phone.test.ts, team/shared
+  // SHARED-2) plus rev-e's repro, and the same wrapped in the bidi isolates contact apps add when copying.
+  const LONGEST_ACCEPTED = [
+    '00213 (0) 555 12 34 56',
+    '+213 (0) 560 41 74 03',
+    '00 213 560 41 74 03',
+    '\u2067+213 560 41 74 03\u2069',
+    '+٢١٣ ٥٦٠ ٤١ ٧٤ ٠٣',
+    '  0560417403  ',
+    '\u2067\u200f00213 (0) 555 12 34 56\u200e\u2069',
+  ];
+  // Accepted only from SHARED-2 on (this branch still carries SHARED-1): checked for length only.
+  const SHARED2_ONLY = ['213 0560 41 74 03', '05–60—41‐74−03'];
+  it.each(SHARED2_ONLY)('%j (SHARED-2) fits in the phone input', (spelling) => {
+    expect(spelling.length).toBeLessThanOrEqual(PHONE_INPUT_MAX_LENGTH);
+  });
+  it.each(LONGEST_ACCEPTED)('%j fits in the phone input and is accepted by the server', (spelling) => {
+    expect(normalizePhone(spelling).ok).toBe(true);
+    expect(spelling.length).toBeLessThanOrEqual(orderFormModel({ lang: 'ar', form: singleForm('ar'), productName: 'x', brandLatin: null, strings: strings.ar, contact }).phone.maxLength);
+  });
+  it('mirrors @hb/shared PHONE_INPUT_MAX_LENGTH (64) and caps nothing else', () => {
+    expect(PHONE_INPUT_MAX_LENGTH).toBe(64);
+    const m = model('fr');
+    expect(m.phone.maxLength).toBe(64);
+    expect(m.name).toEqual({ minLength: 2 });
   });
 });
 

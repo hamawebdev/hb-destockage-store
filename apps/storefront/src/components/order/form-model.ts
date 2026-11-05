@@ -12,8 +12,16 @@
  */
 import type { ContactProps, Lang, OrderFormProps, StringTable, VariantProps } from '@hb/catalog';
 import { DZ_MOBILE_NSN_PATTERN } from '@hb/shared/phone';
-import { HONEYPOT_FIELD, NAME_MAX_LENGTH, NAME_MIN_LENGTH } from '@hb/shared/order-schema';
+import { HONEYPOT_FIELD, NAME_MIN_LENGTH } from '@hb/shared/order-schema';
 import { ltr, str } from './str.ts';
+
+/**
+ * Raw phone input cap = @hb/shared `PHONE_INPUT_MAX_LENGTH` (SHARED-2, 64; not yet on this branch's shared copy:
+ * switch to the import when SHARED-2 is on main). Never lower: `maxlength` silently truncates spellings the server
+ * accepts, e.g. "00213 (0) 555 12 34 56" (ORDER-1 review r1 F1). The name field has no raw cap at all: the server
+ * trims and collapses whitespace before checking NAME_MAX_LENGTH, so a raw cap could cut a valid name.
+ */
+export const PHONE_INPUT_MAX_LENGTH = 64;
 
 export interface OrderFormInput {
   readonly lang: Lang;
@@ -89,7 +97,8 @@ export interface OrderFormModel {
   readonly hidden: readonly { readonly name: string; readonly value: string }[];
   readonly wilayas: readonly Option[];
   readonly qty: { readonly min: number; readonly max: number; readonly value: number };
-  readonly name: { readonly minLength: number; readonly maxLength: number };
+  readonly name: { readonly minLength: number };
+  readonly phone: { readonly maxLength: number };
   readonly honeypotName: string;
   readonly messages: readonly { readonly code: ClientMessageCode; readonly text: string }[];
   readonly summary: {
@@ -161,7 +170,8 @@ export function orderFormModel(input: OrderFormInput): OrderFormModel {
     hidden,
     wilayas: form.wilayas.map((w) => ({ value: String(w.code), label: w.label })),
     qty: { min: 1, max: maxQty, value: 1 },
-    name: { minLength: NAME_MIN_LENGTH, maxLength: NAME_MAX_LENGTH },
+    name: { minLength: NAME_MIN_LENGTH },
+    phone: { maxLength: PHONE_INPUT_MAX_LENGTH },
     honeypotName: HONEYPOT_FIELD,
     messages,
     summary: {

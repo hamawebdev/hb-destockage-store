@@ -43,7 +43,7 @@ const { t, summary: s } = m;
         <label for="of-name" class="label">{t('order.name.label')} <span aria-hidden="true">*</span></label>
         <p id="of-name-hint" class="hint">{t('order.name.hint')}</p>
         <input id="of-name" class="input" name="name" type="text" autocomplete="name" required
-          minlength={m.name.minLength} maxlength={m.name.maxLength} aria-describedby="of-name-hint of-name-err" />
+          minlength={m.name.minLength} aria-describedby="of-name-hint of-name-err" />
         <p id="of-name-err" class="error"></p>
       </div>
 
@@ -51,7 +51,7 @@ const { t, summary: s } = m;
         <label for="of-phone" class="label">{t('order.phone.label')} <span aria-hidden="true">*</span></label>
         <p id="of-phone-hint" class="hint">{t('order.phone.hint')}</p>
         <input id="of-phone" class="input" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" required
-          maxlength="20" placeholder={t('order.phone.placeholder')} aria-describedby="of-phone-hint of-phone-err" />
+          maxlength={m.phone.maxLength} placeholder={t('order.phone.placeholder')} aria-describedby="of-phone-hint of-phone-err" />
         <p id="of-phone-err" class="error"></p>
       </div>
 

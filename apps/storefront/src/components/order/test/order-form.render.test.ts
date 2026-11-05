@@ -36,8 +36,9 @@ describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
 
   it('has the required phone input attributes', async () => {
     const phone = attrs(await render(lang), 'of-phone');
-    for (const a of ['type="tel"', 'inputmode="tel"', 'dir="ltr"', 'autocomplete="tel"', 'required']) expect(phone).toContain(a);
+    for (const a of ['type="tel"', 'inputmode="tel"', 'dir="ltr"', 'autocomplete="tel"', 'required', 'maxlength="64"']) expect(phone).toContain(a);
     expect(phone).not.toMatch(/pattern=/);
+    expect(attrs(await render(lang), 'of-name')).not.toMatch(/maxlength=/); // review r1 F1: no raw cap below the server's
   });
 
   it('lists 69 wilayas after the placeholder and leaves communes for JS / the review step', async () => {
