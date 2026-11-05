@@ -6,7 +6,7 @@
 //   - logs an order_events note (`contact_edit`, which fields changed: names only, no values);
 //   - every statement is guarded by `orders.id = :id AND version = :v`, the version bump last.
 import { and, eq, sql } from 'drizzle-orm';
-import { computeTotals, normalizePhone, type AdminRole, type FeeProvider, type FeeSource, type OrderStatus } from '@hb/shared';
+import { buildQuote, normalizePhone, type AdminRole, type FeeProvider, type OrderStatus } from '@hb/shared';
 import { communes, customers, orderEvents, orderItems, orders, variants } from './schema.ts';
 import { guardedInsertSelect, orderGuard, type OrderBatchItem } from './orders.ts';
 import type { Db } from './index.ts';
@@ -25,12 +25,28 @@ export type UpdateOrderContactResult =
   | { readonly ok: true; readonly version: number; readonly feeDzd: number; readonly totalDzd: number; readonly feeSource: string }
   | {
       readonly ok: false;
-      readonly code: 'not_found' | 'version_conflict' | 'forbidden' | 'not_editable' | 'phone_invalid' | 'commune_invalid' | 'area_unavailable' | 'nothing_to_change';
+      readonly code:
+        | 'not_found'
+        | 'version_conflict'
+        | 'forbidden'
+        | 'not_editable'
+        | 'phone_invalid'
+        | 'commune_invalid'
+        | 'area_unavailable'
+        | 'order_total_out_of_range'
+        | 'nothing_to_change';
     };
 
-/** Contact data can change until the parcel leaves (AORD-0 §0.4). */
+/**
+ * Who may edit contact data, and until when (lead decision, AORD-0 §0.4): the owner until the
+ * parcel leaves; the confirmer only before the order is confirmed.
+ */
+export const CONTACT_EDIT_STATUSES: Readonly<Partial<Record<AdminRole, readonly OrderStatus[]>>> = {
+  owner: ['new', 'called', 'unreachable', 'confirmed'],
+  confirmer: ['new', 'called', 'unreachable'],
+};
+/** Every status in which someone may edit (anything else: `not_editable`). */
 export const CONTACT_EDITABLE_STATUSES: readonly OrderStatus[] = ['new', 'called', 'unreachable', 'confirmed'];
-const EDITORS: readonly AdminRole[] = ['owner', 'confirmer'];
 
 export async function updateOrderContact(
   db: Db,
@@ -42,7 +58,8 @@ export async function updateOrderContact(
   opts: { readonly now?: number; readonly extra?: readonly OrderBatchItem[] } = {},
 ): Promise<UpdateOrderContactResult> {
   const now = opts.now ?? Date.now();
-  if (!EDITORS.includes(actor.role)) return { ok: false, code: 'forbidden' };
+  const allowed = CONTACT_EDIT_STATUSES[actor.role];
+  if (!allowed) return { ok: false, code: 'forbidden' };
 
   const cur = (
     await db
@@ -67,6 +84,7 @@ export async function updateOrderContact(
   if (!cur) return { ok: false, code: 'not_found' };
   if (cur.version !== expectedVersion) return { ok: false, code: 'version_conflict' };
   if (!CONTACT_EDITABLE_STATUSES.includes(cur.status)) return { ok: false, code: 'not_editable' };
+  if (!allowed.includes(cur.status)) return { ok: false, code: 'forbidden' };
 
   // Phone
   let phoneE164 = cur.phoneE164;
@@ -93,13 +111,17 @@ export async function updateOrderContact(
       .from(orderItems)
       .innerJoin(variants, eq(variants.id, orderItems.variantId))
       .where(eq(orderItems.orderId, orderId));
-    const quote = await feeProvider.quote({ wilayaCode, communeId, items: lines });
-    if (!quote.available) return { ok: false, code: 'area_unavailable' };
-    const totals = computeTotals(lines, quote.feeDzd);
-    if (totals.subtotalDzd !== cur.subtotalDzd) throw new Error(`updateOrderContact: stored subtotal ${cur.subtotalDzd} ≠ items ${totals.subtotalDzd}`);
-    feeDzd = totals.feeDzd;
-    totalDzd = totals.totalDzd;
-    feeSource = quote.source satisfies FeeSource;
+    const fee = await feeProvider.quote({ wilayaCode, communeId, items: lines });
+    if (!fee.available) return { ok: false, code: 'area_unavailable' };
+    // @hb/shared buildQuote (SHARED-3 contract for any re-pricing): computeTotals plus the
+    // MAX_ORDER_TOTAL_DZD ceiling. stock: null, since this order's stock was taken at creation.
+    const q = buildQuote(lines.map((l) => ({ variantId: l.variantId, qty: l.qty, unitPriceDzd: l.unitPriceDzd, stock: null })), fee);
+    if (!q.ok) return { ok: false, code: q.code === 'order_total_out_of_range' ? 'order_total_out_of_range' : 'area_unavailable' };
+    if (!q.available) return { ok: false, code: 'area_unavailable' };
+    if (q.subtotalDzd !== cur.subtotalDzd) throw new Error(`updateOrderContact: stored subtotal ${cur.subtotalDzd} ≠ items ${q.subtotalDzd}`);
+    feeDzd = q.feeDzd;
+    totalDzd = q.totalDzd;
+    feeSource = q.feeSource;
   }
 
   const changed = [
