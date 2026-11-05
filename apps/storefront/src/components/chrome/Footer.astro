@@ -9,6 +9,7 @@
 import type { LayoutProps } from '@hb/catalog';
 import Icon from '../Icon.astro';
 import { groupPhone, t } from '../../lib/strings.ts';
+import { buildYear } from '../../lib/build-env.mjs';
 
 interface Props {
   layout: LayoutProps;
@@ -65,7 +66,7 @@ const hoursIsPlaceholder = hours.includes('[PLACEHOLDER]');
     </div>
 
     <div class="ft-legal">
-      <p><bdi dir="ltr">{s('footer.copyright', { year: new Date().getFullYear() })}</bdi></p>
+      <p><bdi dir="ltr">{s('footer.copyright', { year: buildYear(process.env) })}</bdi></p>
       {
         legal.length > 0 && (
           <ul role="list" aria-label={s('footer.legal')}>
@@ -108,6 +109,7 @@ const hoursIsPlaceholder = hours.includes('[PLACEHOLDER]');
       align-items: center;
       gap: var(--space-2);
       min-block-size: var(--tap-min);
+      min-inline-size: var(--tap-min); /* short labels (المطبخ) stay >= 44 px wide */
       color: var(--color-text-secondary);
       text-decoration: none;
     }

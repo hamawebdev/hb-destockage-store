@@ -5,7 +5,8 @@
  * Owner: shell. Plan: artifacts/SHELL-0/plan.md §3.
  *
  * Inputs (env):
- *  - HB_SNAPSHOT: `fixture` (default) | `seed` | <export.json> — see @hb/catalog/sources loadSnapshot.
+ *  - HB_SNAPSHOT (required; unset fails the build): `seed` | <export.json> | `fixture` (dev/tests
+ *    only) — see @hb/catalog/sources loadSnapshot.
  *  - HB_SITE_ORIGIN: absolute origin (src/lib/site.mjs).
  *  - HB_STRICT_COPY=1 (production): brand/copy/strings.{ar,fr}.json must exist; otherwise the
  *    catalogue's fixture copies of them are used.
@@ -30,6 +31,7 @@ import { buildPageProps, createBuildContext } from '@hb/catalog/build';
 import { stubImageManifest } from '@hb/catalog/image-stub';
 import { findRepoRoot, loadSnapshot, loadStrings } from '@hb/catalog/sources';
 import { SITE_ORIGIN } from './site.mjs';
+import { requireSnapshot } from './build-env.mjs';
 
 export interface PropsByTemplate {
   home: HomeProps;
@@ -50,6 +52,7 @@ async function strings(): Promise<Localized<StringTable>> {
   return { ar: fixture('ar'), fr: fixture('fr') };
 }
 
+requireSnapshot(process.env);
 const snapshot = await loadSnapshot({ repoRoot });
 // TODO(CAT-4): replace the stub with the image manifest (AVIF variants written to public/img/).
 const ctx = createBuildContext(snapshot, { siteUrl: SITE_ORIGIN, strings: await strings(), images: stubImageManifest(snapshot) });

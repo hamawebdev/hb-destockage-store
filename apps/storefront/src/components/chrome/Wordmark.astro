@@ -1,13 +1,12 @@
 ---
 /**
- * brand/logo/wordmark-header.svg as a same-origin, content-hashed <img> (Vite ?url → /_astro/…,
+ * brand/logo/wordmark-header-static.svg (literal #1d1d1f letters, #0071e3 dot; brand USAGE) as a same-origin, content-hashed <img> (Vite ?url → /_astro/…,
  * immutable cache). Inlined it cost ≈1.3 KiB br on every page (SHELL-2 measurement); as an image it
- * is fetched once and cached across pages. It is never the LCP element (217×18 px). In an <img>
- * the letters render with currentColor's initial value and the dot with its #0071e3 fallback.
+ * is fetched once and cached across pages. It is never the LCP element (217×18 px) and never preloaded.
  * Decorative (alt=""): the enclosing link carries chrome.homeLink. Height 14px at 360, 18px from
  * 768 (brand USAGE). Owner: shell.
  */
-import src from '../../../../../brand/logo/wordmark-header.svg?url';
+import src from '../../../../../brand/logo/wordmark-header-static.svg?url';
 ---
 <img class="wm" src={src} alt="" width="217" height="18" decoding="async" />
 

@@ -1,3 +1,5 @@
 # Generated (owner shell). dist/.astro are ignored at the root.
 /public/img/
 /.hb/
+# CAT-4 image manifest (packages/catalog/src/bin/images.ts --manifest)
+/.catalog/

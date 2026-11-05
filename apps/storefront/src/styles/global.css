@@ -17,3 +17,8 @@
   body { display: flex; flex-direction: column; }
   main { flex: 1 0 auto; }
 }
+
+@layer components {
+  /* CLAUDE.md: every tap target >= 44 x 44 (tokens' .skip-link alone renders 40–43 px tall). */
+  .skip-link { display: inline-flex; align-items: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
+}
