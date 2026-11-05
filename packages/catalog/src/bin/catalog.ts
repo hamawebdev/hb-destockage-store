@@ -7,16 +7,18 @@
  *     [--originals <dir>] [--cache <dir>] [--images-report <file>] [--assets-report <file>] \
  *     [--site-url https://…] [--repo-root <dir>]
  *
- * Writes <out>/img/*, <out>/search/{ar,fr}.json, <out>/geo/communes/{ar,fr}/<code>.json and the
- * image manifest. geo's modules are loaded from <repo-root>/data/geo/. There is no partial mode:
+ * Writes <out>/img/*, <out>/search/{ar,fr}.json, <out>/geo/communes/{ar,fr}/<code>.json,
+ * <out>/sitemap.xml, <out>/robots.txt (CAT-6; --site-url is the canonical origin) and the image
+ * manifest. geo's modules are loaded from <repo-root>/data/geo/. There is no partial mode:
  * the snapshot, geo data and brand copy must all be complete (HB_SNAPSHOT_PARTIAL is refused
  * except with HB_SNAPSHOT=fixture).
  */
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { assetsMarkdown, loadGeoModules, writeCatalogAssets } from '../assets.ts';
 import { createBuildContext } from '../build.ts';
+import { buildSitemap, robotsTxt, ROBOTS_PATH, SITEMAP_PATH, sitemapXml } from '../seo.ts';
 import { buildImages, dirOriginalReader, seedOriginalReader, sizesMarkdown } from '../images.ts';
 import { findRepoRoot, loadSnapshot, loadStrings } from '../sources.ts';
 
@@ -59,6 +61,9 @@ const strings = await loadStrings(repoRoot);
 const ctx = createBuildContext(snapshot, { siteUrl: a['site-url'], strings, images: images.manifest });
 const { folding, geo } = await loadGeoModules(repoRoot);
 const assets = await writeCatalogAssets(ctx, { outDir: out, folding, geo });
+const sitemap = buildSitemap(ctx);
+await writeFile(join(out, SITEMAP_PATH), sitemapXml(sitemap));
+await writeFile(join(out, ROBOTS_PATH), robotsTxt(ctx.siteUrl));
 const tEnd = performance.now();
 
 const secs = (ms: number): string => (ms / 1000).toFixed(1);
@@ -74,5 +79,5 @@ if (a['assets-report']) {
 console.log(
   `catalog: ${images.report.length} images (${cached} cached) in ${secs(tImages - t0)} s; ` +
     `search ar ${assets.search.ar.br} B br / fr ${assets.search.fr.br} B br; ` +
-    `${assets.communes.ar.length} commune files per language in ${secs(tEnd - tImages)} s`,
+    `${assets.communes.ar.length} commune files per language in ${secs(tEnd - tImages)} s; sitemap ${sitemap.length} URLs`,
 );
