@@ -22,7 +22,9 @@ export interface PricedQuoteLine {
 /**
  * Builds the quote body. Returns `out_of_stock` (with per-line `maxQty`) when a line asks for
  * more than is available, and `order_total_out_of_range` when the total (or the subtotal, if
- * delivery is unavailable) exceeds MAX_ORDER_TOTAL_DZD. Throws `MoneyError` only on corrupt
+ * delivery is unavailable) exceeds MAX_ORDER_TOTAL_DZD. The ceiling is enforced here, not in
+ * `computeTotals` (pure arithmetic): any code that prices an order — including an admin
+ * re-quote — must go through `buildQuote` to get it. Throws `MoneyError` only on corrupt
  * data (non-integer or unsafe amounts), which the Worker maps to `server_error`.
  */
 export function buildQuote(lines: readonly PricedQuoteLine[], fee: FeeQuote): QuoteSuccess | ApiFailure {
@@ -62,8 +64,28 @@ export function buildQuote(lines: readonly PricedQuoteLine[], fee: FeeQuote): Qu
 
 /**
  * True only when the quote is deliverable and its total equals what the customer saw.
- * Anything else ⇒ `/api/order` answers 409 `total_changed` with the fresh quote and creates nothing.
+ * Use `checkOrderQuote` on `/api/order`: it also picks the right failure code.
  */
 export function totalMatches(expectedTotalDzd: number, quote: QuoteResponse): boolean {
   return quote.ok && quote.available && quote.totalDzd === expectedTotalDzd;
+}
+
+type AvailableQuote = Extract<QuoteSuccess, { available: true }>;
+
+/**
+ * `/api/order` decision on the freshly built quote, in this order:
+ * - `buildQuote` failed (`out_of_stock`, `order_total_out_of_range`) ⇒ that failure, unchanged;
+ * - delivery unavailable ⇒ `delivery_unavailable` with the (available:false) quote;
+ * - total ≠ `expectedTotalDzd` ⇒ `total_changed` with the fresh quote (nothing is created);
+ * - otherwise `{ ok: true, quote }` and the order may be written.
+ * Every failure is a valid `ApiFailure` (its `quote` is always a QuoteSuccess, never a failure).
+ */
+export function checkOrderQuote(
+  expectedTotalDzd: number,
+  quote: QuoteSuccess | ApiFailure,
+): { readonly ok: true; readonly quote: AvailableQuote } | ApiFailure {
+  if (!quote.ok) return quote;
+  if (!quote.available) return { ok: false, code: 'delivery_unavailable', quote };
+  if (quote.totalDzd !== expectedTotalDzd) return { ok: false, code: 'total_changed', quote };
+  return { ok: true, quote };
 }
