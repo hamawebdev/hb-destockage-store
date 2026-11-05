@@ -8,7 +8,7 @@ it fails when it should (`test/`).
 |---|---|---|
 | `npm run budget` | Static byte-budget checker over the built site (`apps/storefront/dist`) | MEAS-1 |
 | `npm run lh` | Lighthouse 13.6.0, median of 5, every template in `/ar/` and `/fr/` | MEAS-2 |
-| `npm run shots` / `npm run axe` | Screenshots 360/768/1440 × ar/fr, axe WCAG 2.2 AA, keyboard pass | MEAS-3 (todo) |
+| `npm run shots` / `npm run axe` | Screenshots 360/768/1440 × ar/fr, axe WCAG 2.2 AA, keyboard pass | MEAS-3 |
 | `npm run e2e` | Playwright end-to-end specs in `tests/e2e/` | MEAS-4 (todo) |
 
 Everything runs on Node 24 directly from TypeScript sources (`node file.ts`, no build step).
@@ -256,6 +256,46 @@ Method from qa (`artifacts/qa/scripts/live-checks.mjs`): Playwright with `/usr/b
 - a page that does not load (HTTP ≥ 400, timeout) fails `runtime`.
 Observations (font requests, fonts in use, third-party requests per page × width) are in
 `budget.json` under `runtime.results`.
+
+## `npm run shots` and `npm run axe`
+
+```
+npm run shots                                   # every template × ar/fr × 360/768/1440 px
+npm run axe                                     # axe + keyboard pass, every template × ar/fr × 360/1440 px
+npm run shots -- --template product --out /tmp/s
+npm run axe -- --base-url http://127.0.0.1:4270 --urls my-urls.txt   # an already running server
+# without root scripts: node tools/measure/src/shots/cli.ts | node tools/measure/src/axe/cli.ts [same flags]
+```
+
+Same target and server options as `lh` (`--dist`, `--base-url`, `--serve`, `--port`, `--url`,
+`--urls`, `--template`): templates are discovered from the build, and an unclassifiable page or a
+template missing in one language fails the run. Playwright drives system Chrome
+(`/usr/bin/google-chrome`, no browser download). Default ports: shots 4114, axe 4116.
+
+**Deterministic pages** (`src/lib/browser.ts`): viewport 360×800 / 768×1024 / 1440×900 at DPR 1,
+`prefers-reduced-motion: reduce`, light scheme, `fr-DZ` locale, Africa/Algiers time zone; load →
+`document.fonts.ready` → **reload** (so the `font-display: optional` Arabic face is used from
+cache, as on a repeat visit, instead of racing first paint) → load → fonts and every image
+complete → animations, transitions, smooth scrolling and the caret frozen. Two runs over the same
+build give byte-identical PNGs (tested).
+
+**shots** → `<out>/shots/<template>/<lang>-<width>.png` (viewport) and `…-full.png` (full page);
+content pages, one per page: `<out>/shots/content/<lang>-<slug>-<width>[-full].png`;
+`<out>/shots/index.html` contact sheet (rows = templates, columns = lang × width);
+`<out>/shots.json`. Default `<out>` = `<main checkout>/artifacts/shots-run`. Exit 1 if a page does
+not load with its expected status or the registry has errors.
+
+**axe** → axe-core 4.14 with tags `wcag2a wcag2aa wcag21a wcag21aa wcag22a wcag22aa` at 360 and
+1440 px; **zero violations** required (`incomplete` items are counted in the JSON, not gated).
+**Keyboard pass** on the same loads: Tab until focus leaves the content or repeats (max 150
+stops); each stop records the element, its text, its box, and two checks, both blocking:
+- **focus visible** (WCAG 2.4.7): a screenshot of the element's box ± 8 px with focus differs from
+  the same box after `blur()` (focus is then restored, keeping keyboard modality);
+- **not obscured** (WCAG 2.4.11): the element at the box centre is the focused element (or inside
+  it / contains it), e.g. not under a sticky header.
+No cycle within 150 stops (possible trap) or no focusable element also fails. Output: `axe.json`,
+`keyboard.json` (focus order per template × width), `axe.txt`; default `<out>` =
+`<main checkout>/artifacts/axe-run`. Exit 0 / 1 / 2 as everywhere.
 
 ### Adding or changing a rule
 
