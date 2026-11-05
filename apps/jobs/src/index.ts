@@ -1,7 +1,8 @@
 // hb-jobs Worker. Owner: jobs.
 // - queue: `order.created` notifications (JOBS-2)
 // - scheduled: daily D1 -> R2 backup (JOBS-1), RUM rollup (JOBS-5)
-import { ORDER_NOTIFICATIONS_QUEUE, type Env } from './env.ts';
+import { backupJob } from './backup/job.ts';
+import { CRON_DAILY_BACKUP, ORDER_NOTIFICATIONS_QUEUE, type Env } from './env.ts';
 import { handleOrderNotifications } from './notify/consumer.ts';
 import { D1DeliveryStore } from './notify/deliveries.ts';
 import type { EmailMessageFactory } from './notify/email.ts';
@@ -15,9 +16,28 @@ async function emailFactory(env: Env): Promise<EmailMessageFactory | undefined> 
   return (from, to, raw) => new EmailMessage(from, to, raw);
 }
 
+/** Alerts go to the same staff channels as order notifications, when configured. */
+async function staffAlert(env: Env): Promise<((subject: string, text: string, id: string) => Promise<void>) | undefined> {
+  const makeEmailMessage = await emailFactory(env);
+  const providers = buildProviders(env, makeEmailMessage ? { makeEmailMessage } : {});
+  if (providers.length === 0) return undefined;
+  return async (subject, text, id) => {
+    await Promise.allSettled(providers.map((p) => p.send({ id, subject, text })));
+  };
+}
+
 export default {
-  async scheduled(_controller: ScheduledController, _env: Env, _ctx: ExecutionContext): Promise<void> {
-    // daily D1 -> R2 export lands in JOBS-1
+  async scheduled(controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
+    switch (controller.cron) {
+      case CRON_DAILY_BACKUP: {
+        // Throws on failure so the cron invocation is recorded as failed.
+        const alert = await staffAlert(env);
+        await backupJob(env, { startedAt: controller.scheduledTime, ...(alert ? { alert } : {}) });
+        return;
+      }
+      default:
+        log('scheduled.unknown_cron', { cron: controller.cron });
+    }
   },
 
   async queue(batch: MessageBatch<unknown>, env: Env, _ctx: ExecutionContext): Promise<void> {

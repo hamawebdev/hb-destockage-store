@@ -3,6 +3,8 @@ import type { SendEmailBinding } from './notify/email.ts';
 export interface Env {
   /** Shared D1 (owner of schema: `db`). */
   DB: D1Database;
+  /** Private backup bucket (JOBS-1). Never public, never the media bucket. */
+  BACKUPS: R2Bucket;
 
   // Order notifications (JOBS-2). All optional: a channel is enabled only when all its values are set.
   /** Secret. */
@@ -20,3 +22,4 @@ export interface Env {
 }
 
 export const ORDER_NOTIFICATIONS_QUEUE = 'hb-order-notifications';
+export const CRON_DAILY_BACKUP = '0 2 * * *';

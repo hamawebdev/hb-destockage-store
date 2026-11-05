@@ -18,6 +18,11 @@
       "migrations_dir": "../../packages/db/migrations"
     }
   ],
+  "r2_buckets": [
+    // PRIVATE backup bucket (JOBS-1): no r2.dev URL, no custom domain, not the media bucket.
+    // Holds customer personal data (orders); see RESTORE.md for who may access it.
+    { "binding": "BACKUPS", "bucket_name": "hb-backups" }
+  ],
   "queues": {
     "consumers": [
       {
