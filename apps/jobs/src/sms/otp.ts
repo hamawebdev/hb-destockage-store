@@ -7,6 +7,7 @@
 //   2. a real SmsProvider replacing DisabledSmsProvider (none exists),
 //   3. the order to carry at least one risk flag.
 import { isOrderFlag } from '@hb/shared/order-schema';
+import { normalizePhone } from '@hb/shared/phone';
 
 export interface SmsResult {
   sent: boolean;
@@ -43,8 +44,6 @@ export function isFlagged(flags: readonly string[]): boolean {
   return flags.some(isOrderFlag);
 }
 
-const E164_DZ_MOBILE = /^\+213[567]\d{8}$/;
-
 /** 6-digit code from the CSPRNG, uniform (rejection sampling). */
 export function generateOtpCode(): string {
   const buf = new Uint32Array(1);
@@ -72,8 +71,10 @@ export async function maybeSendOtp(
   if (!otpFeatureEnabled(config)) return { sent: false, reason: 'feature_off' };
   if (!isFlagged(order.flags)) return { sent: false, reason: 'not_flagged' };
   if (!provider.enabled) return { sent: false, reason: 'provider_disabled' };
-  if (!E164_DZ_MOBILE.test(order.phoneE164)) return { sent: false, reason: 'invalid_phone' };
+  // The one Algerian-mobile rule (libphonenumber pattern, @hb/shared): never a local regex.
+  const phone = normalizePhone(order.phoneE164);
+  if (!phone.ok) return { sent: false, reason: 'invalid_phone' };
   const code = generateOtpCode();
-  const r = await provider.send(order.phoneE164, otpText(code, order.lang));
+  const r = await provider.send(phone.e164, otpText(code, order.lang));
   return r.sent ? { ...r, code } : r;
 }

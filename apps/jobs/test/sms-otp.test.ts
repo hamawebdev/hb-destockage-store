@@ -54,9 +54,30 @@ describe('SMS OTP stub: nothing is ever sent with this project\'s configuration'
     expect(isFlagged(['duplicate'])).toBe(true);
   });
 
+  test.each([
+    ['landline', '+213212345678'],
+    ['050 (not allocated)', '+213501234567'],
+    ['053', '+213531234567'],
+    ['0543', '+213543123456'],
+    ['076', '+213761234567'],
+    ['too short', '+21356041740'],
+  ])('rejected by the libphonenumber mobile rule: %s (review r1)', async (_l, phoneE164) => {
+    const p = spyProvider(true);
+    expect(await maybeSendOtp({ ...flagged, phoneE164 }, { SMS_OTP_ENABLED: 'true' }, p)).toMatchObject({ reason: 'invalid_phone' });
+    expect(p.send).not.toHaveBeenCalled();
+  });
+
+  test.each([['055', '+213551234567'], ['0540', '+213540123456'], ['066', '+213661234567'], ['077', '+213771234567'], ['079', '+213791234567']])(
+    'accepted Algerian mobile: %s',
+    async (_l, phoneE164) => {
+      const p = spyProvider(true);
+      expect(await maybeSendOtp({ ...flagged, phoneE164 }, { SMS_OTP_ENABLED: 'true' }, p)).toMatchObject({ sent: true });
+      expect(p.send.mock.calls[0]![0]).toBe(phoneE164);
+    },
+  );
+
   test('a future real provider would be called once, for a valid Algerian mobile only', async () => {
     const p = spyProvider(true);
-    expect(await maybeSendOtp({ ...flagged, phoneE164: '+213212345678' }, { SMS_OTP_ENABLED: 'true' }, p)).toMatchObject({ reason: 'invalid_phone' });
     const r = await maybeSendOtp(flagged, { SMS_OTP_ENABLED: 'true' }, p);
     expect(p.send).toHaveBeenCalledOnce();
     expect(p.send.mock.calls[0]![0]).toBe('+213560417403');
