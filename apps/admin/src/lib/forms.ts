@@ -22,6 +22,7 @@ export type ParsedForm<S extends FormSchema> =
 const MSG = {
   required: 'form.required',
   invalid: 'form.invalid',
+  moneyInteger: 'form.moneyInteger',
   tooLong: (max: number) => `form.tooLong|${max}`,
 } as const;
 
@@ -101,17 +102,37 @@ export const vOptionalInt = (min: number, max: number) =>
   );
 
 /**
- * Integer DZD ≥ 0. Accepts Eastern-Arabic digits and spaces / NBSP / dots / commas as thousands
- * separators (no decimals: prices are whole dinars).
+ * Whole-dinar amount → digit string, or null. Integer DZD only (review ADMIN-1 r1 F2, lead's
+ * class rule): plain digits ("14600"), or groups of exactly three separated by ONE kind of
+ * thousands separator: space, NBSP, narrow NBSP, thin space, "." or the Arabic thousands
+ * separator "٬" ("14 600", "14.600", "١٤٬٦٠٠"). Never decimals: any comma, Arabic decimal
+ * separator "٫", apostrophe, or a final group that is not three digits ("1500.00", "600,00",
+ * "1.50", "1,500", "14 60") is rejected, never rescaled. Eastern-Arabic digits are accepted.
  */
+export function normaliseDzd(input: string): string | null {
+  const s = toAsciiDigits(input).trim();
+  if (/^\d+$/.test(s)) return s;
+  const m = /^\d{1,3}([ \u00A0\u202F\u2009.\u066C])\d{3}(?:\1\d{3})*$/.exec(s);
+  return m ? s.split(m[1]!).join('') : null;
+}
+
+/** Integer DZD ≥ 0 (accepted spellings: see normaliseDzd). */
 export const vMoneyDzd = (max = 100_000_000) =>
   v.pipe(
     v.optional(v.string(), ''),
-    v.transform((s) => toAsciiDigits(s).replace(/[\s  .,'’]/g, '')),
+    v.trim(),
     v.minLength(1, MSG.required),
-    v.regex(/^\d+$/, MSG.invalid),
+    v.transform((s) => normaliseDzd(s) ?? 'invalid'),
+    v.regex(/^\d+$/, MSG.moneyInteger),
     v.transform(Number),
     v.maxValue(max, MSG.invalid),
+  );
+
+/** Optional integer DZD: '' or an absent key → null (e.g. a compare-at price). */
+export const vOptionalMoneyDzd = (max = 100_000_000) =>
+  v.optional(
+    v.union([v.pipe(v.string(), v.trim(), v.length(0), v.transform(() => null)), vMoneyDzd(max)], MSG.moneyInteger),
+    '',
   );
 
 const ABSENT = '\u0000absent';

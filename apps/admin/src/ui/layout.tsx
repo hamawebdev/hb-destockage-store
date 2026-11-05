@@ -82,8 +82,12 @@ function TopBar(props: { ui: UiContext }) {
           <form method="post" action="/settings/language" class="inline-form">
             <input type="hidden" name="_csrf" value={ui.csrfToken} />
             <input type="hidden" name="lang" value={other} />
-            <button type="submit" class="btn btn--quiet" lang={other} aria-label={ui.t('lang.switchLabel')}>
-              {ui.t('lang.switch')}
+            <input type="hidden" name="return_to" value={ui.path} />
+            {/* No aria-label: the accessible name must contain the visible text (WCAG 2.5.3,
+                review ADMIN-1 r1 F3); the explanation is appended as visually hidden text. */}
+            <button type="submit" class="btn btn--quiet">
+              <span lang={other}>{ui.t('lang.switch')}</span>
+              <span class="visually-hidden"> — {ui.t('lang.switchLabel')}</span>
             </button>
           </form>
           <a class="btn btn--quiet" href={LOGOUT_URL}>{ui.t('user.logout')}</a>

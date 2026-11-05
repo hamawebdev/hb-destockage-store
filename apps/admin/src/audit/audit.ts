@@ -60,8 +60,19 @@ export function snapshotJson(value: unknown): string | null {
     return val;
   });
   if (json === undefined) return null;
-  if (new TextEncoder().encode(json).length <= AUDIT_MAX_JSON) return json;
-  return JSON.stringify({ _truncated: true, _bytes: json.length, head: json.slice(0, AUDIT_MAX_JSON - 256) });
+  const enc = new TextEncoder();
+  const bytes = enc.encode(json);
+  if (bytes.length <= AUDIT_MAX_JSON) return json;
+  // Cap in BYTES (review ADMIN-1 r1 nit: Arabic text is 2 bytes per character in UTF-8). The
+  // head is re-escaped inside the wrapper, so shrink until the whole wrapper fits.
+  const dec = new TextDecoder();
+  let budget = AUDIT_MAX_JSON - 256;
+  for (;;) {
+    const head = dec.decode(bytes.subarray(0, budget)).replace(/\uFFFD$/, '');
+    const out = JSON.stringify({ _truncated: true, _bytes: bytes.length, head });
+    if (enc.encode(out).length <= AUDIT_MAX_JSON || budget < 256) return out;
+    budget = Math.floor(budget * 0.9);
+  }
 }
 
 function check(entry: AuditEntry): void {

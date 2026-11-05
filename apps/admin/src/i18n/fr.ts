@@ -46,6 +46,7 @@ export const fr = {
   'form.errorSummary': '{count, plural, one {# erreur à corriger} other {# erreurs à corriger}}',
   'form.required': 'Champ obligatoire',
   'form.invalid': 'Valeur invalide',
+  'form.moneyInteger': 'Montant en dinars entiers, sans centimes ni virgule (ex. : 14 600 ou 14600).',
   'form.tooLong': 'Trop long (maximum {max} caractères)',
   'form.confirm': 'Confirmer cette action ?',
   'table.empty': 'Aucun élément.',

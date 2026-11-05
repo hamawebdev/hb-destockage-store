@@ -91,6 +91,12 @@ describe('forms', () => {
 });
 
 describe('audit snapshots', () => {
+  test('the cap is in bytes, also for Arabic text', () => {
+    const big = snapshotJson({ name_ar: 'منتج'.repeat(8000) })!;
+    expect(new TextEncoder().encode(big).length).toBeLessThanOrEqual(AUDIT_MAX_JSON);
+    expect(JSON.parse(big)._truncated).toBe(true);
+    expect(JSON.parse(big).head).not.toContain('\uFFFD');
+  });
   test('secrets redacted, size capped', () => {
     expect(JSON.parse(snapshotJson({ a: 1, apiKey: 'x', nested: { CSRF_SECRET: 'y', token: 'z' } })!)).toEqual({
       a: 1,
