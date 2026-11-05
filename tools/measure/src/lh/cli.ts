@@ -31,7 +31,10 @@ const USAGE = `usage: npm run lh -- [options]
   --max-load <n>        1-minute load average above which a run is contended (default ${DEFAULT_MAX_LOAD})
   --quiet-wait <s>      before each run, wait up to this long for the load to drop (default 900)
   --out <dir>           output directory (default <main checkout>/artifacts/lh)
-  --chrome-path <path>  Chrome binary (default /usr/bin/google-chrome)`;
+  --chrome-path <path>  Chrome binary (default /usr/bin/google-chrome)
+  --gate                strict mode for scripts/gate.sh (also HB_GATE=1): refuses every option that
+                        narrows or relaxes the run (--url, --urls, --template, --runs, --min-benchmark,
+                        --max-load, --base-url, --dist)`;
 
 const require = createRequire(import.meta.url);
 
@@ -45,7 +48,7 @@ function lighthouseBin(): { bin: string; version: string } {
 function runLighthouse(bin: string, url: string, outFile: string, chromePath: string): Promise<{ code: number | null; stderr: string }> {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [bin, url,
-      '--output=json', `--output-path=${outFile}`, '--only-categories=performance,accessibility',
+      '--output=json', `--output-path=${outFile}`, '--only-categories=performance,accessibility,best-practices,seo',
       `--chrome-path=${chromePath}`, '--chrome-flags=--headless=new --no-sandbox --disable-gpu --no-first-run --disable-dev-shm-usage',
       '--max-wait-for-load=60000', '--quiet'], { stdio: ['ignore', 'ignore', 'pipe'] });
     let stderr = '';
@@ -91,11 +94,15 @@ export async function main(argv: string[]): Promise<number> {
         'dist': { type: 'string' }, 'base-url': { type: 'string' }, 'serve': { type: 'string' }, 'port': { type: 'string' },
         'url': { type: 'string', multiple: true }, 'urls': { type: 'string' }, 'template': { type: 'string', multiple: true },
         'runs': { type: 'string' }, 'min-benchmark': { type: 'string' }, 'max-load': { type: 'string' }, 'quiet-wait': { type: 'string' }, 'out': { type: 'string' }, 'chrome-path': { type: 'string' },
-        'help': { type: 'boolean', short: 'h' },
+        'gate': { type: 'boolean' }, 'help': { type: 'boolean', short: 'h' },
       },
     }).values;
   } catch (e) { console.error(`${(e as Error).message}\n${USAGE}`); return 2; }
   if (a.help) { console.log(USAGE); return 0; }
+  if (a.gate || process.env['HB_GATE'] === '1') {
+    const relaxing = (['url', 'urls', 'template', 'runs', 'min-benchmark', 'max-load', 'base-url', 'dist'] as const).filter((k) => a[k] !== undefined);
+    if (relaxing.length) { console.error(`lh: gate mode refuses --${relaxing.join(', --')} (the gate measures every template, 5 runs, default thresholds)`); return 2; }
+  }
   const runs = Number(a.runs ?? 5);
   const minBenchmark = Number(a['min-benchmark'] ?? DEFAULT_MIN_BENCHMARK);
   const maxLoad = Number(a['max-load'] ?? DEFAULT_MAX_LOAD);

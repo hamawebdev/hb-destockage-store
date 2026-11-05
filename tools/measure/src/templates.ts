@@ -8,7 +8,7 @@
  *
  * MEAS-5 refines this (product simple/variable/pack, sub-category) from the catalogue snapshot.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { walk } from './lib/paths.ts';
 
@@ -24,6 +24,8 @@ export interface PageInfo {
   template: Template | null;
   /** how the template was decided */
   source: 'data-tpl' | 'url' | 'none';
+  /** HTML file size in bytes (the heaviest page of a template is the one measured) */
+  bytes: number;
 }
 
 export interface TemplateTarget {
@@ -90,7 +92,7 @@ export function discover(dist: string): Registry {
     if (lang && !template && !tpl) errors.push(`${url}: cannot tell its template (no <html data-tpl>, URL outside the CAT-1 scheme)`);
     const urlTpl = templateFromUrl(url);
     if (tpl && urlTpl && template && urlTpl !== template) errors.push(`${url}: data-tpl="${tpl}" but the URL scheme says ${urlTpl}`);
-    pages.push({ url, file: rel, lang, template, source });
+    pages.push({ url, file: rel, lang, template, source, bytes: statSync(path.join(dist, rel)).size });
   }
 
   const targets: TemplateTarget[] = [];
@@ -98,8 +100,9 @@ export function discover(dist: string): Registry {
     const mine = pages.filter((p) => p.lang === lang);
     if (!mine.length) { errors.push(`no pages under /${lang}/`); continue; }
     for (const t of TEMPLATES) {
-      // shortest URL first (page 1 before /c/x/2/), then path order: deterministic
-      const of = mine.filter((p) => p.template === t).sort((x, y) => x.url.length - y.url.length || x.url.localeCompare(y.url));
+      // heaviest HTML first (worst case for the budget; rev-c MEAS-2 r1 nit 3), then the shortest
+      // URL (page 1 before /c/x/2/), then path order: deterministic
+      const of = mine.filter((p) => p.template === t).sort((x, y) => y.bytes - x.bytes || x.url.length - y.url.length || x.url.localeCompare(y.url));
       if (!of.length) { errors.push(`template ${t} has no page in /${lang}/`); continue; }
       // content: every content page is its own target (they differ in length and blocks);
       // other templates: the first page in path order (deterministic)

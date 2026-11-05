@@ -190,8 +190,10 @@ npm run lh -- --serve static --port 4114      # server choice / port (measure bl
 - **Lighthouse:** exactly 13.6.0 (`node_modules/lighthouse`, checked before running and in every
   result), mobile defaults only: formFactor mobile, screen 412 × 823 @ 1.75, simulated throttling
   150 ms RTT / 1,638.4 kbps / 4× CPU. Any result with another version, preset, throttling or a
-  redirect is a failure, not a data point. Categories: performance and accessibility. System
-  Chrome (`/usr/bin/google-chrome`, headless).
+  redirect, or with mobile emulation disabled (`screenEmulation.disabled`), is a failure, not a
+  data point. Categories run: performance, accessibility, best-practices, seo (the last two are
+  recorded per run, not gated: they are not CLAUDE.md budgets). System Chrome
+  (`/usr/bin/google-chrome`, headless).
 - **Lock:** runs under the machine-wide exclusive `lighthouse` lock (`scripts/lib/locks.sh`,
   flock fallback). If the root script already wraps it, the CLI sees its ancestor holds the lock;
   otherwise it re-executes itself under the lock. Waits up to an hour for the lock.
@@ -204,8 +206,10 @@ npm run lh -- --serve static --port 4114      # server choice / port (measure bl
   `<html data-tpl>` (else the CAT-1 URL scheme). One URL per template and language (the shortest
   path, so page 1 of a category), and **every** content page. A page whose template cannot be
   told, an unknown `data-tpl`, a `data-tpl` that contradicts its URL, or a template missing in one
-  language **fails the run** (never silently skipped). Pages not measured are listed in the
-  summary with the reason. MEAS-5 adds product kinds (simple/variable/pack) and sub-categories.
+  language **fails the run** (never silently skipped). The page measured for a template is its
+  **heaviest** HTML (worst case), ties → shortest URL. Pages not measured are listed in the
+  summary with the reason. The not-found template is measured at its file URL
+  (`/{lang}/404.html`, HTTP 200): Lighthouse refuses to score a document answered with 404. MEAS-5 adds product kinds (simple/variable/pack) and sub-categories.
 - **Machine load (lead's rule, 2026-11-05):** before every run the CLI waits (up to
   `--quiet-wait`, default 900 s) for the 1-minute load average to drop to `--max-load` (default 4).
   A run is **contended** if it started with load > 4 or its `benchmarkIndex` is < 1,500 (this
@@ -218,12 +222,19 @@ npm run lh -- --serve static --port 4114      # server choice / port (measure bl
   - **Performance 100**: the median run by performance score (Lighthouse rounding,
     `Math.round(score × 100)`) must be 100;
   - **Accessibility 100 in every run**;
+  - **no browser console errors** in any run (Lighthouse `errors-in-console`);
   - **Arabic pages: median Speed Index < 1,950 ms**, else fail with the CLAUDE.md font fallback
     message (switch to the system Arabic font, record it in DECISIONS.md).
   - Medians of FCP, LCP, TBT, CLS and SI are reported for every URL.
-- **Verdict:** `pass`; `fail`; or `inconclusive` = it failed and at least one of its runs was
-  contended after the retry (load only worsens simulated metrics, so a pass under load stands;
-  errors and configuration problems are failures whatever the load).
+- **Verdict:** `pass`; `fail`; or `inconclusive`. Only the performance score and its timing
+  metrics (median Performance, Arabic Speed Index) are load-sensitive: when those are the only
+  failures and at least one run was contended after the retry, the URL is `inconclusive`.
+  Everything else is deterministic and a clean `fail` whatever the load: accessibility, HTTP
+  status, console errors, crashes, configuration problems. A pass under load stands (load only
+  worsens simulated metrics).
+- **Gate mode** (`--gate` or `HB_GATE=1`, for `scripts/gate.sh`): refuses every option that
+  narrows or relaxes the run (`--url`, `--urls`, `--template`, `--runs`, `--min-benchmark`,
+  `--max-load`, `--base-url`, `--dist`) with exit 2.
 - **Exit code:** `0` all pass · `1` any failure or registry error · `2` setup error (Lighthouse
   version, Chrome, server, flags) · `3` inconclusive only (rerun when the machine is quiet). The
   gate treats every non-zero code as red.

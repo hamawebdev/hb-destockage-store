@@ -22,6 +22,8 @@ export const DEFAULT_MIN_BENCHMARK = 1500;
 export const DEFAULT_MAX_LOAD = 4;
 
 export interface RunMetrics { score: number; a11y: number; fcp: number; lcp: number; tbt: number; cls: number; si: number }
+/** Not gated (not a CLAUDE.md budget), recorded for the report. */
+export interface InfoScores { bestPractices?: number; seo?: number }
 
 export interface RunRecord {
   target: string;
@@ -46,6 +48,9 @@ export interface RunRecord {
   docTransferBytes?: number;
   docResourceBytes?: number;
   metrics?: RunMetrics;
+  info?: InfoScores;
+  /** browser console errors (Lighthouse `errors-in-console`): deterministic, gated */
+  consoleErrors?: string[];
 }
 
 type Json = Record<string, unknown>;
@@ -62,6 +67,7 @@ export function parseLhr(lhrIn: unknown, requestedUrl: string, minBenchmark = DE
   const thr = obj(cs['throttling']);
   const scr = obj(cs['screenEmulation']);
   if (cs['formFactor'] !== 'mobile' || scr['mobile'] !== true) problems.push(`formFactor ${String(cs['formFactor'])} (required mobile)`);
+  if (scr['disabled'] !== false) problems.push(`screenEmulation.disabled = ${String(scr['disabled'])} (mobile emulation must be on)`);
   if (cs['throttlingMethod'] !== 'simulate') problems.push(`throttlingMethod ${String(cs['throttlingMethod'])} (required simulate)`);
   for (const [k, want] of [['rttMs', MOBILE_DEFAULTS.rttMs], ['throughputKbps', MOBILE_DEFAULTS.throughputKbps], ['cpuSlowdownMultiplier', MOBILE_DEFAULTS.cpuSlowdownMultiplier]] as const) {
     if (num(thr[k]) !== want) problems.push(`throttling.${k} = ${String(thr[k])} (Lighthouse mobile default ${want})`);
@@ -95,6 +101,10 @@ export function parseLhr(lhrIn: unknown, requestedUrl: string, minBenchmark = DE
   const docTransferBytes = num(doc?.['transferSize']);
   const docResourceBytes = num(doc?.['resourceSize']);
   if (finalUrl !== undefined && finalUrl !== requestedUrl) problems.push(`redirected: ${requestedUrl} → ${finalUrl}`);
+  const bp = num(obj(cats['best-practices'])['score']);
+  const seo = num(obj(cats['seo'])['score']);
+  const consoleItems = (obj(obj(audits['errors-in-console'])['details'])['items'] as unknown[] | undefined) ?? [];
+  const consoleErrors = consoleItems.map(obj).map((i) => `${String(i['source'] ?? '')}: ${String(i['description'] ?? '')}`.slice(0, 300));
   return {
     ...base,
     ...(status !== undefined ? { status } : {}),
@@ -102,6 +112,8 @@ export function parseLhr(lhrIn: unknown, requestedUrl: string, minBenchmark = DE
     ...(docTransferBytes !== undefined ? { docTransferBytes } : {}),
     ...(docResourceBytes !== undefined ? { docResourceBytes } : {}),
     metrics: { score, a11y, fcp: m.fcp ?? 0, lcp: m.lcp ?? 0, tbt: m.tbt ?? 0, cls: m.cls ?? 0, si: m.si ?? 0 },
+    info: { ...(bp !== undefined ? { bestPractices: bp } : {}), ...(seo !== undefined ? { seo } : {}) },
+    consoleErrors,
   };
 }
 
@@ -139,7 +151,9 @@ export interface TargetSummary {
  * loaded run was retried). Any errored attempt fails the URL: a crash is red, never "median of 4".
  */
 export function summarize(t: { id: string; template: string; lang: string; url: string; expectStatus: number }, final: RunRecord[], expectedRuns: number, all: RunRecord[] = final): TargetSummary {
+  // hard = deterministic (never excused by machine load); perf = load-sensitive timing results
   const failures: string[] = [];
+  const perf: string[] = [];
   const notes: string[] = [];
   if (final.length !== expectedRuns) failures.push(`${final.length} of ${expectedRuns} runs recorded`);
   for (const r of final) {
@@ -147,6 +161,7 @@ export function summarize(t: { id: string; template: string; lang: string; url: 
     for (const p of r.problems) failures.push(`run ${r.attempt}: ${p}`);
     if (!r.error && r.status !== undefined && r.status !== t.expectStatus) failures.push(`run ${r.attempt}: HTTP ${r.status} (expected ${t.expectStatus})`);
     if (!r.error && r.status === undefined) failures.push(`run ${r.attempt}: main document not found in network-requests`);
+    if (r.consoleErrors?.length) failures.push(`run ${r.attempt}: ${r.consoleErrors.length} console error(s): ${r.consoleErrors.slice(0, 3).join(' | ')}`);
   }
   const why = (r: RunRecord): string => `benchmarkIndex ${r.benchmarkIndex ?? '?'}, load ${r.loadavgBefore.toFixed(1)}`;
   for (const r of all.filter((x) => x.retry)) {
@@ -165,17 +180,18 @@ export function summarize(t: { id: string; template: string; lang: string; url: 
   const mid = byScore[Math.floor((byScore.length - 1) / 2)] ?? byScore[0];
   const med = (k: keyof RunMetrics): number => median(good.map((r) => r.metrics[k]));
   const medians = { score: med('score'), a11y: med('a11y'), fcp: med('fcp'), lcp: med('lcp'), tbt: med('tbt'), cls: med('cls'), si: med('si') };
-  if (mid && pct(mid.metrics.score) !== 100) failures.push(`median Performance ${pct(mid.metrics.score)} (required 100; runs: ${good.map((r) => pct(r.metrics.score)).join(', ')})`);
+  if (mid && pct(mid.metrics.score) !== 100) perf.push(`median Performance ${pct(mid.metrics.score)} (required 100; runs: ${good.map((r) => pct(r.metrics.score)).join(', ')})`);
   const badA11y = good.filter((r) => pct(r.metrics.a11y) !== 100);
   if (badA11y.length) failures.push(`Accessibility ${badA11y.map((r) => pct(r.metrics.a11y)).join(', ')} in ${badA11y.length} run(s) (required 100 in every run)`);
   if (t.lang === 'ar' && medians.si >= AR_SI_LIMIT_MS) {
-    failures.push(`median Speed Index ${Math.round(medians.si)} ms ≥ ${AR_SI_LIMIT_MS} ms on an Arabic page: CLAUDE.md font fallback rule (switch to the system Arabic font and record it in DECISIONS.md)`);
+    perf.push(`median Speed Index ${Math.round(medians.si)} ms ≥ ${AR_SI_LIMIT_MS} ms on an Arabic page: CLAUDE.md font fallback rule (switch to the system Arabic font and record it in DECISIONS.md)`);
   }
-  // Load only makes simulated metrics worse, so a pass on a contended machine stands; a failure
-  // with any contended run is inconclusive (never reported as a pass, never as a clean fail).
-  // Errors and configuration problems are failures whatever the load.
-  const hard = final.some((r) => r.error || r.problems.length);
-  const verdict = failures.length === 0 ? 'pass' : contended.length && !hard ? 'inconclusive' : 'fail';
+  // Only the performance score and its timing metrics are load-sensitive. A hard failure
+  // (accessibility, HTTP status, console errors, crashes, configuration) is FAIL whatever the load;
+  // a performance-only failure with any contended run is INCONCLUSIVE; a pass under load stands
+  // (load only makes simulated metrics worse).
+  const verdict = failures.length ? 'fail' : perf.length === 0 ? 'pass' : contended.length ? 'inconclusive' : 'fail';
+  failures.push(...perf);
   if (verdict === 'pass' && contended.length) notes.push('passed despite contention (load only worsens Lighthouse metrics)');
   return {
     ...base,

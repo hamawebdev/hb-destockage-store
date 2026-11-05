@@ -3,9 +3,11 @@
  * lock helpers. Lighthouse itself is not run here (it needs the exclusive lock and minutes);
  * synthetic results exercise every rule, including the ones that must turn a run RED.
  */
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { brotliDecompressSync } from 'node:zlib';
 import { afterAll, describe, expect, it } from 'vitest';
 import { AR_SI_LIMIT_MS, LH_VERSION, MOBILE_DEFAULTS, median, parseLhr, summarize, type RunRecord } from '../src/lh/summary.ts';
@@ -19,6 +21,7 @@ const URL0 = 'http://127.0.0.1:4112/ar/';
 interface Opt {
   score?: number; a11y?: number; si?: number; lcp?: number; version?: string; formFactor?: string; mobile?: boolean;
   method?: string; rtt?: number; cpu?: number; bench?: number; status?: number; finalUrl?: string; runtimeError?: string; noPerf?: boolean;
+  emulationDisabled?: boolean; consoleErrors?: string[];
 }
 function lhr(o: Opt = {}): unknown {
   const finalUrl = o.finalUrl ?? URL0;
@@ -30,16 +33,17 @@ function lhr(o: Opt = {}): unknown {
       formFactor: o.formFactor ?? 'mobile',
       throttlingMethod: o.method ?? 'simulate',
       throttling: { rttMs: o.rtt ?? MOBILE_DEFAULTS.rttMs, throughputKbps: MOBILE_DEFAULTS.throughputKbps, cpuSlowdownMultiplier: o.cpu ?? MOBILE_DEFAULTS.cpuSlowdownMultiplier },
-      screenEmulation: { mobile: o.mobile ?? true, width: 412, height: 823, deviceScaleFactor: 1.75 },
+      screenEmulation: { mobile: o.mobile ?? true, width: 412, height: 823, deviceScaleFactor: 1.75, disabled: o.emulationDisabled ?? false },
     },
     environment: { benchmarkIndex: o.bench ?? 2100 },
-    categories: { performance: { score: o.noPerf ? null : (o.score ?? 1) }, accessibility: { score: o.a11y ?? 1 } },
+    categories: { performance: { score: o.noPerf ? null : (o.score ?? 1) }, accessibility: { score: o.a11y ?? 1 }, 'best-practices': { score: 0.96 }, seo: { score: 0.92 } },
     audits: {
       'first-contentful-paint': { numericValue: 800 },
       'largest-contentful-paint': { numericValue: o.lcp ?? 1000 },
       'total-blocking-time': { numericValue: 0 },
       'cumulative-layout-shift': { numericValue: 0 },
       'speed-index': { numericValue: o.si ?? 900 },
+      'errors-in-console': { details: { items: (o.consoleErrors ?? []).map((d) => ({ source: 'javascript', description: d })) } },
       'network-requests': { details: { items: [{ url: finalUrl, resourceType: 'Document', statusCode: o.status ?? 200, transferSize: 2500, resourceSize: 7000 }] } },
     },
   };
@@ -66,6 +70,7 @@ describe('parseLhr guards (a mis-configured run never counts)', () => {
     ['custom RTT', { rtt: 40 }, /throttling\.rttMs/],
     ['no CPU slowdown', { cpu: 1 }, /cpuSlowdownMultiplier/],
     ['a redirect', { finalUrl: 'http://127.0.0.1:4112/fr/' }, /redirected/],
+    ['mobile emulation disabled', { emulationDisabled: true }, /screenEmulation\.disabled/],
   ] as const)('flags %s', (_n, o, re) => {
     expect(parseLhr(lhr(o), URL0).problems.join('\n')).toMatch(re);
   });
@@ -153,6 +158,23 @@ describe('summarize', () => {
     final[0] = { ...rec(1, { version: '12.0.0' }), contended: true };
     expect(summarize(T, final, 5).verdict).toBe('fail');
   });
+  it('deterministic failures are FAIL even on a contended machine (accessibility, status, console errors)', () => {
+    const contend = (rs: RunRecord[]): RunRecord[] => rs.map((r) => ({ ...r, contended: true, loadavgBefore: 20 }));
+    expect(summarize(T, contend(five(() => ({ a11y: 0.98 }))), 5).verdict).toBe('fail');
+    expect(summarize(T, contend(five(() => ({ status: 500 }))), 5).verdict).toBe('fail');
+    expect(summarize(T, contend(five(() => ({ consoleErrors: ['Uncaught TypeError: x is undefined'] }))), 5).verdict).toBe('fail');
+    // …while a performance-only failure under contention stays inconclusive
+    expect(summarize(T, contend(five(() => ({ score: 0.97 }))), 5).verdict).toBe('inconclusive');
+    // a mix: perf failure + a11y failure under contention is FAIL
+    expect(summarize(T, contend(five(() => ({ score: 0.97, a11y: 0.9 }))), 5).verdict).toBe('fail');
+  });
+  it('console errors fail on a quiet machine too, and best-practices/SEO scores are recorded, not gated', () => {
+    const s = summarize(T, five((i) => (i === 3 ? { consoleErrors: ['boom'] } : {})), 5);
+    expect(s.failures.join()).toMatch(/run 3: 1 console error/);
+    const r = parseLhr(lhr(), URL0);
+    expect(r.info).toEqual({ bestPractices: 0.96, seo: 0.92 });
+    expect(summarize(T, five(), 5).ok).toBe(true);
+  });
   it('median()', () => {
     expect(median([3, 1, 2])).toBe(2);
     expect(median([4, 1, 2, 3])).toBe(2.5);
@@ -194,6 +216,12 @@ describe('template registry', () => {
     ]);
     expect(r.skipped.map((s) => s.url)).toContain('/404.html');
     expect(r.skipped.map((s) => s.url)).toContain('/ar/c/x/2/');
+  });
+  it('measures the heaviest page of a template', () => {
+    const d = tmp();
+    site(d);
+    put(d, 'ar/p/b/index.html', page('ar', 'product').replace('<body>', `<body><p>${'x'.repeat(5000)}</p>`));
+    expect(discover(d).targets.find((t) => t.id === 'product-ar')?.url).toBe('/ar/p/b/');
   });
   it('a template missing in one language is an error', () => {
     const d = tmp();
@@ -268,5 +296,18 @@ describe('lock helpers', () => {
     const a = ancestors();
     expect(a[0]).toBe(process.ppid);
     expect(a.length).toBeGreaterThan(0);
+  });
+});
+
+describe('gate mode', () => {
+  const cli = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/lh/cli.ts');
+  it.each([['--runs', '1'], ['--url', '/ar/'], ['--template', 'home'], ['--max-load', '99'], ['--base-url', 'http://x']])('refuses %s in --gate mode', (flag, val) => {
+    const r = spawnSync(process.execPath, [cli, '--gate', flag, val], { encoding: 'utf8' });
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/gate mode refuses/);
+  });
+  it('HB_GATE=1 is the same as --gate', () => {
+    const r = spawnSync(process.execPath, [cli, '--runs', '1'], { encoding: 'utf8', env: { ...process.env, HB_GATE: '1' } });
+    expect(r.status).toBe(2);
   });
 });
