@@ -17,7 +17,7 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
 
   const mainSha = () => ok(git(root, 'rev-parse', 'main')).stdout.trim();
   const merge = (args: string[], gate = gateOk) =>
-    sh(root, join(root, 'scripts/team/merge.sh'), args, { HB_ARTIFACTS_DIR: join(root, 'artifacts'), HB_GATE: gate });
+    sh(root, join(root, 'scripts/team/merge.sh'), args, { HB_ARTIFACTS_DIR: join(root, 'artifacts'), HB_GATE_CMD: gate });
   const tier = (t: string) => `What changed: x\nTesting: y\n${t}\nRevert: z\n`;
   const commitIn = (dir: string, subject: string, body = GOOD_BODY, noVerify = false) => {
     ok(git(dir, 'add', '-A'));
@@ -99,19 +99,33 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     expect(r.stderr).toContain('no line for WEB-3');
   });
 
-  test('C4 / X7: high risk needs a SIGNOFFS line "<ID> <exact full sha> — signed off"', () => {
+  test('C4 / X7: high risk needs a SIGNOFFS line "<ID> <exact full sha> — signed off"; malformed sign-off lines refuse everything', () => {
     resetBranch();
     write(wt, 'apps/web/src/e.ts', 'export const e = 1;\n');
     const c = commitIn(wt, 'WEB-5: e', tier('Risk tier: high'));
     approve('WEB-5', 1, 'APPROVED', [c]);
-    signoff(`WEB-5 ${'0'.repeat(40)} — signed off 2026-11-05`); // another sha (C4)
-    expect(merge(['team/web', '--dry-run']).stderr).toContain('no \'WEB-5');
-    signoff(`WEB-5 ${c} — client REFUSED, do not merge`); // X7
-    expect(merge(['team/web', '--dry-run']).stderr).toContain('no \'WEB-5');
-    signoff(`WEB-5 ${c.slice(0, 12)} — signed off 2026-11-05`); // prefixes no longer count
-    expect(merge(['team/web', '--dry-run']).status).toBe(1);
+    signoff(`WEB-5 ${'0'.repeat(40)} — signed off 2026-11-05`); // another sha (C4): well-formed, does not cover c
+    let r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("no 'WEB-5");
+    const f = join(root, 'team/SIGNOFFS.md');
+    const clean = readFileSync(f, 'utf8');
+    for (const bad of [
+      `WEB-5 ${c} — client REFUSED, do not merge`, // X7
+      `WEB-5 ${c.slice(0, 12)} — signed off 2026-11-05`, // short sha
+      ` WEB-5 ${c} — signed off 2026-11-05`, // leading space
+      `WEB-5 ${c} — signed off 2026-11-05\r`, // CRLF
+    ]) {
+      signoff(bad);
+      r = merge(['team/web', '--dry-run']);
+      expect(r.status, JSON.stringify(bad)).toBe(1);
+      expect(r.stderr).toContain('malformed sign-off line');
+      writeFileSync(f, clean);
+      ok(git(root, 'add', '-A'));
+      ok(commit(root, 'BOOT-8: sign-off repair', { HB_ROLE: 'lead' }));
+    }
     signoff(`WEB-5 ${c} — signed off 2026-11-05 — evidence artifacts/WEB-5/`);
-    const r = merge(['team/web']);
+    r = merge(['team/web']);
     expect(r.status, r.stdout + r.stderr).toBe(0);
   });
 
@@ -204,6 +218,33 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     writeFileSync(f, readFileSync(f, 'utf8').split('\n').filter((l) => !l.startsWith('WEB-12 ')).join('\n'));
     ok(git(root, 'add', '-A'));
     ok(commit(root, 'BOOT-9: ledger repair', { HB_ROLE: 'lead' }));
+  });
+
+  test('X4e / X4h (rev-d r2): a ledger line with odd spacing, tab, CRLF, lowercase verdict or short sha is never ignored — it refuses everything', () => {
+    for (const bad of [
+      ' WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x', // X4e leading space
+      'WEB-14  r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x', // X4h two spaces
+      'WEB-14\tr2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x', // tab
+      'WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x trailing', // junk
+      '- WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x', // list bullet
+      'WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x\r', // CRLF
+      'WEB-14 r2 changes_requested tier=low reviewer=rev-d commits=CS review=x', // lowercase verdict
+      'WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=SHORT review=x', // truncated sha
+    ]) {
+      resetBranch();
+      write(wt, 'apps/web/src/x4e.ts', `// ${bad.length}\n`);
+      const c = commitIn(wt, 'WEB-14: x4e');
+      approve('WEB-14', 1, 'APPROVED', [c]);
+      ledger(bad.replace('CS', c).replace('SHORT', c.slice(0, 12)));
+      const r = merge(['team/web', '--dry-run']);
+      expect(r.status, JSON.stringify(bad)).toBe(1);
+      expect(r.stderr).toContain('malformed ledger line');
+      // the lead repairs the ledger
+      const f = join(root, 'team/APPROVALS.md');
+      writeFileSync(f, readFileSync(f, 'utf8').split('\n').filter((l) => !l.includes('WEB-14')).join('\n'));
+      ok(git(root, 'add', '-A'));
+      ok(commit(root, 'BOOT-9: ledger repair', { HB_ROLE: 'lead' }));
+    }
   });
 
   test('X5 / X6: merge commits adding a foreign file are refused, octopus explicitly', () => {

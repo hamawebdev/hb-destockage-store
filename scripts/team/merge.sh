@@ -25,13 +25,13 @@
 # catches reverts and edits hidden in merges); run scripts/gate.sh there (--base = current main),
 # and fast-forward main to the merge only when the gate is green. Main never holds a red merge.
 #   --dry-run   checks + a trial merge for conflicts; main untouched; no gate unless --gate
-# Exit 0 merged (or dry-run clean), 1 refused/red, 2 usage. Gate command override for tests: HB_GATE.
+# Exit 0 merged (or dry-run clean), 1 refused/red, 2 usage. Gate command override for tests: HB_GATE_CMD (HB_GATE is measure's lh gate-mode flag).
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 main_root="$(dirname "$(git -C "$here" rev-parse --path-format=absolute --git-common-dir)")"
 artifacts="${HB_ARTIFACTS_DIR:-$main_root/artifacts}"
-gate_cmd="${HB_GATE:-$here/../gate.sh}"
+gate_cmd="${HB_GATE_CMD:-$here/../gate.sh}"
 
 branch="" sha_arg="" dry=0 dry_gate=0
 while [[ $# -gt 0 ]]; do
@@ -82,11 +82,16 @@ declare -A L_listed=() L_n=() L_verdict=() L_who=() L_review=() L_high=()
 ledger_errors=()
 id_re='[A-Z]+(-[A-Z]+)?-[0-9]+'
 line_re="^($id_re) r([0-9]+) (APPROVED|CHANGES_REQUESTED) tier=(low|high) reviewer=(rev-[a-z]) commits=([0-9a-f]{40}(,[0-9a-f]{40})*) review=([^[:space:]]+)\$"
-looks_re="^$id_re r[0-9]+[[:space:]]"
+# Fail closed (rev-d TOOL-5 r2, lead rule): every non-blank line that is not a "#" heading/comment or
+# a "`" template line and contains anything that looks like a task ID must match the strict regex
+# exactly (no leading/double spaces, tabs, CRLF, lowercase verdicts, short shas, trailing junk);
+# otherwise ALL merges are refused, naming the line. Same rule for team/SIGNOFFS.md below.
+looks_re="$id_re"
+skip_line() { [[ -z "${1//[[:space:]]/}" || "$1" == '#'* || "$1" == '`'* ]]; }
 lnum=0
 while IFS= read -r line || [[ -n "$line" ]]; do
   lnum=$((lnum + 1))
-  line="${line%$'\r'}"
+  skip_line "$line" && continue
   if [[ "$line" =~ $line_re ]]; then
     lid="${BASH_REMATCH[1]}" ln="${BASH_REMATCH[3]}" lv="${BASH_REMATCH[4]}" lt="${BASH_REMATCH[5]}"
     lw="${BASH_REMATCH[6]}" lc="${BASH_REMATCH[7]}" lr="${BASH_REMATCH[9]}"
@@ -95,11 +100,24 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     [[ "$lt" == high ]] && L_high[$lid]=1
     if (( ln >= ${L_n[$lid]:--1} )); then L_n[$lid]=$ln L_verdict[$lid]=$lv L_who[$lid]=$lw L_review[$lid]=$lr; fi
   elif [[ "$line" =~ $looks_re ]]; then
-    ledger_errors+=("team/APPROVALS.md:$lnum malformed ledger line: $line")
+    ledger_errors+=("team/APPROVALS.md:$lnum malformed ledger line: $(printf '%q' "$line")")
   fi
 done <"$ledger_tmp"
+
+declare -A S_signed=()
+sign_re="^($id_re) ([0-9a-f]{40}) — signed off( .*)?\$"
+lnum=0
+while IFS= read -r line || [[ -n "$line" ]]; do
+  lnum=$((lnum + 1))
+  skip_line "$line" && continue
+  if [[ "$line" =~ $sign_re && "$line" != *$'\r'* ]]; then
+    S_signed["${BASH_REMATCH[1]} ${BASH_REMATCH[3]}"]=1
+  elif [[ "$line" =~ $looks_re ]]; then
+    ledger_errors+=("team/SIGNOFFS.md:$lnum malformed sign-off line: $(printf '%q' "$line")")
+  fi
+done <"$signoffs_tmp"
 if [[ ${#ledger_errors[@]} -gt 0 ]]; then
-  echo "merge: REFUSED — the approvals ledger has errors (fix it on main first):" >&2
+  echo "merge: REFUSED — the approvals ledger / sign-off log has errors (fix it on main first):" >&2
   printf '  - %s\n' "${ledger_errors[@]}" >&2
   exit 1
 fi
@@ -194,13 +212,7 @@ for c in "${commits[@]}"; do
     # effective tier = max(commit, ledger): a reviewer may raise it, never lower it
     [[ -n "${L_high[$id]:-}" ]] && tier=high
     if [[ "$tier" == high ]]; then
-      signed=0
-      while IFS= read -r line || [[ -n "$line" ]]; do
-        if [[ "$line" =~ ^($id_re)\ ([0-9a-f]{40})\ —\ signed\ off([[:space:]]|$) ]]; then
-          [[ "${BASH_REMATCH[1]}" == "$id" && "${BASH_REMATCH[3]}" == "$c" ]] && { signed=1; break; }
-        fi
-      done <"$signoffs_tmp"
-      ((signed)) || why+=("effective tier high but team/SIGNOFFS.md has no '$id $c — signed off …' line")
+      [[ -n "${S_signed["$id $c"]:-}" ]] || why+=("effective tier high but team/SIGNOFFS.md has no '$id $c — signed off …' line")
     fi
   fi
 
