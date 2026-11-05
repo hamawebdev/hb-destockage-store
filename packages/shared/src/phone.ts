@@ -52,9 +52,10 @@ export type PhoneResult = PhoneOk | PhoneErr;
 // Eastern Arabic-Indic (U+0660–0669), Extended/Persian (U+06F0–06F9) and fullwidth (U+FF10–FF19) digits.
 const NON_ASCII_DIGIT_RE = /[٠-٩۰-۹０-９]/g;
 // Separators users type or paste: whitespace (incl. NBSP/NNBSP), ASCII and Unicode dashes and
-// minus, dots, parentheses, and bidi/format marks from copy-paste (LRM, RLM, ALM, embeddings,
-// overrides, isolates, BOM).
-const STRIP_RE = /[\s\-‐-―−.()‎‏؜‪-‮⁦-⁩﻿]/g;
+// minus, dots, parentheses — and every Unicode format character (\p{Cf}: soft hyphen, ZWSP, ZWNJ,
+// ZWJ, word joiner, LRM/RLM/ALM, bidi embeddings/overrides/isolates, BOM, tags…), which
+// WhatsApp and contact apps add when a number is copied. None can be part of a phone number.
+const STRIP_RE = /[\s\p{Cf}\-\u2010-\u2015\u2212.()]/gu;
 
 /** Converts Eastern Arabic, Persian and fullwidth digits to ASCII; leaves everything else unchanged. */
 export function toAsciiDigits(input: string): string {
@@ -69,7 +70,7 @@ export function toAsciiDigits(input: string): string {
  * Accepts `0XXXXXXXXX`, `+213XXXXXXXXX`, `00213XXXXXXXXX`, `213XXXXXXXXX`, a redundant trunk 0
  * after any country-code form (`+213 0…`, `00213 0…`, `213 0…`), and a
  * bare 9-digit NSN that is exactly a mobile; with any Eastern Arabic/Persian/fullwidth digits,
- * fullwidth `＋`, spaces, dashes, dots, parentheses or bidi marks.
+ * fullwidth `＋`, spaces, dashes, dots, parentheses, and any invisible format character.
  */
 export function normalizePhone(input: string): PhoneResult {
   if (input.length > PHONE_INPUT_MAX_LENGTH) return { ok: false, code: 'phone_invalid' };

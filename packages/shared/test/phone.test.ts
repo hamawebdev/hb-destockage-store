@@ -176,6 +176,47 @@ describe('normalizePhone: rejected inputs', () => {
   });
 });
 
+describe('review r1 nit: every invisible format character (\\p{Cf}) is ignored', () => {
+  // All format characters in the runtime's Unicode tables (soft hyphen, ALM, Mongolian vowel
+  // separator, ZWSP…RLM, bidi embeddings/isolates, word joiner and invisible operators, BOM, tags…).
+  const CF: string[] = [];
+  for (let cp = 0; cp <= 0x10ffff; cp++) {
+    if (cp >= 0xd800 && cp <= 0xdfff) continue;
+    const ch = String.fromCodePoint(cp);
+    if (/^\p{Cf}$/u.test(ch)) CF.push(ch);
+  }
+
+  test('the class includes the characters pasted numbers carry', () => {
+    for (const cp of [0x00ad, 0x061c, 0x180e, 0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 0x2060, 0x2066, 0x2069, 0xfeff])
+      expect(CF).toContain(String.fromCodePoint(cp));
+    expect(CF.length).toBeGreaterThan(150);
+  });
+
+  test.each(['0555123456', '+213 555 12 34 56', '٠٥٥٥١٢٣٤٥٦'])('%j with each Cf char at start, middle and end', (base) => {
+    const want = normalizePhone(base);
+    expect(want.ok).toBe(true);
+    for (const ch of CF) {
+      const mid = Math.floor(base.length / 2);
+      for (const input of [ch + base, base.slice(0, mid) + ch + base.slice(mid), base + ch]) {
+        expect(normalizePhone(input), JSON.stringify(input)).toEqual(want);
+      }
+    }
+  });
+
+  test.each([
+    ['\u200B0555123456', '+213555123456'], // rev-d's vector
+    ['\u2068\u200E+213 555 12 34 56\u2069', '+213555123456'],
+    ['05\u00AD55\u00AD12\u00AD34\u00AD56', '+213555123456'],
+    ['\u200D0555\u200C123456\u2060', '+213555123456'],
+  ])('%j → %s', (input, e164) => {
+    expect(normalizePhone(input)).toMatchObject({ ok: true, e164 });
+  });
+
+  test('format characters alone are still "required"', () => {
+    expect(normalizePhone('\u200B\u200C\u00AD\uFEFF')).toEqual({ ok: false, code: 'phone_required' });
+  });
+});
+
 describe('every non-ASCII digit at every position', () => {
   const base = '0560417403';
   const sets = [
