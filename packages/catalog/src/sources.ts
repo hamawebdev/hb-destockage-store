@@ -54,7 +54,7 @@ function defaultGeneratedAt(): number {
 }
 
 /** Dynamic import that sees edits (cache-busted by mtime), e.g. in a long-running dev server. */
-async function importFresh<T>(file: string): Promise<T> {
+export async function importFresh<T>(file: string): Promise<T> {
   const { mtimeMs } = await stat(file);
   return (await import(`${pathToFileURL(file).href}?mtime=${mtimeMs}`)) as T;
 }

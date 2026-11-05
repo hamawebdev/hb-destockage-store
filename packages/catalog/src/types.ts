@@ -703,9 +703,9 @@ export interface SearchProps {
 }
 
 /**
- * Per-language search index (CAT-5), short keys to save bytes.
- * `k` is the searchable text normalised with geo's `normalizeForSearch` (the JS applies the same
- * normalisation to the query).
+ * Per-language search index (CAT-5), short keys to save bytes, served at `/search/<lang>.json`.
+ * Matching (GEO-5): fold the query with geo's `normalizeForSearch(query, lang)` and keep entries
+ * where `k.includes(query)` (substring, not prefix: Arabic names keep the article ال).
  */
 export interface SearchIndex {
   readonly v: 1;
@@ -734,7 +734,8 @@ export interface SearchIndexEntry {
   readonly f: boolean;
   /** Placeholder product. */
   readonly x: boolean;
-  /** Normalised search key: name + brandLatin + category name + option value labels (this language). */
+  /** geo's `searchKey(field, lang)` of name, brandLatin, category name and each option value label
+   *  (this language), deduplicated and joined with `|` (so a match never spans two fields). */
   readonly k: string;
 }
 
