@@ -5,8 +5,8 @@
  * Grid and options schemas are built from the product's actual ids/rows, so they stay strict.
  */
 import * as v from 'valibot';
-import { vCheckbox, vOptionalInt, vOptionalText, vPicklist, vText } from '../../lib/forms.ts';
-import { MAX_ORDER_TOTAL_DZD, vDzd, vOptionalDzd } from './lib/money.ts';
+import { vCheckbox, vMoneyDzd, vOptionalInt, vOptionalMoneyDzd, vOptionalText, vPicklist, vText } from '../../lib/forms.ts';
+import { MAX_ORDER_TOTAL_DZD } from './lib/money.ts';
 import { OPTION_KINDS } from '@hb/db';
 import { cleanText } from './lib/text.ts';
 import { checkSlug, suggestSlug } from './lib/slug.ts';
@@ -56,8 +56,8 @@ export const CreateSchema = v.strictObject({
   ...detailsEntries,
   kind: vPicklist(['simple', 'variable', 'pack'] as const),
   sku: v.pipe(vText(40), v.transform(normalizeSku)),
-  price: vDzd(LIMITS.price),
-  compare_at: vOptionalDzd(LIMITS.price),
+  price: vMoneyDzd(LIMITS.price),
+  compare_at: vOptionalMoneyDzd(LIMITS.price),
   stock: optionalInt(0, LIMITS.stock),
   weight: optionalInt(0, LIMITS.weight),
 });
@@ -167,8 +167,8 @@ export function gridSchema(variantIds: readonly number[]) {
   };
   for (const id of variantIds) {
     entries[`sku_${id}`] = v.pipe(vText(40), v.transform(normalizeSku));
-    entries[`price_${id}`] = vDzd(LIMITS.price);
-    entries[`compare_${id}`] = vOptionalDzd(LIMITS.price);
+    entries[`price_${id}`] = vMoneyDzd(LIMITS.price);
+    entries[`compare_${id}`] = vOptionalMoneyDzd(LIMITS.price);
     entries[`stock_${id}`] = optionalInt(0, LIMITS.stock);
     /** Stock as rendered ('' = untracked): the write is conditional on it (orders decrement stock). */
     entries[`stockwas_${id}`] = optionalInt(0, LIMITS.stock);

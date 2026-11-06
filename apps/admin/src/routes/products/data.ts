@@ -295,20 +295,19 @@ export async function saveGrid(c: Ctx, agg: ProductAggregate, rows: readonly Gri
     if (defaultId !== null) writes.push(db.update(variants).set({ isDefault: true }).where(and(eq(variants.id, defaultId), eq(variants.productId, agg.product.id))));
   }
   writes.push(db.update(products).set({ updatedAt: bumpUpdatedAt() }).where(eq(products.id, agg.product.id)));
+  // One audit row per changed variant (entity = variants, id = the variant), like ACAT-7's stock rows;
+  // a default change is a product-level row.
   const audits: Batch = [];
-  if (Object.keys(after).length > 0 || defaultChanged) {
-    audits.push(
-      audit(c, {
-        action: 'variant.update',
-        entity: 'variants',
-        entityId: agg.product.id,
-        before: { variants: before, ...(defaultChanged ? { defaultVariantId: currentDefault } : {}) },
-        after: { variants: after, ...(defaultChanged ? { defaultVariantId: defaultId } : {}) },
-      }),
-    );
+  for (const [vid, a] of Object.entries(after)) {
+    const id = Number(vid);
+    audits.push(audit(c, { action: 'variant.update', entity: 'variants', entityId: id, before: { sku: byId.get(id)?.sku, ...before[id] }, after: { sku: byId.get(id)?.sku, ...a } }));
   }
-  if (Object.keys(stockAfter).length > 0) {
-    audits.push(audit(c, { action: 'stock.set', entity: 'variants', entityId: agg.product.id, before: { stock: stockBefore }, after: { stock: stockAfter } }));
+  for (const [vid, stockNow] of Object.entries(stockAfter)) {
+    const id = Number(vid);
+    audits.push(audit(c, { action: 'stock.set', entity: 'variants', entityId: id, before: { sku: byId.get(id)?.sku, stock: stockBefore[id] ?? null }, after: { sku: byId.get(id)?.sku, stock: stockNow } }));
+  }
+  if (defaultChanged) {
+    audits.push(audit(c, { action: 'variant.default', entity: 'products', entityId: agg.product.id, before: { defaultVariantId: currentDefault }, after: { defaultVariantId: defaultId } }));
   }
   await run(c, [...items, ...writes, ...audits]);
   return 'saved';

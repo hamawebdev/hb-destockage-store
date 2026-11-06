@@ -96,7 +96,8 @@ describe('create', () => {
   test.each<[Record<string, string>, string]>([
     [{ price: '1.5' }, 'price'],
     [{ price: '-1' }, 'price'],
-    [{ price: '1500.00' }, 'price'],
+    [{ price: '1500.50' }, 'price'],
+    [{ price: '1,500' }, 'price'],
     [{ price: '1e3' }, 'price'],
     [{ price: '' }, 'price'],
     [{ compare_at: '2500' }, 'compare_at'],
@@ -110,9 +111,14 @@ describe('create', () => {
     expect((await one<{ n: number }>('select count(*) n from products'))!.n).toBe(0);
   });
 
-  test('Eastern-Arabic digits and grouped thousands are accepted', async () => {
-    const pid = await create({ price: '١٤.٦٠٠' });
-    expect((await variantsOf(pid))[0]!.price_dzd).toBe(14600);
+  test.each([
+    ['١٤.٦٠٠', 14600],
+    ['14 600', 14600],
+    ['1500.00', 1500],
+    ['600,00', 600],
+  ])('price %j is accepted as %d (admin-core vMoneyDzd)', async (price, dzd) => {
+    const pid = await create({ price, sku: `hb-${dzd}` });
+    expect((await variantsOf(pid))[0]!.price_dzd).toBe(dzd);
   });
 
   test('price above the order ceiling is saved with a visible warning', async () => {
@@ -164,7 +170,9 @@ describe('variant grid', () => {
     expect((await post(USERS.content, `/products/${pid}/variants`, { ...vals, [`price_${v!.id}`]: '2400' })).status).toBe(303);
     expect((await variantsOf(pid))[0]!.price_dzd).toBe(2400);
     const [a] = await audits('variant.update');
-    expect(JSON.parse(a!.after!)).toEqual({ variants: { [v!.id]: { priceDzd: 2400 } } });
+    expect(a!.entity_id).toBe(String(v!.id));
+    expect(JSON.parse(a!.before!)).toEqual({ sku: 'HB-POELE', priceDzd: 2500 });
+    expect(JSON.parse(a!.after!)).toEqual({ sku: 'HB-POELE', priceDzd: 2400 });
   });
 
   test('unchanged grid → 303 with no audit row', async () => {
@@ -189,8 +197,9 @@ describe('variant grid', () => {
     expect(ok.status).toBe(303);
     expect((await variantsOf(pid))[0]!.stock).toBe(20);
     const [s] = await audits('stock.set');
-    expect(JSON.parse(s!.before!)).toEqual({ stock: { [v!.id]: 8 } });
-    expect(JSON.parse(s!.after!)).toEqual({ stock: { [v!.id]: 20 } });
+    expect(s!.entity_id).toBe(String(v!.id));
+    expect(JSON.parse(s!.before!)).toEqual({ sku: 'HB-POELE', stock: 8 });
+    expect(JSON.parse(s!.after!)).toEqual({ sku: 'HB-POELE', stock: 20 });
   });
 
   test('stock blank = untracked (NULL)', async () => {
