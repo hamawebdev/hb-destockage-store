@@ -2,6 +2,8 @@
 // Plan: artifacts/AORD-0/plan.md. Rules: see the header of src/app.ts.
 //
 //   GET  /                    list, filters, search, keyset pagination        (AORD-1)
+//   GET  /queue               call queue: my claimed order, or "take next"    (AORD-3)
+//   POST /queue/next          claim the next order to call (AORD-2 claimOrder)
 //   GET  /:ref                detail, timeline, action forms                  (AORD-2)
 //   POST /:ref/call           log a call attempt + outcome                    (AORD-2)
 //   POST /:ref/transition     manual transitions (cancel, ship, deliver, return)
@@ -20,11 +22,13 @@ import { communes, settings, updateOrderContact, wilayas, type Db } from '@hb/db
 import { rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import type { AppEnv } from '../../env.ts';
-import { parseForm, type FormSchema } from '../../lib/forms.ts';
+import { parseForm, readForm, type FormSchema } from '../../lib/forms.ts';
 import { createRouter } from '../../lib/router.ts';
 import { withFlash } from '../../ui/flash.tsx';
 import { audit, noAudit } from '../../audit/audit.ts';
 import { claimOrder, releaseOrder } from './claims.ts';
+import { myClaim, queueCandidates, queueCounts } from './queue.ts';
+import { QueueCallPage, QueueEmptyPage } from './queue-page.tsx';
 import { ContactForm, canEditContact, communesOf, contactAudit, feeProviderFor, previewContact, type ContactCurrent, type ContactErrKey } from './contact.ts';
 import { ContactEditPage, ContactReviewPage } from './contact-page.tsx';
 import { fetchOrderByRef, fetchOrderChildren, type OrderDetail } from './detail-data.ts';
@@ -64,6 +68,42 @@ r.get('/', requirePerm('orders.view'), async (c) => {
     <OrdersListPage lang={c.var.lang} parsed={parsed} page={page} q={q} url={`${url.pathname}${url.search}`} />,
     { title: m(c.var.lang)('list.title') },
   );
+});
+
+// ---------------------------------------------------------------------------------------------
+// Call queue (AORD-3): reads, plus AORD-2's claimOrder.
+
+/** `afterNext`: "take next" found nothing free; if work is waiting (held by colleagues) say so with a 409. */
+async function renderQueue(c: Context<AppEnv>, opts: { afterNext?: boolean } = {}) {
+  const now = Date.now();
+  const tm = m(c.var.lang);
+  const title = tm('queue.title');
+  const ref = await myClaim(c.var.db, c.var.user.id, now);
+  const order = ref ? await fetchOrderByRef(c.var.db, ref) : null;
+  if (order) {
+    const { items, events } = await fetchOrderChildren(c.var.db, order.id, { withAudit: false });
+    return c.render(<QueueCallPage lang={c.var.lang} user={c.var.user} now={now} order={order} items={items} events={events} />, { title });
+  }
+  const counts = await queueCounts(c.var.db, now);
+  const nothingFree = opts.afterNext === true && counts.due + counts.new + counts.unreachable > 0;
+  if (nothingFree) c.status(409);
+  return c.render(<QueueEmptyPage lang={c.var.lang} counts={counts} nothingFree={nothingFree} />, { title });
+}
+
+r.get('/queue', requirePerm('orders.queue'), (c) => renderQueue(c));
+
+r.post('/queue/next', requirePerm('orders.queue'), async (c) => {
+  const now = Date.now();
+  if (await myClaim(c.var.db, c.var.user.id, now)) {
+    noAudit(c, 'queue/next: the user already holds a claim, nothing written');
+    return c.redirect('/orders/queue', 303);
+  }
+  for (const cand of await queueCandidates(c.var.db, c.var.user.id, now)) {
+    if (await claimOrder(c, cand.id, now)) return c.redirect('/orders/queue', 303);
+  }
+  noAudit(c, 'queue/next: no free order to claim, nothing written');
+  // Nothing due at all → the normal empty page (200); work waiting but held by colleagues → 409.
+  return renderQueue(c, { afterNext: true });
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -152,7 +192,10 @@ async function mutate<S extends FormSchema>(
   if (!p.ok) return renderDetail(c, order, p.status, { form: formOf(translate(c, p.errors)) });
 
   const res = await orderWriter.applyChange(c, order.id, p.plan, now);
-  if (res.ok) return c.redirect(withFlash(`/orders/${order.ref}`, 'saved'), 303);
+  if (res.ok) {
+    const back = (f.data as { return?: string }).return === 'queue' ? '/orders/queue' : `/orders/${order.ref}`;
+    return c.redirect(withFlash(back, 'saved'), 303);
+  }
   switch (res.code) {
     case 'not_found':
       return c.notFound();
@@ -199,7 +242,8 @@ r.post(`/${REF}/claim`, requirePerm('orders.call'), async (c) => {
 r.post(`/${REF}/release`, requirePerm('orders.call'), async (c) => {
   const order = await fetchOrderByRef(c.var.db, c.req.param('ref'));
   if (!order) return c.notFound();
-  if (await releaseOrder(c, order.id)) return c.redirect(withFlash(`/orders/${order.ref}`, 'saved'), 303);
+  const back = (await readForm(c))['return'] === 'queue' ? '/orders/queue' : `/orders/${order.ref}`;
+  if (await releaseOrder(c, order.id)) return c.redirect(withFlash(back, 'saved'), 303);
   return renderDetail(c, order, 409, { form: { kind: 'call', values: {}, errors: translate(c, { _form: 'err.nothingToRelease' }) } });
 });
 

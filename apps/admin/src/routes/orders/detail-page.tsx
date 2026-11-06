@@ -83,7 +83,8 @@ function ReasonSelect(props: { tm: OrdersMessages; name: string; label: string; 
   );
 }
 
-function CallForm(props: DetailProps & { tm: OrdersMessages }) {
+/** The call form (detail page and call queue). `returnTo: 'queue'` brings the user back to the queue. */
+export function CallForm(props: DetailProps & { tm: OrdersMessages; returnTo?: 'queue' }) {
   const { tm, order } = props;
   const mine = props.form?.kind === 'call' ? props.form : undefined;
   const val = (k: string) => mine?.values[k];
@@ -93,6 +94,7 @@ function CallForm(props: DetailProps & { tm: OrdersMessages }) {
     <Section title={tm('call.title', { n: order.callAttempts + 1 })} id="call">
       <Form action={`/orders/${order.ref}/call`}>
         <input type="hidden" name="version" value={String(order.version)} />
+        {props.returnTo ? <input type="hidden" name="return" value={props.returnTo} /> : null}
         {mine ? <ErrorSummary errors={fieldErrors(mine.errors)} /> : null}
         <RawField name="callbackAt" label={tm('call.callbackAt')} hint={tm('call.callbackHint')} error={err('callbackAt')}>
           {(id, describedBy) => (
@@ -158,7 +160,7 @@ function TransitionForms(props: DetailProps & { tm: OrdersMessages; targets: rea
 }
 
 /** Take / release the call (claims never change the order's version: no hidden version field). */
-function ClaimButtons(props: DetailProps & { tm: OrdersMessages; claimActive: boolean }) {
+export function ClaimButtons(props: DetailProps & { tm: OrdersMessages; claimActive: boolean; returnTo?: 'queue' }) {
   const { tm, order, user } = props;
   const mine = props.claimActive && order.claimedByUserId === user.id;
   const canRelease = props.claimActive && (mine || user.role === 'owner');
@@ -171,6 +173,7 @@ function ClaimButtons(props: DetailProps & { tm: OrdersMessages; claimActive: bo
       ) : null}
       {canRelease ? (
         <Form action={`/orders/${order.ref}/release`} class="inline-form">
+          {props.returnTo ? <input type="hidden" name="return" value={props.returnTo} /> : null}
           <Submit variant="secondary">{tm('claim.release')}</Submit>
         </Form>
       ) : null}

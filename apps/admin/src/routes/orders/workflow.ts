@@ -160,6 +160,8 @@ export const CallForm = v.object({
   address: vOptionalText(300),
   flagsChecked: vCheckbox(),
   note: vOptionalText(1000),
+  /** Where to go after a successful call: the order (default) or the call queue (AORD-3). */
+  return: v.optional(v.picklist(['detail', 'queue']), 'detail'),
 });
 export type CallInput = v.InferOutput<typeof CallForm>;
 
