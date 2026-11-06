@@ -7,6 +7,8 @@ export type ClaimResult =
   | 'claimed'
   /** Already delivered: skip. */
   | 'sent'
+  /** Given up and dead-lettered (JOBS-6, DB-7): terminal, shown in the admin; skip. */
+  | 'dead'
   /** Another consumer holds a live lease: retry the message later. */
   | 'busy';
 
@@ -44,7 +46,8 @@ export class D1DeliveryStore implements DeliveryStore {
       .prepare('SELECT status FROM notification_deliveries WHERE order_id = ?1 AND channel = ?2')
       .bind(orderId, channel)
       .first<{ status: string }>();
-    return row?.status === 'sent' ? 'sent' : 'busy';
+    if (row?.status === 'sent' || row?.status === 'dead') return row.status;
+    return 'busy';
   }
 
   async markSent(orderId: number, channel: string, now: number): Promise<void> {
@@ -70,7 +73,7 @@ export class D1DeliveryStore implements DeliveryStore {
 
 /** In-memory store with the same semantics, for tests. */
 export class MemoryDeliveryStore implements DeliveryStore {
-  readonly rows = new Map<string, { status: 'sending' | 'sent'; attempts: number; leaseUntil: number | null; lastError: string | null }>();
+  readonly rows = new Map<string, { status: 'sending' | 'sent' | 'dead'; attempts: number; leaseUntil: number | null; lastError: string | null }>();
 
   async claim(orderId: number, channel: string, now: number, leaseMs: number): Promise<ClaimResult> {
     const k = `${orderId}:${channel}`;
@@ -79,7 +82,7 @@ export class MemoryDeliveryStore implements DeliveryStore {
       this.rows.set(k, { status: 'sending', attempts: 1, leaseUntil: now + leaseMs, lastError: null });
       return 'claimed';
     }
-    if (r.status === 'sent') return 'sent';
+    if (r.status === 'sent' || r.status === 'dead') return r.status;
     if (r.leaseUntil !== null && r.leaseUntil > now) return 'busy';
     r.attempts += 1;
     r.leaseUntil = now + leaseMs;

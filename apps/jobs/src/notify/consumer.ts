@@ -67,7 +67,7 @@ export async function handleOrderNotifications(batch: MessageBatch<unknown>, dep
       const channel = provider.channel;
       try {
         const claim = await deps.store.claim(order.orderId, channel, now(), leaseMs);
-        if (claim === 'sent') continue;
+        if (claim === 'sent' || claim === 'dead') continue;
         if (claim === 'busy') {
           pending = true;
           continue;

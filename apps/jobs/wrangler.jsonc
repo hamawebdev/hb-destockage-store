@@ -34,6 +34,14 @@
         // after this many attempts Cloudflare moves the message to the DLQ.
         "max_retries": 10,
         "dead_letter_queue": "hb-order-notifications-dlq"
+      },
+      {
+        // JOBS-6: dead letters become status 'dead' in notification_deliveries (admin tile).
+        // No DLQ of its own; D1 errors retry with backoff up to max_retries.
+        "queue": "hb-order-notifications-dlq",
+        "max_batch_size": 50,
+        "max_batch_timeout": 30,
+        "max_retries": 10
       }
     ],
     "producers": [

@@ -2,7 +2,8 @@
 // - queue: `order.created` notifications (JOBS-2)
 // - scheduled: daily D1 -> R2 backup (JOBS-1), RUM rollup (JOBS-5)
 import { backupHealthCheck, backupJob } from './backup/job.ts';
-import { CRON_BACKUP_HEALTH, CRON_DAILY_BACKUP, CRON_RUM_ROLLUP, ORDER_NOTIFICATIONS_QUEUE, type Env } from './env.ts';
+import { CRON_BACKUP_HEALTH, CRON_DAILY_BACKUP, CRON_RUM_ROLLUP, ORDER_NOTIFICATIONS_DLQ, ORDER_NOTIFICATIONS_QUEUE, type Env } from './env.ts';
+import { handleDeadLetters } from './notify/dead.ts';
 import { rumJob } from './rum/rollup.ts';
 import { handleOrderNotifications } from './notify/consumer.ts';
 import { D1DeliveryStore } from './notify/deliveries.ts';
@@ -51,6 +52,10 @@ export default {
   },
 
   async queue(batch: MessageBatch<unknown>, env: Env, _ctx: ExecutionContext): Promise<void> {
+    if (batch.queue === ORDER_NOTIFICATIONS_DLQ) {
+      await handleDeadLetters(batch, { db: env.DB });
+      return;
+    }
     if (batch.queue !== ORDER_NOTIFICATIONS_QUEUE) {
       log('queue.unknown', { queue: batch.queue, messages: batch.messages.length });
       batch.retryAll({ delaySeconds: 3600 });

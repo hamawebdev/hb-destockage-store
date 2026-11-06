@@ -22,6 +22,7 @@ export interface Env {
 }
 
 export const ORDER_NOTIFICATIONS_QUEUE = 'hb-order-notifications';
+export const ORDER_NOTIFICATIONS_DLQ = 'hb-order-notifications-dlq';
 export const CRON_DAILY_BACKUP = '0 2 * * *';
 /** 09:00 UTC = 10:00 Algiers: alert if the last good backup is older than 26 h. */
 export const CRON_BACKUP_HEALTH = '0 9 * * *';
