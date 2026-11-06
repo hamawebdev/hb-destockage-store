@@ -24,8 +24,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import * as v from 'valibot';
-import { CatalogSnapshotSchema, checkSnapshotIntegrity } from '@hb/catalog/schema';
+import { checkSnapshotIntegrity, checkSnapshotStructure } from '@hb/catalog/schema';
 
 /** @typedef {{ path: string, message: string }} SeedIssue */
 
@@ -97,13 +96,13 @@ export function validateLoadedSeed(seed) {
 
   // 1. CAT-1 structure. If it fails, stop: the rules below assume well-formed data.
   const snapshot = toSnapshot(seed);
-  const parsed = v.safeParse(CatalogSnapshotSchema, snapshot);
-  if (!parsed.success) {
-    for (const i of parsed.issues) add(where(v.getDotPath(i) ?? ''), i.message);
+  const structure = checkSnapshotStructure(snapshot);
+  if (structure.length) {
+    for (const i of structure) add(where(i.path), i.message);
     return issues;
   }
-  // CAT-1 integrity.
-  for (const i of checkSnapshotIntegrity(parsed.output, { requireAllWilayas: false })) add(where(i.path), i.message);
+  // CAT-1 integrity (the seed snapshot carries no wilayas: geo owns them).
+  for (const i of checkSnapshotIntegrity(snapshot, { requireAllWilayas: false })) add(where(i.path), i.message);
 
   // An entity is *real* (the client's) iff provenance.json lists it; everything else is ours and
   // must be marked. Today provenance lists no category (the client only had "Non classé").

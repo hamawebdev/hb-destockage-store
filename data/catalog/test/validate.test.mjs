@@ -29,6 +29,13 @@ test('the seed covers what SEED-4 promises', () => {
   assert.ok(stocks.includes(null), 'an untracked variant');
   assert.ok(ps.some((p) => p.kind === 'pack' && p.placeholder), 'a placeholder pack');
   assert.ok(ps.some((p) => p.options.length >= 2), 'a size × colour matrix');
+  for (const p of ps.filter((x) => x.options.length >= 2 && x.options.some((o) => o.type === 'colour'))) {
+    const colourValues = new Set(p.options.find((o) => o.type === 'colour').values.map((x) => x.id));
+    const bound = p.images.filter((img) => img.optionValueId != null);
+    assert.ok(bound.length > 0 && bound.every((img) => colourValues.has(img.optionValueId) && img.variantId === null),
+      `${p.slug.fr}: colour photos bound by optionValueId (not to one size)`);
+  }
+  assert.ok(ps.some((p) => p.images.some((img) => img.variantId !== null)), 'variant-bound photos still exercised');
   const cats = new Map(base.categories.map((c) => [c.id, c]));
   const depth = (c) => (c.parentId === null ? 1 : 1 + depth(cats.get(c.parentId)));
   assert.ok(base.categories.some((c) => depth(c) >= 3), 'sub-categories at ≥ 2 levels');
@@ -90,7 +97,7 @@ test('every image file exists and has the stated size', () => {
   expectIssue(s, /huile-argan\.json\.images\[0\]: width\/height 1000×1200 but the file is 1200×1200/);
   s = seed();
   product(s, 'huile-argan').images[0].key = '../huile-argan/1.jpg';
-  expectIssue(s, /must be a lowercase relative path/);
+  expectIssue(s, /huile-argan\.json\.images\.0\.key: image key must be a relative path/); // CAT-1 structure rule since 5ae706f
 });
 
 test('placeholders are marked', () => {
@@ -218,6 +225,16 @@ test('real products and real images have provenance', () => {
   s = seed();
   s.provenance.images.find((x) => x.source === 'supplier_render').needsClientConfirmation = false;
   expectIssue(s, /supplier_render needs needsClientConfirmation: true/);
+});
+
+test('an image binds to a variant or to an option value of its own product', () => {
+  let s = seed();
+  const t = product(s, 't-shirt-coton-homme');
+  t.images.find((img) => img.optionValueId != null).variantId = t.variants[0].id;
+  expectIssue(s, /t-shirt-coton-homme\.json\.images\[\d\]: an image binds to a variant or to an option value, not both/);
+  s = seed();
+  product(s, 't-shirt-coton-homme').images.find((img) => img.optionValueId != null).optionValueId = 999999;
+  expectIssue(s, /t-shirt-coton-homme\.json\.images\[\d\]\.optionValueId: option value 999999 is not in this product/);
 });
 
 test('file name follows the French slug', () => {

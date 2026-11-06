@@ -77,8 +77,10 @@ class P:
         self.d['variants'].append(dict(id=self.d['id'] * 100 + n, sku=sku, priceDzd=price, compareAtDzd=compare, stock=stock,
                                        weightG=weight, active=True, isDefault=default, optionValueIds=list(opts)))
         return self.d['id'] * 100 + n
-    def photo(self, view, colour, alt_ar, alt_fr, variant=None):
-        self.images.append((view, colour, alt_ar, alt_fr, variant))
+    def photo(self, view, colour, alt_ar, alt_fr, variant=None, option_value=None):
+        # Binding: none = general photo; variant = one variant; option_value = every variant with
+        # that value (colour photos of size × colour products). Never both.
+        self.images.append((view, colour, alt_ar, alt_fr, variant, option_value))
 
 def colour_values(*keys):
     return [(k, COLOURS[k][0], COLOURS[k][1], COLOURS[k][2]) for k in keys]
@@ -148,14 +150,13 @@ c = p.option('colour', 'اللون', 'Couleur', colour_values('blanc', 'noir', '
 stock = {('S', 'blanc'): 10, ('M', 'blanc'): 14, ('L', 'blanc'): 12, ('XL', 'blanc'): 6,
          ('S', 'noir'): 8, ('M', 'noir'): 2, ('L', 'noir'): 9, ('XL', 'noir'): 5,       # M noir = low stock
          ('S', 'marine'): 7, ('M', 'marine'): 11, ('L', 'marine'): 10, ('XL', 'marine'): 4}
-vid = {}
 for col in ['blanc', 'noir', 'marine']:
     for sz in ['S', 'M', 'L', 'XL']:
-        vid[(sz, col)] = p.variant(f'PH-TSH-{sz}-{col.upper()}', 1500, stock[(sz, col)], None, [s[sz], c[col]],
+        p.variant(f'PH-TSH-{sz}-{col.upper()}', 1500, stock[(sz, col)], None, [s[sz], c[col]],
                                    default=(sz, col) == ('M', 'blanc'), weight=180)
 p.photo('front', '#f4f4f2', TMP_AR + 'تيشيرت رجالي', TMP_FR + 't-shirt homme')
-p.photo('front', '#1f1f1f', TMP_AR + 'التيشيرت، اللون الأسود', TMP_FR + 't-shirt, coloris noir', vid[('M', 'noir')])
-p.photo('front', '#1f2a44', TMP_AR + 'التيشيرت، اللون الكحلي', TMP_FR + 't-shirt, coloris bleu marine', vid[('M', 'marine')])
+p.photo('front', '#1f1f1f', TMP_AR + 'التيشيرت، اللون الأسود', TMP_FR + 't-shirt, coloris noir', option_value=c['noir'])
+p.photo('front', '#1f2a44', TMP_AR + 'التيشيرت، اللون الكحلي', TMP_FR + 't-shirt, coloris bleu marine', option_value=c['marine'])
 p.photo('detail', '#f4f4f2', TMP_AR + 'التيشيرت عن قرب', TMP_FR + 'vue rapprochée du t-shirt')
 
 p = add(P(207, 'variable', 31, 'sutra-bi-qubba', 'sweat-a-capuche', 'سترة بقبعة', 'Sweat à capuche',
@@ -165,10 +166,9 @@ s = p.option('size', 'المقاس', 'Taille', [(k, k, k, None) for k in ['M', '
 c = p.option('colour', 'اللون', 'Couleur', colour_values('gris', 'noir'))
 for col in ['gris', 'noir']:
     for sz in ['M', 'L', 'XL']:
-        vv = p.variant(f'PH-HOOD-{sz}-{col.upper()}', 3400 if sz == 'XL' else 3200, 6, None, [s[sz], c[col]], default=(sz, col) == ('M', 'gris'))
-        if (sz, col) == ('M', 'noir'): hood_noir = vv
+        p.variant(f'PH-HOOD-{sz}-{col.upper()}', 3400 if sz == 'XL' else 3200, 6, None, [s[sz], c[col]], default=(sz, col) == ('M', 'gris'))
 p.photo('front', '#9e9e9e', TMP_AR + 'سترة بقبعة رمادية', TMP_FR + 'sweat à capuche gris')
-p.photo('front', '#1f1f1f', TMP_AR + 'السترة، اللون الأسود', TMP_FR + 'sweat, coloris noir', hood_noir)
+p.photo('front', '#1f1f1f', TMP_AR + 'السترة، اللون الأسود', TMP_FR + 'sweat, coloris noir', option_value=c['noir'])
 
 p = add(P(208, 'variable', 32, 'fustan-sayfi', 'robe-ete-fleurie', 'فستان صيفي مزهر', 'Robe d’été fleurie',
           'فستان خفيف بطبعة زهور.', 'Robe légère à imprimé fleuri.',
@@ -198,11 +198,10 @@ s = p.option('size', 'المقاس', 'Pointure', [(k, k, k, None) for k in sizes
 c = p.option('colour', 'اللون', 'Couleur', colour_values('blanc', 'noir'))
 for col in ['blanc', 'noir']:
     for sz in sizes:
-        vv = p.variant(f'PH-SNK-{sz}-{col.upper()}', 4500, 4 if sz in ('38', '44') else 9, None, [s[sz], c[col]],
+        p.variant(f'PH-SNK-{sz}-{col.upper()}', 4500, 4 if sz in ('38', '44') else 9, None, [s[sz], c[col]],
                        default=(sz, col) == ('41', 'blanc'))
-        if (sz, col) == ('41', 'noir'): snk_noir = vv
 p.photo('side', '#f4f4f2', TMP_AR + 'حذاء رياضي أبيض من الجانب', TMP_FR + 'basket blanche de profil')
-p.photo('side', '#1f1f1f', TMP_AR + 'الحذاء، اللون الأسود', TMP_FR + 'basket, coloris noir', snk_noir)
+p.photo('side', '#1f1f1f', TMP_AR + 'الحذاء، اللون الأسود', TMP_FR + 'basket, coloris noir', option_value=c['noir'])
 p.photo('box', '#f4f4f2', TMP_AR + 'علبة الحذاء', TMP_FR + 'boîte à chaussures')
 
 # ---------------------------------------------------------------- Beauté & soins
@@ -355,10 +354,13 @@ def dump(path, obj):
 for prod in PRODUCTS:
     slug = prod.d['slug']['fr']
     rows = []
-    for n, (view, col, a_ar, a_fr, variant) in enumerate(prod.images, start=1):
+    for n, (view, col, a_ar, a_fr, variant, option_value) in enumerate(prod.images, start=1):
         key = f'{slug}/{n}.jpg'
-        rows.append(dict(id=prod.d['id'] * 10 + n, variantId=variant, key=key, width=W, height=W,
-                         alt=L(a_ar, a_fr), position=n, placeholder=True))
+        row = dict(id=prod.d['id'] * 10 + n, variantId=variant)
+        if option_value is not None:  # optional key in CAT-1 (absent = null)
+            row['optionValueId'] = option_value
+        row.update(key=key, width=W, height=W, alt=L(a_ar, a_fr), position=n, placeholder=True)
+        rows.append(row)
         os.makedirs(os.path.join(SVG_OUT, slug), exist_ok=True)
         with open(os.path.join(SVG_OUT, slug, f'{n}.svg'), 'w', encoding='utf-8') as f:
             f.write(svg(prod, n, view, col))

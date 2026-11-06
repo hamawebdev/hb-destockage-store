@@ -346,7 +346,8 @@
     },
     {
       "id": 2102,
-      "variantId": 21011,
+      "variantId": null,
+      "optionValueId": 210202,
       "key": "baskets-toile/2.jpg",
       "width": 1200,
       "height": 1200,

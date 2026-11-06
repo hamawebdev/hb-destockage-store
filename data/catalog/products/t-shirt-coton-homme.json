@@ -300,7 +300,8 @@
     },
     {
       "id": 2062,
-      "variantId": 20606,
+      "variantId": null,
+      "optionValueId": 206202,
       "key": "t-shirt-coton-homme/2.jpg",
       "width": 1200,
       "height": 1200,
@@ -313,7 +314,8 @@
     },
     {
       "id": 2063,
-      "variantId": 20610,
+      "variantId": null,
+      "optionValueId": 206203,
       "key": "t-shirt-coton-homme/3.jpg",
       "width": 1200,
       "height": 1200,
