@@ -16,6 +16,25 @@
 
 HB_LOCK_DIR="${HB_LOCK_DIR:-/tmp/hb-locks}"
 
+# Disk rule (BRIEF §9): the root filesystem is small and shared; temp files belong on the data volume.
+# hb_use_data_tmp <name>: unless TMPDIR is already under HB_TMP_VOLUME (/mnt/data), point TMPDIR,
+# TEMP and TMP at HB_TMP_ROOT/<name> (/mnt/data/hb-tmp/<name>). npm's cache is left where it is.
+hb_use_data_tmp() {
+  local vol="${HB_TMP_VOLUME:-/mnt/data}" dir
+  [[ "${TMPDIR:-/tmp}" == "$vol"/* ]] && return 0
+  dir="${HB_TMP_ROOT:-$vol/hb-tmp}/${1//\//_}"
+  mkdir -p "$dir" || return 1
+  export TMPDIR="$dir" TEMP="$dir" TMP="$dir"
+}
+# hb_root_free_ok: 0 when / has at least HB_MIN_ROOT_FREE_GB (3) GB free; prints the free GB.
+hb_root_free_ok() {
+  local kb need
+  kb="$(df -Pk / | awk 'NR==2{print $4}')"
+  need=$(( ${HB_MIN_ROOT_FREE_GB:-3} * 1024 * 1024 ))
+  printf '%s' "$(( kb / 1024 / 1024 ))"
+  (( kb >= need ))
+}
+
 hb__owner_note() { printf '%s pid=%s %s\n' "$(date -u +%FT%TZ)" "$$" "$1"; }
 
 # Two pools in one directory:

@@ -30,6 +30,9 @@ export function sh(cwd: string, cmd: string, args: string[], env: Record<string,
       GIT_COMMITTER_NAME: 't',
       GIT_COMMITTER_EMAIL: 't@example.com',
       HB_ROLE: '',
+      // disk rule: tests keep temp files in the OS tmpdir and never trip the free-space check
+      HB_TMP_VOLUME: tmpdir(),
+      HB_MIN_ROOT_FREE_GB: '0',
       ...env,
     },
   });

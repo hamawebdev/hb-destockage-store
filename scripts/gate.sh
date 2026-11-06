@@ -16,6 +16,8 @@
 #                     (admin, jobs, db, docs, team, tooling scripts/hooks, tests, *.md); --full forces it
 # Once apps/storefront has real pages, a missing or stub ("not wired yet") budget/lh script is RED.
 # Refuses (RED "hooks") unless core.hooksPath is the ABSOLUTE path of the main checkout's .githooks.
+# Disk rule: TMPDIR/TEMP/TMP default to /mnt/data/hb-tmp/gate-<branch> (unless already on /mnt/data);
+# RED "disk" when / has under HB_MIN_ROOT_FREE_GB (3) GB free.
 # Each step runs in its own process group without lock fds; leftovers are killed when it ends; each
 # step has a hard limit (HB_STEP_TIMEOUT 2700 s, lh HB_LH_TIMEOUT 14400 s); a timeout is RED (exit 124).
 #
@@ -52,6 +54,7 @@ tree="$(git rev-parse 'HEAD^{tree}')"
 clean=0
 [[ -z "$(git status --porcelain --untracked-files=normal)" ]] && clean=1
 
+hb_use_data_tmp "gate-${branch}" || { echo "gate: cannot create a temp dir under ${HB_TMP_ROOT:-/mnt/data/hb-tmp}" >&2; exit 1; }
 logdir="$main_root/artifacts/gate/${branch//\//_}"
 mkdir -p "$logdir" "$main_root/artifacts/gate/cache"
 log="$logdir/$short$([[ $clean -eq 1 ]] || echo -dirty).log"
@@ -112,12 +115,19 @@ hooks_ok=1
 # The storefront build needs an explicit catalogue snapshot (lead ruling, CAT-2): the gate builds the fixture.
 export HB_SNAPSHOT="${HB_SNAPSHOT:-fixture}"
 
-say "gate: $branch @ $short (tree ${tree:0:12}, $([[ $clean -eq 1 ]] && echo clean || echo DIRTY)) in $wt — HB_SNAPSHOT=$HB_SNAPSHOT"
+say "gate: $branch @ $short (tree ${tree:0:12}, $([[ $clean -eq 1 ]] && echo clean || echo DIRTY)) in $wt — HB_SNAPSHOT=$HB_SNAPSHOT TMPDIR=$TMPDIR"
 if [[ -n "$(git stash list 2>/dev/null | head -n1)" ]]; then
   say "gate: WARNING — the shared git stash is not empty; never use git stash (BRIEF §9), use WIP commits. Entries:"
   git stash list 2>/dev/null | head -n 5 | sed 's/^/         /' | tee -a "$log"
 fi
 say "gate: steps = ${steps[*]}$([[ $full -eq 1 ]] && echo ' (--full)')"
+
+if ! root_free="$(hb_root_free_ok)"; then
+  say "gate: RED at disk — / has ${root_free} GB free, under the ${HB_MIN_ROOT_FREE_GB:-3} GB minimum (BRIEF §9 disk rule)."
+  say "       Free space first (your /tmp leftovers, old dist/ and .wrangler/ state); temp files go to $TMPDIR — log: $log"
+  echo "gate: RED at disk — log: $log" >&2
+  exit 1
+fi
 
 if [[ $hooks_ok -eq 0 ]]; then
   say "gate: RED at hooks — core.hooksPath is '$(git config --get core.hooksPath || true)', must be the absolute '$main_root/.githooks'"

@@ -84,6 +84,10 @@ has_commit main..HEAD || has_commit main \
 # waits at most HB_HOOK_BUDGET seconds (default 1500, under the 1800 s timeout). Still running ⇒
 # exit 2 "gate still running"; the next completion attempt for the same tree picks up the result.
 gate_cmd="${HB_GATE_CMD:-$here/../gate.sh}"
+# Disk rule: the detached gate and everything it starts keep temp files on /mnt/data.
+# shellcheck source=../lib/locks.sh
+. "$here/../lib/locks.sh"
+hb_use_data_tmp "hook-$(basename "$wt")" || refuse "cannot create a temp dir under ${HB_TMP_ROOT:-/mnt/data/hb-tmp}"
 budget="${HB_HOOK_BUDGET:-1500}"
 tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
 runs="$main_root/artifacts/gate/runs"

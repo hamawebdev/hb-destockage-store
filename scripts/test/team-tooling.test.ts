@@ -473,6 +473,22 @@ describe('gate.sh', () => {
     expect(r.stdout).toContain('RED   check-tap (exit 1');
   });
 
+  test('disk rule: RED at disk when / is below the free-space minimum; TMPDIR moves to the data volume', () => {
+    const root = makeRepo({ test: 'node -e "console.log(\'TMP=\'+require(\'os\').tmpdir())"' });
+    prepNodeModules(root);
+    const vol = mkdtempSync(join(tmpdir(), 'hb-vol-'));
+    tmpRoots.push(vol);
+    // private lock dir: never queue on the machine's real gate/heavy slots
+    const low = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], { HB_LOCK_DIR: lockDir, HB_MIN_ROOT_FREE_GB: '100000' });
+    expect(low.status).toBe(1);
+    expect(low.stdout).toContain('RED at disk');
+    const r = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], { HB_LOCK_DIR: lockDir, HB_TMP_VOLUME: vol, HB_TMP_ROOT: join(vol, 'hb-tmp'), TMPDIR: '/tmp' });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain(`TMPDIR=${join(vol, 'hb-tmp', 'gate-main')}`);
+    const log = r.stdout.match(/log: (\S.*\.log)/)?.[1] ?? '';
+    expect(readFileSync(log, 'utf8')).toContain(`TMP=${join(vol, 'hb-tmp', 'gate-main')}`);
+  });
+
   test('gate refuses when core.hooksPath is not the absolute main hooks path (review F5)', () => {
     const root = makeRepo();
     prepNodeModules(root);
