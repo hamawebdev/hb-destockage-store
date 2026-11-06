@@ -12,7 +12,7 @@ import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync, constants } from 'node:zlib';
 import { minify } from 'vite';
-import { checkPage, mergeStyles, pruneCustomProperties, sha256 } from './postbuild-core.mjs';
+import { checkPage, classesIn, knownClasses, mergeStyles, pruneCustomProperties, sha256, trimUnusedRules } from './postbuild-core.mjs';
 
 async function* walk(dir) {
   for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -85,14 +85,38 @@ export default function hbPostbuild(opts) {
         for await (const f of walk(root)) if (f.endsWith('.html')) files.push(f);
         files.sort();
 
+        // 8. Unused-rule trim (lead-approved, guarded; HB_CSS_TRIM=0 disables it for the pixel-diff
+        //    proof). Pass 1: the class universe of each template (<html data-tpl>, both languages) and
+        //    the client JS text; pass 2: trim each page with its template's universe, so every page of
+        //    a template still gets byte-identical CSS (one CSP hash per template).
+        const trim = process.env['HB_CSS_TRIM'] !== '0';
+        const pages = [];
         for (const file of files) {
-          const rel = relative(root, file).split(sep).join('/');
           const src = await readFile(file, 'utf8');
-          const merged = mergeStyles(src);
+          const tpl = /<html\b[^>]*\bdata-tpl="([\w-]+)"/.exec(src)?.[1] ?? `file:${relative(root, file)}`;
+          pages.push({ file, src, tpl, merged: mergeStyles(src) });
+        }
+        let jsText = '';
+        try {
+          for await (const f of walk(join(root, 'js'))) if (f.endsWith('.js')) jsText += await readFile(f, 'utf8');
+        } catch (e) {
+          if (/** @type {NodeJS.ErrnoException} */ (e).code !== 'ENOENT') throw e;
+        }
+        /** @type {Map<string, Set<string>>} */
+        const universe = new Map();
+        for (const pg of pages) {
+          const set = universe.get(pg.tpl) ?? new Set();
+          for (const c of classesIn(pg.merged.html)) set.add(c);
+          universe.set(pg.tpl, set);
+        }
+
+        for (const { file, src, tpl, merged } of pages) {
+          const rel = relative(root, file).split(sep).join('/');
           let html = merged.html;
           const lang = /<html\b[^>]*\blang=["']?(ar|fr)/i.exec(src)?.[1] ?? '';
           if (merged.count > 0) {
-            const pruned = pruneCustomProperties(merged.css);
+            const known = knownClasses(universe.get(tpl) ?? new Set(), jsText);
+            const pruned = pruneCustomProperties(trim ? trimUnusedRules(merged.css, known) : merged.css);
             html = html.replace(/<style>[\s\S]*?<\/style>/, () => `<style>${pruned}</style>`);
           }
           errors.push(...checkPage(html, { allowedInlineScripts: opts.allowedInlineScripts, file: rel }));
@@ -100,8 +124,9 @@ export default function hbPostbuild(opts) {
           if (lang === 'fr' && /<link\b[^>]*\bas=["']?font\b/i.test(html)) errors.push(`${rel}: a French page preloads a font (French = system stack, 0 bytes)`);
           if (html !== src) await writeFile(file, html);
           const css = /<style>([\s\S]*?)<\/style>/.exec(html)?.[1] ?? '';
-          rows.push({ page: rel, lang, htmlBr: br(html), cssBr: br(css), styles: merged.count, styleHash: sha256(css) });
+          rows.push({ page: rel, lang, tpl, htmlBr: br(html), cssBr: br(css), styles: merged.count, styleHash: sha256(css) });
         }
+        logger.info(`unused-rule trim: ${trim ? 'on' : 'OFF (HB_CSS_TRIM=0)'}`);
 
         // Every route-map entry produced a file; one inline-CSS hash per template.
         /** @type {Map<string, Map<string, string[]>>} template -> styleHash -> pages */
