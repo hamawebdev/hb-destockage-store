@@ -10,3 +10,5 @@ dist/
 *.log
 .tsbuildinfo
 coverage/
+apps/web/.assets/
+apps/web/src/generated/
