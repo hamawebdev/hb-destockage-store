@@ -127,6 +127,9 @@ describe('F2: money input is integer DZD only', () => {
     ['zero centimes with dot', '1500.00', 1500],
     ['grouped + zero centimes', '14.600,00', 14600],
     ['space-grouped + zero centimes', '14 600.00', 14600],
+    ['Arabic decimal separator + zero centimes (Arabic digits)', '١٥٠٠٫٠٠', 1500],
+    ['Arabic decimal separator + zero centimes (Latin digits)', '1500٫00', 1500],
+    ['Arabic grouping + Arabic zero centimes', '١٤٬٦٠٠٫٠٠', 14600],
   ];
   for (const [name, input, out] of accepted) {
     test(`accepts ${name}: ${JSON.stringify(input)} → ${out}`, () => {
@@ -146,7 +149,9 @@ describe('F2: money input is integer DZD only', () => {
     ['two-digit group', '1.50'],
     ['comma thousands (ambiguous in French)', '1,500'],
     ['apostrophe thousands', '14’600'],
-    ['Arabic decimal separator', '١٥٠٠٫٠٠'],
+    ['Arabic decimal separator with non-zero centimes', '١٥٠٠٫٥٠'],
+    ['Arabic decimal separator, one digit', '1500٫5'],
+    ['Arabic decimal separator, one zero', '1500٫0'],
     ['short last group', '14 60'],
     ['long group', '1.2345'],
     ['mixed separators', '1.234 567'],

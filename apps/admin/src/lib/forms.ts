@@ -108,7 +108,8 @@ export const vOptionalInt = (min: number, max: number) =>
  * - thousands grouping with ONE kind of separator (space, NBSP, narrow NBSP, thin space, "." or
  *   Arabic "٬"), every group after the first exactly three digits: "14 600", "14.600",
  *   "1.000.000", "١٤.٦٠٠";
- * - the single decimal exception: a trailing ",00" or ".00" (zero centimes) after a valid
+ * - the single decimal exception: a trailing ",00", ".00" or Arabic "٫00" (zero centimes; lead
+ *   ruling 2026-11-06: staff with an Arabic keyboard type "٫") after a valid
  *   integer part, using a different character than the grouping separator: "600,00" → 600,
  *   "1500.00" → 1500, "14.600,00" → 14600;
  * - everything else with a dot or comma is rejected: "1.5", "1,5", "14.60", "1500.50", "1,500",
@@ -118,7 +119,7 @@ export const vOptionalInt = (min: number, max: number) =>
 export function normaliseDzd(input: string): string | null {
   let s = toAsciiDigits(input).trim();
   let centSep: string | undefined;
-  const cents = /^(.*\d)([.,])00$/.exec(s);
+  const cents = /^(.*\d)([.,\u066B])00$/.exec(s);
   if (cents) {
     s = cents[1]!;
     centSep = cents[2]!;
