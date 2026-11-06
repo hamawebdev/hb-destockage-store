@@ -65,8 +65,8 @@ const css = (lang: 'ar' | 'fr'): string => [
 ].join('');
 
 const T = {
-  ar: { title: 'طقم مطبخ', home: 'الرئيسية', order: 'اطلب الآن', other: 'fr', otherLabel: 'Français', name: 'الاسم', phone: 'الهاتف' },
-  fr: { title: 'Pack cuisine', home: 'Accueil', order: 'Commander', other: 'ar', otherLabel: 'العربية', name: 'Nom', phone: 'Téléphone' },
+  ar: { title: 'طقم مطبخ', card: 'عرض الطقم — 14 600 دج', home: 'الرئيسية', order: 'اطلب الآن', other: 'fr', otherLabel: 'Français', name: 'الاسم', phone: 'الهاتف' },
+  fr: { title: 'Pack cuisine', card: 'Voir le pack — 14 600 DZD', home: 'Accueil', order: 'Commander', other: 'ar', otherLabel: 'العربية', name: 'Nom', phone: 'Téléphone' },
 } as const;
 
 export function page(lang: 'ar' | 'fr', kind: 'home' | 'product'): string {
@@ -103,7 +103,7 @@ export function page(lang: 'ar' | 'fr', kind: 'home' | 'product'): string {
         + `<label>${t.phone}<input name="phone" type="tel" inputmode="tel" dir="ltr" required></label>`
         + `<button type="submit">${t.order}</button></form>`
       : '',
-    `<ul class="cards"><li><a href="/${lang}/p/pack-cuisine/"><img src="/img/c1-360.avif" srcset="${srcset('c1')}" sizes="(min-width: 768px) 25vw, 50vw" width="360" height="360" loading="lazy" alt="${t.title}">${t.title}</a></li></ul>`,
+    `<ul class="cards"><li><a href="/${lang}/p/pack-cuisine/"><img src="/img/c1-360.avif" srcset="${srcset('c1')}" sizes="(min-width: 768px) 25vw, 50vw" width="360" height="360" loading="lazy" alt="${t.title}">${t.card}</a></li></ul>`, // link text ≠ alt (axe best-practice image-redundant-alt)
     '</main><footer><a href="tel:0560417403" dir="ltr">0560417403</a></footer></div>',
     kind === 'product' ? '<script type="module" src="/js/order.js"></script>' : '',
     '</body></html>',

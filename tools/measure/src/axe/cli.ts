@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * npm run axe — accessibility gate (MEAS-3): axe-core with the WCAG 2.0/2.1/2.2 A and AA tags on
- * every template in /ar/ and /fr/ at 360, 768 and 1440 px, plus a keyboard pass per template.
+ * npm run axe — accessibility gate (MEAS-3): axe-core with every default rule (WCAG 2.0/2.1/2.2 A
+ * and AA plus best-practice; exceptions only via DECISIONS.md, see AXE_DISABLED_RULES) on every
+ * template in /ar/ and /fr/ at 360, 768 and 1440 px, plus a keyboard pass per template.
  *
  * Colour contrast axe cannot compute (`incomplete`: text over images, gradients, overlaps) is
  * measured from pixels (`measureContrast`) and gated like a violation.
@@ -17,7 +18,7 @@
  * Output (--out, default <main checkout>/artifacts/axe-run): axe.json, keyboard.json, axe.txt.
  * Exit 0 = zero axe violations and no keyboard failure; 1 = failures; 2 = setup error.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -27,7 +28,26 @@ import { REPO_ROOT, artifactsRoot } from '../lib/paths.ts';
 import { launch, loadStable, newContext } from '../lib/browser.ts';
 import { TARGET_OPTIONS, TARGET_USAGE, resolveTargets, serverFor } from '../lib/targets.ts';
 
-export const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
+/**
+ * Every rule axe-core runs by default: the WCAG 2.0/2.1/2.2 A/AA rules AND best-practice
+ * (landmark-unique, region, heading-order, …). Lead ruling 2026-11-06: "zero axe violations"
+ * covers all of them. An exception is a rule id listed here AND named, with its reason, in the
+ * DECISIONS.md entry given; otherwise the run refuses to start (exit 2). See `checkExceptions`.
+ */
+export const AXE_DISABLED_RULES: ReadonlyArray<{ id: string; decision: string }> = [];
+
+/** Errors for exceptions not backed by DECISIONS.md (`## D-NNN — …` section naming the rule id in backticks). */
+export function checkExceptions(rules: ReadonlyArray<{ id: string; decision: string }>, decisions: string): string[] {
+  const errors: string[] = [];
+  for (const r of rules) {
+    const start = decisions.search(new RegExp(`^## ${r.decision}\\b`, 'm'));
+    const rest = start < 0 ? '' : decisions.slice(start + 3);
+    const section = start < 0 ? '' : rest.slice(0, rest.search(/^## /m) < 0 ? undefined : rest.search(/^## /m));
+    if (!section) errors.push(`axe rule "${r.id}" is disabled citing ${r.decision}, which is not in DECISIONS.md`);
+    else if (!section.includes(`\`${r.id}\``)) errors.push(`axe rule "${r.id}" is disabled citing ${r.decision}, which does not name \`${r.id}\``);
+  }
+  return errors;
+}
 export const AXE_WIDTHS = [360, 768, 1440];
 export const AXE_PORT = 4116;
 const MAX_STOPS = 150;
@@ -197,35 +217,48 @@ async function keyboardPass(page: Page, id: string, url: string, width: number):
 
 /**
  * axe reports colour contrast it cannot compute (text over an image or gradient, overlapping
- * elements, pseudo-element backgrounds) as `incomplete`. Measure those from pixels instead: shoot
- * the element's box as rendered and again with its text made transparent; pixels that differ are
- * the glyphs, the second shot gives the real background under each of them. Per glyph pixel,
- * contrast = (text colour, alpha-blended over that background) vs that background; the 10th
- * percentile must reach 4.5:1 (3:1 for large text: ≥ 24 px, or ≥ 18.66 px and bold).
+ * elements, pseudo-element backgrounds) as `incomplete`. Measure those from pixels instead.
+ * Three shots of the element's box: text forced to pure black, forced to pure white (both with
+ * no text-shadow), and text transparent. The GLYPH MASK is every pixel where the black and white
+ * shots differ by at least half (glyph coverage ≥ 50 %): it finds the glyphs whatever their real
+ * colour and whatever the background, including text drawn in the background's own colour
+ * (rev-a r2: diffing text-on vs text-off misses those). The transparent shot is the background
+ * behind each glyph. Per mask pixel, contrast = the element's computed text colour
+ * (alpha-composited over that background) vs that background. The worst CC_PERCENTILE of mask
+ * pixels must reach 4.5:1 (3:1 for large text: ≥ 24 px, or ≥ 18.66 px and bold). Fewer than
+ * CC_MIN_PIXELS mask pixels is CHECK BY HAND, never a pass.
  */
 export interface ContrastCheck { target: string; reason: string; ok: boolean | null; ratio?: number; min?: number; median?: number; required?: number; pixels?: number; note?: string }
 
-const CC_STYLE = '[data-hb-cc]{color:transparent!important;-webkit-text-fill-color:transparent!important}';
-const CC_ANALYSE = `async ([a, b, color]) => {
+/** Share of glyph pixels allowed below the threshold: 2 % (a 7 % invisible tail must fail). */
+export const CC_PERCENTILE = 0.02;
+/** Smallest glyph mask that is measured; below it the item is listed for a manual check. */
+export const CC_MIN_PIXELS = 30;
+
+const CC_STYLE = '[data-hb-cc="k"]{color:#000!important;-webkit-text-fill-color:#000!important;text-shadow:none!important}'
+  + '[data-hb-cc="w"]{color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important}'
+  + '[data-hb-cc="t"]{color:transparent!important;-webkit-text-fill-color:transparent!important}';
+const CC_ANALYSE = `async ([k, w, t, color, q, minPx]) => {
   const load = async (b64) => {
     const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
     const bmp = await createImageBitmap(new Blob([u], { type: 'image/png' }));
     const c = new OffscreenCanvas(bmp.width, bmp.height); const x = c.getContext('2d'); x.drawImage(bmp, 0, 0);
     return x.getImageData(0, 0, bmp.width, bmp.height).data;
   };
-  const A = await load(a), B = await load(b);
+  const K = await load(k), W = await load(w), T = await load(t);
   const m = color.match(/[\\d.]+/g).map(Number); const [fr, fg, fb] = m; const fa = m.length > 3 ? m[3] : 1;
   const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
   const L = (r, g, b) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
   const ratios = [];
-  for (let i = 0; i < A.length; i += 4) {
-    if (Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) + Math.abs(A[i + 2] - B[i + 2]) < 6) continue;
-    const br = B[i], bg = B[i + 1], bb = B[i + 2];
+  for (let i = 0; i < K.length; i += 4) {
+    if (Math.abs(W[i] - K[i]) + Math.abs(W[i + 1] - K[i + 1]) + Math.abs(W[i + 2] - K[i + 2]) < 383) continue; // glyph coverage < 50 %
+    const br = T[i], bg = T[i + 1], bb = T[i + 2];
     const l1 = L(fa * fr + (1 - fa) * br, fa * fg + (1 - fa) * bg, fa * fb + (1 - fa) * bb), l2 = L(br, bg, bb);
     ratios.push((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05));
   }
-  ratios.sort((p, q) => p - q);
-  return ratios.length ? { pixels: ratios.length, min: ratios[0], p10: ratios[Math.floor(ratios.length * 0.1)], median: ratios[Math.floor(ratios.length / 2)] } : null;
+  if (ratios.length < minPx) return { pixels: ratios.length };
+  ratios.sort((p, r) => p - r);
+  return { pixels: ratios.length, min: ratios[0], low: ratios[Math.floor(ratios.length * q)], median: ratios[Math.floor(ratios.length / 2)] };
 }`;
 
 async function measureContrast(page: Page, targets: string[][], reasons: string[]): Promise<ContrastCheck[]> {
@@ -244,16 +277,18 @@ async function measureContrast(page: Page, targets: string[][], reasons: string[
       const clip = box && { x, y, width: Math.min(Math.ceil(box.x + box.width), vp.width) - x, height: Math.min(Math.ceil(box.y + box.height), vp.height) - y };
       if (!clip || clip.width <= 0 || clip.height <= 0) { out.push({ target, reason, ok: null, note: 'element has no visible box' }); continue; }
       const style = await loc.evaluate((e) => { const s = (globalThis as unknown as { getComputedStyle: (x: unknown) => { color: string; fontSize: string; fontWeight: string } }).getComputedStyle(e); return { color: s.color, size: parseFloat(s.fontSize), weight: Number(s.fontWeight) || 400 }; });
-      const a = await page.screenshot({ clip, animations: 'disabled', caret: 'hide' });
-      await loc.evaluate((e) => e.setAttribute('data-hb-cc', ''));
-      const b = await page.screenshot({ clip, animations: 'disabled', caret: 'hide' });
+      const shot = async (mode: 'k' | 'w' | 't'): Promise<string> => {
+        await loc.evaluate((e, v) => e.setAttribute('data-hb-cc', v), mode);
+        return (await page.screenshot({ clip, animations: 'disabled', caret: 'hide' })).toString('base64');
+      };
+      const shots = [await shot('k'), await shot('w'), await shot('t')];
       await loc.evaluate((e) => e.removeAttribute('data-hb-cc'));
       // a string pageFunction is evaluated as an expression (Playwright passes no arg to it): build the call
-      const m = await page.evaluate(`(${CC_ANALYSE})(${JSON.stringify([a.toString('base64'), b.toString('base64'), style.color])})`) as null | undefined | { pixels: number; min: number; p10: number; median: number };
-      if (!m) { out.push({ target, reason, ok: null, note: 'no text pixels found' }); continue; }
+      const m = await page.evaluate(`(${CC_ANALYSE})(${JSON.stringify([...shots, style.color, CC_PERCENTILE, CC_MIN_PIXELS])})`) as undefined | { pixels: number; min?: number; low?: number; median?: number };
+      if (!m || m.low === undefined) { out.push({ target, reason, ok: null, note: `glyph mask too small to measure (${m?.pixels ?? 0} px < ${CC_MIN_PIXELS})` }); continue; }
       const required = style.size >= 24 || (style.size >= 18.66 && style.weight >= 700) ? 3 : 4.5;
       const r2 = (v: number): number => Math.round(v * 100) / 100;
-      out.push({ target, reason, ok: m.p10 >= required, ratio: r2(m.p10), min: r2(m.min), median: r2(m.median), required, pixels: m.pixels });
+      out.push({ target, reason, ok: m.low >= required, ratio: r2(m.low), min: r2(m.min!), median: r2(m.median!), required, pixels: m.pixels });
     } catch (e) {
       out.push({ target, reason, ok: null, note: `could not measure: ${(e as Error).message.split('\n')[0]}` });
     }
@@ -265,6 +300,9 @@ export async function main(argv: string[]): Promise<number> {
   let a;
   try { a = parseArgs({ args: argv, options: TARGET_OPTIONS }).values; } catch (e) { console.error(`${(e as Error).message}\n${USAGE}`); return 2; }
   if (a.help) { console.log(USAGE); return 0; }
+  const decisionsFile = path.join(REPO_ROOT, 'DECISIONS.md');
+  const exceptionErrors = checkExceptions(AXE_DISABLED_RULES, existsSync(decisionsFile) ? readFileSync(decisionsFile, 'utf8') : '');
+  if (exceptionErrors.length) { console.error(`axe: ${exceptionErrors.join('; ')}`); return 2; }
   const { dist, targets, skipped, errors } = resolveTargets(a);
   const out = path.resolve(a.out ?? path.join(artifactsRoot(), 'axe-run'));
   mkdirSync(out, { recursive: true });
@@ -286,7 +324,9 @@ export async function main(argv: string[]): Promise<number> {
           await ctx.close();
           continue;
         }
-        const r = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+        const builder = new AxeBuilder({ page });
+        if (AXE_DISABLED_RULES.length) builder.disableRules(AXE_DISABLED_RULES.map((x) => x.id));
+        const r = await builder.analyze();
         const violations: AxeViolation[] = r.violations.map((v) => ({
           id: v.id, impact: v.impact ?? null, help: v.help, helpUrl: v.helpUrl,
           nodes: v.nodes.map((n) => ({ target: n.target.join(' '), html: n.html.slice(0, 200), summary: (n.failureSummary ?? '').slice(0, 300) })),
@@ -312,14 +352,14 @@ export async function main(argv: string[]): Promise<number> {
   const ccFails = ccAll.filter(({ c }) => c.ok === false);
   const ccManual = ccAll.filter(({ c }) => c.ok === null);
   const ok = errors.length === 0 && !pageErrors.length && !axeFails.length && !kbFails.length && !ccFails.length;
-  const meta = { generatedAt: new Date().toISOString(), dist, server: server.mode, tags: AXE_TAGS, widths: AXE_WIDTHS, errors, skipped };
+  const meta = { generatedAt: new Date().toISOString(), dist, server: server.mode, rules: 'axe-core defaults (WCAG A/AA + best-practice)', disabledRules: AXE_DISABLED_RULES, widths: AXE_WIDTHS, errors, skipped };
   writeFileSync(path.join(out, 'axe.json'), `${JSON.stringify({ tool: 'hb-axe', ok, ...meta, results: axeResults }, null, 2)}\n`);
   writeFileSync(path.join(out, 'keyboard.json'), `${JSON.stringify({ tool: 'hb-keyboard', ok: !kbFails.length, ...meta, results: keyboard }, null, 2)}\n`);
   const lines = [
     ...errors.map((e) => `ERROR ${e}`),
     ...pageErrors.map((r) => `${r.id} ${r.width}px: page error ${r.error}`),
     ...axeFails.flatMap((r) => r.violations.map((v) => `${r.id} ${r.url} ${r.width}px: [${v.id}] (${v.impact}) ${v.help}: ${v.nodes.map((n) => n.target).slice(0, 5).join(', ')}`)),
-    ...ccFails.map(({ r, c }) => `${r.id} ${r.url} ${r.width}px: [color-contrast measured] ${c.target}: ${c.ratio}:1 < ${c.required}:1 (10th percentile of ${c.pixels} text pixels, min ${c.min}, median ${c.median}; axe: ${c.reason})`),
+    ...ccFails.map(({ r, c }) => `${r.id} ${r.url} ${r.width}px: [color-contrast measured] ${c.target}: ${c.ratio}:1 < ${c.required}:1 (worst ${CC_PERCENTILE * 100} % of ${c.pixels} glyph pixels, min ${c.min}, median ${c.median}; axe: ${c.reason})`),
     ...kbFails.flatMap((k) => k.failures.map((f) => `${k.id} ${k.url} ${k.width}px keyboard: ${f}`)),
     ...ccManual.map(({ r, c }) => `CHECK BY HAND ${r.id} ${r.url} ${r.width}px: [color-contrast] ${c.target}: ${c.note} (axe: ${c.reason})`),
   ];

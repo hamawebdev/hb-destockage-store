@@ -1,8 +1,10 @@
 /**
  * Single-page fixtures for the keyboard pass and the measured contrast check (MEAS-3 r2).
- * `trap` is rev-c's review fixture verbatim (artifacts/MEAS-3/rev-c-evidence/fixtures/fr/trap/).
+ * `trap` is rev-c's review fixture verbatim (artifacts/MEAS-3/rev-c-evidence/fixtures/fr/trap/);
+ * `half`, `partial`, `imgbg` and `ar-ok` are rev-a's r2 fixtures verbatim
+ * (artifacts/MEAS-3/rev-a-r2/fixtures/), `half.png` included.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const HEAD = '<!doctype html><html lang="fr" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>T</title>'
@@ -32,7 +34,22 @@ export const A11Y_PAGES: Record<string, string> = {
   'contrast-ok': page('<main><h1>Test</h1><div style="background:linear-gradient(90deg,#f8f8f8,#fbfbfb);padding:20px"><p style="color:#222">Texte lisible sur un dégradé</p></div><p><a href="#a">Lien</a></p></main>'),
   /** a lazy image far below the fold: loading must neither hang nor skip it. */
   lazy: page('<main><h1>Test</h1><p><a href="#a">Lien</a></p><div style="height:6000px"></div><img src="/img/lazy-missing.png" loading="lazy" alt="Image différée" width="10" height="10"></main>'),
+  /** rev-a: white text on a black|white gradient, the second half of the sentence is invisible (1:1). */
+  half: "<!doctype html><html lang=\"fr\" dir=\"ltr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>T</title><style>body{font:16px system-ui;margin:20px}a{display:inline-block;padding:12px;color:#0066cc}a:focus-visible{outline:2px solid #0071e3;outline-offset:2px}</style></head><body><main><h1>Test</h1><div style=\"background:linear-gradient(90deg,#000 0 50%,#fff 50% 100%);padding:0;width:100%\"><p style=\"color:#fff;margin:0;padding:8px 0;white-space:nowrap;overflow:hidden\">Livraison gratuite partout en Algerie, paiement a la livraison, retour gratuit sous sept jours ici</p></div><p><a href=\"#a\">Lien</a></p></main></body></html>",
+  /** rev-a: the same with only the last 7 % on white. */
+  partial: "<!doctype html><html lang=\"fr\" dir=\"ltr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>T</title><style>body{font:16px system-ui;margin:20px}a{display:inline-block;padding:12px;color:#0066cc}a:focus-visible{outline:2px solid #0071e3;outline-offset:2px}</style></head><body><main><h1>Test</h1><div style=\"background:linear-gradient(90deg,#000 0 93%,#fff 93% 100%);padding:0;width:100%\"><p style=\"color:#fff;margin:0;padding:8px 0;white-space:nowrap;overflow:hidden\">Livraison gratuite partout en Algerie, paiement a la livraison, retour gratuit sous sept jours ici</p></div><p><a href=\"#a\">Lien</a></p></main></body></html>",
+  /** rev-a: white text over an <img> that is light on its right half. */
+  imgbg: "<!doctype html><html lang=\"fr\" dir=\"ltr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>T</title><style>body{font:16px system-ui;margin:20px}a{display:inline-block;padding:12px;color:#0066cc}a:focus-visible{outline:2px solid #0071e3;outline-offset:2px}</style></head><body><main><h1>Test</h1><div style=\"position:relative;width:400px;height:60px\"><img src=\"/img/half.png\" alt=\"\" width=\"400\" height=\"60\" style=\"position:absolute;inset:0\"><p style=\"position:relative;color:#fff;margin:0;padding:18px 8px;white-space:nowrap\">Pack cuisine complet a prix destockage</p></div><p><a href=\"#a\">Lien</a></p></main></body></html>",
+  /** white text over a "product photo shot on white" (an <img>, near-white everywhere): unreadable. */
+  'white-photo': page('<main><h1>Test</h1><div style="position:relative;width:320px;height:60px"><img src="/img/white-photo.svg" alt="" width="320" height="60" style="position:absolute;inset:0"><p style="position:relative;color:#fff;margin:0;padding:18px 8px;white-space:nowrap">Pack cuisine complet</p></div><p><a href="#a">Lien</a></p></main>'),
+  /** best-practice only (no WCAG tag): text outside every landmark (`region`). */
+  'outside-landmarks': page('<main><h1>Test</h1><p><a href="#a">Lien</a></p></main><p>Texte hors de tout repère</p>'),
+  /** rev-a: Arabic RTL, #1a1a1a over a light gradient; must pass. */
+  'ar-ok': "<!doctype html><html lang=\"ar\" dir=\"rtl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>T</title><style>body{font:18px system-ui;margin:20px;line-height:1.7}a{display:inline-block;padding:12px;color:#0066cc}a:focus-visible{outline:2px solid #0071e3}</style></head><body><main><h1>اختبار</h1><div style=\"background:linear-gradient(90deg,#f6f6f6,#fdfdfd);padding:16px\"><p style=\"color:#1a1a1a;margin:0\">التوصيل مجاني إلى جميع الولايات والدفع عند الاستلام</p></div><p><a href=\"#a\">رابط</a></p></main></body></html>",
 };
+
+/** Images the pages above use, written under /img/. */
+const IMG_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="60"><rect width="320" height="60" fill="#fdfdfd"/><ellipse cx="240" cy="30" rx="70" ry="24" fill="#f2f2f2"/></svg>';
 
 /** Write A11Y_PAGES into a built-site dir as /fr/<name>/index.html. */
 export function addA11yPages(dist: string): void {
@@ -40,4 +57,7 @@ export function addA11yPages(dist: string): void {
     mkdirSync(path.join(dist, 'fr', name), { recursive: true });
     writeFileSync(path.join(dist, 'fr', name, 'index.html'), html);
   }
+  mkdirSync(path.join(dist, 'img'), { recursive: true });
+  copyFileSync(path.join(import.meta.dirname, 'half.png'), path.join(dist, 'img/half.png'));
+  writeFileSync(path.join(dist, 'img/white-photo.svg'), IMG_SVG);
 }

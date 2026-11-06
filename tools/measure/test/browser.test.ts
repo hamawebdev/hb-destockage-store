@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { main as shots } from '../src/shots/cli.ts';
-import { main as axe } from '../src/axe/cli.ts';
+import { checkExceptions, main as axe } from '../src/axe/cli.ts';
 import { cleanup, edit, freshSite } from './fixtures/site.ts';
 import { addA11yPages } from './fixtures/a11y.ts';
 
@@ -53,7 +53,7 @@ describe('npm run shots', () => {
   });
 });
 
-describe('npm run axe (axe-core WCAG 2.2 A/AA + keyboard pass)', () => {
+describe('npm run axe (every default axe-core rule + measured contrast + keyboard pass)', () => {
   const run = async (d: string, url: string): Promise<{ code: number; out: string }> => {
     const out = outDir();
     const code = await axe(['--dist', d, '--serve', 'static', '--port', '0', '--url', url, '--out', out]);
@@ -63,7 +63,7 @@ describe('npm run axe (axe-core WCAG 2.2 A/AA + keyboard pass)', () => {
   it('good pages pass: zero violations, focus visible at every stop, focus cycles', T, async () => {
     const d = freshSite();
     const { code, out } = await run(d, '/fr/p/pack-cuisine/');
-    expect(code).toBe(0);
+    expect(code, readFileSync(path.join(out, 'axe.txt'), 'utf8')).toBe(0);
     const kb = read(path.join(out, 'keyboard.json'));
     expect(kb.results.map((r) => r.width)).toEqual([360, 768, 1440]);
     // Tab past the last element leaves the page; Shift+Tab past the first wraps to the last in headless Chrome
@@ -107,6 +107,21 @@ describe('npm run axe (axe-core WCAG 2.2 A/AA + keyboard pass)', () => {
   it('a page that does not load fails', T, async () => {
     const d = freshSite();
     expect((await run(d, '/fr/nope/')).code).toBe(1);
+  });
+
+  it('a best-practice violation fails too (lead ruling: every default axe rule, not only WCAG tags)', T, async () => {
+    const d = freshSite(); addA11yPages(d);
+    const { code, out } = await run(d, '/fr/outside-landmarks/');
+    expect(code).toBe(1);
+    expect(read(path.join(out, 'axe.json')).results.flatMap((r) => (r.violations ?? []).map((v) => v.id))).toContain('region');
+  });
+
+  it('a disabled axe rule must be named in the DECISIONS.md entry it cites', () => {
+    const doc = '# Decisions\n\n## D-001 — Courier codes\nnothing\n\n## D-009 — Hero region\nWe disable `region` because …\n\n## D-010 — Other\n';
+    expect(checkExceptions([{ id: 'region', decision: 'D-009' }], doc)).toEqual([]);
+    expect(checkExceptions([{ id: 'region', decision: 'D-001' }], doc)[0]).toMatch(/D-001, which does not name `region`/);
+    expect(checkExceptions([{ id: 'region', decision: 'D-010' }], doc)[0]).toMatch(/does not name/);
+    expect(checkExceptions([{ id: 'region', decision: 'D-404' }], doc)[0]).toMatch(/not in DECISIONS\.md/);
   });
 
   it('a lazy image far below the fold does not hang the load (it is loaded eagerly)', T, async () => {
@@ -163,6 +178,35 @@ describe('npm run axe (axe-core WCAG 2.2 A/AA + keyboard pass)', () => {
     expect(cc.length).toBe(3); // one per width
     expect(cc.every((c) => c.ok === false && (c.ratio ?? 9) < 1.6)).toBe(true);
     expect(readFileSync(path.join(out, 'axe.txt'), 'utf8')).toMatch(/\[color-contrast measured\] .*< 4\.5:1/);
+  });
+
+  // rev-a r2: glyphs drawn in the background's own colour must be found (forced black/white mask)
+  // half/partial: a full-width gradient under one nowrap sentence, so the glyphs reach the white
+  // part at 360 and 768 px; at 1440 px the sentence ends inside the black part and is readable
+  // (then every glyph pixel must be ≥ 4.5:1). imgbg/white-photo have a fixed width: fail everywhere.
+  for (const [name, what, failAt] of [['half', 'half the sentence white on white', [360, 768]], ['partial', 'the last 7 % white on white', [360, 768]],
+    ['imgbg', 'white text over the light half of an <img>', [360, 768, 1440]], ['white-photo', 'white text over a photo shot on white', [360, 768, 1440]]] as const) {
+    it(`unreadable glyphs are measured and fail: ${name} (${what})`, T, async () => {
+      const d = freshSite(); addA11yPages(d);
+      const { code, out } = await run(d, `/fr/${name}/`);
+      expect(code).toBe(1);
+      const res = read(path.join(out, 'axe.json')).results;
+      for (const r of res) {
+        const cc = r.contrast ?? [];
+        expect(cc.length, `${r.width}px`).toBe(1); // measured, never left to "check by hand"
+        const c = cc[0]! as { ok: boolean | null; ratio?: number; min?: number };
+        if ((failAt as readonly number[]).includes(r.width)) expect(c.ok === false && (c.ratio ?? 9) < 1.5, `${r.width}px ${JSON.stringify(c)}`).toBe(true);
+        else expect(c.ok === true && (c.min ?? 0) >= 4.5, `${r.width}px ${JSON.stringify(c)}`).toBe(true);
+      }
+    });
+  }
+
+  it('dark Arabic text over a light gradient passes (rev-a ar-ok, no false failure)', T, async () => {
+    const d = freshSite(); addA11yPages(d);
+    const { code, out } = await run(d, '/fr/ar-ok/');
+    const cc = read(path.join(out, 'axe.json')).results.flatMap((r) => r.contrast ?? []);
+    expect(cc.every((c) => c.ok === true)).toBe(true);
+    expect(code).toBe(0);
   });
 
   it('readable text over the same gradient is measured and passes', T, async () => {

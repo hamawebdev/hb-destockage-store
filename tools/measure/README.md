@@ -288,15 +288,22 @@ content pages, one per page: `<out>/shots/content/<lang>-<slug>-<width>[-full].p
 `<out>/shots.json`. Default `<out>` = `<main checkout>/artifacts/shots-run`. Exit 1 if a page does
 not load with its expected status or the registry has errors.
 
-**axe** → axe-core 4.14 with tags `wcag2a wcag2aa wcag21a wcag21aa wcag22a wcag22aa` at 360, 768
-and 1440 px; **zero violations** required. Other `incomplete` items are counted in the JSON.
+**axe** → axe-core 4.14 with **every rule it runs by default**, at 360, 768 and 1440 px: the
+WCAG 2.0/2.1/2.2 A/AA rules and the best-practice ones (`region`, `landmark-unique`,
+`heading-order`, …), lead ruling 2026-11-06. **Zero violations** required. An exception is a rule
+id in `AXE_DISABLED_RULES` (`src/axe/cli.ts`) citing a DECISIONS.md entry that names the rule in
+backticks with its reason; otherwise the run refuses to start (exit 2). Other `incomplete` items
+are counted in the JSON.
 **Contrast axe cannot compute** (`incomplete` `color-contrast`: text over an image or gradient,
-overlapping elements) is **measured from pixels and gated**: the element's box is shot as
-rendered and again with its text transparent; the pixels that differ are the glyphs, the second
-shot is the real background under each. Per glyph pixel, contrast = text colour (alpha-blended)
-vs that background; the **10th percentile** must reach 4.5:1 (3:1 for ≥ 24 px, or ≥ 18.66 px
-bold). Results in `axe.json` (`contrast`, with min/median); an item that cannot be measured
-(inside an iframe or shadow root, no visible box) is listed in `axe.txt` as `CHECK BY HAND`.
+overlapping elements) is **measured from pixels and gated**. Three shots of the element's box:
+text forced to pure black, to pure white, and transparent. The **glyph mask** is every pixel
+where the black and white shots differ by at least half, so glyphs are found whatever their
+colour, including text drawn in the background's own colour (white on the white part of a
+photo). The transparent shot is the background behind each glyph. Per mask pixel, contrast =
+the computed text colour (alpha-composited) vs that background; the **worst 2 %** of mask pixels
+must reach 4.5:1 (3:1 for ≥ 24 px, or ≥ 18.66 px bold). Results in `axe.json` (`contrast`, with
+min/median). A mask under 30 px, or an item inside an iframe or shadow root, is listed in
+`axe.txt` as `CHECK BY HAND`, never passed.
 **Keyboard pass** on the same loads, two walks: **Tab** from the top of the page, then
 **Shift+Tab** from the bottom, each until focus leaves the page. Each forward stop records the
 element, its text, its box, and two checks, both blocking:
