@@ -235,3 +235,17 @@ test('category image: optional, unique id, not tied to a variant', () => {
   ok.categories[0]!['image'] = { ...image, variantId: 1011 };
   expect(issuesOf(ok).join()).toMatch(/cannot bind to a variant or option value/);
 });
+
+test('checkSnapshotStructure: structure only, no integrity rules', async () => {
+  const { checkSnapshotStructure } = await import('../src/schema.ts');
+  expect(checkSnapshotStructure(fixtureSnapshot)).toEqual([]);
+  // A cross-reference error (unknown category) is not a structure error…
+  const s = mut(clone());
+  s.products[1]!.categoryId = 77;
+  expect(checkSnapshotStructure(s)).toEqual([]);
+  // …but a wrong type or an unknown key is.
+  const t = mut(clone()) as unknown as { products: Record<string, unknown>[] };
+  t.products[0]!['featured'] = true;
+  expect(checkSnapshotStructure(t).length).toBeGreaterThan(0);
+  expect(checkSnapshotStructure({})[0]!.path).toBe('meta');
+});

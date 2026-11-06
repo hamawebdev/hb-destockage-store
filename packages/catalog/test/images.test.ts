@@ -60,7 +60,9 @@ describe('buildImages', () => {
     const big = r1.manifest['a/big.jpg']!;
     expect(big.candidates.map((c) => c.width)).toEqual([360, 480, 720, 960, 1200]);
     expect(big.candidates.map((c) => c.height)).toEqual([257, 343, 514, 686, 857]);
-    expect(r1.manifest['a/mid.jpg']!.candidates.map((c) => c.width)).toEqual([360, 480, 720]);
+    expect(r1.manifest['a/mid.jpg']!.candidates.map((c) => c.width)).toEqual([360, 480, 720, 800]);
+    expect(r1.manifest['a/mid.jpg']!.original).toEqual({ width: 800, height: 800 });
+    expect(big.original).toEqual({ width: 1400, height: 1000 });
     expect(r1.manifest['a/small.jpg']!.candidates.map((c) => c.width)).toEqual([300]);
     for (const e of Object.values(r1.manifest)) {
       expect(e.stub).toBe(false);
@@ -151,4 +153,18 @@ describe('buildImages', () => {
     }); // …but this snapshot's are: the context accepts it.
     expect(ctx.products.length).toBe(1);
   }, 120_000);
+});
+
+describe('candidateWidths (never upscale)', () => {
+  test.each([
+    [1600, [360, 480, 720, 960, 1200]],
+    [1200, [360, 480, 720, 960, 1200]],
+    [1100, [360, 480, 720, 960, 1100]],
+    [800, [360, 480, 720, 800]],
+    [720, [360, 480, 720]],
+    [300, [300]],
+  ])('%i px → %j', async (w, expected) => {
+    const { candidateWidths } = await import('../src/widths.ts');
+    expect(candidateWidths(w)).toEqual(expected);
+  });
 });

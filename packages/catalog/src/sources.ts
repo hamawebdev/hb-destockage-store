@@ -20,16 +20,12 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fixtureSnapshot } from './fixtures/snapshot.ts';
 import { parseSnapshot, SnapshotError, type SnapshotIssue } from './schema.ts';
+import { isSiteOrigin } from './url.ts';
 import { SNAPSHOT_VERSION, type CatalogSnapshot, type Localized, type SnapshotWilaya, type StringTable } from './types.ts';
 
 export interface SeedOptions {
   /** Epoch ms for `meta.generatedAt`. Default: `SOURCE_DATE_EPOCH` (s) if set, else now. */
   readonly generatedAt?: number;
-  /**
-   * Allow missing `data/geo/wilayas.json` and `data/content/` (empty lists). For development
-   * before those areas land; a production build never sets it.
-   */
-  readonly partial?: boolean;
   /** Run `data/catalog/validate.mjs` → `validateSeed(repoRoot)` when it exists. Default true. */
   readonly seedValidation?: boolean;
 }
@@ -59,7 +55,7 @@ function defaultGeneratedAt(): number {
 }
 
 /** Dynamic import that sees edits (cache-busted by mtime), e.g. in a long-running dev server. */
-async function importFresh<T>(file: string): Promise<T> {
+export async function importFresh<T>(file: string): Promise<T> {
   const { mtimeMs } = await stat(file);
   return (await import(`${pathToFileURL(file).href}?mtime=${mtimeMs}`)) as T;
 }
@@ -91,15 +87,14 @@ export function toSnapshotWilayas(input: unknown): unknown {
 }
 
 /** geo's `data/geo/index.mjs` → `loadWilayas()` when present, else `data/geo/wilayas.json`. */
-async function loadGeoWilayas(root: string, partial: boolean): Promise<unknown> {
+async function loadGeoWilayas(root: string): Promise<unknown> {
   const mod = join(root, 'data/geo/index.mjs');
   if (existsSync(mod)) {
     const m = await importFresh<{ loadWilayas?: () => unknown }>(mod);
     if (typeof m.loadWilayas === 'function') return m.loadWilayas();
   }
   const file = join(root, 'data/geo/wilayas.json');
-  if (existsSync(file) || !partial) return readJson(file);
-  return [];
+  return readJson(file);
 }
 
 async function runSeedValidation(repoRoot: string): Promise<void> {
@@ -135,10 +130,10 @@ export async function fromSeed(repoRoot: string, opts: SeedOptions = {}): Promis
   const products = await Promise.all(productFiles.map(readJson));
 
   const contentDir = at('data/content');
-  const wilayas = toSnapshotWilayas(await loadGeoWilayas(root, opts.partial === true));
+  const wilayas = toSnapshotWilayas(await loadGeoWilayas(root));
   let contentPages: unknown[] = [];
   if (existsSync(contentDir)) contentPages = await Promise.all((await jsonFilesIn(contentDir)).map(readJson));
-  else if (!opts.partial) throw new SnapshotError([{ path: contentDir, message: 'missing directory' }], 'data/content');
+  else throw new SnapshotError([{ path: contentDir, message: 'missing directory' }], 'data/content');
 
   const assembled = {
     meta: { version: SNAPSHOT_VERSION, source: 'seed', generatedAt: opts.generatedAt ?? defaultGeneratedAt(), publishRunId: null },
@@ -149,7 +144,7 @@ export async function fromSeed(repoRoot: string, opts: SeedOptions = {}): Promis
     wilayas,
   };
   try {
-    return parseSnapshot(assembled, 'data/', { requireAllWilayas: opts.partial !== true });
+    return parseSnapshot(assembled, 'data/');
   } catch (e) {
     if (!(e instanceof SnapshotError)) throw e;
     // Point issues at the file they came from: products[3] → data/catalog/products/<file>.json.
@@ -162,15 +157,22 @@ export async function fromSeed(repoRoot: string, opts: SeedOptions = {}): Promis
   }
 }
 
+/** A snapshot file (normally `source: 'd1'`, or a saved seed snapshot). The invented fixture is refused. */
 export async function fromExport(file: string): Promise<CatalogSnapshot> {
-  return parseSnapshot(await readJson(file), file);
+  const snapshot = parseSnapshot(await readJson(file), file);
+  if (snapshot.meta.source === 'fixture') {
+    throw new SnapshotError([{ path: `${file}#meta.source`, message: "the fixture is not a catalogue export (use HB_SNAPSHOT=fixture for tests)" }], file);
+  }
+  return snapshot;
 }
 
 /**
  * Storefront entry point. `HB_SNAPSHOT` is required (an unset variable fails the build, so a
  * production build can never quietly ship the invented catalogue):
  *  - `fixture` → the CAT-1 fixture (`meta.source: 'fixture'`; dev and tests only);
- *  - `seed` → `fromSeed(repoRoot)` (`HB_SNAPSHOT_PARTIAL=1` allows missing geo/content);
+ *  - `seed` → `fromSeed(repoRoot)`, always complete (69 wilayas, content pages);
+ *  - `HB_SNAPSHOT_PARTIAL` set with anything but `fixture` → error (a production build never ships
+ *    a partial catalogue);
  *  - anything else → a path (absolute, or relative to `repoRoot`) to an export JSON.
  */
 export async function loadSnapshot(
@@ -184,9 +186,17 @@ export async function loadSnapshot(
       'loadSnapshot',
     );
   }
+  // Lead's rule: a partial snapshot (missing wilayas, communes or content) only ever with the
+  // fixture. A seed or export build is always complete; asking for partial there is an error.
+  if (env['HB_SNAPSHOT_PARTIAL'] !== undefined && env['HB_SNAPSHOT_PARTIAL'] !== '' && which !== 'fixture') {
+    throw new SnapshotError(
+      [{ path: 'HB_SNAPSHOT_PARTIAL', message: `partial snapshots are allowed only with HB_SNAPSHOT=fixture (got HB_SNAPSHOT=${which})` }],
+      'loadSnapshot',
+    );
+  }
   if (which === 'fixture') return parseSnapshot(fixtureSnapshot, 'fixture', { requireAllWilayas: false });
   const repoRoot = opts.repoRoot ?? findRepoRoot(process.cwd());
-  if (which === 'seed') return fromSeed(repoRoot, { partial: env['HB_SNAPSHOT_PARTIAL'] === '1' });
+  if (which === 'seed') return fromSeed(repoRoot);
   return fromExport(isAbsolute(which) ? which : join(repoRoot, which));
 }
 
@@ -222,4 +232,23 @@ export async function loadStrings(repoRoot: string): Promise<Localized<StringTab
     return out;
   };
   return { ar: await one('ar'), fr: await one('fr') };
+}
+
+/** The fixture's origin: only ever used with HB_SNAPSHOT=fixture. */
+export const FIXTURE_ORIGIN = 'https://hbdestockage.example';
+
+/**
+ * The one canonical origin for pages, canonical/hreflang/og:url, sitemap and robots (lead ruling on
+ * CAT-6 r1): `HB_SITE_ORIGIN`. Required unless `HB_SNAPSHOT=fixture` (then FIXTURE_ORIGIN). Must be
+ * an origin (`https://host[:port]`, or http://localhost for local builds). A trailing `/` is dropped.
+ * shell's storefront build calls this too, so both layers resolve the same value.
+ */
+export function siteOriginFromEnv(env: Readonly<Record<string, string | undefined>> = process.env): string {
+  const raw = env['HB_SITE_ORIGIN']?.trim().replace(/\/+$/, '');
+  if (!raw) {
+    if (env['HB_SNAPSHOT'] === 'fixture') return FIXTURE_ORIGIN;
+    throw new Error("HB_SITE_ORIGIN is not set: required for every build except HB_SNAPSHOT=fixture (e.g. https://hbdestockagedz.com)");
+  }
+  if (!isSiteOrigin(raw)) throw new Error(`HB_SITE_ORIGIN is not an origin (https://host[:port]): ${JSON.stringify(raw)}`);
+  return raw;
 }

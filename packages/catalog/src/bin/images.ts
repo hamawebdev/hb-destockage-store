@@ -4,7 +4,7 @@
  *   HB_SNAPSHOT=seed node packages/catalog/src/bin/images.ts \
  *     --out apps/storefront/public --manifest apps/storefront/.catalog/image-manifest.json \
  *     [--cache node_modules/.cache/hb-catalog-images] [--report artifacts/CAT-4/sizes.md] \
- *     [--repo-root <dir>] [--originals <dir>] [--partial] [--threads 2] [--concurrency 2]
+ *     [--repo-root <dir>] [--originals <dir>] [--threads 2] [--concurrency 2]
  *
  * Originals are read from `--originals <dir>` by key (`<dir>/<SnapshotImage.key>`), default
  * `<repo-root>/data/photos/`. For a `d1` export the publish pipeline first copies the R2 objects
@@ -15,7 +15,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildImages, dirOriginalReader, seedOriginalReader, sizesMarkdown } from '../images.ts';
-import { findRepoRoot, fromSeed, loadSnapshot } from '../sources.ts';
+import { findRepoRoot, loadSnapshot } from '../sources.ts';
 
 const { values: a } = parseArgs({
   options: {
@@ -25,22 +25,18 @@ const { values: a } = parseArgs({
     cache: { type: 'string' },
     report: { type: 'string' },
     originals: { type: 'string' },
-    partial: { type: 'boolean', default: false },
     threads: { type: 'string', default: '2' },
     concurrency: { type: 'string', default: '2' },
   },
 });
 
 if (!a.out || !a.manifest) {
-  console.error('usage: images.ts --out <site root> --manifest <file> [--cache dir] [--report file] [--repo-root dir] [--partial]');
+  console.error('usage: images.ts --out <site root> --manifest <file> [--cache dir] [--report file] [--repo-root dir]');
   process.exit(2);
 }
 
 const repoRoot = resolve(a['repo-root'] ?? findRepoRoot(process.cwd()));
-const snapshot =
-  process.env['HB_SNAPSHOT'] === 'seed' && a.partial
-    ? await fromSeed(repoRoot, { partial: true, seedValidation: false })
-    : await loadSnapshot({ repoRoot });
+const snapshot = await loadSnapshot({ repoRoot });
 if (snapshot.meta.source === 'd1' && !a.originals) {
   console.error('d1 snapshots need --originals <dir>: the R2 objects copied to a directory under their keys');
   process.exit(2);

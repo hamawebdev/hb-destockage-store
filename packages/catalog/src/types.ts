@@ -238,7 +238,11 @@ export interface SnapshotSettings {
    * archiving a featured product never fails a publish. None published ⇒ first products by `sort`.
    */
   readonly homeFeaturedProductIds: readonly Id[];
-  /** Product whose main image is the home hero (LCP). Null or unpublished ⇒ first featured product. */
+  /**
+   * Product whose main image is the home hero (LCP). Null or unpublished ⇒ no hero product and no
+   * hero image: the home page uses a type-led hero (no fallback to a featured product, whose photo
+   * may carry burned-in prices). Only set it for photography fit to be a hero.
+   */
   readonly homeHeroProductId: Id | null;
   /** Public Turnstile site key; null ⇒ the form does not load Turnstile (orders are flagged). */
   readonly turnstileSiteKey: string | null;
@@ -322,7 +326,8 @@ export const IMAGE_WIDTHS: readonly number[] = [360, 480, 720, 960, 1200];
 
 /**
  * CAT-4 output, CAT-3 input: the encoded files for each original, keyed by `SnapshotImage.key`.
- * JSON-serialisable (`dist/image-manifest.json`). Builders combine an entry with the image's alt,
+ * JSON-serialisable; the CLI writes it where `--manifest` says (convention:
+ * `apps/storefront/.catalog/image-manifest.json`). Builders combine an entry with the image's alt,
  * the slot's `sizes` and the LCP flag into `ImageProps`.
  */
 export type ImageManifest = Readonly<Record<string, ImageManifestEntry>>;
@@ -331,7 +336,13 @@ export interface ImageManifestEntry {
   readonly key: string;
   /** Content hash of the original (hex), the file-name stem. */
   readonly hash: string;
-  /** Ascending width. Never wider than the original. */
+  /** Intrinsic size of the original (after orientation). */
+  readonly original: { readonly width: number; readonly height: number };
+  /**
+   * Ascending width, never upscaled: every `IMAGE_WIDTHS` step ≤ the original's width, plus one
+   * candidate at the original width when it falls between steps or below 360 (lead's ruling on
+   * CAT-4 r1 Nit 1).
+   */
   readonly candidates: readonly SrcsetCandidate[];
   /** 1200×630 JPEG for `og:image`; null when not generated. */
   readonly og: { readonly url: string; readonly bytes: number } | null;
@@ -692,9 +703,9 @@ export interface SearchProps {
 }
 
 /**
- * Per-language search index (CAT-5), short keys to save bytes.
- * `k` is the searchable text normalised with geo's `normalizeForSearch` (the JS applies the same
- * normalisation to the query).
+ * Per-language search index (CAT-5), short keys to save bytes, served at `/search/<lang>.json`.
+ * Matching (GEO-5): fold the query with geo's `normalizeForSearch(query, lang)` and keep entries
+ * where `k.includes(query)` (substring, not prefix: Arabic names keep the article ال).
  */
 export interface SearchIndex {
   readonly v: 1;
@@ -723,7 +734,8 @@ export interface SearchIndexEntry {
   readonly f: boolean;
   /** Placeholder product. */
   readonly x: boolean;
-  /** Normalised search key: name + brandLatin + category name + option value labels (this language). */
+  /** geo's `searchKey(field, lang)` of name, brandLatin, category name and each option value label
+   *  (this language), deduplicated and joined with `|` (so a match never spans two fields). */
   readonly k: string;
 }
 
