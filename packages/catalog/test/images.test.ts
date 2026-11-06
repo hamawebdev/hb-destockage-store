@@ -95,6 +95,20 @@ describe('buildImages', () => {
     expect(sizesMarkdown(r1)).toMatch(/\| a\/big\.jpg \| 1400×1000/);
   }, 300_000);
 
+  test('BUG-12: with default settings every candidate ≤ 960 w is ≤ 20,000 B', async () => {
+    const { IMAGE_TARGET_BYTES_UP_TO_960 } = await import('../src/types.ts');
+    expect(IMAGE_TARGET_BYTES_UP_TO_960).toBe(20_000);
+    // The noisy 1400 px photo exceeds 20 kB at the top quality, so the search has to work for it.
+    const snap = snapshotWith(['a/big.jpg', 'a/mid.jpg'], { width: 1400, height: 1000 });
+    const r = await buildImages(snap, { outDir: join(root, 'out6'), cacheDir: join(root, 'cache6'), readOriginal: seedOriginalReader(root), ...fast });
+    const within = Object.values(r.manifest).flatMap((e) => e.candidates.filter((c) => c.width <= 960));
+    expect(within.length).toBeGreaterThan(0);
+    for (const c of within) expect(c.bytes, c.url).toBeLessThanOrEqual(20_000);
+    expect(r.report.find((x) => x.key === 'a/big.jpg')!.candidates.some((c) => c.width <= 960 && c.quality < 60)).toBe(true);
+    // Never below the floor: every chosen quality is ≥ 20.
+    for (const row of r.report) for (const c of row.candidates) expect(c.quality).toBeGreaterThanOrEqual(20);
+  }, 300_000);
+
   test('the hash changes with the encoder settings', async () => {
     const snap = snapshotWith(['a/small.jpg'], { width: 300, height: 200 });
     const base = { outDir: join(root, 'out2'), cacheDir: join(root, 'cache2'), readOriginal: seedOriginalReader(root), ...fast };

@@ -23,6 +23,7 @@ import sharp from 'sharp';
 import { candidateWidths } from './widths.ts';
 import {
   IMAGE_MAX_BYTES_UP_TO_960,
+  IMAGE_TARGET_BYTES_UP_TO_960,
   IMAGE_WIDTHS,
   type CatalogSnapshot,
   type ImageManifest,
@@ -32,7 +33,7 @@ import {
 } from './types.ts';
 
 /** Bump when the encoding recipe changes: every hash (and cached file) changes with it. */
-export const PIPELINE_VERSION = 'cat4-v2';
+export const PIPELINE_VERSION = 'cat4-v3';
 export const BUDGET_MAX_WIDTH = 960;
 
 export interface ImagePipelineOptions {
@@ -43,7 +44,7 @@ export interface ImagePipelineOptions {
   /** Returns the original's bytes for a `SnapshotImage.key` (disk for seed, R2 for D1 exports). */
   readonly readOriginal: (key: string) => Promise<Buffer>;
   readonly widths?: readonly number[];
-  /** Byte ceiling for every candidate ≤ 960 w. Default 25,000. */
+  /** Byte ceiling for every candidate ≤ 960 w. Default IMAGE_TARGET_BYTES_UP_TO_960 (20,000). */
   readonly maxBytes?: number;
   /** Starting (highest) AVIF quality. Default 60. */
   readonly maxQuality?: number;
@@ -202,7 +203,7 @@ async function sameSize(a: string, b: string): Promise<boolean> {
 export async function buildImages(snapshot: CatalogSnapshot, opts: ImagePipelineOptions): Promise<ImagePipelineResult> {
   const s: Settings = {
     widths: opts.widths ?? IMAGE_WIDTHS,
-    maxBytes: opts.maxBytes ?? IMAGE_MAX_BYTES_UP_TO_960,
+    maxBytes: opts.maxBytes ?? IMAGE_TARGET_BYTES_UP_TO_960,
     maxQuality: opts.maxQuality ?? 60,
     minQuality: opts.minQuality ?? 20,
     effort: opts.effort ?? 4,
@@ -267,7 +268,7 @@ export function sizesMarkdown(result: ImagePipelineResult, title = 'CAT-4 image 
   const lines = [
     `# ${title}`,
     '',
-    `AVIF bytes (quality) per candidate width. Budget: every candidate ≤ ${BUDGET_MAX_WIDTH} w ≤ ${IMAGE_MAX_BYTES_UP_TO_960.toLocaleString('en')} B.`,
+    `AVIF bytes (quality) per candidate width. Target: every candidate ≤ ${BUDGET_MAX_WIDTH} w ≤ ${IMAGE_TARGET_BYTES_UP_TO_960.toLocaleString('en')} B (spec budget ${IMAGE_MAX_BYTES_UP_TO_960.toLocaleString('en')} B).`,
     '',
     `| key | original | ${widths.map((w) => `${w} w`).join(' | ')} | og.jpg | cached | ms |`,
     `|---|---|${widths.map(() => '---:').join('|')}|---:|---|---:|`,
@@ -287,7 +288,7 @@ export function sizesMarkdown(result: ImagePipelineResult, title = 'CAT-4 image 
   const maxAbove = above.reduce((m, c) => Math.max(m, c.bytes), 0);
   lines.push(
     '',
-    `Images: ${result.report.length}. Largest candidate ≤ ${BUDGET_MAX_WIDTH} w: ${max.toLocaleString('en')} B. Over budget: ${within.filter((c) => c.bytes > IMAGE_MAX_BYTES_UP_TO_960).length}. ` +
+    `Images: ${result.report.length}. Largest candidate ≤ ${BUDGET_MAX_WIDTH} w: ${max.toLocaleString('en')} B. Over target: ${within.filter((c) => c.bytes > IMAGE_TARGET_BYTES_UP_TO_960).length}. ` +
       `Largest candidate > ${BUDGET_MAX_WIDTH} w (no budget): ${maxAbove.toLocaleString('en')} B.`,
     '',
   );

@@ -318,7 +318,8 @@ export interface SrcsetCandidate {
   readonly url: string;
   readonly width: number;
   readonly height: number;
-  /** Encoded size. Every candidate with width ≤ 960 is ≤ 25,000 bytes (CAT-4 enforces). */
+  /** Encoded size. Every candidate with width ≤ 960 is ≤ 20,000 bytes (pipeline target, BUG-12;
+   *  the spec budget is 25,000). */
   readonly bytes: number;
 }
 
@@ -352,7 +353,13 @@ export interface ImageManifestEntry {
 
 /** Where an image is shown; decides `sizes`. Templates may override `sizes` for other uses. */
 export type ImageSlot = 'hero' | 'gallery' | 'card' | 'thumb';
+/** Spec budget (CLAUDE.md): every candidate ≤ 960 w ≤ 25 KB. */
 export const IMAGE_MAX_BYTES_UP_TO_960 = 25_000;
+/**
+ * Pipeline target (BUG-12): every candidate ≤ 960 w ≤ 20,000 B, leaving critical-path headroom on
+ * product pages (font + LCP AVIF + wordmark + HTML ≤ 45 KiB).
+ */
+export const IMAGE_TARGET_BYTES_UP_TO_960 = 20_000;
 
 export interface ImageProps {
   /** Fallback `src`: the 720 w candidate (or the largest below it). */
