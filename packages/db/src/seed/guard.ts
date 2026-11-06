@@ -10,6 +10,8 @@ export interface SeedTarget {
   readonly env: Readonly<Record<string, string | undefined>>;
   /** `database_id` of the D1 binding in the wrangler config the seed will use. */
   readonly databaseId: string | undefined;
+  /** Raw text of that wrangler config (JSONC), to refuse bindings marked `"remote": true`. */
+  readonly configText?: string;
 }
 
 /** Returns the reasons the seed must refuse to run; empty = local development target. */
@@ -17,6 +19,13 @@ export function seedRefusals(t: SeedTarget): string[] {
   const out: string[] = [];
   if (t.argv.some((a) => a === '--remote' || a.startsWith('--remote='))) {
     out.push('--remote given: the seed only writes the LOCAL D1');
+  }
+  // DB-3 r1 (rev-b): an environment can carry remote bindings; the seed never selects one.
+  if (t.argv.some((a) => a === '--env' || a === '-e' || a.startsWith('--env=') || a.startsWith('-e='))) {
+    out.push('--env given: the seed uses only the local top-level bindings');
+  }
+  if (t.configText !== undefined && /"remote"\s*:\s*true/.test(stripJsonComments(t.configText))) {
+    out.push('the wrangler config marks a binding "remote": true (D1 or R2 would be the real one)');
   }
   if (t.databaseId !== LOCAL_DATABASE_ID) {
     out.push(`database_id is ${JSON.stringify(t.databaseId)}, not the local placeholder ${LOCAL_DATABASE_ID}`);

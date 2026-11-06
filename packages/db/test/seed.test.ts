@@ -161,6 +161,10 @@ describe('DB-3 seed refuses anything but the local D1 (lead ruling)', () => {
   const local = { argv: [], env: {}, databaseId: LOCAL_DATABASE_ID };
   test('local development target is accepted', () => {
     expect(seedRefusals(local)).toEqual([]);
+    // The repo's own config, and a commented-out remote flag, are fine.
+    const own = readFileSync(fileURLToPath(new URL('../wrangler.jsonc', import.meta.url)), 'utf8');
+    expect(seedRefusals({ ...local, configText: own })).toEqual([]);
+    expect(seedRefusals({ ...local, configText: '{ "r2_buckets": [{ "binding": "MEDIA" // "remote": true\n }] }' })).toEqual([]);
     expect(seedRefusals({ ...local, env: { ENV: 'development' } })).toEqual([]);
   });
   test.each([
@@ -172,8 +176,19 @@ describe('DB-3 seed refuses anything but the local D1 (lead ruling)', () => {
     ['ENV=staging', { ...local, env: { ENV: 'staging' } }],
     ['NODE_ENV=production', { ...local, env: { NODE_ENV: 'production' } }],
     ['CLOUDFLARE_ENV=production', { ...local, env: { CLOUDFLARE_ENV: 'production' } }],
+    // DB-3 r1 (rev-b): remote bindings and environments
+    ['--env staging', { ...local, argv: ['--env', 'staging'] }],
+    ['--env=production', { ...local, argv: ['--env=production'] }],
+    ['-e production', { ...local, argv: ['-e', 'production'] }],
+    ['an R2 binding marked remote', { ...local, configText: '{ "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "hb-media", "remote": true }] }' }],
+    ['a D1 binding marked remote', { ...local, configText: `{ "d1_databases": [{ "binding": "DB", "database_id": "${LOCAL_DATABASE_ID}", "remote" : true }] }` }],
   ])('refuses %s', (_n, target) => {
     expect(seedRefusals(target).length).toBeGreaterThan(0);
+  });
+  test('the CLI disables remote bindings in getPlatformProxy', () => {
+    const cli = readFileSync(fileURLToPath(new URL('../src/seed/cli.ts', import.meta.url)), 'utf8');
+    expect(cli).toMatch(/await getPlatformProxy<.*remoteBindings: false/);
+    expect(cli.match(/getPlatformProxy</g)).toHaveLength(1);
   });
   test("packages/db/wrangler.jsonc uses the local placeholder database_id", () => {
     const text = readFileSync(fileURLToPath(new URL('../wrangler.jsonc', import.meta.url)), 'utf8');

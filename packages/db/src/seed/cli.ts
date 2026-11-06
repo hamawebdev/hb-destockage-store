@@ -31,10 +31,12 @@ interface R2Like {
 const CONTENT_TYPES: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.avif': 'image/avif' };
 
 async function main(): Promise<number> {
+  const configText = readFileSync(configPath, 'utf8');
   const refusals = seedRefusals({
     argv: process.argv.slice(2),
     env: process.env,
-    databaseId: databaseIdFromWranglerJsonc(readFileSync(configPath, 'utf8')),
+    databaseId: databaseIdFromWranglerJsonc(configText),
+    configText,
   });
   if (refusals.length > 0) {
     console.error(`seed: REFUSED. The seed writes invented data and only targets the local D1:\n  - ${refusals.join('\n  - ')}`);
@@ -77,7 +79,8 @@ async function main(): Promise<number> {
   console.log('seed: migrations applied');
 
   const { getPlatformProxy } = await import('wrangler');
-  const proxy = await getPlatformProxy<{ DB: D1Like; MEDIA: R2Like }>({ configPath, persist: { path: join(persist, 'v3') } });
+  // remoteBindings: false (defaults to true in wrangler): never connect a binding to Cloudflare.
+  const proxy = await getPlatformProxy<{ DB: D1Like; MEDIA: R2Like }>({ configPath, persist: { path: join(persist, 'v3') }, remoteBindings: false });
   try {
     const db = proxy.env.DB;
     const statements = buildSeedStatements(input);
