@@ -6,6 +6,8 @@ vi.setConfig({ testTimeout: 60_000, hookTimeout: 90_000 });
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import * as v from 'valibot';
 import { OrderResponseSchema } from '@hb/shared';
+import { createDb } from '@hb/db';
+import { transitionOrder } from '@hb/db/orders';
 import { postForm, postJson, startSeeded, type Started } from './support/harness.ts';
 
 let h: Started;
@@ -85,13 +87,13 @@ describe('JSON order, real D1', () => {
     expect(await one(`select stock from variants where id = 21`)).toEqual({ stock: 1 });
   });
 
-  test('idempotent replay: same key → same ref, 200, one row, no second decrement', async () => {
+  test('idempotent replay: same key → same ref, 201 (same as the first answer), one row, no second decrement', async () => {
     await h.env.DB.prepare(`update variants set stock = 5 where id = 21`).run();
     const body = order({ items: [{ variantId: 21, qty: 1 }], expectedTotalDzd: 16100 });
     const a = await send(body);
     const b = await send(body);
     expect(a.status).toBe(201);
-    expect(b.status).toBe(200);
+    expect(b.status).toBe(201);
     expect(b.json).toEqual(a.json);
     expect(await count(`select count(*) n from orders where idempotency_key = ?`, body.idempotencyKey)).toBe(1);
     expect(await one(`select stock from variants where id = 21`)).toEqual({ stock: 4 });
@@ -101,16 +103,15 @@ describe('JSON order, real D1', () => {
     const body = order();
     const results = await Promise.all(Array.from({ length: 10 }, () => send(body)));
     expect(new Set(results.map((r) => r.json['ref'])).size).toBe(1);
-    expect(results.filter((r) => r.status === 201)).toHaveLength(1);
-    expect(results.every((r) => r.status === 201 || r.status === 200)).toBe(true);
+    expect(results.every((r) => r.status === 201)).toBe(true);
     expect(await count(`select count(*) n from orders where idempotency_key = ?`, body.idempotencyKey)).toBe(1);
   });
 
-  test('dedup: same phone + variant within 30 min, new key → existing order, 200, flagged duplicate, no new row', async () => {
+  test('genuine double submit (same phone, variant, name, wilaya, commune; new key) → existing order, 201, flagged, no new row', async () => {
     const phone = freshPhone();
     const first = await send(order({ phone }));
-    const second = await send(order({ phone, items: [{ variantId: 11, qty: 2 }], expectedTotalDzd: 29800 }));
-    expect(second.status).toBe(200);
+    const second = await send(order({ phone, name: ' محمد   أمين', items: [{ variantId: 11, qty: 2 }], expectedTotalDzd: 29800 }));
+    expect(second.status).toBe(201);
     expect(second.json).toMatchObject({ ref: first.json['ref'], duplicate: true, totalDzd: 15200 });
     expect(await count(`select count(*) n from orders where phone_e164 = ?`, e164(phone))).toBe(1);
     const o = await one<{ flags: string; id: number }>(`select id, flags from orders where ref = ?`, first.json['ref']);
@@ -118,6 +119,35 @@ describe('JSON order, real D1', () => {
     expect(await one(`select note from order_events where order_id = ? and outcome = 'duplicate_submit'`, o!.id)).toEqual({
       note: 'duplicate submit: items=11x2 wilaya=16 commune=1601',
     });
+  });
+
+  test('same phone + variant but another name → a NEW order flagged duplicate; the first order is never disclosed', async () => {
+    const phone = freshPhone();
+    const first = await send(order({ phone, items: [{ variantId: 11, qty: 2 }], expectedTotalDzd: 29800 }));
+    const probe = await send(order({ phone, name: 'Curious Person', communeId: 1602 }));
+    expect(probe.status).toBe(201);
+    expect(probe.json['ref']).not.toBe(first.json['ref']);
+    expect(probe.json).toMatchObject({ duplicate: false, subtotalDzd: 14600, totalDzd: 15200 });
+    expect(JSON.stringify(probe.json)).not.toContain(first.json['ref'] as string);
+    expect(await count(`select count(*) n from orders where phone_e164 = ?`, e164(phone))).toBe(2);
+    expect(JSON.parse((await one<{ flags: string }>(`select flags from orders where ref = ?`, probe.json['ref']))!.flags)).toEqual(['turnstile_missing', 'duplicate']);
+  });
+
+  test('a real replay and a sunk decoy are indistinguishable (status, headers, body shape)', async () => {
+    const real = order();
+    await send(real);
+    const replay = await postJson(h.server, '/api/order', real);
+    const decoy = order({ website: 'http://x', fillMs: 200 });
+    await postJson(h.server, '/api/order', decoy);
+    const decoyAgain = await postJson(h.server, '/api/order', decoy);
+    expect(replay.status).toBe(decoyAgain.status);
+    const names = (r: { headers: Headers | { keys(): IterableIterator<string> } }) => [...r.headers.keys()].filter((k) => k !== 'date').sort();
+    expect(names(replay)).toEqual(names(decoyAgain));
+    for (const k of names(replay)) if (k !== 'content-length') expect(replay.headers.get(k), k).toBe(decoyAgain.headers.get(k));
+    const a = (await replay.json()) as Record<string, unknown>;
+    const b = (await decoyAgain.json()) as Record<string, unknown>;
+    expect(Object.keys(a).sort()).toEqual(Object.keys(b).sort());
+    expect({ ...a, ref: '', confirmationUrl: '' }).toEqual({ ...b, ref: '', confirmationUrl: '' });
   });
 
   test('dedup does not merge a different variant', async () => {
@@ -160,6 +190,45 @@ describe('JSON order, real D1', () => {
     const { status, json } = await send(body);
     expect(status).toBe(201);
     expect(await count(`select count(*) n from orders where ref = ? or idempotency_key = ?`, json['ref'], body.idempotencyKey)).toBe(0);
+  });
+});
+
+describe('stock taken by /api/order and restored on cancel (DB-4 r2 rule)', () => {
+  let adminId = 0;
+  async function cancel(ref: string) {
+    if (adminId === 0) {
+      await h.env.DB.prepare(`insert into admin_users (email, name, role) values ('owner@example.dz', 'Owner', 'owner') on conflict(email) do nothing`).run();
+      adminId = (await one<{ id: number }>(`select id from admin_users where email = 'owner@example.dz'`))!.id;
+    }
+    // new → called (first call) → cancelled: the shared state machine's path for a refusal on the phone.
+    for (const to of ['called', 'cancelled'] as const) {
+      const o = (await one<{ id: number; version: number }>(`select id, version from orders where ref = ?`, ref))!;
+      const r = await transitionOrder(createDb(h.env.DB), o.id, to, { userId: adminId, role: 'owner' }, to === 'cancelled' ? 'customer_refused' : null, o.version);
+      expect(r.ok, `${to}: ${JSON.stringify(r)}`).toBe(true);
+    }
+  }
+
+  test('tracked variant: the order records the units taken and a cancel gives exactly them back', async () => {
+    await h.env.DB.prepare(`update variants set stock = 4 where id = 21`).run();
+    const { status, json } = await send(order({ items: [{ variantId: 21, qty: 3 }], expectedTotalDzd: 3 * 15500 + 600 }));
+    expect(status).toBe(201);
+    expect(await one(`select stock from variants where id = 21`)).toEqual({ stock: 1 });
+    expect(await one(`select stock_taken from order_items i join orders o on o.id = i.order_id where o.ref = ?`, json['ref'])).toEqual({ stock_taken: 3 });
+    await cancel(json['ref'] as string);
+    expect(await one(`select stock from variants where id = 21`)).toEqual({ stock: 4 });
+  });
+
+  test('untracked at order time: nothing taken, and a cancel adds nothing even if the variant is tracked since', async () => {
+    await h.env.DB.prepare(`update variants set stock = null where id = 11`).run();
+    const { json } = await send(order());
+    expect(await one(`select stock_taken from order_items i join orders o on o.id = i.order_id where o.ref = ?`, json['ref'])).toEqual({ stock_taken: 0 });
+    await h.env.DB.prepare(`update variants set stock = 2 where id = 11`).run();
+    try {
+      await cancel(json['ref'] as string);
+      expect(await one(`select stock from variants where id = 11`)).toEqual({ stock: 2 });
+    } finally {
+      await h.env.DB.prepare(`update variants set stock = null where id = 11`).run();
+    }
   });
 });
 

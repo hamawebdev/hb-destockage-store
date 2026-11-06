@@ -54,25 +54,28 @@ describe('D1 order store reads', () => {
       subtotalDzd: 14600,
       feeDzd: 600,
       totalDzd: 15200,
+      name: 'X',
+      wilayaCode: 16,
+      communeId: 1601,
     });
     expect(await store.findByIdempotencyKey('00000000-0000-4000-8000-0000000000ff')).toBeNull();
     expect((await store.getOrder(2))?.ref).toBe('HB-00002');
   });
 
   test('dedup: same phone + overlapping variant within 30 min, not cancelled', async () => {
-    expect((await store.phoneHistory(P1, [11], NOW)).duplicate?.ref).toBe('HB-00001');
-    expect((await store.phoneHistory(P1, [21, 11], NOW)).duplicate?.ref).toBe('HB-00001');
+    expect((await store.phoneHistory(P1, [11], NOW)).recent?.ref).toBe('HB-00001');
+    expect((await store.phoneHistory(P1, [21, 11], NOW)).recent?.ref).toBe('HB-00001');
     // Variant 21: order 2 is 40 min old, order 3 is cancelled ⇒ no duplicate.
-    expect((await store.phoneHistory(P1, [21], NOW)).duplicate).toBeNull();
-    expect((await store.phoneHistory('+213555000099', [11], NOW)).duplicate).toBeNull();
+    expect((await store.phoneHistory(P1, [21], NOW)).recent).toBeNull();
+    expect((await store.phoneHistory('+213555000099', [11], NOW)).recent).toBeNull();
     // 31 min later, order 1 is out of the window.
-    expect((await store.phoneHistory(P1, [11], NOW + 21 * MIN)).duplicate).toBeNull();
+    expect((await store.phoneHistory(P1, [11], NOW + 21 * MIN)).recent).toBeNull();
   });
 
   test('velocity counts non-cancelled orders of the last 24 h; blocked comes from customers', async () => {
-    expect(await store.phoneHistory(P1, [22], NOW)).toEqual({ duplicate: null, ordersLast24h: 2, blocked: false });
+    expect(await store.phoneHistory(P1, [22], NOW)).toEqual({ recent: null, ordersLast24h: 2, blocked: false });
     expect(await store.phoneHistory(P2, [22], NOW)).toMatchObject({ ordersLast24h: 1, blocked: true });
-    expect(await store.phoneHistory('+213555000099', [22], NOW)).toEqual({ duplicate: null, ordersLast24h: 0, blocked: false });
+    expect(await store.phoneHistory('+213555000099', [22], NOW)).toEqual({ recent: null, ordersLast24h: 0, blocked: false });
   });
 
   test('noteEnqueueFailed appends a system note event, no PII', async () => {

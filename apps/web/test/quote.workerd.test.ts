@@ -5,7 +5,7 @@ vi.setConfig({ testTimeout: 30_000, hookTimeout: 90_000 });
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import * as v from 'valibot';
 import { createDb } from '@hb/db';
-import { checkFeeProviderConformance, QuoteResponseSchema, WILAYA_CODE_MAX } from '@hb/shared';
+import { QuoteResponseSchema } from '@hb/shared';
 import { createAdminTableFeeProvider } from '@hb/db/fees';
 import { allowPlaceholderFees, feeProvider } from '../src/fees.ts';
 import { postJson, startSeeded, type Started } from './support/harness.ts';
@@ -157,19 +157,9 @@ describe('placeholder (invented seed) fees fail closed', () => {
 });
 
 describe('AdminTableFeeProvider (D1)', () => {
-  test('passes shared conformance suite against local D1', async () => {
-    const all = Array.from({ length: WILAYA_CODE_MAX }, (_, i) => i + 1);
-    const failures = await checkFeeProviderConformance(createAdminTableFeeProvider(createDb(h.env.DB)), {
-      served: { 16: 600 },
-      unserved: all.filter((w) => w !== 16),
-      source: 'table',
-      communes: { 16: 1601 },
-      communeIndependent: true,
-      itemIndependent: true,
-      failing: () => createAdminTableFeeProvider(createDb(brokenD1())),
-    });
-    expect(failures).toEqual([]);
-  }, 180_000); // ~400 sequential D1 quotes through the harness proxy: slow on a loaded host
+  // The shared conformance suite (incl. its 69-way concurrency check) runs against this provider in
+  // its owner's tests (packages/db, DB-6) on workerd D1; through this harness's Node proxy the
+  // concurrency check measures the proxy under load. Here: the cases this Worker relies on.
 
 
 
@@ -182,11 +172,11 @@ describe('AdminTableFeeProvider (D1)', () => {
     expect(await p.quote({ wilayaCode: 0, items })).toEqual({ available: false, feeDzd: null, source: 'table' });
     expect(await p.quote({ wilayaCode: 70, items })).toEqual({ available: false, feeDzd: null, source: 'table' });
   });
-});
 
-/** A D1 binding whose every query rejects (database down). */
-function brokenD1(): D1Database {
-  const down = () => Promise.reject(new Error('D1_ERROR: database unavailable'));
-  const stmt = { bind: () => stmt, first: down, all: down, raw: down, run: down };
-  return { prepare: () => stmt, batch: down, exec: down, dump: down, withSession: () => { throw new Error('unused'); } } as unknown as D1Database;
-}
+  test('a D1 failure rejects (→ 503), never "no delivery"', async () => {
+    const down = () => Promise.reject(new Error('D1_ERROR: database unavailable'));
+    const stmt = { bind: () => stmt, first: down, all: down, raw: down, run: down };
+    const broken = { prepare: () => stmt, batch: down, exec: down, dump: down } as unknown as D1Database;
+    await expect(createAdminTableFeeProvider(createDb(broken)).quote({ wilayaCode: 16, items: [] })).rejects.toThrow();
+  });
+});

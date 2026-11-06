@@ -144,14 +144,6 @@ export function registerOrder(app: Hono<{ Bindings: Env }>, writes: OrderWrites 
   });
 }
 
-const FIELD_MESSAGE: Readonly<Record<string, OrderErrorCode>> = {
-  name: 'name_required',
-  phone: 'phone_required',
-  wilayaCode: 'wilaya_invalid',
-  communeId: 'commune_invalid',
-  items: 'variant_required',
-};
-
 function keyOf(raw: Record<string, unknown>): string | undefined {
   const k = raw['idempotencyKey'];
   return typeof k === 'string' && /^[0-9a-f-]{36}$/i.test(k.trim()) ? k.trim().toLowerCase() : undefined;
@@ -173,11 +165,7 @@ async function reviewPage(
   opts: { readonly errors?: readonly OrderFieldError[]; readonly failure?: Omit<ApiFailure, 'ok'>; readonly key?: string | undefined },
 ): Promise<Response> {
   const lang: Lang = isLang(raw['lang']) ? raw['lang'] : 'ar';
-  // A missing user field can surface as a request-level code (e.g. no commune chosen ⇒
-  // `invalid_request` on communeId); on the review page it is that field's own message.
-  const errors: OrderFieldError[] = (opts.errors ?? []).map((e) =>
-    e.code === 'invalid_request' && e.field in FIELD_MESSAGE ? { ...e, code: FIELD_MESSAGE[e.field]! } : e,
-  );
+  const errors: OrderFieldError[] = [...(opts.errors ?? [])];
   const draft = parseOrderDraft(raw);
   if (opts.errors === undefined && !draft.ok) errors.push(...draft.errors);
 

@@ -91,10 +91,11 @@ describe('JSON path: transport and validation', () => {
     expect(await res.json()).toMatchObject({ code: 'out_of_stock', lines: [{ variantId: 21, maxQty: 3 }] });
   });
 
-  test('phone limit: the 6th order attempt in 60 s from one phone → 429 + Retry-After', async () => {
+  test('phone limit (5 per 60 s window, keyed on the phone) → 429 + Retry-After once exceeded', async () => {
+    // The binding counts in fixed 60 s windows: 11 attempts guarantee one window holds ≥ 6 of them.
     const phone = freshPhone();
     const statuses: number[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 11; i++) {
       const res = await postJson(h.server, '/api/order', {
         idempotencyKey: crypto.randomUUID(),
         lang: 'ar',
@@ -111,7 +112,9 @@ describe('JSON path: transport and validation', () => {
         expect(await res.json()).toEqual({ ok: false, code: 'rate_limited', retryAfterS: 60 });
       }
     }
-    expect(statuses).toEqual([409, 409, 409, 409, 409, 429]);
+    expect(statuses.slice(0, 5)).toEqual([409, 409, 409, 409, 409]);
+    expect(statuses).toContain(429);
+    expect(statuses.every((s) => s === 409 || s === 429)).toBe(true);
   });
 });
 

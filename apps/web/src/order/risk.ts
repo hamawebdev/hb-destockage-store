@@ -11,6 +11,8 @@ export interface ServerSignals {
   /** Non-cancelled orders for this phone in the last 24 h, before this one. */
   readonly ordersLast24h: number;
   readonly blockedCustomer: boolean;
+  /** Same phone + variant as a recent order, but not the same person/address: a new order, flagged for staff. */
+  readonly possibleDuplicate: boolean;
 }
 
 /** More than 3 orders for one phone in 24 h ⇒ the 4th and later are flagged `rate_limited`. */
@@ -56,6 +58,7 @@ export function assess(
     flags.add('rate_limited');
     score += WEIGHTS.velocity;
   }
+  if (signals.possibleDuplicate) flags.add('duplicate');
   if (signals.blockedCustomer) {
     flags.add('blocked_customer');
     score += WEIGHTS.blocked_customer;

@@ -67,7 +67,7 @@ function input(over: Record<string, unknown> = {}): OrderInput {
 class FakeStore implements OrderStore {
   byKey = new Map<string, ExistingOrder>();
   byId = new Map<number, ExistingOrder>();
-  history: PhoneHistory = { duplicate: null, ordersLast24h: 0, blocked: false };
+  history: PhoneHistory = { recent: null, ordersLast24h: 0, blocked: false };
   created: CreateOrderInput[] = [];
   duplicates: { orderId: number; attempt: DuplicateAttempt }[] = [];
   enqueueNotes: number[] = [];
@@ -93,6 +93,9 @@ class FakeStore implements OrderStore {
       subtotalDzd: inp.order.subtotalDzd,
       feeDzd: inp.order.feeDzd,
       totalDzd: inp.order.totalDzd,
+      name: inp.customer.name,
+      wilayaCode: inp.order.wilayaCode,
+      communeId: inp.order.communeId,
     };
     this.byKey.set(inp.order.idempotencyKey, o);
     this.byId.set(id, o);
@@ -212,12 +215,12 @@ describe('happy path', () => {
 });
 
 describe('layer 3: idempotency', () => {
-  test('same key returns the original order (200) before any rate limit or read', async () => {
+  test('same key returns the original order (201, like a first submit) before any rate limit or read', async () => {
     const first = await place();
     expect(first.kind).toBe('created');
     deps.rlPhone.limit.mockClear();
     const again = wire(await place());
-    expect(again).toEqual({ kind: 'replay', status: 200, body: (first as Extract<PlaceOutcome, { kind: 'created' }>).body });
+    expect(again).toEqual({ kind: 'replay', status: 201, body: (first as Extract<PlaceOutcome, { kind: 'created' }>).body });
     expect(deps.rlPhone.limit).not.toHaveBeenCalled();
     expect(deps.readPricing).toHaveBeenCalledTimes(1);
     expect(store.created).toHaveLength(1);
@@ -230,12 +233,12 @@ describe('layer 3: idempotency', () => {
   });
 
   test('lost same-key race inside createOrder (replayed:true) answers like a replay', async () => {
-    store.byId.set(7, { id: 7, ref: 'HB-77777' as OrderRef, status: 'called', lang: 'fr', subtotalDzd: 1, feeDzd: 2, totalDzd: 3 });
+    store.byId.set(7, { id: 7, ref: 'HB-77777' as OrderRef, status: 'called', lang: 'fr', subtotalDzd: 1, feeDzd: 2, totalDzd: 3, name: 'X', wilayaCode: 16, communeId: 1601 });
     store.results.push({ ok: true, orderId: 7, ref: 'HB-77777', replayed: true });
     const out = wire(await place());
     expect(out).toEqual({
       kind: 'replay',
-      status: 200,
+      status: 201,
       body: { ok: true, ref: 'HB-77777', status: 'called', duplicate: false, subtotalDzd: 1, feeDzd: 2, totalDzd: 3, confirmationUrl: '/fr/order/confirmation/?ref=HB-77777' },
     });
   });
@@ -381,38 +384,74 @@ describe('layer 1: honeypot and fill time', () => {
   });
 });
 
-describe('layer 7: dedup', () => {
-  const existing: ExistingOrder = { id: 42, ref: 'HB-42424' as OrderRef, status: 'new', lang: 'ar', subtotalDzd: 14600, feeDzd: 600, totalDzd: 15200 };
+describe('layer 7: dedup (lead ruling: no data about another order unless it is a genuine double submit)', () => {
+  const existing: ExistingOrder = {
+    id: 42,
+    ref: 'HB-42424' as OrderRef,
+    status: 'new',
+    lang: 'ar',
+    subtotalDzd: 14600,
+    feeDzd: 600,
+    totalDzd: 15200,
+    name: 'محمد  أمين ',
+    wilayaCode: 16,
+    communeId: 1601,
+  };
 
-  test('same phone + variant within the window → the existing order, 200, duplicate:true, attempt noted', async () => {
-    store.history = { duplicate: existing, ordersLast24h: 1, blocked: false };
+  test('genuine double submit (same phone + variant + name + wilaya + commune) → the existing order, 201, duplicate:true, attempt noted', async () => {
+    store.history = { recent: existing, ordersLast24h: 1, blocked: false };
     const out = wire(await place({ items: [{ variantId: 11, qty: 2 }], expectedTotalDzd: 29800 }));
     expect(out).toEqual({
       kind: 'duplicate',
-      status: 200,
+      status: 201,
       body: { ok: true, ref: 'HB-42424', status: 'new', duplicate: true, subtotalDzd: 14600, feeDzd: 600, totalDzd: 15200, confirmationUrl: '/ar/order/confirmation/?ref=HB-42424' },
     });
     expect(store.duplicates).toEqual([{ orderId: 42, attempt: { items: [{ variantId: 11, qty: 2 }], wilayaCode: 16, communeId: 1601 } }]);
     expect(store.created).toHaveLength(0);
     expect(store.phoneHistory).toHaveBeenCalledWith('+213555123456', [11], NOW);
   });
+
+  test.each([
+    ['another name', { name: 'Someone Else' }],
+    ['another commune', { communeId: 1602 }],
+    ['another wilaya', { wilayaCode: 31, communeId: 3101 }],
+  ])('%s → a NEW order flagged duplicate; nothing of the first order is returned', async (_l, over) => {
+    store.history = { recent: existing, ordersLast24h: 1, blocked: false };
+    const fees = { 16: 600, 31: 900 } as Record<number, number>;
+    deps = { ...deps, fees: createStaticFeeProvider(fees) };
+    COMMUNE_WILAYA[1602] = 16;
+    const fee = fees[(over as { wilayaCode?: number }).wilayaCode ?? 16]!;
+    const out = wire(await place({ ...over, expectedTotalDzd: 14600 + fee }));
+    expect(out.kind).toBe('created');
+    if (out.kind !== 'created') return;
+    expect(out.body.ref).not.toBe('HB-42424');
+    expect(out.body.duplicate).toBe(false);
+    expect(JSON.stringify(out.body)).not.toContain('42424');
+    expect(store.created[0]!.order.flags).toEqual(['duplicate']);
+    expect(store.duplicates).toHaveLength(0);
+  });
+
+  test('names compare as typed: case, spaces and Unicode normalisation do not matter', async () => {
+    store.history = { recent: { ...existing, name: '  AMINE   ben ali ' }, ordersLast24h: 1, blocked: false };
+    expect((await place({ name: 'Amine Ben Ali' })).kind).toBe('duplicate');
+  });
 });
 
 describe('layers 8–9: velocity and blocked customers (flags only)', () => {
   test('3 orders in 24 h already → the next is accepted and flagged rate_limited', async () => {
-    store.history = { duplicate: null, ordersLast24h: 3, blocked: false };
+    store.history = { recent: null, ordersLast24h: 3, blocked: false };
     await place();
     expect(store.created[0]!.order).toMatchObject({ flags: ['rate_limited'], riskScore: 30 });
   });
 
   test('2 orders in 24 h → no flag', async () => {
-    store.history = { duplicate: null, ordersLast24h: 2, blocked: false };
+    store.history = { recent: null, ordersLast24h: 2, blocked: false };
     await place();
     expect(store.created[0]!.order.flags).toEqual([]);
   });
 
   test('blocked customer → accepted silently, flagged, risk 100 (capped)', async () => {
-    store.history = { duplicate: null, ordersLast24h: 5, blocked: true };
+    store.history = { recent: null, ordersLast24h: 5, blocked: true };
     verdict = 'invalid';
     const out = await place({ website: 'x' });
     expect(out.kind).toBe('created');

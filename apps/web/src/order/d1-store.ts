@@ -23,9 +23,12 @@ const existingColumns = {
   subtotalDzd: orders.subtotalDzd,
   feeDzd: orders.feeDzd,
   totalDzd: orders.totalDzd,
+  name: orders.name,
+  wilayaCode: orders.wilayaCode,
+  communeId: orders.communeId,
 };
 
-function toExisting(r: { id: number; ref: string; status: ExistingOrder['status']; lang: ExistingOrder['lang']; subtotalDzd: number; feeDzd: number; totalDzd: number }): ExistingOrder {
+function toExisting(r: Omit<ExistingOrder, 'ref'> & { ref: string }): ExistingOrder {
   return { ...r, ref: r.ref as OrderRef };
 }
 
@@ -62,7 +65,7 @@ export function createD1OrderStore(db: Db, writes: OrderWrites): OrderStore {
       const customerQuery = db.select({ blocked: customers.blocked }).from(customers).where(eq(customers.phoneE164, phoneE164)).limit(1);
       const [dup, count, customer] = await db.batch([dupQuery, countQuery, customerQuery]);
       return {
-        duplicate: dup[0] === undefined ? null : toExisting(dup[0]),
+        recent: dup[0] === undefined ? null : toExisting(dup[0]),
         ordersLast24h: Number(count[0]?.n ?? 0),
         blocked: customer[0]?.blocked === true,
       };

@@ -14,6 +14,10 @@ export interface ExistingOrder {
   readonly subtotalDzd: number;
   readonly feeDzd: number;
   readonly totalDzd: number;
+  /** Server-side only (never sent to the client): used to recognise a genuine double submit. */
+  readonly name: string;
+  readonly wilayaCode: number;
+  readonly communeId: number;
 }
 
 export interface CreateOrderLine {
@@ -59,7 +63,7 @@ export type CreateOrderResult =
 /** The phone's recent history, read in one round trip before deciding dedup / velocity / blocked. */
 export interface PhoneHistory {
   /** Most recent non-cancelled order for this phone with an overlapping variant inside the dedup window. */
-  readonly duplicate: ExistingOrder | null;
+  readonly recent: ExistingOrder | null;
   /** Non-cancelled orders for this phone in the last 24 h. */
   readonly ordersLast24h: number;
   readonly blocked: boolean;

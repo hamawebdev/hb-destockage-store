@@ -8,7 +8,9 @@
  *   6  fresh D1 reads: prices, stock, status, commune ∈ wilaya, fee; phone history (dedup, velocity, blocked)
  *      ⇒ 422 commune / 409 variant_unavailable | out_of_stock | delivery_unavailable | total_changed (shared checkOrderQuote)
  *   sink: honeypot AND fill-time signal ⇒ decoy success, nothing written
- *   7  dedup (same phone + variant, 30 min) ⇒ the existing order, 200, flagged `duplicate`
+ *   7  dedup (same phone + variant, 30 min): a genuine double submit (same name, wilaya, commune too)
+ *      ⇒ the existing order, flagged `duplicate`; otherwise a NEW order flagged `duplicate` (never
+ *      another order's ref or totals: lead ruling on WEB-3 r1)
  *   8–9 velocity / blocked ⇒ flags
  *   write: createOrder batch (customer upsert, order, items, stock decrement, created event)
  *
@@ -57,12 +59,25 @@ export interface PlaceDeps {
 
 export type PlaceOutcome =
   | { readonly kind: 'created'; readonly status: 201; readonly body: OrderSuccess; readonly orderId: number; readonly message: OrderCreatedMessage }
-  | { readonly kind: 'replay' | 'duplicate'; readonly status: 200; readonly body: OrderSuccess }
+  // Every success is 201: a replay must look exactly like a first submit and like a sunk decoy
+  // (rev-d WEB-3 r1 Nit: a bot replaying its key must not learn whether it was sunk).
+  | { readonly kind: 'replay' | 'duplicate'; readonly status: 201; readonly body: OrderSuccess }
   | { readonly kind: 'sink'; readonly status: 201; readonly body: OrderSuccess }
   | { readonly kind: 'failure'; readonly failure: Omit<ApiFailure, 'ok'> };
 
 export function confirmationUrl(lang: string, ref: string): string {
   return `/${lang}/order/confirmation/?ref=${ref}`;
+}
+
+/** Names compared as people type them: NFC, case-insensitive, whitespace collapsed. */
+export function sameName(a: string, b: string): boolean {
+  const n = (s: string) => s.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+  return n(a) === n(b);
+}
+
+/** A genuine double submit: same person and delivery address as the recent order. */
+export function sameSubmitter(o: ExistingOrder, input: Pick<OrderInput, 'name' | 'wilayaCode' | 'communeId'>): boolean {
+  return sameName(o.name, input.name) && o.wilayaCode === input.wilayaCode && o.communeId === input.communeId;
 }
 
 function existingBody(o: ExistingOrder, duplicate: boolean): OrderSuccess {
@@ -88,7 +103,7 @@ export async function placeOrder(req: PlaceRequest, deps: PlaceDeps): Promise<Pl
 
   // 3. Idempotency.
   const replay = await deps.store.findByIdempotencyKey(input.idempotencyKey);
-  if (replay !== null) return { kind: 'replay', status: 200, body: existingBody(replay, false) };
+  if (replay !== null) return { kind: 'replay', status: 201, body: existingBody(replay, false) };
 
   // 4. Rate limits: phone is the primary key (reject); IP is secondary (flag only).
   if (!(await deps.rlPhone.limit({ key: phone })).success) {
@@ -133,14 +148,12 @@ export async function placeOrder(req: PlaceRequest, deps: PlaceDeps): Promise<Pl
     };
   }
 
-  // 7. Dedup: return the existing order and note the second attempt on it.
-  if (history.duplicate !== null) {
-    await deps.store.markDuplicate(
-      history.duplicate.id,
-      { items: input.items, wilayaCode: input.wilayaCode, communeId: input.communeId },
-      now,
-    );
-    return { kind: 'duplicate', status: 200, body: existingBody(history.duplicate, true) };
+  // 7. Dedup. Only a genuine double submit (same phone + variant within the window AND the same
+  // name, wilaya and commune) gets the existing order back; anything else is a new order, flagged.
+  const recent = history.recent;
+  if (recent !== null && sameSubmitter(recent, input)) {
+    await deps.store.markDuplicate(recent.id, { items: input.items, wilayaCode: input.wilayaCode, communeId: input.communeId }, now);
+    return { kind: 'duplicate', status: 201, body: existingBody(recent, true) };
   }
 
   // 8–9 + submission flags.
@@ -148,6 +161,7 @@ export async function placeOrder(req: PlaceRequest, deps: PlaceDeps): Promise<Pl
     ipOverLimit,
     ordersLast24h: history.ordersLast24h,
     blockedCustomer: history.blocked,
+    possibleDuplicate: recent !== null,
   });
 
   const snapshots = reads.snapshots;
@@ -197,7 +211,7 @@ export async function placeOrder(req: PlaceRequest, deps: PlaceDeps): Promise<Pl
     // Lost a same-key race: answer exactly like a sequential replay.
     const original = await deps.store.getOrder(result.orderId);
     if (original === null) throw new Error('replayed order not found');
-    return { kind: 'replay', status: 200, body: existingBody(original, false) };
+    return { kind: 'replay', status: 201, body: existingBody(original, false) };
   }
   if (result.ok) {
     const ref = result.ref as OrderRef;
