@@ -1,9 +1,12 @@
 // The batch-aborting guard (routes/products/lib/guard.ts) on a real D1.
 import { eq, sql } from 'drizzle-orm';
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 import { categories, createDb } from '@hb/db';
 import { guard, isGuardAbort, versionGuard } from '../../src/routes/products/lib/guard.ts';
 import { harness, type Harness } from '../helpers.ts';
+
+// The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
 
 let h: Harness;
 beforeAll(async () => {

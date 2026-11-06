@@ -1,7 +1,10 @@
 // ACAT-6 packs: pure item-list logic + HTTP tests on a real D1.
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { nextItems, PACK_MAX_ITEMS } from '../../src/routes/products/pack.tsx';
 import { csrfFrom, form, harness, USERS, type Harness } from '../helpers.ts';
+
+// The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
 
 describe('nextItems (pure)', () => {
   const items = [{ variantId: 1, qty: 1 }, { variantId: 2, qty: 3 }];

@@ -49,6 +49,7 @@ import {
 } from './data.ts';
 import { m } from './messages.ts';
 import { loadPackLines, loadPickable, mountPackRoutes, PackSection } from './pack.tsx';
+import { mountStockRoutes } from './stock.tsx';
 import {
   CreateSchema,
   DetailsSchema,
@@ -216,9 +217,20 @@ r.get('/', requirePerm('catalog.view'), async (c) => {
       pages={pageCount(total)}
       baseUrl={`/products${qs.size > 0 ? `?${qs}` : ''}`}
     />,
-    { title: tm(c)('title'), actions: can(c.var.user, 'catalog.edit') ? <a class="btn btn--primary" href="/products/new">{tm(c)('new')}</a> : undefined },
+    {
+      title: tm(c)('title'),
+      actions: (
+        <>
+          {can(c.var.user, 'stock.edit') ? <a class="btn btn--secondary" href="/products/stock">{tm(c)('stock.link')}</a> : null}
+          {can(c.var.user, 'catalog.edit') ? <a class="btn btn--primary" href="/products/new">{tm(c)('new')}</a> : null}
+        </>
+      ),
+    },
   );
 });
+
+// Stock screen (ACAT-7): registered before `/:id` so `/stock` is not taken for an id.
+mountStockRoutes(r);
 
 // ---------------------------------------------------------------------------------------------
 // Create

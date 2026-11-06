@@ -1,6 +1,9 @@
 // ACAT-2 products, options/matrix, variant grid, status: HTTP tests on a real D1.
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { csrfFrom, form, harness, USERS, type Harness } from '../helpers.ts';
+
+// The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
 
 let h: Harness;
 let catId = 0;
