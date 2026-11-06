@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { app as prodApp } from '../src/index.ts';
 import { createApp } from '../src/app.ts';
 import { PERMISSIONS, roleCan, type Permission } from '../src/auth/permissions.ts';
@@ -6,6 +6,10 @@ import { requireRole } from '../src/auth/require-role.ts';
 import type { Role } from '../src/env.ts';
 import { CSP_HTML, CSP_OTHER } from '../src/lib/headers.ts';
 import { csrfFrom, form, harness, postAs, testEnv, tokenFor, USERS, type Harness } from './helpers.ts';
+
+// Real D1 (workerd) requests take seconds on the loaded shared machine: explicit budgets instead
+// of vitest's 5 s default, so the admin gate is not red at random (lead, 2026-11-06).
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 beforeAll(async () => {

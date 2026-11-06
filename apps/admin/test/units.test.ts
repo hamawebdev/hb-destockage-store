@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, test } from 'vitest';
+import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 import * as v from 'valibot';
 import { AUDIT_MAX_JSON, snapshotJson } from '../src/audit/audit.ts';
 import { ar } from '../src/i18n/ar.ts';
@@ -13,6 +13,10 @@ import { safeReturnPath } from '../src/routes/settings/index.tsx';
 import { withFlash } from '../src/ui/flash.tsx';
 import { formatDateTime, formatMoney } from '../src/ui/format.tsx';
 import { activeHref, NAV, navFor } from '../src/ui/nav.ts';
+
+// Real D1 (workerd) requests take seconds on the loaded shared machine: explicit budgets instead
+// of vitest's 5 s default, so the admin gate is not red at random (lead, 2026-11-06).
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 describe('i18n', () => {
   test('ar has exactly the keys of fr, all non-empty', () => {
@@ -91,6 +95,12 @@ describe('forms', () => {
 });
 
 describe('audit snapshots', () => {
+  test('the cap is in bytes, also for Arabic text', () => {
+    const big = snapshotJson({ name_ar: 'منتج'.repeat(8000) })!;
+    expect(new TextEncoder().encode(big).length).toBeLessThanOrEqual(AUDIT_MAX_JSON);
+    expect(JSON.parse(big)._truncated).toBe(true);
+    expect(JSON.parse(big).head).not.toContain('\uFFFD');
+  });
   test('secrets redacted, size capped', () => {
     expect(JSON.parse(snapshotJson({ a: 1, apiKey: 'x', nested: { CSRF_SECRET: 'y', token: 'z' } })!)).toEqual({
       a: 1,

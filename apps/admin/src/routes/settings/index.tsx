@@ -8,6 +8,7 @@ import { noAudit, withAudit } from '../../audit/audit.ts';
 import { LANGS } from '../../i18n/index.ts';
 import { parseForm, vPicklist } from '../../lib/forms.ts';
 import { createRouter } from '../../lib/router.ts';
+import { safeReturnPath } from '../../lib/redirect.ts';
 import { renderError } from '../../ui/error-page.tsx';
 
 const r = createRouter({ roles: rolesFor('self.lang') });
@@ -21,10 +22,7 @@ const LanguageForm = v.object({
   return_to: v.optional(v.string(), '/'),
 });
 
-/** Same-site path only (no scheme, no `//host`, no backslashes). */
-export function safeReturnPath(p: string): string {
-  return /^\/(?![/\\])[^\s\\]*$/.test(p) && p.length <= 512 ? p : '/';
-}
+export { safeReturnPath } from '../../lib/redirect.ts';
 
 r.post('/language', requirePerm('self.lang'), async (c) => {
   const f = await parseForm(c, LanguageForm);

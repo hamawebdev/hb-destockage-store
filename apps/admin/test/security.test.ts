@@ -1,5 +1,5 @@
 // ADMIN-3: CSRF enforcement, the unaudited-mutation guard, the audit viewer, response headers.
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { createApp } from '../src/app.ts';
 import { audit, noAudit } from '../src/audit/audit.ts';
 import { diffRows, parseAuditFilters } from '../src/audit/routes.tsx';
@@ -7,6 +7,10 @@ import { requireRole } from '../src/auth/require-role.ts';
 import type { Env } from '../src/env.ts';
 import { issueCsrfToken } from '../src/lib/csrf.ts';
 import { CSRF_SECRET, csrfFrom, form, harness, postAs, tokenFor, USERS, type Harness } from './helpers.ts';
+
+// Real D1 (workerd) requests take seconds on the loaded shared machine: explicit budgets instead
+// of vitest's 5 s default, so the admin gate is not red at random (lead, 2026-11-06).
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 beforeAll(async () => {
@@ -105,7 +109,7 @@ describe('CSRF', () => {
       const res = await h.as(USERS.owner, p, form({ anything: '1' }));
       expect(res.status, `POST ${r.path}`).toBe(403);
     }
-  });
+  }, 60_000);
 });
 
 describe('audit guard', () => {
@@ -283,5 +287,25 @@ describe('errors after a response was produced', () => {
     const res = await app.request('/t/throw-after-redirect', {}, h.env);
     expect(res.status).toBe(500);
     expect(res.headers.get('Location')).toBeNull();
+  });
+});
+
+describe('review ADMIN-3 r1 nit: CSRF reload link from Referer', () => {
+  test('a same-origin Referer with a protocol-relative path never becomes the link', async () => {
+    const res = await h.as(USERS.content, '/settings/language', {
+      ...form({ lang: 'ar' }),
+      headers: { ...(form({}).headers as Record<string, string>), Referer: 'http://localhost//evil.example/x' },
+    });
+    expect(res.status).toBe(403);
+    const html = await res.text();
+    expect(html).not.toContain('//evil.example');
+    expect(html).not.toContain('Recharger la page');
+  });
+  test('a normal same-origin Referer gives the reload link', async () => {
+    const res = await h.as(USERS.content, '/settings/language', {
+      ...form({ lang: 'ar' }),
+      headers: { ...(form({}).headers as Record<string, string>), Referer: 'http://localhost/orders?page=2' },
+    });
+    expect(await res.text()).toContain('href="/orders?page=2"');
   });
 });

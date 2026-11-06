@@ -6,6 +6,7 @@ import type { AppEnv } from '../env.ts';
 import { translator, type Lang } from '../i18n/index.ts';
 import { ASSET } from './assets.ts';
 import { isDevAuthAllowed } from '../auth/dev-gate.ts';
+import { safeReturnPath } from '../lib/redirect.ts';
 
 export type ErrorStatus = 401 | 403 | 404 | 413 | 415 | 500 | 503;
 
@@ -80,7 +81,9 @@ function sameSiteReferer(c: Context<AppEnv>): string | undefined {
   try {
     const u = new URL(ref);
     if (u.origin !== new URL(c.req.url).origin) return undefined;
-    return `${u.pathname}${u.search}`;
+    // Review ADMIN-3 r1 nit: a path like "//evil.example/x" would become a protocol-relative link.
+    const path = safeReturnPath(`${u.pathname}${u.search}`);
+    return path === '/' && u.pathname !== '/' ? undefined : path;
   } catch {
     return undefined;
   }

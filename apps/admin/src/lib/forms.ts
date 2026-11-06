@@ -22,6 +22,7 @@ export type ParsedForm<S extends FormSchema> =
 const MSG = {
   required: 'form.required',
   invalid: 'form.invalid',
+  moneyInteger: 'form.moneyInteger',
   tooLong: (max: number) => `form.tooLong|${max}`,
 } as const;
 
@@ -101,17 +102,50 @@ export const vOptionalInt = (min: number, max: number) =>
   );
 
 /**
- * Integer DZD ≥ 0. Accepts Eastern-Arabic digits and spaces / NBSP / dots / commas as thousands
- * separators (no decimals: prices are whole dinars).
+ * Whole-dinar amount → digit string, or null (= field error `form.moneyInteger`). Prices are
+ * integer DZD; a value is never rescaled (review ADMIN-1 r1 F2; lead spec 2026-11-05):
+ * - plain digits: "14600";
+ * - thousands grouping with ONE kind of separator (space, NBSP, narrow NBSP, thin space, "." or
+ *   Arabic "٬"), every group after the first exactly three digits: "14 600", "14.600",
+ *   "1.000.000", "١٤.٦٠٠";
+ * - the single decimal exception: a trailing ",00" or ".00" (zero centimes) after a valid
+ *   integer part, using a different character than the grouping separator: "600,00" → 600,
+ *   "1500.00" → 1500, "14.600,00" → 14600;
+ * - everything else with a dot or comma is rejected: "1.5", "1,5", "14.60", "1500.50", "1,500",
+ *   "14.600.00", "0.5".
+ * Eastern-Arabic and Persian digits are accepted.
  */
+export function normaliseDzd(input: string): string | null {
+  let s = toAsciiDigits(input).trim();
+  let centSep: string | undefined;
+  const cents = /^(.*\d)([.,])00$/.exec(s);
+  if (cents) {
+    s = cents[1]!;
+    centSep = cents[2]!;
+  }
+  if (/^\d+$/.test(s)) return s;
+  const m = /^\d{1,3}([ \u00A0\u202F\u2009.\u066C])\d{3}(?:\1\d{3})*$/.exec(s);
+  if (!m || m[1] === centSep) return null;
+  return s.split(m[1]!).join('');
+}
+
+/** Integer DZD ≥ 0 (accepted spellings: see normaliseDzd). */
 export const vMoneyDzd = (max = 100_000_000) =>
   v.pipe(
     v.optional(v.string(), ''),
-    v.transform((s) => toAsciiDigits(s).replace(/[\s  .,'’]/g, '')),
+    v.trim(),
     v.minLength(1, MSG.required),
-    v.regex(/^\d+$/, MSG.invalid),
+    v.transform((s) => normaliseDzd(s) ?? 'invalid'),
+    v.regex(/^\d+$/, MSG.moneyInteger),
     v.transform(Number),
     v.maxValue(max, MSG.invalid),
+  );
+
+/** Optional integer DZD: '' or an absent key → null (e.g. a compare-at price). */
+export const vOptionalMoneyDzd = (max = 100_000_000) =>
+  v.optional(
+    v.union([v.pipe(v.string(), v.trim(), v.length(0), v.transform(() => null)), vMoneyDzd(max)], MSG.moneyInteger),
+    '',
   );
 
 const ABSENT = '\u0000absent';
