@@ -93,6 +93,27 @@ describe('scripts/restore.ts --orders-since (RESTORE.md §2 step 4, review r2)',
     expect(existsSync(work)).toBe(false);
   });
 
+  test('loads a `wrangler d1 export`-style file (child INSERTs before the parent table) via db\'s schema-first reorder', () => {
+    const exportStyle = [
+      'PRAGMA defer_foreign_keys=TRUE;',
+      'CREATE TABLE orders (id INTEGER PRIMARY KEY, ref TEXT, created_at INTEGER, status TEXT, name TEXT, phone_e164 TEXT, wilaya_code INTEGER REFERENCES wilayas(code), commune_id INTEGER REFERENCES communes(id), address TEXT, lang TEXT, subtotal_dzd INTEGER, fee_dzd INTEGER, total_dzd INTEGER, flags TEXT);',
+      `INSERT INTO "orders" VALUES(7,'HB-X7K2Q',1800000000000,'new','Test Export','+213770000007',16,1601,'Rue; ''Export'' 7','fr',100,400,500,'[]');`,
+      'CREATE TABLE order_items (id INTEGER PRIMARY KEY, order_id INTEGER REFERENCES orders(id), qty INTEGER, sku TEXT, name_fr TEXT, variant_label_fr TEXT, unit_price_dzd INTEGER, line_total_dzd INTEGER);',
+      `INSERT INTO "order_items" VALUES(1,7,1,'SKU-1','Article',NULL,100,100);`,
+      'CREATE TABLE wilayas (code INTEGER PRIMARY KEY, name_fr TEXT);',
+      `INSERT INTO "wilayas" VALUES(16,'Alger');`,
+      'CREATE TABLE communes (id INTEGER PRIMARY KEY, wilaya_code INTEGER, name_fr TEXT);',
+      `INSERT INTO "communes" VALUES(1601,16,'Alger Centre');`,
+    ].join('\n');
+    writeFileSync(join(files, 'export-style.sql'), exportStyle);
+    const r = node('scripts/restore.ts', ['--orders-since', '2027-01-01T00:00:00Z', '--from-sql', join(files, 'export-style.sql')]);
+    expect(r.stderr).not.toMatch(/failed/);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('HB-X7K2Q');
+    expect(r.stdout).toContain("commune 1601 Alger Centre  address: Rue; 'Export' 7");
+    expect(r.stdout).toContain('- 1 × Article [SKU-1] 100 DZD = 100 DZD');
+  });
+
   test('a window after the last order lists nothing; an SQL file inside the repo is refused', () => {
     const r = node('scripts/restore.ts', ['--orders-since', '2999-01-01T00:00:00Z', '--from-sql', join(files, 'dump.sql.gz')]);
     expect(r.status).toBe(0);

@@ -26,6 +26,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
+import { orderDumpSchemaFirst } from '@hb/db/backup';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -95,7 +96,13 @@ if (args['target-persist-to']) {
 
 function wrangler(argv: string[], what: string): string {
   const r = spawnSync(WRANGLER, argv, { cwd: APP, encoding: 'utf8', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
-  if (r.status !== 0) throw new Error(`${what} failed (wrangler exit ${r.status}): ${(r.stderr || r.stdout).trim().split('\n').slice(-3).join(' | ')}`);
+  if (r.status !== 0) {
+    // wrangler prints the cause (✘ [ERROR] …) on stdout or stderr; the last lines are often only
+    // the log-file path. Prefer the error lines.
+    const lines = `${r.stdout}\n${r.stderr}`.split('\n').map((l) => l.trim()).filter(Boolean);
+    const errors = lines.filter((l) => /error|✘|no such|constraint|failed/i.test(l) && !/logs were written/i.test(l));
+    throw new Error(`${what} failed (wrangler exit ${r.status}): ${(errors.length ? errors : lines).slice(-3).join(' | ')}`);
+  }
   return r.stdout;
 }
 
@@ -202,8 +209,11 @@ async function ordersSince(since: number, fromSql: string): Promise<number> {
   try {
     let bytes = readFileSync(fromSql);
     if (bytes[0] === 0x1f && bytes[1] === 0x8b) bytes = gunzipSync(bytes);
+    // A raw `wrangler d1 export` lists child INSERTs before their parent's CREATE TABLE and does
+    // not load into a fresh D1 ("no such table: main.wilayas"; found by db). db's helper hoists every
+    // CREATE TABLE first; a jobs backup dump is already in that order and passes through unchanged.
     const sqlFile = join(dir, 'copy.sql');
-    writeFileSync(sqlFile, bytes, { mode: 0o600 });
+    writeFileSync(sqlFile, orderDumpSchemaFirst(bytes.toString('utf8')), { mode: 0o600 });
     const cfg = join(dir, 'wrangler.json');
     writeFileSync(
       cfg,
