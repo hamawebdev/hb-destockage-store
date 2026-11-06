@@ -22,12 +22,16 @@ export async function newContext(browser: Browser, width: number): Promise<Brows
   });
 }
 
+/** Longest wait for fonts and images after the reload. */
+export const IMAGE_WAIT_MS = 20_000;
+
 export interface Loaded { page: Page; status: number; error?: string }
 
 /**
  * Load a page so its rendering is stable: load → fonts settled → reload (a `font-display:
  * optional` face is then served from cache, as on a repeat visit, instead of racing the first
- * paint) → load → fonts and images complete → motion frozen.
+ * paint) → load → lazy images switched to eager → fonts and images complete (≤ 20 s, else an
+ * error) → motion frozen.
  */
 export async function loadStable(ctx: BrowserContext, url: string, opts: { freeze?: boolean } = {}): Promise<Loaded> {
   const page = await ctx.newPage();
@@ -35,7 +39,14 @@ export async function loadStable(ctx: BrowserContext, url: string, opts: { freez
     let resp = await page.goto(url, { waitUntil: 'load', timeout: 45_000 });
     await page.evaluate('document.fonts.ready');
     resp = await page.reload({ waitUntil: 'load', timeout: 45_000 });
-    await page.evaluate(`Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))])`);
+    // Lazy images below the fold would never load (and the wait would never end): load them all,
+    // then wait at most IMAGE_WAIT_MS; images still pending then are a load error, not a hang.
+    const pending = await page.evaluate(`(() => {
+      for (const i of document.images) if (i.loading === 'lazy') i.loading = 'eager';
+      const all = Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.complete ? null : new Promise((r) => { i.addEventListener('load', r); i.addEventListener('error', r); }))]);
+      return Promise.race([all.then(() => []), new Promise((r) => setTimeout(() => r([...document.images].filter((i) => !i.complete).map((i) => i.currentSrc || i.src)), ${IMAGE_WAIT_MS}))]);
+    })()`) as string[];
+    if (pending.length) throw new Error(`${pending.length} image(s) still loading after ${IMAGE_WAIT_MS / 1000} s: ${pending.slice(0, 3).join(', ')}`);
     if (opts.freeze !== false) await page.addStyleTag({ content: FREEZE });
     await page.waitForTimeout(150);
     return { page, status: resp?.status() ?? 0 };

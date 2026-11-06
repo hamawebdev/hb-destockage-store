@@ -263,7 +263,7 @@ Observations (font requests, fonts in use, third-party requests per page × widt
 
 ```
 npm run shots                                   # every template × ar/fr × 360/768/1440 px
-npm run axe                                     # axe + keyboard pass, every template × ar/fr × 360/1440 px
+npm run axe                                     # axe + keyboard pass, every template × ar/fr × 360/768/1440 px
 npm run shots -- --template product --out /tmp/s
 npm run axe -- --base-url http://127.0.0.1:4270 --urls my-urls.txt   # an already running server
 # without root scripts: node tools/measure/src/shots/cli.ts | node tools/measure/src/axe/cli.ts [same flags]
@@ -277,8 +277,9 @@ template missing in one language fails the run. Playwright drives system Chrome
 **Deterministic pages** (`src/lib/browser.ts`): viewport 360×800 / 768×1024 / 1440×900 at DPR 1,
 `prefers-reduced-motion: reduce`, light scheme, `fr-DZ` locale, Africa/Algiers time zone; load →
 `document.fonts.ready` → **reload** (so the `font-display: optional` Arabic face is used from
-cache, as on a repeat visit, instead of racing first paint) → load → fonts and every image
-complete → animations, transitions, smooth scrolling and the caret frozen. Two runs over the same
+cache, as on a repeat visit, instead of racing first paint) → load → `loading="lazy"` images
+switched to eager → fonts and every image complete (at most 20 s, else a page error, never a
+hang) → animations, transitions, smooth scrolling and the caret frozen. Two runs over the same
 build give byte-identical PNGs (tested).
 
 **shots** → `<out>/shots/<template>/<lang>-<width>.png` (viewport) and `…-full.png` (full page);
@@ -287,16 +288,34 @@ content pages, one per page: `<out>/shots/content/<lang>-<slug>-<width>[-full].p
 `<out>/shots.json`. Default `<out>` = `<main checkout>/artifacts/shots-run`. Exit 1 if a page does
 not load with its expected status or the registry has errors.
 
-**axe** → axe-core 4.14 with tags `wcag2a wcag2aa wcag21a wcag21aa wcag22a wcag22aa` at 360 and
-1440 px; **zero violations** required (`incomplete` items are counted in the JSON, not gated).
-**Keyboard pass** on the same loads: Tab until focus leaves the content or repeats (max 150
-stops); each stop records the element, its text, its box, and two checks, both blocking:
+**axe** → axe-core 4.14 with tags `wcag2a wcag2aa wcag21a wcag21aa wcag22a wcag22aa` at 360, 768
+and 1440 px; **zero violations** required. Other `incomplete` items are counted in the JSON.
+**Contrast axe cannot compute** (`incomplete` `color-contrast`: text over an image or gradient,
+overlapping elements) is **measured from pixels and gated**: the element's box is shot as
+rendered and again with its text transparent; the pixels that differ are the glyphs, the second
+shot is the real background under each. Per glyph pixel, contrast = text colour (alpha-blended)
+vs that background; the **10th percentile** must reach 4.5:1 (3:1 for ≥ 24 px, or ≥ 18.66 px
+bold). Results in `axe.json` (`contrast`, with min/median); an item that cannot be measured
+(inside an iframe or shadow root, no visible box) is listed in `axe.txt` as `CHECK BY HAND`.
+**Keyboard pass** on the same loads, two walks: **Tab** from the top of the page, then
+**Shift+Tab** from the bottom, each until focus leaves the page. Each forward stop records the
+element, its text, its box, and two checks, both blocking:
 - **focus visible** (WCAG 2.4.7): a screenshot of the element's box ± 8 px with focus differs from
   the same box after `blur()` (focus is then restored, keeping keyboard modality);
 - **not obscured** (WCAG 2.4.11): the element at the box centre is the focused element (or inside
   it / contains it), e.g. not under a sticky header.
-No cycle within 150 stops (possible trap) or no focusable element also fails. Output: `axe.json`,
-`keyboard.json` (focus order per template × width), `axe.txt`; default `<out>` =
+**Traps** (WCAG 2.1.2), in both directions and whatever causes them (a keydown handler, a
+focusout handler pulling focus back, a widget's focus loop): a full cycle is focus leaving the
+page, or wrapping to the first stop once every tabbable element was visited. Focus returning to
+any other earlier stop, or not moving, fails with the loop and the elements it never reaches;
+so do more than max(150, 2 × tabbable + 20) presses without a full cycle, and more than 30
+presses inside one iframe or media element. **Unreachable** (WCAG 2.1.1): after a full cycle,
+every tabbable element must have been a stop. Tabbable = focusable, `tabIndex ≥ 0`, enabled, not
+`inert`, rendered (not `display:none` / `visibility:hidden` / in a closed `<details>`), only the
+open modal `<dialog>`'s content while one is open; a radio group is one stop. Fixtures proving
+each failure: `test/fixtures/a11y.ts` (`trap` is rev-c's review fixture).
+No focusable element also fails. Output: `axe.json`, `keyboard.json` (focus order both ways per
+template × width, how each walk ended: `left`/`wrapped`/`trap`/`limit`), `axe.txt`; default `<out>` =
 `<main checkout>/artifacts/axe-run`. Exit 0 / 1 / 2 as everywhere.
 
 ### Adding or changing a rule
