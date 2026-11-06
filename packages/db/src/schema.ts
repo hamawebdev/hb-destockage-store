@@ -521,6 +521,11 @@ export const orderItems = sqliteTable(
     unitPriceDzd: integer('unit_price_dzd').notNull(),
     qty: integer('qty').notNull(),
     lineTotalDzd: integer('line_total_dzd').notNull(),
+    /**
+     * Units actually taken from `variants.stock` when the order was created: `qty` if the variant was
+     * tracked then, 0 if untracked (NULL stock). A cancel/return restores exactly this (DB-4 r1).
+     */
+    stockTaken: integer('stock_taken').notNull().default(0),
   },
   (t) => [
     index('order_items_order_idx').on(t.orderId),

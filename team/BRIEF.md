@@ -220,3 +220,4 @@ every change approved at its tier with no open Important finding.
 - **Merge only `main`**, or an exact contract sha the lead names.
 - **Kill only processes you started** (no `pkill -f` patterns).
 - Heavy commands go through `/tmp/hb-locks/heavy.sh` (3 machine-wide slots); scope tests with `-w`.
+- **Disk:** the root disk (`/`, which holds `/tmp` and the session scratchpad) is small. Put every scratch clone, D1 persist dir, Chrome profile and temp file under `/mnt/data/hb-tmp/<your-name>/` (export `TMPDIR` there; `heavy.sh` defaults to `/mnt/data/hb-tmp`). Delete a scratch clone as soon as its run is recorded. Never delete another teammate's files.

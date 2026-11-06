@@ -50,6 +50,13 @@
       "when": 1793895686533,
       "tag": "0006_delivery_dead",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793916675946,
+      "tag": "0007_stock_taken",
+      "breakpoints": true
     }
   ]
 }
