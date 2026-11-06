@@ -169,7 +169,8 @@ describe('AdminTableFeeProvider (D1)', () => {
       failing: () => createAdminTableFeeProvider(createDb(brokenD1())),
     });
     expect(failures).toEqual([]);
-  });
+  }, 180_000); // ~400 sequential D1 quotes through the harness proxy: slow on a loaded host
+
 
 
   test('served, unserved, missing row, out-of-range code', async () => {

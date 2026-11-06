@@ -39,6 +39,9 @@
     "MIN_REVIEW_MS": "1500",
     "RUM_SAMPLE": "1"
   },
+  // WEB-4: before bundling, generate the static-assets `_headers` (hash CSP + security headers)
+  // from the built storefront HTML. Fails the build when a page has inline code no hash can cover.
+  "build": { "command": "node scripts/csp.ts" },
   "minify": true,
   "observability": { "enabled": true },
   "dev": { "port": 4210, "inspector_port": 4211 },
@@ -46,6 +49,8 @@
     // Test environment: same bindings (bindings are not inherited by named envs), a fixture
     // asset directory so tests do not depend on the storefront build.
     "test": {
+      // Tests use fixture assets; the CSP generator is tested on its own (test/csp*.test.ts).
+      "build": { "command": "true" },
       "assets": {
         "directory": "./test/fixtures/assets",
         "binding": "ASSETS",

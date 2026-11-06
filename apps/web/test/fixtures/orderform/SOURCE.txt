@@ -1,0 +1,1 @@
+Built review templates copied from team/orderform ORDER-6 @d02154a (astro build output) on 2026-11-05. Contract fixtures for apps/web/src/order/html.ts; refresh when orderform changes the template.
