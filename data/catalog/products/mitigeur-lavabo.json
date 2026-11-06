@@ -1,0 +1,44 @@
+{
+  "id": 112,
+  "kind": "simple",
+  "categoryId": 12,
+  "status": "draft",
+  "sort": 20,
+  "slug": {
+    "ar": "khallat-al-maghsala",
+    "fr": "mitigeur-lavabo"
+  },
+  "name": {
+    "ar": "خلّاط المغسلة",
+    "fr": "Mitigeur de lavabo"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "خلّاط مغسلة أسود بتصميم عصري، مع الخرطوم المرن وقطع التثبيت.",
+    "fr": "Mitigeur de lavabo noir au design moderne, flexible et fixations inclus."
+  },
+  "description": {
+    "ar": "تصميم راقٍ وعصري.\n\nالخرطوم المرن وقطع التثبيت مرفقة.\n\n[PLACEHOLDER] السعر المنفرد غير محدّد.",
+    "fr": "Design raffiné et moderne.\n\nFlexible et fixations inclus.\n\n[PLACEHOLDER] Prix à l’unité non fixé."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 11201,
+      "sku": "HB-MIT-LAV",
+      "priceDzd": 3000,
+      "compareAtDzd": null,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": []
+}

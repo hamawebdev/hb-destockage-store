@@ -1,0 +1,44 @@
+{
+  "id": 113,
+  "kind": "simple",
+  "categoryId": 12,
+  "status": "draft",
+  "sort": 30,
+  "slug": {
+    "ar": "hanafiyat-al-mirhad-maa-shattaf",
+    "fr": "robinet-toilette-douchette"
+  },
+  "name": {
+    "ar": "حنفية المرحاض مع شطّاف",
+    "fr": "Robinet de toilette avec douchette"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "حنفية للمرحاض مع شطّاف يدوي بخرطوم قابل للتمديد.",
+    "fr": "Robinet pour toilette avec douchette à flexible extensible."
+  },
+  "description": {
+    "ar": "شطّاف يدوي بخرطوم قابل للتمديد، عملي ومريح.\n\nلراحة ونظافة أفضل.\n\n[PLACEHOLDER] السعر المنفرد غير محدّد.",
+    "fr": "Douchette extensible et pratique.\n\nIdéal pour plus de confort et d’hygiène.\n\n[PLACEHOLDER] Prix à l’unité non fixé."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 11301,
+      "sku": "HB-ROB-WC",
+      "priceDzd": 2500,
+      "compareAtDzd": null,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": []
+}

@@ -1,0 +1,165 @@
+{
+  "id": 220,
+  "kind": "variable",
+  "categoryId": 53,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "sayyara-bi-tahakkum",
+    "fr": "voiture-telecommandee"
+  },
+  "name": {
+    "ar": "سيارة بجهاز تحكّم",
+    "fr": "Voiture télécommandée"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "سيارة سريعة بجهاز تحكّم لاسلكي.",
+    "fr": "Voiture rapide avec télécommande sans fil."
+  },
+  "description": {
+    "ar": "بطارية قابلة للشحن.\n\nمن 6 سنوات.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Batterie rechargeable.\n\nDès 6 ans.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2201,
+      "type": "colour",
+      "name": {
+        "ar": "اللون",
+        "fr": "Couleur"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 220101,
+          "value": {
+            "ar": "أحمر",
+            "fr": "Rouge"
+          },
+          "swatchHex": "#b3261e",
+          "position": 1
+        },
+        {
+          "id": 220102,
+          "value": {
+            "ar": "أزرق",
+            "fr": "Bleu"
+          },
+          "swatchHex": "#2f5fb3",
+          "position": 2
+        },
+        {
+          "id": 220103,
+          "value": {
+            "ar": "أصفر",
+            "fr": "Jaune"
+          },
+          "swatchHex": "#f2c230",
+          "position": 3
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 22001,
+      "sku": "PH-RC-ROUGE",
+      "priceDzd": 3800,
+      "compareAtDzd": 4500,
+      "stock": 7,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        220101
+      ]
+    },
+    {
+      "id": 22002,
+      "sku": "PH-RC-BLEU",
+      "priceDzd": 3800,
+      "compareAtDzd": 4500,
+      "stock": 7,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        220102
+      ]
+    },
+    {
+      "id": 22003,
+      "sku": "PH-RC-JAUNE",
+      "priceDzd": 3800,
+      "compareAtDzd": 4500,
+      "stock": 7,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        220103
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2201,
+      "variantId": null,
+      "key": "voiture-telecommandee/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: سيارة لعبة حمراء",
+        "fr": "Image provisoire : voiture rouge"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2202,
+      "variantId": 22002,
+      "key": "voiture-telecommandee/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: السيارة، اللون الأزرق",
+        "fr": "Image provisoire : voiture, coloris bleu"
+      },
+      "position": 2,
+      "placeholder": true
+    },
+    {
+      "id": 2203,
+      "variantId": 22003,
+      "key": "voiture-telecommandee/3.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: السيارة، اللون الأصفر",
+        "fr": "Image provisoire : voiture, coloris jaune"
+      },
+      "position": 3,
+      "placeholder": true
+    },
+    {
+      "id": 2204,
+      "variantId": null,
+      "key": "voiture-telecommandee/4.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة السيارة",
+        "fr": "Image provisoire : boîte de la voiture"
+      },
+      "position": 4,
+      "placeholder": true
+    }
+  ]
+}

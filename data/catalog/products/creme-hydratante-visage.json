@@ -1,0 +1,72 @@
+{
+  "id": 211,
+  "kind": "simple",
+  "categoryId": 41,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "krim-murattib",
+    "fr": "creme-hydratante-visage"
+  },
+  "name": {
+    "ar": "كريم مرطّب للوجه 50 مل",
+    "fr": "Crème hydratante visage 50 ml"
+  },
+  "brandLatin": "DemoCare",
+  "summary": {
+    "ar": "كريم خفيف للترطيب اليومي.",
+    "fr": "Crème légère pour l’hydratation quotidienne."
+  },
+  "description": {
+    "ar": "لجميع أنواع البشرة.\n\nيُستعمل صباحًا ومساءً.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Tous types de peau.\n\nMatin et soir.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 21101,
+      "sku": "PH-CRM-50",
+      "priceDzd": 1600,
+      "compareAtDzd": null,
+      "stock": 30,
+      "weightG": 90,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2111,
+      "variantId": null,
+      "key": "creme-hydratante-visage/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة كريم مرطّب",
+        "fr": "Image provisoire : pot de crème hydratante"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2112,
+      "variantId": null,
+      "key": "creme-hydratante-visage/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة الكريم الكرتونية",
+        "fr": "Image provisoire : étui de la crème"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

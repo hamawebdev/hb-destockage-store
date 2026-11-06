@@ -1,0 +1,165 @@
+{
+  "id": 201,
+  "kind": "variable",
+  "categoryId": 22,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "sammaat-udhun-lasilkiya",
+    "fr": "ecouteurs-sans-fil"
+  },
+  "name": {
+    "ar": "سماعات أذن لاسلكية بلوتوث",
+    "fr": "Écouteurs sans fil Bluetooth"
+  },
+  "brandLatin": "DemoSound",
+  "summary": {
+    "ar": "سماعات صغيرة مع علبة شحن، حتى 20 ساعة استماع.",
+    "fr": "Écouteurs compacts avec boîtier de charge, jusqu’à 20 h d’écoute."
+  },
+  "description": {
+    "ar": "بلوتوث 5.3 وعلبة شحن USB-C.\n\nثلاثة أحجام من الأطراف السيليكونية في العلبة.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Bluetooth 5.3 et boîtier de charge USB-C.\n\nTrois tailles d’embouts en silicone fournies.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2011,
+      "type": "colour",
+      "name": {
+        "ar": "اللون",
+        "fr": "Couleur"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 201101,
+          "value": {
+            "ar": "أسود",
+            "fr": "Noir"
+          },
+          "swatchHex": "#1f1f1f",
+          "position": 1
+        },
+        {
+          "id": 201102,
+          "value": {
+            "ar": "أبيض",
+            "fr": "Blanc"
+          },
+          "swatchHex": "#f4f4f2",
+          "position": 2
+        },
+        {
+          "id": 201103,
+          "value": {
+            "ar": "أزرق ليلي",
+            "fr": "Bleu nuit"
+          },
+          "swatchHex": "#1e3a5f",
+          "position": 3
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 20101,
+      "sku": "PH-EAR-NOIR",
+      "priceDzd": 3900,
+      "compareAtDzd": 4900,
+      "stock": 25,
+      "weightG": 60,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        201101
+      ]
+    },
+    {
+      "id": 20102,
+      "sku": "PH-EAR-BLANC",
+      "priceDzd": 3900,
+      "compareAtDzd": 4900,
+      "stock": 12,
+      "weightG": 60,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        201102
+      ]
+    },
+    {
+      "id": 20103,
+      "sku": "PH-EAR-BLEU",
+      "priceDzd": 3900,
+      "compareAtDzd": 4900,
+      "stock": 0,
+      "weightG": 60,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        201103
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2011,
+      "variantId": null,
+      "key": "ecouteurs-sans-fil/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: سماعات أذن لاسلكية مع علبة الشحن",
+        "fr": "Image provisoire : écouteurs sans fil et leur boîtier de charge"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2012,
+      "variantId": 20102,
+      "key": "ecouteurs-sans-fil/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: سماعات أذن لاسلكية، اللون الأبيض",
+        "fr": "Image provisoire : écouteurs sans fil, coloris blanc"
+      },
+      "position": 2,
+      "placeholder": true
+    },
+    {
+      "id": 2013,
+      "variantId": 20103,
+      "key": "ecouteurs-sans-fil/3.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: سماعات أذن لاسلكية، اللون الأزرق الليلي",
+        "fr": "Image provisoire : écouteurs sans fil, coloris bleu nuit"
+      },
+      "position": 3,
+      "placeholder": true
+    },
+    {
+      "id": 2014,
+      "variantId": null,
+      "key": "ecouteurs-sans-fil/4.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة السماعات",
+        "fr": "Image provisoire : emballage des écouteurs"
+      },
+      "position": 4,
+      "placeholder": true
+    }
+  ]
+}

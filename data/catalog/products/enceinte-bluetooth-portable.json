@@ -1,0 +1,152 @@
+{
+  "id": 202,
+  "kind": "variable",
+  "categoryId": 22,
+  "status": "active",
+  "sort": 20,
+  "slug": {
+    "ar": "mukabbir-sawt-bluetooth",
+    "fr": "enceinte-bluetooth-portable"
+  },
+  "name": {
+    "ar": "مكبّر صوت بلوتوث محمول",
+    "fr": "Enceinte Bluetooth portable"
+  },
+  "brandLatin": "DemoSound",
+  "summary": {
+    "ar": "مكبّر صوت مقاوم للرذاذ بصوت قوي.",
+    "fr": "Enceinte résistante aux éclaboussures, son puissant."
+  },
+  "description": {
+    "ar": "قوة 10 واط وبطارية تدوم 12 ساعة.\n\nحزام للحمل.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Puissance 10 W, autonomie 12 h.\n\nDragonne de transport.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2021,
+      "type": "colour",
+      "name": {
+        "ar": "اللون",
+        "fr": "Couleur"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 202101,
+          "value": {
+            "ar": "أسود",
+            "fr": "Noir"
+          },
+          "swatchHex": "#1f1f1f",
+          "position": 1
+        },
+        {
+          "id": 202102,
+          "value": {
+            "ar": "أحمر",
+            "fr": "Rouge"
+          },
+          "swatchHex": "#b3261e",
+          "position": 2
+        },
+        {
+          "id": 202103,
+          "value": {
+            "ar": "أخضر مريمي",
+            "fr": "Vert sauge"
+          },
+          "swatchHex": "#7d9a7e",
+          "position": 3
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 20201,
+      "sku": "PH-SPK-NOIR",
+      "priceDzd": 5500,
+      "compareAtDzd": null,
+      "stock": 8,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        202101
+      ]
+    },
+    {
+      "id": 20202,
+      "sku": "PH-SPK-ROUGE",
+      "priceDzd": 5500,
+      "compareAtDzd": null,
+      "stock": 3,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        202102
+      ]
+    },
+    {
+      "id": 20203,
+      "sku": "PH-SPK-VERT",
+      "priceDzd": 5500,
+      "compareAtDzd": null,
+      "stock": 10,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        202103
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2021,
+      "variantId": null,
+      "key": "enceinte-bluetooth-portable/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: مكبّر صوت بلوتوث أسطواني",
+        "fr": "Image provisoire : enceinte Bluetooth cylindrique"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2022,
+      "variantId": 20202,
+      "key": "enceinte-bluetooth-portable/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: مكبّر الصوت، اللون الأحمر",
+        "fr": "Image provisoire : enceinte, coloris rouge"
+      },
+      "position": 2,
+      "placeholder": true
+    },
+    {
+      "id": 2023,
+      "variantId": null,
+      "key": "enceinte-bluetooth-portable/3.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: مكبّر الصوت عن قرب",
+        "fr": "Image provisoire : vue rapprochée de l’enceinte"
+      },
+      "position": 3,
+      "placeholder": true
+    }
+  ]
+}
