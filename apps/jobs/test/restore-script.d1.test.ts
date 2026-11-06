@@ -1,6 +1,6 @@
 // The operator scripts end to end (review r1 F3/F5 + the flaky-test fix): the source platform is
 // disposed BEFORE any script runs, so no two workerd processes ever share persisted state.
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -75,6 +75,55 @@ describe('scripts/restore.ts (download → check → load → verify)', { timeou
     expect(r.stderr).toMatch(/inside the git worktree/);
     expect(existsSync(inRepo)).toBe(false);
     expect(node('scripts/restore.ts', ['--run', 'latest', '--target', 'hb-destockage']).status).toBe(2);
+  });
+});
+
+describe('scripts/restore.ts --orders-since (RESTORE.md §2 step 4, review r2)', { timeout: 180_000 }, () => {
+  test('lists complete orders (customer, wilaya, commune, address, items, totals) from an SQL copy', () => {
+    const r = node('scripts/restore.ts', ['--orders-since', '1970-01-01T00:00:00Z', '--from-sql', join(files, 'dump.sql.gz')]);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain(': 2\n');
+    expect(r.stdout).toMatch(/HB-T0001 .*status new/);
+    expect(r.stdout).toContain(`customer: ${PII.name}  ${PII.phone}`);
+    expect(r.stdout).toContain(`wilaya 16 Alger  commune 1601 Alger Centre  address: ${PII.note}`);
+    expect(r.stdout).toContain('- 1 × Pack cuisine [HB-PK-001] 15000 DZD = 15000 DZD');
+    expect(r.stdout).toContain('subtotal 15000 DZD + delivery 400 DZD = total 15400 DZD');
+    const work = /deleted (\S+)/.exec(r.stderr)![1]!;
+    expect(work.startsWith(tmpdir())).toBe(true);
+    expect(existsSync(work)).toBe(false);
+  });
+
+  test('a window after the last order lists nothing; an SQL file inside the repo is refused', () => {
+    const r = node('scripts/restore.ts', ['--orders-since', '2999-01-01T00:00:00Z', '--from-sql', join(files, 'dump.sql.gz')]);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain(': 0\n');
+    const inRepo = join(APP, 'package.json');
+    const refused = node('scripts/restore.ts', ['--orders-since', '2026-01-01T00:00:00Z', '--from-sql', inRepo]);
+    expect(refused.status).toBe(2);
+    expect(refused.stderr).toMatch(/inside the git worktree/);
+  });
+});
+
+describe('scripts/restore.ts interrupted (review r2 nit)', { timeout: 180_000 }, () => {
+  test('Ctrl-C (SIGINT) removes the private folder', async () => {
+    const child = spawn(process.execPath, ['scripts/restore.ts', '--run', 'latest', '--target', 'hb-restore-test', '--source-persist-to', p.persistTo], {
+      cwd: APP,
+      env: { ...process.env, WRANGLER_SEND_METRICS: 'false' },
+    });
+    let out = '';
+    const work = await new Promise<string>((ok, fail) => {
+      child.stdout.on('data', (b: Buffer) => {
+        out += b.toString();
+        const m = /work dir \(0700, outside any git worktree\): (\S+)/.exec(out);
+        if (m) ok(m[1]!);
+      });
+      child.on('exit', () => fail(new Error(`exited before printing the work dir: ${out}`)));
+    });
+    expect(existsSync(work)).toBe(true);
+    child.kill('SIGINT');
+    const code = await new Promise<number | null>((ok) => child.on('exit', (c) => ok(c)));
+    expect(code).toBe(130);
+    expect(existsSync(work)).toBe(false);
   });
 });
 

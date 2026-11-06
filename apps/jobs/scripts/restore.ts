@@ -8,6 +8,13 @@
 //        [--keep] [--allow-inconsistent]
 //   --run latest   picks the newest GOOD run (manifest, no INCONSISTENT marker).
 //
+//   node apps/jobs/scripts/restore.ts --orders-since 2026-11-04T08:00:00Z --from-sql <file.sql[.gz]>
+//   Lists every order created at or after that time in an SQL copy of the database (a `wrangler d1
+//   export` taken before a Time Travel restore, or a backup dump), with customer, wilaya, commune,
+//   address and items, so staff can re-enter them (RESTORE.md §2). The copy is loaded into a
+//   throw-away local D1 in the private folder with the repo's pinned wrangler and its own config.
+//   The output contains personal data: print it for staff, do not paste it into chat.
+//
 // Guarantees:
 // - Files (manifest, dump.sql.gz, dump.sql, local restored state) live only in a fresh 0700 dir
 //   under the system temp dir, never inside a git worktree, and are deleted on exit unless --keep.
@@ -18,6 +25,7 @@
 // Exit 0 = restored and verified.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -42,12 +50,36 @@ const { values: args } = parseArgs({
     'source-persist-to': { type: 'string', default: join(REPO, '.wrangler/hb-local') },
     keep: { type: 'boolean', default: false },
     'allow-inconsistent': { type: 'boolean', default: false },
+    'orders-since': { type: 'string' },
+    'from-sql': { type: 'string' },
   },
 });
+
+// Ctrl-C / kill must not leave customer data behind (review r2): the private folder is removed on
+// SIGINT, SIGTERM and SIGHUP as well as on normal exit.
+let removeWork: (() => void) | null = null;
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
+  process.on(sig, () => {
+    removeWork?.();
+    console.error(`restore: interrupted (${sig}); private folder removed`);
+    process.exit(130);
+  });
+}
 
 function die(msg: string, code = 2): never {
   console.error(`restore: ${msg}`);
   process.exit(code);
+}
+
+if (args['orders-since'] !== undefined) {
+  const since = Date.parse(args['orders-since']);
+  if (!args['from-sql'] || Number.isNaN(since)) die('--orders-since <ISO time> needs --from-sql <file.sql[.gz]>');
+  try {
+    assertOutsideGitWorktree(args['from-sql'], '--from-sql');
+  } catch (err) {
+    die((err as Error).message);
+  }
+  process.exit(await ordersSince(since, resolve(args['from-sql'])));
 }
 
 if (!args.run || !args.target) die('--run <d1/YYYY/MM/DD/HHmmssZ|latest> and --target <new database name> are required');
@@ -73,6 +105,7 @@ const getObject = (key: string, file: string) =>
 
 // From here on, never process.exit() before the finally: the work dir must be cleaned up.
 const work = await makePrivateDir(args.run === 'latest' ? 'latest' : args.run.replace(/^d1\//, ''));
+removeWork = () => rmSync(work, { recursive: true, force: true });
 let exitCode = 1;
 try {
   console.log(`work dir (0700, outside any git worktree): ${work}`);
@@ -142,3 +175,87 @@ try {
   }
 }
 process.exit(exitCode);
+
+interface OrderRow {
+  id: number;
+  ref: string;
+  created_at: number;
+  status: string;
+  name: string;
+  phone_e164: string;
+  wilaya_code: number;
+  wilaya: string | null;
+  commune_id: number;
+  commune: string | null;
+  address: string | null;
+  lang: string;
+  subtotal_dzd: number;
+  fee_dzd: number;
+  total_dzd: number;
+  flags: string;
+}
+
+/** --orders-since mode: list complete orders from an SQL copy. Returns the exit code. */
+async function ordersSince(since: number, fromSql: string): Promise<number> {
+  const dir = await makePrivateDir('orders-since');
+  removeWork = () => rmSync(dir, { recursive: true, force: true });
+  try {
+    let bytes = readFileSync(fromSql);
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b) bytes = gunzipSync(bytes);
+    const sqlFile = join(dir, 'copy.sql');
+    writeFileSync(sqlFile, bytes, { mode: 0o600 });
+    const cfg = join(dir, 'wrangler.json');
+    writeFileSync(
+      cfg,
+      JSON.stringify({
+        name: 'hb-orders-since',
+        compatibility_date: '2026-11-01',
+        d1_databases: [{ binding: 'DB', database_name: 'hb-scratch', database_id: 'local-hb-scratch' }],
+      }),
+    );
+    const state = join(dir, 'state');
+    wrangler(['d1', 'execute', 'hb-scratch', '--local', '--file', sqlFile, '--persist-to', state, '--yes', '-c', cfg], 'load copy');
+    const proxy = await getPlatformProxy<{ DB: D1Database }>({ configPath: cfg, persist: { path: join(state, 'v3') } });
+    try {
+      const db = proxy.env.DB;
+      const orders = (
+        await db
+          .prepare(
+            `SELECT o.id, o.ref, o.created_at, o.status, o.name, o.phone_e164, o.wilaya_code, w.name_fr AS wilaya,
+                    o.commune_id, c.name_fr AS commune, o.address, o.lang, o.subtotal_dzd, o.fee_dzd, o.total_dzd, o.flags
+               FROM orders o LEFT JOIN wilayas w ON w.code = o.wilaya_code LEFT JOIN communes c ON c.id = o.commune_id
+              WHERE o.created_at >= ?1 ORDER BY o.created_at, o.id`,
+          )
+          .bind(since)
+          .all<OrderRow>()
+      ).results;
+      console.log(`# Orders created since ${new Date(since).toISOString()} in ${fromSql}: ${orders.length}`);
+      console.log('# PERSONAL DATA: for staff re-entry only. Do not paste into chat or email.\n');
+      for (const o of orders) {
+        const items = (
+          await db
+            .prepare(`SELECT qty, sku, name_fr, variant_label_fr, unit_price_dzd, line_total_dzd FROM order_items WHERE order_id = ?1 ORDER BY id`)
+            .bind(o.id)
+            .all<{ qty: number; sku: string; name_fr: string; variant_label_fr: string | null; unit_price_dzd: number; line_total_dzd: number }>()
+        ).results;
+        console.log(`${o.ref}  ${new Date(o.created_at).toISOString()}  status ${o.status}  lang ${o.lang}  flags ${o.flags}`);
+        console.log(`  customer: ${o.name}  ${o.phone_e164}`);
+        console.log(`  wilaya ${o.wilaya_code} ${o.wilaya ?? '?'}  commune ${o.commune_id} ${o.commune ?? '?'}  address: ${o.address ?? '(none)'}`);
+        for (const i of items) {
+          console.log(`  - ${i.qty} × ${i.name_fr}${i.variant_label_fr ? ` (${i.variant_label_fr})` : ''} [${i.sku}] ${i.unit_price_dzd} DZD = ${i.line_total_dzd} DZD`);
+        }
+        if (items.length === 0) console.log('  - (no items recorded)');
+        console.log(`  subtotal ${o.subtotal_dzd} DZD + delivery ${o.fee_dzd} DZD = total ${o.total_dzd} DZD\n`);
+      }
+    } finally {
+      await proxy.dispose();
+    }
+    return 0;
+  } catch (err) {
+    console.error(`restore: ${(err as Error).message}`);
+    return 1;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    console.error(`deleted ${dir}`);
+  }
+}

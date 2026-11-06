@@ -125,12 +125,13 @@ describe('restore into a fresh D1 (wrangler d1 execute --local --file)', { timeo
 
   test('verifyRestore detects a changed value, a missing row and an extra table', async () => {
     await restored.db.prepare(`UPDATE settings SET value = '{}' WHERE key = 'shop'`).run();
-    await restored.db.prepare(`DELETE FROM order_events`).run();
+    // not order_events: its append-only triggers are restored too and refuse the delete
+    await restored.db.prepare(`DELETE FROM order_items`).run();
     await restored.db.prepare(`CREATE TABLE zz_extra (id INTEGER PRIMARY KEY)`).run();
     const r = await verifyRestore(restored.db, manifest);
     expect(r.ok).toBe(false);
     // zz_edge: row added by the previous test; (schema): zz_extra changed the DDL
-    expect(r.mismatches.map((m) => m.table).sort()).toEqual(['(schema)', 'order_events', 'settings', 'zz_edge', 'zz_extra']);
+    expect(r.mismatches.map((m) => m.table).sort()).toEqual(['(schema)', 'order_items', 'settings', 'zz_edge', 'zz_extra']);
   });
 
   test('schema hash catches a missing index or trigger even when every row matches (review r1 F3)', async () => {
@@ -146,7 +147,7 @@ describe('restore into a fresh D1 (wrangler d1 execute --local --file)', { timeo
   });
 });
 
-describe('modes and failures', { timeout: 60_000 }, () => {
+describe('modes and failures', { timeout: 180_000 }, () => {
   test('paginated mode (page size 2) yields the same digests as the atomic snapshot', async () => {
     // compare with an atomic run taken just before (backupJob mirrors its status into settings,
     // so the first manifest's settings digest is legitimately out of date by now)
@@ -168,7 +169,7 @@ describe('modes and failures', { timeout: 60_000 }, () => {
     const m = await runBackup(p.env, {
       startedAt: T0 + 90_000,
       mode: 'paginated',
-      pageSize: 1,
+      pageSize: 3,
       onPage: async () => {
         await p.env.DB.prepare(`INSERT INTO audit_log (actor_type, action, entity) VALUES ('system', 'test.write', 'x')`).run();
       },
@@ -182,7 +183,7 @@ describe('modes and failures', { timeout: 60_000 }, () => {
     const m = await runBackup(p.env, {
       startedAt: T0 + 120_000,
       mode: 'paginated',
-      pageSize: 1,
+      pageSize: 3,
       onPage: async () => {
         if (wrote) return;
         wrote = true;

@@ -73,48 +73,59 @@ commands, but this project never logs in to Cloudflare, so they have **not** bee
 ## 2. Time Travel (last 30 days)
 
 This restores the **live database in place**. Everything written after the target time is
-replaced, including orders that customers placed meanwhile. Do every step.
+replaced, including orders that customers placed meanwhile. Do every step, from the **project
+root**, with the project's pinned wrangler (`./node_modules/.bin/wrangler`, not a global `npx
+wrangler`).
 
 ```sh
-mkdir -m 700 "$(mktemp -d)/hb-tt" && cd "$_"     # private folder OUTSIDE the project; holds customer data
+cd <project root>                                   # e.g. the checkout used to deploy
+W=./node_modules/.bin/wrangler
+P="$(mktemp -d)" && chmod 700 "$P"                  # private folder OUTSIDE the project; holds customer data
 
 # 1. Undo point: write down the bookmark of the database as it is NOW.
-npx wrangler d1 time-travel info hb-destockage --remote          # → "bookmark": "<NOW_BOOKMARK>"
+$W d1 time-travel info hb-destockage --remote                     # → bookmark <NOW_BOOKMARK>
 
 # 2. Save what the restore would erase: a full copy of the current database.
-npx wrangler d1 export hb-destockage --remote --output pre-restore.sql
+$W d1 export hb-destockage --remote --output "$P/pre-restore.sql"
 
 # 3. Restore to the target time (wrangler also prints the previous bookmark: keep it with step 1's).
-npx wrangler d1 time-travel restore hb-destockage --remote --timestamp 2026-11-04T08:00:00Z
+$W d1 time-travel restore hb-destockage --remote --timestamp 2026-11-04T08:00:00Z
+
+# 4. List the orders placed after the target time, complete (customer, wilaya, commune, address,
+#    items, totals), from the copy of step 2. The script loads the copy into a throw-away local
+#    database inside its own private folder (it ships its own wrangler config) and deletes it.
+node apps/jobs/scripts/restore.ts --orders-since 2026-11-04T08:00:00Z --from-sql "$P/pre-restore.sql" > "$P/orders-to-reenter.txt"
+
+# 5. Undo, only if the restore was wrong:
+#    $W d1 time-travel restore hb-destockage --remote --bookmark <NOW_BOOKMARK>
+
+# 6. When every listed order is re-entered:
+rm -rf "$P"
 ```
 
-4. Re-enter the orders placed after the target time. They are in `pre-restore.sql`: load it into a
-   scratch local database and list them, replacing `<T_MS>` with the target time in epoch
-   milliseconds:
-   ```sh
-   npx wrangler d1 execute hb-scratch --local --persist-to ./scratch --file pre-restore.sql --yes
-   npx wrangler d1 execute hb-scratch --local --persist-to ./scratch --command \
-     "SELECT ref, name, phone_e164, wilaya_code, total_dzd, status, created_at FROM orders WHERE created_at >= <T_MS> ORDER BY created_at"
-   ```
-   Staff then re-enter each one in the admin, or call the customer back.
-5. **Undo** (if the restore was wrong): `npx wrangler d1 time-travel restore hb-destockage --remote --bookmark <NOW_BOOKMARK>`.
-6. Delete the private folder (`rm -rf` it) once the restore is confirmed.
-
+Staff re-enter each order listed in `orders-to-reenter.txt` in the admin, or call the customer
+back. The file holds personal data: print it, don't email it.
 The `bookmark` in each backup manifest is the D1 bookmark at the time of that backup.
+Rehearsed end to end on a local database: `artifacts/JOBS-1/runbook-s2-transcript.txt`. The
+`--remote` lines are the same commands against Cloudflare; they were not run, because this project
+never logs in.
 
 ## 3. Restore from an R2 backup into a new database
 
 Never restore over the live database: restore into a new one, verify, then switch.
 
+From the **project root**, with the pinned wrangler:
+
 ```sh
+W=./node_modules/.bin/wrangler
 # 1. a fresh, empty database (same location hint as production)
-npx wrangler d1 create hb-restore-20261104 --location weur            # note the database_id
+$W d1 create hb-restore-20261104 --location weur                      # note the database_id
 
 # 2. download → check → load → verify, in one guarded command
 node apps/jobs/scripts/restore.ts --run d1/2026/11/04/020000Z \
      --source-remote --remote --target hb-restore-20261104 --target-id <database_id>
 #    (--run latest takes the newest good run; list runs with:
-#     npx wrangler r2 object list hb-backups --prefix d1/ --remote)
+#     $W r2 object list hb-backups --prefix d1/ --remote)
 ```
 
 The script:
@@ -132,12 +143,17 @@ Then, **by the client** (deploying is outside this project):
 
 5. Put the new `database_id` in the `DB` binding of `apps/web`, `apps/admin` and `apps/jobs`
    (`wrangler.jsonc`) and deploy the three Workers.
-6. `npx wrangler d1 migrations list hb-restore-20261104 --remote` must show nothing pending from
+6. `$W d1 migrations list hb-restore-20261104 --remote` must show nothing pending from
    the dump's version. Apply newer migrations if the code has moved on.
 7. Orders placed between the backup and the switch exist only in the old database (if it still
-   exists) or in the staff notifications: re-enter them (query as in §2 step 4).
+   exists) or in the staff notifications. If the old database still answers, take
+   `$W d1 export hb-destockage --remote --output "$P/old.sql"` into a private folder, then
+   `node apps/jobs/scripts/restore.ts --orders-since <backup time> --from-sql "$P/old.sql"` lists
+   them complete, as in §2 step 4.
 8. Clean up:
-   - delete restore databases you are not switching to (`npx wrangler d1 delete <name>`);
+   - delete restore databases you are not switching to (`$W d1 delete <name>`);
+   - if a restore was interrupted hard (power loss, `kill -9`; Ctrl-C is handled), remove its
+     private folder: `rm -rf "${TMPDIR:-/tmp}"/hb-restore-*` while no restore is running;
    - delete any folder kept with `--keep`;
    - delete the scratch databases and folders from §2.
 
