@@ -1,6 +1,6 @@
 // ACAT-1 categories: HTTP-level tests on a real D1 (admin-core's harness: migrations + users).
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
-import { csrfFrom, form, harness, USERS, type Harness } from '../helpers.ts';
+import { harness, postAs, USERS, type Harness } from '../helpers.ts';
 
 // The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
@@ -13,17 +13,8 @@ afterAll(async () => {
   await h?.close();
 });
 
-const tokens = new Map<string, string>();
-/** CSRF token for a user, taken from a rendered page (enforced once ADMIN-3 lands). */
-async function token(email: string): Promise<string> {
-  const cached = tokens.get(email);
-  if (cached) return cached;
-  const t = csrfFrom(await (await h.as(email, '/categories')).text());
-  tokens.set(email, t);
-  return t;
-}
 async function post(email: string, path: string, data: Record<string, string>): Promise<Response> {
-  return h.as(email, path, form({ ...data, _csrf: await token(email) }));
+  return postAs(h, email, path, data);
 }
 
 interface Row {
@@ -135,7 +126,7 @@ describe('roles', () => {
       expect(await view.text()).not.toContain(`action="/categories/${id}"`);
       expect((await h.as(user, '/categories/new')).status).toBe(403);
       for (const path of ['/categories', `/categories/${id}`, `/categories/${id}/archive`, `/categories/${id}/delete`]) {
-        expect((await h.as(user, path, form({ ...base }))).status, `${user} ${path}`).toBe(403);
+        expect((await postAs(h, user, path, { ...base })).status, `${user} ${path}`).toBe(403);
       }
     }
     expect((await cat(id))!.active).toBe(1);

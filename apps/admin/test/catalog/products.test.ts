@@ -1,6 +1,6 @@
 // ACAT-2 products, options/matrix, variant grid, status: HTTP tests on a real D1.
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
-import { csrfFrom, form, harness, USERS, type Harness } from '../helpers.ts';
+import { harness, postAs, USERS, type Harness } from '../helpers.ts';
 
 // The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
@@ -14,14 +14,8 @@ afterAll(async () => {
   await h?.close();
 });
 
-const tokens = new Map<string, string>();
 async function post(email: string, path: string, data: Record<string, string>): Promise<Response> {
-  let t = tokens.get(email);
-  if (!t) {
-    t = csrfFrom(await (await h.as(email, '/products')).text());
-    tokens.set(email, t);
-  }
-  return h.as(email, path, form({ ...data, _csrf: t }));
+  return postAs(h, email, path, data);
 }
 const q = <T,>(sql: string, ...args: unknown[]) => h.db.prepare(sql).bind(...args).all<T>().then((r) => r.results);
 const one = <T,>(sql: string, ...args: unknown[]) => h.db.prepare(sql).bind(...args).first<T>();
@@ -143,7 +137,7 @@ describe('roles', () => {
       const html = await (await h.as(user, `/products/${pid}`)).text();
       expect(html).not.toContain(`action="/products/${pid}/variants"`);
       for (const path of ['/products', `/products/${pid}`, `/products/${pid}/variants`, `/products/${pid}/options/apply`, `/products/${pid}/status`, `/products/${pid}/delete`]) {
-        expect((await h.as(user, path, form({ to: 'active' }))).status, `${user} ${path}`).toBe(403);
+        expect((await postAs(h, user, path, { to: 'active' })).status, `${user} ${path}`).toBe(403);
       }
     }
   });

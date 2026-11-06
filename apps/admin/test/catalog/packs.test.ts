@@ -1,7 +1,7 @@
 // ACAT-6 packs: pure item-list logic + HTTP tests on a real D1.
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { nextItems, PACK_MAX_ITEMS } from '../../src/routes/products/pack.tsx';
-import { csrfFrom, form, harness, USERS, type Harness } from '../helpers.ts';
+import { harness, postAs, USERS, type Harness } from '../helpers.ts';
 
 // The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
@@ -34,11 +34,8 @@ afterAll(async () => {
   await h?.close();
 });
 
-let token = '';
 async function post(email: string, path: string, data: Record<string, string>) {
-  if (!token) token = csrfFrom(await (await h.as(USERS.content, '/products')).text());
-  const t = email === USERS.content ? token : csrfFrom(await (await h.as(email, '/products')).text());
-  return h.as(email, path, form({ ...data, _csrf: t }));
+  return postAs(h, email, path, data);
 }
 const one = <T,>(sql: string, ...a: unknown[]) => h.db.prepare(sql).bind(...a).first<T>();
 const all = <T,>(sql: string, ...a: unknown[]) => h.db.prepare(sql).bind(...a).all<T>().then((r) => r.results);
@@ -107,7 +104,7 @@ describe('pack editor', () => {
   test('pack routes 404 on a non-pack product; confirmer gets 403', async () => {
     const simple = (await one<{ product_id: number }>('select product_id from variants where id = ?', a))!.product_id;
     expect((await post(USERS.content, `/products/${simple}/pack/add`, { v: await version(simple), variant_id: String(b), qty: '1' })).status).toBe(404);
-    expect((await h.as(USERS.confirmer, `/products/${pack}/pack/add`, form({ v: '0', variant_id: String(a), qty: '1' }))).status).toBe(403);
+    expect((await postAs(h, USERS.confirmer, `/products/${pack}/pack/add`, { v: '0', variant_id: String(a), qty: '1' })).status).toBe(403);
   });
 
   test('an empty pack cannot be activated; with contents and an image it can', async () => {

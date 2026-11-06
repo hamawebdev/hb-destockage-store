@@ -2,7 +2,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createDb, createOrder, transitionOrder } from '@hb/db';
 import { safeBack } from '../../src/routes/products/stock.tsx';
-import { csrfFrom, form, harness, USERS, type Harness } from '../helpers.ts';
+import { harness, postAs, USERS, type Harness } from '../helpers.ts';
 
 // The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
@@ -15,14 +15,8 @@ afterAll(async () => {
   await h?.close();
 });
 
-const tokens = new Map<string, string>();
 async function post(email: string, path: string, data: Record<string, string>) {
-  let t = tokens.get(email);
-  if (!t) {
-    t = csrfFrom(await (await h.as(email, '/products/stock')).text());
-    tokens.set(email, t);
-  }
-  return h.as(email, path, form({ ...data, _csrf: t }));
+  return postAs(h, email, path, data);
 }
 const one = <T,>(sql: string, ...a: unknown[]) => h.db.prepare(sql).bind(...a).first<T>();
 const stock = async (id: number) => (await one<{ stock: number | null }>('select stock from variants where id = ?', id))!.stock;
@@ -58,9 +52,9 @@ describe('access', () => {
     expect(page.status).toBe(200);
     expect(await page.text()).toContain('HB-P');
     expect((await post(USERS.logistics, '/products/stock/set', { variant_id: String(vid), stock: '12', was: '10' })).status).toBe(303);
-    expect((await h.as(USERS.logistics, `/products/${pid}/variants`, form({}))).status).toBe(403);
+    expect((await postAs(h, USERS.logistics, `/products/${pid}/variants`, {})).status).toBe(403);
     expect((await h.as(USERS.confirmer, '/products/stock')).status).toBe(403);
-    expect((await h.as(USERS.confirmer, '/products/stock/set', form({ variant_id: String(vid), stock: '1', was: '12' }))).status).toBe(403);
+    expect((await postAs(h, USERS.confirmer, '/products/stock/set', { variant_id: String(vid), stock: '1', was: '12' })).status).toBe(403);
     expect(await stock(vid)).toBe(12);
   });
 });
