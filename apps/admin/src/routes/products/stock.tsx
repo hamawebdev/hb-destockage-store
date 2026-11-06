@@ -28,6 +28,7 @@ import { fieldMessages } from './lib/field-messages.ts';
 import { guard, isGuardAbort } from './lib/guard.ts';
 import { cleanText } from './lib/text.ts';
 import { m } from './messages.ts';
+import { CardField } from './lib/card-field.tsx';
 
 type Ctx = Context<AppEnv>;
 
@@ -192,7 +193,7 @@ function StockPage(props: {
                     <input type="hidden" name="variant_id" value={String(r.variantId)} />
                     <input type="hidden" name="was" value={String(r.stock)} />
                     <input type="hidden" name="back" value={props.back} />
-                    <NumberInput name={`stock`} label={`${tm('stock.set')} (${r.sku})`} value={String(r.stock)} />
+                    <CardField name="stock" idKey={r.variantId} label={tm('stock.set')} value={String(r.stock)} inputmode="numeric" dir="ltr" maxlength={8} />
                     <FormActions>
                       <Submit variant="secondary">{tm('stock.setButton')}</Submit>
                     </FormActions>
@@ -200,9 +201,9 @@ function StockPage(props: {
                   <Form action="/products/stock/adjust">
                     <input type="hidden" name="variant_id" value={String(r.variantId)} />
                     <input type="hidden" name="back" value={props.back} />
-                    <NumberInput name="delta" label={`${tm('stock.delta')} (${r.sku})`} hint="5 / -2" />
-                    <Select name="reason" label={tm('stock.reason')} options={ADJUST_REASONS.map((x) => ({ value: x, label: tm(`stock.reason.${x}`) }))} />
-                    <TextInput name="note" label={tm('stock.note')} maxlength={200} />
+                    <CardField name="delta" idKey={r.variantId} label={tm('stock.delta')} hint={tm('stock.deltaHint')} inputmode="numeric" dir="ltr" maxlength={8} />
+                    <CardField name="reason" idKey={r.variantId} label={tm('stock.reason')} options={ADJUST_REASONS.map((x) => ({ value: x, label: tm(`stock.reason.${x}`) }))} />
+                    <CardField name="note" idKey={r.variantId} label={tm('stock.note')} maxlength={200} />
                     <FormActions>
                       <Submit variant="secondary">{tm('stock.adjustButton')}</Submit>
                     </FormActions>
@@ -232,7 +233,7 @@ function TrackPage(props: { row: StockRow; back: string; errors?: FieldErrors | 
     <Form action="/products/stock/track">
       <ErrorSummary errors={props.errors} />
       <p>
-        <strong>{label(r, lang)}</strong> (<Bdi ltr>{r.sku}</Bdi>)
+        <strong>{label(r, lang)}</strong> <Bdi ltr>({r.sku})</Bdi>
       </p>
       <div class="callout callout--warning">
         <p><strong>{tracking ? tm('stock.track.title') : tm('stock.untrack.title')}</strong></p>

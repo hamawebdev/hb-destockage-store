@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vit
 import { createDb, createOrder, transitionOrder } from '@hb/db';
 import { safeBack } from '../../src/routes/products/stock.tsx';
 import { harness, postAs, USERS, type Harness } from '../helpers.ts';
+import { idAndLabelProblems } from './html.ts';
 
 // The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
@@ -244,5 +245,21 @@ describe('tracking vs order cancellation (DB-4 stock_taken)', () => {
     expect(await stock(vid)).toBe(8);
     await cancel(order);
     expect(await stock(vid)).toBe(10);
+  });
+});
+
+describe('accessibility of repeated cards (rev-f a7c5393 F1)', () => {
+  test('stock cards: no repeated id, every label points inside its own card', async () => {
+    await h.db.prepare("insert into variants (product_id, sku, price_dzd, stock) values (?, 'HB-2', 1, 4), (?, 'HB-3', 1, 6)").bind(pid, pid).run();
+    for (const user of [USERS.logistics, USERS.ownerAr]) {
+      const html = await (await h.as(user, '/products/stock')).text();
+      expect(html.match(/<li class="panel">/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+      expect(idAndLabelProblems(html, /<li class="panel">[\s\S]*?<\/li>/)).toEqual([]);
+    }
+  });
+
+  test('the delta hint keeps its sign in both languages (isolated LTR)', async () => {
+    expect(await (await h.as(USERS.logistics, '/products/stock')).text()).toContain('\u2066+5\u2069');
+    expect(await (await h.as(USERS.ownerAr, '/products/stock')).text()).toContain('\u2066+5\u2069');
   });
 });

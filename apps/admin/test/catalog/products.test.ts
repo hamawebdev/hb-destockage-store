@@ -1,6 +1,7 @@
 // ACAT-2 products, options/matrix, variant grid, status: HTTP tests on a real D1.
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { harness, postAs, USERS, type Harness } from '../helpers.ts';
+import { idAndLabelProblems } from './html.ts';
 
 // The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
@@ -336,5 +337,20 @@ describe('delete', () => {
     expect(await productOf(pid)).toBeNull();
     expect(await variantsOf(pid)).toHaveLength(0);
     expect(await audits('product.delete')).toHaveLength(1);
+  });
+});
+
+describe('accessibility of repeated cards (rev-f a7c5393 F1)', () => {
+  test('variant cards and the options form: no repeated id, labels stay inside their card', async () => {
+    const pid = await create();
+    const data = await optionsForm(pid, [{ kind: 'colour', fr: 'Couleur', ar: 'اللون', values: [['Rouge', 'أحمر'], ['Noir', 'أسود'], ['Bleu', 'أزرق']] }]);
+    expect((await post(USERS.content, `/products/${pid}/options/apply`, data)).status).toBe(303);
+    for (const user of [USERS.owner, USERS.ownerAr]) {
+      const html = await (await h.as(user, `/products/${pid}`)).text();
+      const grid = html.slice(html.indexOf('id="sec-variants"'));
+      expect(grid.match(/<fieldset class="localized">/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+      expect(idAndLabelProblems(html)).toEqual([]);
+      expect(idAndLabelProblems(grid.slice(0, grid.indexOf('</section>')), /<fieldset class="localized">[\s\S]*?<\/fieldset>/)).toEqual([]);
+    }
   });
 });

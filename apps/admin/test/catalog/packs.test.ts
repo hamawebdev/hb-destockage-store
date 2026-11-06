@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { nextItems, PACK_MAX_ITEMS } from '../../src/routes/products/pack.tsx';
 import { harness, postAs, USERS, type Harness } from '../helpers.ts';
+import { idAndLabelProblems } from './html.ts';
 
 // The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
@@ -114,6 +115,13 @@ describe('pack editor', () => {
     expect(await r1.text()).toContain('pack needs');
     await post(USERS.content, `/products/${pack}/pack/add`, { v: await version(pack), variant_id: String(a), qty: '1' });
     expect((await post(USERS.content, `/products/${pack}/status`, { to: 'active', v: await version(pack) })).status).toBe(303);
+  });
+
+  test('pack page with several lines: no repeated id, every label resolves', async () => {
+    await post(USERS.content, `/products/${pack}/pack/add`, { v: await version(pack), variant_id: String(a), qty: '1' });
+    await post(USERS.content, `/products/${pack}/pack/add`, { v: await version(pack), variant_id: String(b), qty: '2' });
+    const html = await (await h.as(USERS.content, `/products/${pack}`)).text();
+    expect(idAndLabelProblems(html)).toEqual([]);
   });
 
   test('a variant in a pack keeps its product from being deleted', async () => {
