@@ -1,0 +1,1838 @@
+{
+ "_about": "Arabic names of the 31 Law 84-09 wilayas compared, item by item, with the Arabic edition of JO 1984 n°6 (scan; read from 300 dpi renders). Only differences are listed; every item not listed was read and matches the current name (hamza and final ى/ي differences ignored). The 1984 typesetting omits most hamzas and writes final ي as ى.",
+ "source": {
+  "jo": "الجريدة الرسمية عدد 6 بتاريخ 7 فبراير 1984 (Arabic original edition)",
+  "pages": "139-153 (PDF pages 7-21)",
+  "url": "https://www.joradp.dz/FTP/jo-arabe/1984/A1984006.pdf",
+  "sha256": "ddf0c02fc6a7377c7e66c080257a60b86e58527d1b20b7d5d517371be127f052"
+ },
+ "categories": {
+  "A": "article ال only",
+  "V": "vowel/alef/ya or letter-length variant",
+  "H": "hamza/ى/ة only",
+  "S": "different consonants or words",
+  "R": "commune renamed after 1984 (or 1984 name of a split/variant entry)",
+  "F": "upstream error, fixed to the printed form"
+ },
+ "lists": [
+  {
+   "article": 6,
+   "pdf_pages": "8",
+   "differences": [
+    {
+     "pos": 8,
+     "ids": [
+      48
+     ],
+     "printed": "صبحة",
+     "category": "A",
+     "current": "الصبحة"
+    },
+    {
+     "pos": 15,
+     "ids": [
+      26
+     ],
+     "printed": "الهرنفة",
+     "category": "V",
+     "current": "الهرانفة"
+    },
+    {
+     "pos": 19,
+     "ids": [
+      31
+     ],
+     "printed": "السنجاس",
+     "category": "A",
+     "current": "سنجاس"
+    },
+    {
+     "pos": 25,
+     "ids": [
+      32
+     ],
+     "printed": "سوق البقر",
+     "category": "R",
+     "current": "سيدي عبد الرحمن"
+    }
+   ]
+  },
+  {
+   "article": 8,
+   "pdf_pages": "9",
+   "differences": [
+    {
+     "pos": 13,
+     "ids": [
+      95
+     ],
+     "printed": "هنشير تومغاني",
+     "category": "V",
+     "current": "هنشير تومغني"
+    },
+    {
+     "pos": 20,
+     "ids": [
+      76
+     ],
+     "printed": "أولاد الزوى",
+     "category": "S",
+     "current": "أولاد زواي"
+    },
+    {
+     "pos": 25,
+     "ids": [
+      69
+     ],
+     "printed": "عين الفكرون",
+     "category": "A",
+     "current": "عين فكرون"
+    },
+    {
+     "pos": 26,
+     "ids": [
+      70
+     ],
+     "printed": "الراحية",
+     "category": "V",
+     "current": "الرحية"
+    }
+   ]
+  },
+  {
+   "article": 10,
+   "pdf_pages": "9-10",
+   "differences": [
+    {
+     "pos": 8,
+     "ids": [
+      169
+     ],
+     "printed": "سوق الاثنين",
+     "category": "S",
+     "current": "سوق الإثنين",
+     "fixed_in_geo7": true
+    },
+    {
+     "pos": 9,
+     "ids": [
+      190
+     ],
+     "printed": "سيدى السعيد",
+     "category": "R",
+     "current": "مسيسنة"
+    },
+    {
+     "pos": 10,
+     "ids": [
+      155
+     ],
+     "printed": "تينبذار",
+     "category": "V",
+     "current": "تينبدار"
+    },
+    {
+     "pos": 18,
+     "ids": [
+      157
+     ],
+     "printed": "افلاين الماثن",
+     "category": "S",
+     "current": "فناية الماثن"
+    },
+    {
+     "pos": 24,
+     "ids": [
+      181
+     ],
+     "printed": "أذكار",
+     "category": "V",
+     "current": "أدكار"
+    },
+    {
+     "pos": 30,
+     "ids": [
+      197
+     ],
+     "printed": "السوق آوفلا",
+     "category": "A",
+     "current": "سوق اوفلا"
+    },
+    {
+     "pos": 32,
+     "ids": [
+      198
+     ],
+     "printed": "تيبان",
+     "category": "S",
+     "current": "طيبان"
+    },
+    {
+     "pos": 33,
+     "ids": [
+      172
+     ],
+     "printed": "ثالة حمزة",
+     "category": "V",
+     "current": "تالة حمزة"
+    },
+    {
+     "pos": 41,
+     "ids": [
+      168
+     ],
+     "printed": "ملبو",
+     "category": "V",
+     "current": "مالبو"
+    },
+    {
+     "pos": 43,
+     "ids": [
+      151
+     ],
+     "printed": "لفلاى",
+     "category": "A",
+     "current": "الفلاي"
+    },
+    {
+     "pos": 52,
+     "ids": [
+      193
+     ],
+     "printed": "بوجليل",
+     "category": "V",
+     "current": "بو جليل"
+    }
+   ]
+  },
+  {
+   "article": 13,
+   "pdf_pages": "10",
+   "differences": [
+    {
+     "pos": 9,
+     "ids": [
+      493
+     ],
+     "printed": "بئر التوتة",
+     "category": "A",
+     "current": "بئر توتة"
+    }
+   ]
+  },
+  {
+   "article": 14,
+   "pdf_pages": "10-11",
+   "differences": [
+    {
+     "pos": 8,
+     "ids": [
+      288
+     ],
+     "printed": "بزيت",
+     "category": "R",
+     "current": "أيت لعزيز"
+    },
+    {
+     "pos": 12,
+     "ids": [
+      295
+     ],
+     "printed": "الحيزر",
+     "category": "A",
+     "current": "حيزر"
+    },
+    {
+     "pos": 16,
+     "ids": [
+      292
+     ],
+     "printed": "عمر",
+     "category": "V",
+     "current": "أعمر"
+    },
+    {
+     "pos": 17,
+     "ids": [
+      279
+     ],
+     "printed": "الشرفاء",
+     "category": "S",
+     "current": "شرفة"
+    },
+    {
+     "pos": 20,
+     "ids": [
+      266
+     ],
+     "printed": "المرة",
+     "category": "R",
+     "current": "الحاكمية"
+    },
+    {
+     "pos": 24,
+     "ids": [
+      303
+     ],
+     "printed": "اليسري",
+     "category": "R",
+     "current": "زبربر"
+    },
+    {
+     "pos": 30,
+     "ids": [
+      272
+     ],
+     "printed": "الصهاريج",
+     "category": "S",
+     "current": "سحاريج"
+    },
+    {
+     "pos": 37,
+     "ids": [
+      275
+     ],
+     "printed": "مشدالة",
+     "category": "V",
+     "current": "أمشدالة"
+    },
+    {
+     "pos": 43,
+     "ids": [
+      271
+     ],
+     "printed": "تاوريرت",
+     "category": "R",
+     "current": "آث منصور"
+    },
+    {
+     "pos": 44,
+     "ids": [
+      290
+     ],
+     "printed": "الماجن",
+     "category": "R",
+     "current": "المقراني"
+    }
+   ]
+  },
+  {
+   "article": 19,
+   "pdf_pages": "12",
+   "differences": [
+    {
+     "pos": 5,
+     "ids": [
+      444
+     ],
+     "printed": "سوامع",
+     "category": "S",
+     "current": "صوامع"
+    },
+    {
+     "pos": 6,
+     "ids": [
+      433
+     ],
+     "printed": "مشتراس",
+     "category": "S",
+     "current": "مشطراس"
+    },
+    {
+     "pos": 7,
+     "ids": [
+      469
+     ],
+     "printed": "ارجن",
+     "category": "V",
+     "current": "إيرجن"
+    },
+    {
+     "pos": 8,
+     "ids": [
+      475
+     ],
+     "printed": "تيمزارت",
+     "category": "S",
+     "current": "تيميزار"
+    },
+    {
+     "pos": 13,
+     "ids": [
+      425
+     ],
+     "printed": "آيت شفة",
+     "category": "S",
+     "current": "أيت شافع"
+    },
+    {
+     "pos": 16,
+     "ids": [
+      479
+     ],
+     "printed": "بني زمنزر",
+     "category": "V",
+     "current": "بني زمنزار"
+    },
+    {
+     "pos": 17,
+     "ids": [
+      480
+     ],
+     "printed": "افرحونن",
+     "category": "V",
+     "current": "إفرحونان"
+    },
+    {
+     "pos": 21,
+     "ids": [
+      470
+     ],
+     "printed": "الاربعاء نايت اراثن",
+     "category": "S",
+     "current": "الأربعاء ناث إيراثن"
+    },
+    {
+     "pos": 29,
+     "ids": [
+      476
+     ],
+     "printed": "المعاتقة",
+     "category": "A",
+     "current": "معاتقة"
+    },
+    {
+     "pos": 33,
+     "ids": [
+      461
+     ],
+     "printed": "أليلتين",
+     "category": "V",
+     "current": "إيليلتن"
+    },
+    {
+     "pos": 35,
+     "ids": [
+      468
+     ],
+     "printed": "آيت أقواشة",
+     "category": "S",
+     "current": "أيت عقواشة"
+    },
+    {
+     "pos": 38,
+     "ids": [
+      429
+     ],
+     "printed": "تقزرت",
+     "category": "V",
+     "current": "تيقزيرت"
+    },
+    {
+     "pos": 39,
+     "ids": [
+      473
+     ],
+     "printed": "جبل عيسى ميمون",
+     "category": "R",
+     "current": "أيت عيسى ميمون"
+    },
+    {
+     "pos": 45,
+     "ids": [
+      460
+     ],
+     "printed": "ياطفان",
+     "category": "V",
+     "current": "يطافن"
+    },
+    {
+     "pos": 49,
+     "ids": [
+      416
+     ],
+     "printed": "أجر",
+     "category": "V",
+     "current": "إيجار"
+    },
+    {
+     "pos": 56,
+     "ids": [
+      455
+     ],
+     "printed": "وادى قصارى",
+     "category": "R",
+     "current": "أيت يحي موسى"
+    },
+    {
+     "pos": 62,
+     "ids": [
+      415
+     ],
+     "printed": "مزرانة",
+     "category": "V",
+     "current": "ميزرانة"
+    },
+    {
+     "pos": 65,
+     "ids": [
+      421
+     ],
+     "printed": "آيت بوعدو",
+     "category": "S",
+     "current": "أيت بوادو"
+    }
+   ]
+  },
+  {
+   "article": 20,
+   "pdf_pages": "12-13",
+   "differences": [
+    {
+     "pos": 2,
+     "ids": [
+      517
+     ],
+     "printed": "سيدى محمد",
+     "category": "V",
+     "current": "سيدي امحمد"
+    },
+    {
+     "pos": 4,
+     "ids": [
+      486
+     ],
+     "printed": "حامة العناصر",
+     "category": "R",
+     "current": "محمد بلوزداد"
+    },
+    {
+     "pos": 6,
+     "ids": [
+      519
+     ],
+     "printed": "بلوغين ابن زيرى",
+     "category": "V",
+     "current": "بولوغين بن زيري"
+    },
+    {
+     "pos": 24,
+     "ids": [
+      512
+     ],
+     "printed": "الحمامات الرومانية",
+     "category": "R",
+     "current": "الحمامات"
+    },
+    {
+     "pos": 25,
+     "ids": [
+      522
+     ],
+     "printed": "رايس حميدو",
+     "category": "A",
+     "current": "الرايس حميدو"
+    }
+   ]
+  },
+  {
+   "article": 22,
+   "pdf_pages": "13",
+   "differences": [
+    {
+     "pos": 2,
+     "ids": [
+      560
+     ],
+     "printed": "اراقن",
+     "category": "V",
+     "current": "أراقن سويسي"
+    },
+    {
+     "pos": 20,
+     "ids": [
+      568
+     ],
+     "printed": "القنار نوشفى",
+     "category": "V",
+     "current": "القنار نشفي"
+    },
+    {
+     "pos": 22,
+     "ids": [
+      583
+     ],
+     "printed": "بودريعة بن ياجيس",
+     "category": "S",
+     "current": "بودريعة بني ياجيس"
+    },
+    {
+     "pos": 23,
+     "ids": [
+      578
+     ],
+     "printed": "قمير وادى عجول",
+     "category": "S",
+     "current": "خيري واد عجول"
+    }
+   ]
+  },
+  {
+   "article": 23,
+   "pdf_pages": "13-14",
+   "differences": [
+    {
+     "pos": 22,
+     "ids": [
+      639
+     ],
+     "printed": "بنى ورثيلان",
+     "category": "V",
+     "current": "بني ورتيلان"
+    },
+    {
+     "pos": 28,
+     "ids": [
+      599
+     ],
+     "printed": "عين أولمان",
+     "category": "V",
+     "current": "عين ولمان"
+    },
+    {
+     "pos": 31,
+     "ids": [
+      632
+     ],
+     "printed": "بازر الصخرة",
+     "category": "S",
+     "current": "بازر سكرة"
+    },
+    {
+     "pos": 32,
+     "ids": [
+      596
+     ],
+     "printed": "أم العجول",
+     "category": "R",
+     "current": "حمام السخنة"
+    },
+    {
+     "pos": 37,
+     "ids": [
+      613
+     ],
+     "printed": "الوريسية",
+     "category": "S",
+     "current": "أوريسيا"
+    },
+    {
+     "pos": 48,
+     "ids": [
+      589
+     ],
+     "printed": "قلال بوطالب",
+     "category": "V",
+     "current": "قلال"
+    },
+    {
+     "pos": 50,
+     "ids": [
+      616
+     ],
+     "printed": "حمام القرقور",
+     "category": "A",
+     "current": "حمام قرقور"
+    },
+    {
+     "pos": 53,
+     "ids": [
+      612
+     ],
+     "printed": "بنى حسين",
+     "category": "S",
+     "current": "بني وسين"
+    },
+    {
+     "pos": 56,
+     "ids": [
+      634
+     ],
+     "printed": "القلتة الزرقاء",
+     "category": "A",
+     "current": "قلتة زرقاء"
+    },
+    {
+     "pos": 57,
+     "ids": [
+      586
+     ],
+     "printed": "وادى البارد",
+     "category": "V",
+     "current": "واد البارد"
+    }
+   ]
+  },
+  {
+   "article": 24,
+   "pdf_pages": "14",
+   "differences": [
+    {
+     "pos": 7,
+     "ids": [
+      654
+     ],
+     "printed": "حنات",
+     "category": "S",
+     "current": "هونت"
+    },
+    {
+     "pos": 8,
+     "ids": [
+      660
+     ],
+     "printed": "سيدى عمرو",
+     "category": "V",
+     "current": "سيدي عمر"
+    }
+   ]
+  },
+  {
+   "article": 25,
+   "pdf_pages": "14",
+   "differences": [
+    {
+     "pos": 7,
+     "ids": [
+      688
+     ],
+     "printed": "بكوش الاخضر",
+     "category": "V",
+     "current": "بكوش لخضر"
+    },
+    {
+     "pos": 30,
+     "ids": [
+      693
+     ],
+     "printed": "فلفيلة",
+     "category": "V",
+     "current": "فلفلة"
+    },
+    {
+     "pos": 35,
+     "ids": [
+      674
+     ],
+     "printed": "الولجة بوالبلوط",
+     "category": "V",
+     "current": "الولجة بولبلوط"
+    },
+    {
+     "pos": 36,
+     "ids": [
+      685
+     ],
+     "printed": "خنق مايون",
+     "category": "S",
+     "current": "خناق مايون",
+     "fixed_in_geo7": true
+    }
+   ]
+  },
+  {
+   "article": 26,
+   "pdf_pages": "14-15",
+   "differences": [
+    {
+     "pos": 7,
+     "ids": [
+      714
+     ],
+     "printed": "بوخنيفيس",
+     "category": "V",
+     "current": "بوخنفيس"
+    },
+    {
+     "pos": 9,
+     "ids": [
+      718
+     ],
+     "printed": "بدر الدين المقرانى",
+     "category": "S",
+     "current": "بضرابين المقراني"
+    },
+    {
+     "pos": 12,
+     "ids": [
+      713
+     ],
+     "printed": "أمرناس",
+     "category": "S",
+     "current": "العمارنة"
+    },
+    {
+     "pos": 15,
+     "ids": [
+      732
+     ],
+     "printed": "عين الشريد",
+     "category": "V",
+     "current": "عين الثريد"
+    },
+    {
+     "pos": 16,
+     "ids": [
+      725
+     ],
+     "printed": "مقدرة",
+     "category": "V",
+     "current": "مكدرة"
+    },
+    {
+     "pos": 30,
+     "ids": [
+      722
+     ],
+     "printed": "عين عدان",
+     "category": "S",
+     "current": "عين أدن"
+    },
+    {
+     "pos": 38,
+     "ids": [
+      721
+     ],
+     "printed": "بوجبع البرج",
+     "category": "V",
+     "current": "بوجبهة البرج"
+    },
+    {
+     "pos": 39,
+     "ids": [
+      733
+     ],
+     "printed": "سحالة ثاورة",
+     "category": "S",
+     "current": "السهالة الثورة"
+    },
+    {
+     "pos": 45,
+     "ids": [
+      717
+     ],
+     "printed": "ابن باديس",
+     "category": "V",
+     "current": "بن باديس"
+    },
+    {
+     "pos": 47,
+     "ids": [
+      716
+     ],
+     "printed": "شتوان بليلة",
+     "category": "S",
+     "current": "شيطوان البلايلة"
+    },
+    {
+     "pos": 49,
+     "ids": [
+      750
+     ],
+     "printed": "تاودمونت",
+     "category": "V",
+     "current": "تاودموت"
+    }
+   ]
+  },
+  {
+   "article": 27,
+   "pdf_pages": "15",
+   "differences": [
+    {
+     "pos": 7,
+     "ids": [
+      759
+     ],
+     "printed": "الشرفاء",
+     "category": "V",
+     "current": "الشرفة"
+    },
+    {
+     "pos": 9,
+     "ids": [
+      758
+     ],
+     "printed": "العين الباردة",
+     "category": "A",
+     "current": "عين الباردة"
+    },
+    {
+     "pos": 11,
+     "ids": [
+      756
+     ],
+     "printed": "سيدى عامر",
+     "category": "V",
+     "current": "سيدي عمار"
+    }
+   ]
+  },
+  {
+   "article": 28,
+   "pdf_pages": "15",
+   "differences": [
+    {
+     "pos": 3,
+     "ids": [
+      775
+     ],
+     "printed": "بوعاطى محمود",
+     "category": "V",
+     "current": "بوعاتي محمود"
+    },
+    {
+     "pos": 6,
+     "ids": [
+      774
+     ],
+     "printed": "وادى فراغا",
+     "category": "V",
+     "current": "وادي فراغة"
+    },
+    {
+     "pos": 15,
+     "ids": [
+      791
+     ],
+     "printed": "خزارة",
+     "category": "A",
+     "current": "لخزارة"
+    },
+    {
+     "pos": 18,
+     "ids": [
+      794
+     ],
+     "printed": "قلعة بوسبع",
+     "category": "V",
+     "current": "قلعة بوصبع"
+    },
+    {
+     "pos": 19,
+     "ids": [
+      765
+     ],
+     "printed": "حمام المسخوطين",
+     "category": "R",
+     "current": "حمام دباغ"
+    },
+    {
+     "pos": 27,
+     "ids": [
+      779
+     ],
+     "printed": "عين الحساينية",
+     "category": "R",
+     "current": "هواري بومدين"
+    }
+   ]
+  },
+  {
+   "article": 29,
+   "pdf_pages": "15",
+   "differences": [
+    {
+     "pos": 3,
+     "ids": [
+      805
+     ],
+     "printed": "الهرية",
+     "category": "R",
+     "current": "ابن باديس الهرية",
+     "fixed_in_geo7": true
+    },
+    {
+     "pos": 10,
+     "ids": [
+      801
+     ],
+     "printed": "عين سمارة",
+     "category": "A",
+     "current": "عين السمارة"
+    },
+    {
+     "pos": 11,
+     "ids": [
+      807
+     ],
+     "printed": "عين الكرمة",
+     "category": "R",
+     "current": "بوجريو مسعود"
+    }
+   ]
+  },
+  {
+   "article": 31,
+   "pdf_pages": "16",
+   "differences": [
+    {
+     "pos": 6,
+     "ids": [
+      863
+     ],
+     "printed": "حاسى ممعش",
+     "category": "S",
+     "current": "حاسي ماماش"
+    },
+    {
+     "pos": 8,
+     "ids": [
+      868
+     ],
+     "printed": "صور",
+     "category": "S",
+     "current": "سور"
+    },
+    {
+     "pos": 13,
+     "ids": [
+      874
+     ],
+     "printed": "عبد المالك رمضان",
+     "category": "V",
+     "current": "بن عبد المالك رمضان"
+    },
+    {
+     "pos": 16,
+     "ids": [
+      877
+     ],
+     "printed": "سيدى الاخضر",
+     "category": "V",
+     "current": "سيدي لخضر"
+    },
+    {
+     "pos": 18,
+     "ids": [
+      879
+     ],
+     "printed": "خضراء",
+     "category": "V",
+     "current": "خضرة"
+    },
+    {
+     "pos": 32,
+     "ids": [
+      862
+     ],
+     "printed": "الحسيان",
+     "category": "V",
+     "current": "الحسيان (بني ياحي)"
+    }
+   ]
+  },
+  {
+   "article": 33,
+   "pdf_pages": "16",
+   "differences": [
+    {
+     "pos": 9,
+     "ids": [
+      970
+     ],
+     "printed": "محاميد",
+     "category": "R",
+     "current": "زلامطة"
+    },
+    {
+     "pos": 14,
+     "ids": [
+      955
+     ],
+     "printed": "مطمور",
+     "category": "A",
+     "current": "المطمور"
+    },
+    {
+     "pos": 22,
+     "ids": [
+      972
+     ],
+     "printed": "وادى تاغية",
+     "category": "A",
+     "current": "وادي التاغية"
+    },
+    {
+     "pos": 25,
+     "ids": [
+      949
+     ],
+     "printed": "عين فرس",
+     "category": "S",
+     "current": "عين أفرص"
+    },
+    {
+     "pos": 27,
+     "ids": [
+      937
+     ],
+     "printed": "عكاز",
+     "category": "V",
+     "current": "عقاز"
+    },
+    {
+     "pos": 38,
+     "ids": [
+      942,
+      943
+     ],
+     "printed": "قطنة المأمونية",
+     "category": "R",
+     "current": "المأمونية + القطنة"
+    },
+    {
+     "pos": 44,
+     "ids": [
+      969
+     ],
+     "printed": "نسموط",
+     "category": "V",
+     "current": "نسمط"
+    },
+    {
+     "pos": 46,
+     "ids": [
+      965
+     ],
+     "printed": "السحايلية",
+     "category": "S",
+     "current": "السهايلية"
+    }
+   ]
+  },
+  {
+   "article": 35,
+   "pdf_pages": "17",
+   "differences": [
+    {
+     "pos": 14,
+     "ids": [
+      999
+     ],
+     "printed": "بوفتيس",
+     "category": "V",
+     "current": "بوفاتيس"
+    },
+    {
+     "pos": 16,
+     "ids": [
+      1005
+     ],
+     "printed": "بوصفر",
+     "category": "V",
+     "current": "بوسفر"
+    }
+   ]
+  },
+  {
+   "article": 38,
+   "pdf_pages": "17",
+   "differences": [
+    {
+     "pos": 3,
+     "ids": [
+      1057
+     ],
+     "printed": "برج بوعريريج",
+     "category": "F",
+     "current": "برج بوعريريج",
+     "fixed_in_geo7": true
+    },
+    {
+     "pos": 10,
+     "ids": [
+      1035
+     ],
+     "printed": "سيدى مبارك",
+     "category": "V",
+     "current": "سيدي أمبارك"
+    },
+    {
+     "pos": 15,
+     "ids": [
+      1040
+     ],
+     "printed": "الجعافرة",
+     "category": "A",
+     "current": "جعافرة"
+    },
+    {
+     "pos": 17,
+     "ids": [
+      1052
+     ],
+     "printed": "أولاد ابراهيم",
+     "category": "V",
+     "current": "أولاد أبراهم"
+    },
+    {
+     "pos": 26,
+     "ids": [
+      1028
+     ],
+     "printed": "تكستين",
+     "category": "S",
+     "current": "تيكستار"
+    },
+    {
+     "pos": 28,
+     "ids": [
+      1030
+     ],
+     "printed": "العنصر",
+     "category": "V",
+     "current": "العناصر"
+    },
+    {
+     "pos": 29,
+     "ids": [
+      1056
+     ],
+     "printed": "تسمرت",
+     "category": "V",
+     "current": "تسامرت"
+    },
+    {
+     "pos": 31,
+     "ids": [
+      1037
+     ],
+     "printed": "بئر قصد على",
+     "category": "V",
+     "current": "بئر قاصد علي"
+    }
+   ]
+  },
+  {
+   "article": 39,
+   "pdf_pages": "18",
+   "differences": [
+    {
+     "pos": 3,
+     "ids": [
+      1062
+     ],
+     "printed": "أفير",
+     "category": "S",
+     "current": "أعفير"
+    },
+    {
+     "pos": 8,
+     "ids": [
+      1079
+     ],
+     "printed": "جينات",
+     "category": "V",
+     "current": "جنات"
+    },
+    {
+     "pos": 12,
+     "ids": [
+      1080
+     ],
+     "printed": "تجلبين",
+     "category": "V",
+     "current": "تيجلابين"
+    },
+    {
+     "pos": 15,
+     "ids": [
+      497
+     ],
+     "printed": "الرغاية",
+     "category": "A",
+     "current": "رغاية"
+    },
+    {
+     "pos": 17,
+     "ids": [
+      1067
+     ],
+     "printed": "تمزريت",
+     "category": "V",
+     "current": "تيمزريت"
+    },
+    {
+     "pos": 23,
+     "ids": [
+      537
+     ],
+     "printed": "البرج البحرى",
+     "category": "A",
+     "current": "برج البحري"
+    },
+    {
+     "pos": 25,
+     "ids": [
+      1089
+     ],
+     "printed": "تورقة",
+     "category": "V",
+     "current": "تاورقة"
+    }
+   ]
+  },
+  {
+   "article": 40,
+   "pdf_pages": "18",
+   "differences": [
+    {
+     "pos": 10,
+     "ids": [
+      1101
+     ],
+     "printed": "برحان",
+     "category": "V",
+     "current": "بريحان"
+    },
+    {
+     "pos": 14,
+     "ids": [
+      1111
+     ],
+     "printed": "شهانى",
+     "category": "S",
+     "current": "شحاني"
+    },
+    {
+     "pos": 15,
+     "ids": [
+      1102
+     ],
+     "printed": "شبايطة مختار",
+     "category": "V",
+     "current": "شبيطة مختار"
+    },
+    {
+     "pos": 18,
+     "ids": [
+      1103
+     ],
+     "printed": "بنى عمار",
+     "category": "R",
+     "current": "الشط"
+    }
+   ]
+  },
+  {
+   "article": 41,
+   "pdf_pages": "18",
+   "differences": []
+  },
+  {
+   "article": 42,
+   "pdf_pages": "18",
+   "differences": [
+    {
+     "pos": 6,
+     "ids": [
+      1130
+     ],
+     "printed": "الارجم",
+     "category": "V",
+     "current": "لرجام"
+    },
+    {
+     "pos": 7,
+     "ids": [
+      1131
+     ],
+     "printed": "ملعب",
+     "category": "A",
+     "current": "الملعب"
+    },
+    {
+     "pos": 14,
+     "ids": [
+      1134
+     ],
+     "printed": "وادى الغرقة",
+     "category": "R",
+     "current": "اليوسفية"
+    },
+    {
+     "pos": 19,
+     "ids": [
+      1133
+     ],
+     "printed": "تاملاحت",
+     "category": "V",
+     "current": "تملاحت"
+    }
+   ]
+  },
+  {
+   "article": 44,
+   "pdf_pages": "19",
+   "differences": [
+    {
+     "pos": 7,
+     "ids": [
+      1171
+     ],
+     "printed": "فايس",
+     "category": "R",
+     "current": "تاوزيانت"
+    },
+    {
+     "pos": 14,
+     "ids": [
+      1175
+     ],
+     "printed": "تامزة",
+     "category": "V",
+     "current": "طامزة"
+    },
+    {
+     "pos": 18,
+     "ids": [
+      1180
+     ],
+     "printed": "أمصارة",
+     "category": "V",
+     "current": "مصارة"
+    }
+   ]
+  },
+  {
+   "article": 45,
+   "pdf_pages": "19",
+   "differences": [
+    {
+     "pos": 11,
+     "ids": [
+      1198
+     ],
+     "printed": "لخضارة",
+     "category": "A",
+     "current": "الخضارة"
+    },
+    {
+     "pos": 22,
+     "ids": [
+      1193
+     ],
+     "printed": "الرقوبة",
+     "category": "V",
+     "current": "الراقوبة"
+    }
+   ]
+  },
+  {
+   "article": 46,
+   "pdf_pages": "19",
+   "differences": [
+    {
+     "pos": 3,
+     "ids": [
+      1220
+     ],
+     "printed": "لرهاط",
+     "category": "V",
+     "current": "الأرهاط"
+    },
+    {
+     "pos": 13,
+     "ids": [
+      1213
+     ],
+     "printed": "سيدى عمر",
+     "category": "V",
+     "current": "سيدي عامر"
+    },
+    {
+     "pos": 17,
+     "ids": [
+      1222
+     ],
+     "printed": "عين تقورايت",
+     "category": "V",
+     "current": "عين تاقورايت"
+    },
+    {
+     "pos": 31,
+     "ids": [
+      507
+     ],
+     "printed": "العشور",
+     "category": "V",
+     "current": "العاشور"
+    },
+    {
+     "pos": 37,
+     "ids": [
+      501
+     ],
+     "printed": "السويدانية",
+     "category": "A",
+     "current": "سويدانية"
+    },
+    {
+     "pos": 38,
+     "ids": [
+      508
+     ],
+     "printed": "الخراصية",
+     "category": "S",
+     "current": "الخرايسية"
+    },
+    {
+     "pos": 39,
+     "ids": [
+      509
+     ],
+     "printed": "عين البنيان",
+     "category": "A",
+     "current": "عين بنيان"
+    }
+   ]
+  },
+  {
+   "article": 47,
+   "pdf_pages": "19",
+   "differences": [
+    {
+     "pos": 5,
+     "ids": [
+      1255
+     ],
+     "printed": "عين ملوك",
+     "category": "A",
+     "current": "عين الملوك"
+    },
+    {
+     "pos": 6,
+     "ids": [
+      1258
+     ],
+     "printed": "تلاغمة",
+     "category": "A",
+     "current": "التلاغمة"
+    },
+    {
+     "pos": 12,
+     "ids": [
+      1256
+     ],
+     "printed": "أولاد خلوف",
+     "category": "V",
+     "current": "أولاد اخلوف"
+    },
+    {
+     "pos": 17,
+     "ids": [
+      1247
+     ],
+     "printed": "قرارم قوقة",
+     "category": "A",
+     "current": "القرارم قوقة"
+    },
+    {
+     "pos": 19,
+     "ids": [
+      1242
+     ],
+     "printed": "تسادان حدادة",
+     "category": "V",
+     "current": "تسدان حدادة"
+    },
+    {
+     "pos": 20,
+     "ids": [
+      1250
+     ],
+     "printed": "دراجى بوصلاح",
+     "category": "S",
+     "current": "دراحي بوصلاح"
+    },
+    {
+     "pos": 21,
+     "ids": [
+      1243
+     ],
+     "printed": "مينار زرزة",
+     "category": "V",
+     "current": "مينار زارزة"
+    },
+    {
+     "pos": 22,
+     "ids": [
+      1241
+     ],
+     "printed": "عميرة أراس",
+     "category": "V",
+     "current": "اعميرة اراس"
+    },
+    {
+     "pos": 26,
+     "ids": [
+      1236
+     ],
+     "printed": "المشيرة",
+     "category": "A",
+     "current": "مشيرة"
+    },
+    {
+     "pos": 28,
+     "ids": [
+      1251
+     ],
+     "printed": "الزغاية",
+     "category": "A",
+     "current": "زغاية"
+    },
+    {
+     "pos": 30,
+     "ids": [
+      1238
+     ],
+     "printed": "عين البيضاء حريش",
+     "category": "V",
+     "current": "عين البيضاء أحريش"
+    },
+    {
+     "pos": 31,
+     "ids": [
+      1263
+     ],
+     "printed": "يحيى بنى قشة",
+     "category": "V",
+     "current": "يحي بني قشة"
+    }
+   ]
+  },
+  {
+   "article": 48,
+   "pdf_pages": "20",
+   "differences": [
+    {
+     "pos": 14,
+     "ids": [
+      1289
+     ],
+     "printed": "عين لشياخ",
+     "category": "V",
+     "current": "عين الاشياخ"
+    },
+    {
+     "pos": 15,
+     "ids": [
+      1291
+     ],
+     "printed": "وادى جمعة",
+     "category": "V",
+     "current": "واد الجمعة"
+    },
+    {
+     "pos": 16,
+     "ids": [
+      1293
+     ],
+     "printed": "روينة",
+     "category": "A",
+     "current": "الروينة"
+    },
+    {
+     "pos": 18,
+     "ids": [
+      1300
+     ],
+     "printed": "الحسنية",
+     "category": "V",
+     "current": "الحسانية"
+    },
+    {
+     "pos": 19,
+     "ids": [
+      1295
+     ],
+     "printed": "بئر أولاد خليفة",
+     "category": "V",
+     "current": "بئر ولد خليفة"
+    },
+    {
+     "pos": 27,
+     "ids": [
+      1274
+     ],
+     "printed": "حسينية",
+     "category": "A",
+     "current": "الحسينية"
+    },
+    {
+     "pos": 36,
+     "ids": [
+      1299
+     ],
+     "printed": "بالعاص",
+     "category": "V",
+     "current": "بلعاص"
+    }
+   ]
+  },
+  {
+   "article": 49,
+   "pdf_pages": "20",
+   "differences": [
+    {
+     "pos": 1,
+     "ids": [
+      1310
+     ],
+     "printed": "مشرية",
+     "category": "A",
+     "current": "المشرية"
+    },
+    {
+     "pos": 8,
+     "ids": [
+      1313
+     ],
+     "printed": "النعمة",
+     "category": "V",
+     "current": "النعامة"
+    },
+    {
+     "pos": 10,
+     "ids": [
+      1308
+     ],
+     "printed": "مكمن بن عمر",
+     "category": "V",
+     "current": "مكمن بن عمار"
+    },
+    {
+     "pos": 11,
+     "ids": [
+      1307
+     ],
+     "printed": "قصدير",
+     "category": "A",
+     "current": "القصدير"
+    }
+   ]
+  },
+  {
+   "article": 50,
+   "pdf_pages": "20-21",
+   "differences": [
+    {
+     "pos": 22,
+     "ids": [
+      1320
+     ],
+     "printed": "أولاد كيحل",
+     "category": "A",
+     "current": "أولاد الكيحل"
+    },
+    {
+     "pos": 24,
+     "ids": [
+      1334
+     ],
+     "printed": "سيدى الصافى",
+     "category": "A",
+     "current": "سيدي صافي"
+    },
+    {
+     "pos": 26,
+     "ids": [
+      1336
+     ],
+     "printed": "تادمايت",
+     "category": "R",
+     "current": "سيدي ورياش"
+    }
+   ]
+  },
+  {
+   "article": 52,
+   "pdf_pages": "20-21",
+   "differences": [
+    {
+     "pos": 7,
+     "ids": [
+      1384
+     ],
+     "printed": "سيدى محمد بن على",
+     "category": "V",
+     "current": "سيدي أمحمد بن علي"
+    },
+    {
+     "pos": 13,
+     "ids": [
+      1356
+     ],
+     "printed": "بنى درقون",
+     "category": "V",
+     "current": "بني درقن"
+    },
+    {
+     "pos": 16,
+     "ids": [
+      1360
+     ],
+     "printed": "الحمرى",
+     "category": "A",
+     "current": "حمري"
+    },
+    {
+     "pos": 18,
+     "ids": [
+      1364
+     ],
+     "printed": "سيدى محمد بن عودة",
+     "category": "V",
+     "current": "سيدي امحمد بن عودة"
+    },
+    {
+     "pos": 21,
+     "ids": [
+      1378
+     ],
+     "printed": "ورزان",
+     "category": "V",
+     "current": "واريزان"
+    },
+    {
+     "pos": 29,
+     "ids": [
+      1388
+     ],
+     "printed": "الاحلاف",
+     "category": "V",
+     "current": "لحلاف"
+    },
+    {
+     "pos": 31,
+     "ids": [
+      1373
+     ],
+     "printed": "سوق الاحد",
+     "category": "V",
+     "current": "سوق الحد"
+    },
+    {
+     "pos": 38,
+     "ids": [
+      1380
+     ],
+     "printed": "أولاد سيدى ميهوب",
+     "category": "A",
+     "current": "أولاد سيدي الميهوب"
+    }
+   ]
+  }
+ ]
+}

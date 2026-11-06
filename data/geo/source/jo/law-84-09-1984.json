@@ -1,0 +1,8345 @@
+{
+ "_about": "Commune lists of Law 84-09 (1984) for the 31 wilayas whose composition no later law restated, transcribed by hand from the scanned JO (no text layer; no OCR engine available), plus Ordinance 97-14 (1997) which moved 24 communes to Alger. Each item is mapped to upstream row ids: match \"name\" = same commune by name (spelling variants allowed); \"renamed\" = different current name, paired by the ONS commune code (wilaya*100 + 1984 list position) carried by upstream; \"split\" = one 1984 commune that is two communes today. See artifacts/GEO-6/report.md.",
+ "sources": {
+  "law_84_09": {
+   "title": "Loi n° 84-09 du 4 février 1984 relative à l'organisation territoriale du pays",
+   "jo": "JORADP n° 6 du 7 février 1984 (traduction française)",
+   "pages": "101-111 (PDF pages 5-15)",
+   "url": "https://www.joradp.dz/FTP/jo-francais/1984/F1984006.pdf",
+   "sha256": "d14ebe0fc3c6c806f9431c96f2bff463f58db78b572378c72d277671e28ab3ff",
+   "art3": "« Art. 3. — La nouvelle organisation territoriale du pays comprend quarante-huit (48) wilayas et mille cinq cent quarante (1540) communes. » (p. 102)",
+   "method": "Manual transcription from 300 dpi page renders (pdftoppm); every list length equals its declared count."
+  },
+  "ordinance_97_14": {
+   "title": "Ordonnance n° 97-14 du 24 Moharram 1418 correspondant au 31 mai 1997 relative à l'organisation territoriale de la wilaya d'Alger",
+   "jo": "JORADP n° 38 du 4 juin 1997",
+   "pages": "4-5",
+   "url": "https://www.joradp.dz/FTP/jo-francais/1997/F1997038.pdf",
+   "sha256": "2c48b0e27ad4ff305fdef188fec29350e84407a7392c036a6c39922ce47f5224",
+   "transfers_to_16": {
+    "9": [
+     "Birtouta",
+     "Tassala El Merdja",
+     "Ouled Chebel",
+     "Sidi Moussa"
+    ],
+    "35": [
+     "Aïn Taya",
+     "Bordj El Bahri",
+     "Marsa",
+     "Haraoua",
+     "Rouiba",
+     "Reghaïa"
+    ],
+    "42": [
+     "Aïn Benian",
+     "Staouéli",
+     "Zeralda",
+     "Mahelma",
+     "Rahmania",
+     "Souidania",
+     "Cheraga",
+     "Ouled Fayet",
+     "El Achour",
+     "Draria",
+     "Douéra",
+     "Baba Hassen",
+     "Khraicia",
+     "Saoula"
+    ]
+   }
+  }
+ },
+ "lists": [
+  {
+   "article": 6,
+   "code": 2,
+   "declared": 35,
+   "pdf_pages": "6",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Chlef",
+     "ids": [
+      29
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Ténès",
+     "ids": [
+      34
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Benaïria",
+     "ids": [
+      49
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "El Karimia",
+     "ids": [
+      36
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Tadjena",
+     "ids": [
+      27
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Taougrite",
+     "ids": [
+      39
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Béni Haoua",
+     "ids": [
+      40
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Sobha",
+     "ids": [
+      48
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Harchoun",
+     "ids": [
+      37
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Ouled Farès",
+     "ids": [
+      45
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Sidi Akkacha",
+     "ids": [
+      33
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Boukadir",
+     "ids": [
+      46
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Béni Rached",
+     "ids": [
+      25
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Talassa",
+     "ids": [
+      17
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Herenfa",
+     "ids": [
+      26
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Oued Goussine",
+     "ids": [
+      42
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Dahra",
+     "ids": [
+      51
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Ouled Abbès",
+     "ids": [
+      23
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Sendjas",
+     "ids": [
+      31
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Zeboudja",
+     "ids": [
+      18
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Oued Sly",
+     "ids": [
+      47
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Abou El Hassan",
+     "ids": [
+      41
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "El Marsa",
+     "ids": [
+      28
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Chettia",
+     "ids": [
+      43
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Souk El Bagar",
+     "ids": [
+      32
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 26,
+     "name": "Moussadek",
+     "ids": [
+      44
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "El Hadjadj",
+     "ids": [
+      19
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Labiod Medjadja",
+     "ids": [
+      50
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Oued Fodda",
+     "ids": [
+      24
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Ouled Benabdelkader",
+     "ids": [
+      20
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Bouzeghaïa",
+     "ids": [
+      38
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Aïn Merane",
+     "ids": [
+      21
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Oum Drou",
+     "ids": [
+      30
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Breïra",
+     "ids": [
+      22
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Béni Bouateb",
+     "ids": [
+      35
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 8,
+   "code": 4,
+   "declared": 29,
+   "pdf_pages": "6-7",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Oum El Bouaghi",
+     "ids": [
+      77
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Aïn Beïda",
+     "ids": [
+      81
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Aïn M'Lila",
+     "ids": [
+      84
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Behir Chergui",
+     "ids": [
+      73
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "El Amiria",
+     "ids": [
+      87
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Sigus",
+     "ids": [
+      88
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "El Belala",
+     "ids": [
+      72
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Aïn Babouche",
+     "ids": [
+      78
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Berriche",
+     "ids": [
+      82
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Ouled Hamla",
+     "ids": [
+      86
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Dhala",
+     "ids": [
+      91
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Aïn Kercha",
+     "ids": [
+      93
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Hanchir Toumghani",
+     "ids": [
+      95
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "El Djazia",
+     "ids": [
+      92
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Aïn Diss",
+     "ids": [
+      90
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Fkirina",
+     "ids": [
+      67
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Souk Naamane",
+     "ids": [
+      75
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Zorg",
+     "ids": [
+      83
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "El Fedjoudj Boughrara Saoudi",
+     "ids": [
+      68
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 20,
+     "name": "Ouled Zouaï",
+     "ids": [
+      76
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Bir Chouhada",
+     "ids": [
+      80
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Ksar Sbahi",
+     "ids": [
+      74
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Oued Nini",
+     "ids": [
+      89
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Meskiana",
+     "ids": [
+      71
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Aïn Fakroun",
+     "ids": [
+      69
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Rahia",
+     "ids": [
+      70
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Aïn Zitoun",
+     "ids": [
+      79
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Ouled Gacem",
+     "ids": [
+      85
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "El Harmilia",
+     "ids": [
+      94
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 10,
+   "code": 6,
+   "declared": 52,
+   "pdf_pages": "7",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Béjaïa",
+     "ids": [
+      161
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Amizour",
+     "ids": [
+      200
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Ferraoun",
+     "ids": [
+      165
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Taourirt Ighil",
+     "ids": [
+      183
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 5,
+     "name": "Chelata",
+     "ids": [
+      185
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Tamokra",
+     "ids": [
+      187
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Timzrit",
+     "ids": [
+      167
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Souk El Thenine",
+     "ids": [
+      169
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 9,
+     "name": "Sidi Saïd",
+     "ids": [
+      190
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 10,
+     "name": "Thinabdher",
+     "ids": [
+      155
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 11,
+     "name": "Tichi",
+     "ids": [
+      173
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Semaoun",
+     "ids": [
+      166
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Kendira",
+     "ids": [
+      152
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Tifra",
+     "ids": [
+      154
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Ighram",
+     "ids": [
+      186
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Amalou",
+     "ids": [
+      188
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Ighil Ali",
+     "ids": [
+      175
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Ifelain Ilmathen",
+     "ids": [
+      157
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 19,
+     "name": "Toudja",
+     "ids": [
+      158
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Darguina",
+     "ids": [
+      177
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Sidi Ayad",
+     "ids": [
+      149
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Aokas",
+     "ids": [
+      179
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Béni Djellil",
+     "ids": [
+      164
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Adekar",
+     "ids": [
+      181
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Akbou",
+     "ids": [
+      184
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Seddouk",
+     "ids": [
+      191
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Tazmalt",
+     "ids": [
+      194
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Aït Rizine",
+     "ids": [
+      174
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Chemini",
+     "ids": [
+      196
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Souk Oufella",
+     "ids": [
+      197
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Taskriout",
+     "ids": [
+      178
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Tibane",
+     "ids": [
+      198
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Tala Hamza",
+     "ids": [
+      172
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Barbacha",
+     "ids": [
+      150
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Béni Ksila",
+     "ids": [
+      182
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Ouzellaguen",
+     "ids": [
+      199
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 37,
+     "name": "Bouhamza",
+     "ids": [
+      189
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 38,
+     "name": "Béni Melikèche",
+     "ids": [
+      192
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 39,
+     "name": "Sidi Aïch",
+     "ids": [
+      153
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 40,
+     "name": "El Kseur",
+     "ids": [
+      156
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 41,
+     "name": "Melbou",
+     "ids": [
+      168
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 42,
+     "name": "Akfadou",
+     "ids": [
+      195
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 43,
+     "name": "Leflaye",
+     "ids": [
+      151
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 44,
+     "name": "Kherrata",
+     "ids": [
+      160
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 45,
+     "name": "Draa Kaïd",
+     "ids": [
+      159
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 46,
+     "name": "Tamridjet",
+     "ids": [
+      170
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 47,
+     "name": "Aït Smaïl",
+     "ids": [
+      176
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 48,
+     "name": "Boukhelifa",
+     "ids": [
+      171
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 49,
+     "name": "Tizi N'Berber",
+     "ids": [
+      180
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 50,
+     "name": "Béni Maouch",
+     "ids": [
+      163
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 51,
+     "name": "Oued Ghir",
+     "ids": [
+      162
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 52,
+     "name": "Boudjellil",
+     "ids": [
+      193
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 13,
+   "code": 9,
+   "declared": 29,
+   "pdf_pages": "8",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Blida",
+     "ids": [
+      259
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Chebli",
+     "ids": [
+      256
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Bouinan",
+     "ids": [
+      257
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Oued El Alleug",
+     "ids": [
+      253
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Tassala El Merdja",
+     "ids": [
+      495
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 6,
+     "name": "Ouled Chebel",
+     "ids": [
+      494
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 7,
+     "name": "Ouled Yaïch",
+     "ids": [
+      250
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Chréa",
+     "ids": [
+      251
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Birtouta",
+     "ids": [
+      493
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 10,
+     "name": "El Affroun",
+     "ids": [
+      249
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Chiffa",
+     "ids": [
+      246
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Hammam Melouane",
+     "ids": [
+      238
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Ben Khelil",
+     "ids": [
+      254
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Soumaa",
+     "ids": [
+      242
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Sidi Moussa",
+     "ids": [
+      484
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 16,
+     "name": "Mouzaïa",
+     "ids": [
+      237
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Souhane",
+     "ids": [
+      240
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Meftah",
+     "ids": [
+      245
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Ouled Selama",
+     "ids": [
+      236
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Boufarik",
+     "ids": [
+      244
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Larbaa",
+     "ids": [
+      241
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Oued Djer",
+     "ids": [
+      248
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Béni Tamou",
+     "ids": [
+      255
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Bouarfa",
+     "ids": [
+      258
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Béni Mered",
+     "ids": [
+      235
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Bougara",
+     "ids": [
+      239
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Guerrouaou",
+     "ids": [
+      243
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Aïn Romana",
+     "ids": [
+      247
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Djebabra",
+     "ids": [
+      252
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 14,
+   "code": 10,
+   "declared": 45,
+   "pdf_pages": "8",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Bouira",
+     "ids": [
+      286
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "El Asnam",
+     "ids": [
+      274
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Guerrouma",
+     "ids": [
+      299
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Souk El Khemis",
+     "ids": [
+      291
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Kadiria",
+     "ids": [
+      302
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Hanif",
+     "ids": [
+      278
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Dirah",
+     "ids": [
+      268
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Bezite",
+     "ids": [
+      288
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 9,
+     "name": "Taghzout",
+     "ids": [
+      296
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Raouraoua",
+     "ids": [
+      283
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Mezdour",
+     "ids": [
+      262
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Haïzer",
+     "ids": [
+      295
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Lakhdaria",
+     "ids": [
+      300
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Maala",
+     "ids": [
+      301
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "El Hachimia",
+     "ids": [
+      294
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Aomar",
+     "ids": [
+      292
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Chorfa",
+     "ids": [
+      279
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Bordj Oukhriss",
+     "ids": [
+      276
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "El Adjiba",
+     "ids": [
+      273
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "El Morra",
+     "ids": [
+      266
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 21,
+     "name": "El Khebouzia",
+     "ids": [
+      284
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Ahl El Ksar",
+     "ids": [
+      267
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Bouderbala",
+     "ids": [
+      297
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "El Isseri",
+     "ids": [
+      303
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 25,
+     "name": "Aïn El Hadjar",
+     "ids": [
+      281
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Djebahia",
+     "ids": [
+      293
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Aghbalou",
+     "ids": [
+      282
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Taguedit",
+     "ids": [
+      263
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Aïn Turk",
+     "ids": [
+      287
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Saharidj",
+     "ids": [
+      272
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Dechmia",
+     "ids": [
+      269
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Ridane",
+     "ids": [
+      264
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Bechloul",
+     "ids": [
+      270
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Boukram",
+     "ids": [
+      298
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Aïn Bessam",
+     "ids": [
+      289
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Bir Ghbalou",
+     "ids": [
+      285
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 37,
+     "name": "M'Chedallah",
+     "ids": [
+      275
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 38,
+     "name": "Sour El Ghozlane",
+     "ids": [
+      277
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 39,
+     "name": "Maamora",
+     "ids": [
+      265
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 40,
+     "name": "Ouled Rached",
+     "ids": [
+      280
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 41,
+     "name": "Aïn Laloui",
+     "ids": [
+      260
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 42,
+     "name": "Hadjera Zerga",
+     "ids": [
+      261
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 43,
+     "name": "Taourirt",
+     "ids": [
+      271
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 44,
+     "name": "El Madjen",
+     "ids": [
+      290
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 45,
+     "name": "Oued El Berdi",
+     "ids": [
+      304
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 19,
+   "code": 15,
+   "declared": 67,
+   "pdf_pages": "9",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Tizi Ouzou",
+     "ids": [
+      447
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Aïn El Hammam",
+     "ids": [
+      449
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Akbil",
+     "ids": [
+      451
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Fréha",
+     "ids": [
+      464
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Souamaa",
+     "ids": [
+      444
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Mechtrass",
+     "ids": [
+      433
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Irdjen",
+     "ids": [
+      469
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Timizart",
+     "ids": [
+      475
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Makouda",
+     "ids": [
+      453
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Draa El Mizan",
+     "ids": [
+      456
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Tizi Ghenif",
+     "ids": [
+      459
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Bounouh",
+     "ids": [
+      432
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Aït Chaffaa",
+     "ids": [
+      425
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Frikat",
+     "ids": [
+      457
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Béni Aïssi",
+     "ids": [
+      440
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Béni Zmenzer",
+     "ids": [
+      479
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Iferhounène",
+     "ids": [
+      480
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Azazga",
+     "ids": [
+      463
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Iloula Oumalou",
+     "ids": [
+      419
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Yakourène",
+     "ids": [
+      466
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Larba Nath Iraten",
+     "ids": [
+      470
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 22,
+     "name": "Tizi Rached",
+     "ids": [
+      472
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Zekri",
+     "ids": [
+      467
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Ouaguenoun",
+     "ids": [
+      474
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Aïn Zaouia",
+     "ids": [
+      454
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "M'Kira",
+     "ids": [
+      458
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Aït Yahia",
+     "ids": [
+      450
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Aït Mahmoud",
+     "ids": [
+      478
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Maatka",
+     "ids": [
+      476
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 30,
+     "name": "Aït Boumehdi",
+     "ids": [
+      438
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Abi Youcef",
+     "ids": [
+      448
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Béni Douala",
+     "ids": [
+      417
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Illilten",
+     "ids": [
+      461
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Bouzguen",
+     "ids": [
+      481
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Aït Aggouacha",
+     "ids": [
+      468
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Ouadhia",
+     "ids": [
+      422
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 37,
+     "name": "Azzefoun",
+     "ids": [
+      427
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 38,
+     "name": "Tigzirt",
+     "ids": [
+      429
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 39,
+     "name": "Djebel Aïssa Mimoun",
+     "ids": [
+      473
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 40,
+     "name": "Boghni",
+     "ids": [
+      431
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 41,
+     "name": "Ifigha",
+     "ids": [
+      465
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 42,
+     "name": "Aït Oumalou",
+     "ids": [
+      471
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 43,
+     "name": "Tirmitine",
+     "ids": [
+      437
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 44,
+     "name": "Akerrou",
+     "ids": [
+      426
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 45,
+     "name": "Yatafène",
+     "ids": [
+      460
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 46,
+     "name": "Béni Ziki",
+     "ids": [
+      418
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 47,
+     "name": "Dra Ben Khedda",
+     "ids": [
+      434
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 48,
+     "name": "Ouacif",
+     "ids": [
+      441
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 49,
+     "name": "Idjeur",
+     "ids": [
+      416
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 50,
+     "name": "Mekla",
+     "ids": [
+      443
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 51,
+     "name": "Tizi N'Thlata",
+     "ids": [
+      423
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 52,
+     "name": "Béni Yenni",
+     "ids": [
+      445
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 53,
+     "name": "Aghrib",
+     "ids": [
+      424
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 54,
+     "name": "Iflissen",
+     "ids": [
+      428
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 55,
+     "name": "Boudjima",
+     "ids": [
+      452
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 56,
+     "name": "Oued Ksari",
+     "ids": [
+      455
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 57,
+     "name": "Souk El Thenine",
+     "ids": [
+      477
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 58,
+     "name": "Aït Khellili",
+     "ids": [
+      442
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 59,
+     "name": "Sidi Naamane",
+     "ids": [
+      435
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 60,
+     "name": "Iboudraren",
+     "ids": [
+      446
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 61,
+     "name": "Aghni Goughran",
+     "ids": [
+      420
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 62,
+     "name": "Mizrana",
+     "ids": [
+      415
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 63,
+     "name": "Imsouhal",
+     "ids": [
+      462
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 64,
+     "name": "Tadmaït",
+     "ids": [
+      436
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 65,
+     "name": "Aït Bouadou",
+     "ids": [
+      421
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 66,
+     "name": "Assi Youcef",
+     "ids": [
+      430
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 67,
+     "name": "Aït Toudert",
+     "ids": [
+      439
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 20,
+   "code": 16,
+   "declared": 33,
+   "pdf_pages": "9",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Alger-centre",
+     "ids": [
+      514
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Sidi M'Hamed",
+     "ids": [
+      517
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "El Madania",
+     "ids": [
+      515
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Hamma Anassers",
+     "ids": [
+      486
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 5,
+     "name": "Bab El Oued",
+     "ids": [
+      538
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Bologhine Ibnou Ziri",
+     "ids": [
+      519
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Casbah",
+     "ids": [
+      520
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Oued Koriche",
+     "ids": [
+      521
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Bir Mourad Raïs",
+     "ids": [
+      523
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "El Biar",
+     "ids": [
+      531
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Bouzaréah",
+     "ids": [
+      530
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Birkhadem",
+     "ids": [
+      524
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "El Harrach",
+     "ids": [
+      534
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Baraki",
+     "ids": [
+      536
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Oued Smar",
+     "ids": [
+      535
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Bourouba",
+     "ids": [
+      533
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Hussein Dey",
+     "ids": [
+      482
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Kouba",
+     "ids": [
+      485
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Bachedjarah",
+     "ids": [
+      532
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Dar El Beïda",
+     "ids": [
+      490
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Bab Ezzouar",
+     "ids": [
+      488
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Ben Aknoun",
+     "ids": [
+      528
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Dély Ibrahim",
+     "ids": [
+      511
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Bains Romains",
+     "ids": [
+      512
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 25,
+     "name": "Raïs Hamidou",
+     "ids": [
+      522
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Djasr Kasentina",
+     "ids": [
+      525
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "El Mouradia",
+     "ids": [
+      516
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Hydra",
+     "ids": [
+      526
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Mohammadia",
+     "ids": [
+      492
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Bordj El Kiffan",
+     "ids": [
+      489
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "El Magharia",
+     "ids": [
+      527
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Béni Messous",
+     "ids": [
+      529
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Les Eucalyptus",
+     "ids": [
+      483
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 22,
+   "code": 18,
+   "declared": 28,
+   "pdf_pages": "10",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Jijel",
+     "ids": [
+      557
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Erraguene",
+     "ids": [
+      560
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 3,
+     "name": "El Aouana",
+     "ids": [
+      558
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Ziamma Mansouriah",
+     "ids": [
+      562
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Taher",
+     "ids": [
+      566
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Emir Abdelkader",
+     "ids": [
+      564
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Chekfa",
+     "ids": [
+      567
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Chahana",
+     "ids": [
+      563
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "El Milia",
+     "ids": [
+      570
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Sidi Maarouf",
+     "ids": [
+      573
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Settara",
+     "ids": [
+      575
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "El Ançer",
+     "ids": [
+      577
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Sidi Abdelaziz",
+     "ids": [
+      569
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Kaous",
+     "ids": [
+      580
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Ghebala",
+     "ids": [
+      574
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Bouraoui Belhadef",
+     "ids": [
+      576
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Djimla",
+     "ids": [
+      579
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Selma Benziada",
+     "ids": [
+      559
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Boussif Ouled Askeur",
+     "ids": [
+      561
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "El Kennar Nouchfi",
+     "ids": [
+      568
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Ouled Yahia Khadrouch",
+     "ids": [
+      571
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Boudria Béni Yadjis",
+     "ids": [
+      583
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Kemir Oued Adjoul",
+     "ids": [
+      578
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 24,
+     "name": "Texena",
+     "ids": [
+      581
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Djemaa Béni Habibi",
+     "ids": [
+      584
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Bordj Taher",
+     "ids": [
+      582
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Ouled Rabah",
+     "ids": [
+      572
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Ouadjana",
+     "ids": [
+      565
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 23,
+   "code": 19,
+   "declared": 60,
+   "pdf_pages": "10",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Sétif",
+     "ids": [
+      617
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Aïn El Kebira",
+     "ids": [
+      618
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Béni Aziz",
+     "ids": [
+      622
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Ouled Si Ahmed",
+     "ids": [
+      591
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Boutaleb",
+     "ids": [
+      600
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Aïn Roua",
+     "ids": [
+      611
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Draa Kebila",
+     "ids": [
+      615
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Bir El Arch",
+     "ids": [
+      625
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Béni Chebana",
+     "ids": [
+      638
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Ouled Tebben",
+     "ids": [
+      602
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Hamma",
+     "ids": [
+      601
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Maaouia",
+     "ids": [
+      623
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Aïn Legraj",
+     "ids": [
+      637
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 14,
+     "name": "Aïn Abessa",
+     "ids": [
+      641
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Dehamcha",
+     "ids": [
+      619
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Babor",
+     "ids": [
+      643
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Guidjel",
+     "ids": [
+      630
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Aïn Lahdjar",
+     "ids": [
+      606
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Bousselam",
+     "ids": [
+      595
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "El Eulma",
+     "ids": [
+      633
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Djemila",
+     "ids": [
+      636
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Béni Ouartilane",
+     "ids": [
+      639
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Rosfa",
+     "ids": [
+      585
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Ouled Addouane",
+     "ids": [
+      620
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Belaa",
+     "ids": [
+      624
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Aïn Arnat",
+     "ids": [
+      642
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Amoucha",
+     "ids": [
+      603
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Aïn Oulmane",
+     "ids": [
+      599
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Beïdha Bordj",
+     "ids": [
+      607
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Bouandas",
+     "ids": [
+      594
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Bazer Sakhra",
+     "ids": [
+      632
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 32,
+     "name": "Oum Ladjoul",
+     "ids": [
+      596
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 33,
+     "name": "Mezloug",
+     "ids": [
+      588
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Bir Haddada",
+     "ids": [
+      608
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Serdj El Ghoul",
+     "ids": [
+      629
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Harbil",
+     "ids": [
+      610
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 37,
+     "name": "El Ouricia",
+     "ids": [
+      613
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 38,
+     "name": "Tizi N'Béchar",
+     "ids": [
+      587
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 39,
+     "name": "Salah Bey",
+     "ids": [
+      604
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 40,
+     "name": "Aïn Azal",
+     "ids": [
+      605
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 41,
+     "name": "Guenzet",
+     "ids": [
+      609
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 42,
+     "name": "Talaïfacène",
+     "ids": [
+      628
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 43,
+     "name": "Bougaa",
+     "ids": [
+      614
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 44,
+     "name": "Béni Fouda",
+     "ids": [
+      635
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 45,
+     "name": "Tachouda",
+     "ids": [
+      627
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 46,
+     "name": "Béni Mouhli",
+     "ids": [
+      640
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 47,
+     "name": "Ouled Sabor",
+     "ids": [
+      631
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 48,
+     "name": "Guelal Boutaleb",
+     "ids": [
+      589
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 49,
+     "name": "Aïn Sebt",
+     "ids": [
+      621
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 50,
+     "name": "Hammam Guergour",
+     "ids": [
+      616
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 51,
+     "name": "Aït Naoual Mezada",
+     "ids": [
+      592
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 52,
+     "name": "Ksar El Abtal",
+     "ids": [
+      590
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 53,
+     "name": "Béni Hocine",
+     "ids": [
+      612
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 54,
+     "name": "Aït Tizi",
+     "ids": [
+      593
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 55,
+     "name": "Maouaklane",
+     "ids": [
+      644
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 56,
+     "name": "Guelta Zerka",
+     "ids": [
+      634
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 57,
+     "name": "Oued El Barad",
+     "ids": [
+      586
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 58,
+     "name": "Taya",
+     "ids": [
+      597
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 59,
+     "name": "El Ouldja",
+     "ids": [
+      626
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 60,
+     "name": "Tella",
+     "ids": [
+      598
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 24,
+   "code": 20,
+   "declared": 16,
+   "pdf_pages": "10",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Saïda",
+     "ids": [
+      645
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Doui Thabet",
+     "ids": [
+      656
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Aïn El Hadjar",
+     "ids": [
+      659
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Ouled Khaled",
+     "ids": [
+      653
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Moulay Larbi",
+     "ids": [
+      658
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Youb",
+     "ids": [
+      655
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Hounet",
+     "ids": [
+      654
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Sidi Amar",
+     "ids": [
+      660
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Sidi Boubekeur",
+     "ids": [
+      652
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "El Hassasna",
+     "ids": [
+      650
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Maamora",
+     "ids": [
+      649
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Sidi Ahmed",
+     "ids": [
+      657
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Aïn Sekhouna",
+     "ids": [
+      651
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Ouled Brahim",
+     "ids": [
+      647
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Tircine",
+     "ids": [
+      646
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Aïn Soltane",
+     "ids": [
+      648
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 25,
+   "code": 21,
+   "declared": 38,
+   "pdf_pages": "10",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Skikda",
+     "ids": [
+      695
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Aïn Zouit",
+     "ids": [
+      696
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "El Hadaïk",
+     "ids": [
+      663
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Azzaba",
+     "ids": [
+      691
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Djendel Saadi Mohamed",
+     "ids": [
+      697
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Aïn Cherchar",
+     "ids": [
+      690
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Bekkouche Lakhdar",
+     "ids": [
+      688
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Benazouz",
+     "ids": [
+      687
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Es-Sebt",
+     "ids": [
+      689
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Collo",
+     "ids": [
+      682
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Béni Zid",
+     "ids": [
+      684
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Kerkera",
+     "ids": [
+      677
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Ouled Attia",
+     "ids": [
+      680
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Oued Zehour",
+     "ids": [
+      681
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Zitouna",
+     "ids": [
+      679
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "El Harrouch",
+     "ids": [
+      678
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 17,
+     "name": "Zerdazas",
+     "ids": [
+      664
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Ouled Hebaba",
+     "ids": [
+      665
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Sidi Mezghiche",
+     "ids": [
+      667
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Emdjez Edchich",
+     "ids": [
+      671
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 21,
+     "name": "Béni Oulbane",
+     "ids": [
+      666
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Aïn Bouziane",
+     "ids": [
+      661
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Ramdane Djamel",
+     "ids": [
+      669
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Béni Bechir",
+     "ids": [
+      668
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Salah Bouchaour",
+     "ids": [
+      662
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Tamalous",
+     "ids": [
+      672
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Aïn Kechra",
+     "ids": [
+      673
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Oum Toub",
+     "ids": [
+      675
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Beïn El Ouiden",
+     "ids": [
+      670
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Fil Fila",
+     "ids": [
+      693
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Cheraïa",
+     "ids": [
+      683
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Kanoua",
+     "ids": [
+      698
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "El Ghedir",
+     "ids": [
+      676
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Bouchtata",
+     "ids": [
+      692
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Ouldja Boulballout",
+     "ids": [
+      674
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Kheneg Mayoum",
+     "ids": [
+      685
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 37,
+     "name": "Hamadi Krouma",
+     "ids": [
+      694
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 38,
+     "name": "El Marsa",
+     "ids": [
+      686
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 26,
+   "code": 22,
+   "declared": 52,
+   "pdf_pages": "10-11",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Sidi Bel Abbès",
+     "ids": [
+      731
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Tessala",
+     "ids": [
+      734
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Sidi Brahim",
+     "ids": [
+      712
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Mostefa Ben Brahim",
+     "ids": [
+      736
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Telagh",
+     "ids": [
+      742
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Mezaourou",
+     "ids": [
+      740
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Boukhanafis",
+     "ids": [
+      714
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Sidi Ali Boussidi",
+     "ids": [
+      745
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Badredine El Mokrani",
+     "ids": [
+      718
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 10,
+     "name": "Marhoum",
+     "ids": [
+      730
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Tafissour",
+     "ids": [
+      749
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Amarnas",
+     "ids": [
+      713
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Tilmouni",
+     "ids": [
+      737
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Sidi Lahcène",
+     "ids": [
+      709
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Aïn Thrid",
+     "ids": [
+      732
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Makedra",
+     "ids": [
+      725
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Tenira",
+     "ids": [
+      703
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Moulay Slissen",
+     "ids": [
+      700
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "El Haçaïba",
+     "ids": [
+      701
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Hassi Zehana",
+     "ids": [
+      715
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Tabia",
+     "ids": [
+      711
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Merine",
+     "ids": [
+      748
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Ras El Ma",
+     "ids": [
+      728
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Aïn Tindamine",
+     "ids": [
+      702
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Aïn Kada",
+     "ids": [
+      743
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "M'Cid",
+     "ids": [
+      720
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Sidi Khaled",
+     "ids": [
+      710
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Aïn El Berd",
+     "ids": [
+      726
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Sfissef",
+     "ids": [
+      719
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Aïn Adden",
+     "ids": [
+      722
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Oued Taourira",
+     "ids": [
+      706
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Dhaya",
+     "ids": [
+      739
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Zerouala",
+     "ids": [
+      738
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Lamtar",
+     "ids": [
+      744
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Sidi Chaïb",
+     "ids": [
+      724
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Sidi Dahou De Zaïrs",
+     "ids": [
+      746
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 37,
+     "name": "Oued Sebaa",
+     "ids": [
+      729
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 38,
+     "name": "Boudjebaa El Bordj",
+     "ids": [
+      721
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 39,
+     "name": "Sehala Thaoura",
+     "ids": [
+      733
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 40,
+     "name": "Sidi Yacoub",
+     "ids": [
+      708
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 41,
+     "name": "Sidi Hamadouche",
+     "ids": [
+      723
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 42,
+     "name": "Belarbi",
+     "ids": [
+      735
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 43,
+     "name": "Oued Sefioun",
+     "ids": [
+      704
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 44,
+     "name": "Teghalimet",
+     "ids": [
+      741
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 45,
+     "name": "Ben Badis",
+     "ids": [
+      717
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 46,
+     "name": "Sidi Ali Benyoub",
+     "ids": [
+      699
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 47,
+     "name": "Chetouane Belaila",
+     "ids": [
+      716
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 48,
+     "name": "Bir El Hammam",
+     "ids": [
+      747
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 49,
+     "name": "Taoudmout",
+     "ids": [
+      750
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 50,
+     "name": "Redjem Demouche",
+     "ids": [
+      727
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 51,
+     "name": "Benachiba Chelia",
+     "ids": [
+      707
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 52,
+     "name": "Hassi Dahou",
+     "ids": [
+      705
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 27,
+   "code": 23,
+   "declared": 12,
+   "pdf_pages": "11",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Annaba",
+     "ids": [
+      751
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Berrahel",
+     "ids": [
+      753
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "El Hadjar",
+     "ids": [
+      755
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Eulma",
+     "ids": [
+      760
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "El Bouni",
+     "ids": [
+      757
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Oued El Aneb",
+     "ids": [
+      754
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Cheurfa",
+     "ids": [
+      759
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Seraïdi",
+     "ids": [
+      752
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Aïn Berda",
+     "ids": [
+      758
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 10,
+     "name": "Chetaïbi",
+     "ids": [
+      762
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Sidi Amer",
+     "ids": [
+      756
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Tréat",
+     "ids": [
+      761
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 28,
+   "code": 24,
+   "declared": 34,
+   "pdf_pages": "11",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Guelma",
+     "ids": [
+      769
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Nechmaya",
+     "ids": [
+      763
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Bouati Mahmoud",
+     "ids": [
+      775
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Oued Zenati",
+     "ids": [
+      784
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Tamlouka",
+     "ids": [
+      788
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Oued Fragha",
+     "ids": [
+      774
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Aïn Sandel",
+     "ids": [
+      789
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Ras El Agba",
+     "ids": [
+      780
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Dahouara",
+     "ids": [
+      767
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Belkhir",
+     "ids": [
+      792
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Ben Djarah",
+     "ids": [
+      796
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Bou Hamdane",
+     "ids": [
+      764
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Aïn Makhlouf",
+     "ids": [
+      787
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Aïn Ben Beïda",
+     "ids": [
+      771
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Khezara",
+     "ids": [
+      791
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 16,
+     "name": "Béni Mezline",
+     "ids": [
+      793
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Bou Hachana",
+     "ids": [
+      790
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Guelaat Bou Sbaa",
+     "ids": [
+      794
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Hammam Maskhoutine",
+     "ids": [
+      765
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 20,
+     "name": "El Fedjoudj",
+     "ids": [
+      776
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Bordj Sabat",
+     "ids": [
+      783
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 22,
+     "name": "Hammam N'Baïl",
+     "ids": [
+      768
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Aïn Larbi",
+     "ids": [
+      786
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Medjez Amar",
+     "ids": [
+      778
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Boughouf",
+     "ids": [
+      772
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 26,
+     "name": "Héliopolis",
+     "ids": [
+      777
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Aïn Hessania",
+     "ids": [
+      779
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 28,
+     "name": "Roknia",
+     "ids": [
+      766
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Salaoua Announa",
+     "ids": [
+      781
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Medjez Sfa",
+     "ids": [
+      773
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Boumahra Ahmed",
+     "ids": [
+      770
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Aïn Reggada",
+     "ids": [
+      785
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Oued Cheham",
+     "ids": [
+      795
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Djebala Khemissi",
+     "ids": [
+      782
+     ],
+     "match": "variant"
+    }
+   ]
+  },
+  {
+   "article": 29,
+   "code": 25,
+   "declared": 12,
+   "pdf_pages": "11",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Constantine",
+     "ids": [
+      808
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Hamma Bouziane",
+     "ids": [
+      798
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "El Haria",
+     "ids": [
+      805
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 4,
+     "name": "Zighoud Youcef",
+     "ids": [
+      800
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Didouche Mourad",
+     "ids": [
+      797
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "El Khroub",
+     "ids": [
+      802
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Aïn Abid",
+     "ids": [
+      804
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Béni Hamiden",
+     "ids": [
+      799
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Ouled Rahmoune",
+     "ids": [
+      803
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Aïn Smara",
+     "ids": [
+      801
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Aïn Kerma",
+     "ids": [
+      807
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 12,
+     "name": "Ibn Ziad",
+     "ids": [
+      806
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 31,
+   "code": 27,
+   "declared": 32,
+   "pdf_pages": "11",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Mostaganem",
+     "ids": [
+      875
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Sayada",
+     "ids": [
+      871
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Fornaka",
+     "ids": [
+      860
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Stidia",
+     "ids": [
+      865
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Aïn Nouissy",
+     "ids": [
+      890
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Hassi Maamèche",
+     "ids": [
+      863
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Aïn Tadlès",
+     "ids": [
+      866
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Sour",
+     "ids": [
+      868
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Oued El Kheïr",
+     "ids": [
+      861
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Sidi Bellater",
+     "ids": [
+      867
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Kheïreddine",
+     "ids": [
+      870
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Sidi Ali",
+     "ids": [
+      872
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Abdelmalek Ramdane",
+     "ids": [
+      874
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 14,
+     "name": "Hadjadj",
+     "ids": [
+      876
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Nekmaria",
+     "ids": [
+      880
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Sidi Lakhdar",
+     "ids": [
+      877
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Achaacha",
+     "ids": [
+      878
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Khadra",
+     "ids": [
+      879
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Bouguirat",
+     "ids": [
+      882
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Sirat",
+     "ids": [
+      884
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Aïn Sidi Chérif",
+     "ids": [
+      886
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Mesra",
+     "ids": [
+      888
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Mansourah",
+     "ids": [
+      887
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Souaflia",
+     "ids": [
+      885
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Ouled Boughalem",
+     "ids": [
+      881
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Ouled Maallah",
+     "ids": [
+      891
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Mezghrane",
+     "ids": [
+      864
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 28,
+     "name": "Aïn Boudinar",
+     "ids": [
+      869
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Tazgaït",
+     "ids": [
+      873
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Safsaf",
+     "ids": [
+      883
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Touahria",
+     "ids": [
+      889
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "El Hassiane",
+     "ids": [
+      862
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 33,
+   "code": 29,
+   "declared": 46,
+   "pdf_pages": "12",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Mascara",
+     "ids": [
+      958
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Bou Hanifia",
+     "ids": [
+      959
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Tizi",
+     "ids": [
+      964
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Hacine",
+     "ids": [
+      961
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Maoussa",
+     "ids": [
+      966
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Teghenif",
+     "ids": [
+      930
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "El Hachem",
+     "ids": [
+      968
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Sidi Kada",
+     "ids": [
+      956
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "M'Hamid",
+     "ids": [
+      970
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 10,
+     "name": "Oued El Abtal",
+     "ids": [
+      926
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Aïn Ferah",
+     "ids": [
+      971
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Ghriss",
+     "ids": [
+      960
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Froha",
+     "ids": [
+      963
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Matemore",
+     "ids": [
+      955
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Makdha",
+     "ids": [
+      957
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 16,
+     "name": "Sidi Boussaïd",
+     "ids": [
+      954
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "El Bordj",
+     "ids": [
+      953
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Aïn Fekan",
+     "ids": [
+      950
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Benian",
+     "ids": [
+      946
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Khalouia",
+     "ids": [
+      951
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "El Menaouer",
+     "ids": [
+      952
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Oued Taria",
+     "ids": [
+      972
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Aouf",
+     "ids": [
+      947
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Aïn Farès",
+     "ids": [
+      944
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Aïn Frass",
+     "ids": [
+      949
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Sig",
+     "ids": [
+      939
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Oggaz",
+     "ids": [
+      937
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Alaïmia",
+     "ids": [
+      938
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "El Gaada",
+     "ids": [
+      935
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Zahana",
+     "ids": [
+      934
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Mohammadia",
+     "ids": [
+      929
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Sidi Abdelmoumène",
+     "ids": [
+      927
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Ferraguig",
+     "ids": [
+      932
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "El Ghomri",
+     "ids": [
+      933
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Sedjerara",
+     "ids": [
+      928
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Moctadouz",
+     "ids": [
+      931
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 37,
+     "name": "Bou Henni",
+     "ids": [
+      941
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 38,
+     "name": "Guettena El Mamounia",
+     "ids": [
+      942,
+      943
+     ],
+     "match": "split"
+    },
+    {
+     "pos": 39,
+     "name": "El Keurt",
+     "ids": [
+      962
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 40,
+     "name": "Gharrous",
+     "ids": [
+      945
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 41,
+     "name": "Guerdjoum",
+     "ids": [
+      948
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 42,
+     "name": "Chorfa",
+     "ids": [
+      940
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 43,
+     "name": "Ras Aïn Amirouche",
+     "ids": [
+      936
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 44,
+     "name": "Nesmot",
+     "ids": [
+      969
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 45,
+     "name": "Sidi Abdeldjebar",
+     "ids": [
+      967
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 46,
+     "name": "Sehaïlia",
+     "ids": [
+      965
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 35,
+   "code": 31,
+   "declared": 26,
+   "pdf_pages": "12",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Oran",
+     "ids": [
+      996
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Gdyel",
+     "ids": [
+      985
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Bir El Djir",
+     "ids": [
+      983
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Hassi Bounif",
+     "ids": [
+      986
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Es Senia",
+     "ids": [
+      988
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Arzew",
+     "ids": [
+      990
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Bethioua",
+     "ids": [
+      993
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Marsat El Hadjadj",
+     "ids": [
+      994
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Aïn Turk",
+     "ids": [
+      995
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "El Ançar",
+     "ids": [
+      997
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Oued Tlélat",
+     "ids": [
+      1001
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Tafraoui",
+     "ids": [
+      1006
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Sidi Chami",
+     "ids": [
+      981
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Boufatis",
+     "ids": [
+      999
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Mers El Kébir",
+     "ids": [
+      998
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Bousfer",
+     "ids": [
+      1005
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "El Karma",
+     "ids": [
+      987
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "El Braya",
+     "ids": [
+      1000
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Hassi Ben Okba",
+     "ids": [
+      984
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Ben Fréha",
+     "ids": [
+      989
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Hassi Mefsoukh",
+     "ids": [
+      982
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Sidi Ben Yabka",
+     "ids": [
+      991
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Messerghin",
+     "ids": [
+      1004
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Boutlelis",
+     "ids": [
+      1003
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Aïn Kerma",
+     "ids": [
+      1002
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Aïn Biya",
+     "ids": [
+      992
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 38,
+   "code": 34,
+   "declared": 34,
+   "pdf_pages": "13",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Ras El Oued",
+     "ids": [
+      1053
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Bordj Zemoura",
+     "ids": [
+      1054
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Bordj Bou Arréridj",
+     "ids": [
+      1057
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Mansoura",
+     "ids": [
+      1045
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "El M'Hir",
+     "ids": [
+      1043
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Ben Daoud",
+     "ids": [
+      1058
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "El Achir",
+     "ids": [
+      1048
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Aïn Taghrout",
+     "ids": [
+      1027
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Bordj Ghdir",
+     "ids": [
+      1033
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Sidi Embarek",
+     "ids": [
+      1035
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "El Hamadia",
+     "ids": [
+      1025
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Belimour",
+     "ids": [
+      1029
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Medjana",
+     "ids": [
+      1050
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Teniet En Nasr",
+     "ids": [
+      1042
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Djaafra",
+     "ids": [
+      1040
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "El Main",
+     "ids": [
+      1039
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Ouled Brahem",
+     "ids": [
+      1052
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Ouled Dahmane",
+     "ids": [
+      1055
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Hasnaoua",
+     "ids": [
+      1049
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Khelil",
+     "ids": [
+      1036
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Taglaït",
+     "ids": [
+      1032
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Ksour",
+     "ids": [
+      1044
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Ouled Sidi Brahim",
+     "ids": [
+      1026
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Tafreg",
+     "ids": [
+      1038
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Colla",
+     "ids": [
+      1041
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Tixter",
+     "ids": [
+      1028
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "El Ach",
+     "ids": [
+      1034
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "El Anseur",
+     "ids": [
+      1030
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Tesmart",
+     "ids": [
+      1056
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Aïn Tesra",
+     "ids": [
+      1051
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Bir Kasdali",
+     "ids": [
+      1037
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Ghilassa",
+     "ids": [
+      1031
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Rabta",
+     "ids": [
+      1047
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Haraza",
+     "ids": [
+      1046
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 39,
+   "code": 35,
+   "declared": 38,
+   "pdf_pages": "13",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Boudouaou",
+     "ids": [
+      1087
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Rouiba",
+     "ids": [
+      498
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 3,
+     "name": "Afir",
+     "ids": [
+      1062
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Bordj Menaïel",
+     "ids": [
+      1086
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Baghlia",
+     "ids": [
+      1077
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Sidi Daoud",
+     "ids": [
+      1076
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Naciria",
+     "ids": [
+      1073
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Djinet",
+     "ids": [
+      1079
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Isser",
+     "ids": [
+      1070
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Zemmouri",
+     "ids": [
+      1068
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Si Mustapha",
+     "ids": [
+      1081
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Tidjelabine",
+     "ids": [
+      1080
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Chabet El Ameur",
+     "ids": [
+      1071
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Thenia",
+     "ids": [
+      1063
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Reghaïa",
+     "ids": [
+      497
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 16,
+     "name": "Aïn Taya",
+     "ids": [
+      487
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 17,
+     "name": "Timezrit",
+     "ids": [
+      1067
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Corso",
+     "ids": [
+      1085
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Boumerdès",
+     "ids": [
+      1084
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Ouled Moussa",
+     "ids": [
+      1083
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Larbatache",
+     "ids": [
+      1069
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Bouzegza Keddara",
+     "ids": [
+      1074
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Bordj El Bahri",
+     "ids": [
+      537
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 24,
+     "name": "Marsa",
+     "ids": [
+      491
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 25,
+     "name": "Taourga",
+     "ids": [
+      1089
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Ouled Aïssa",
+     "ids": [
+      1072
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Ben Choud",
+     "ids": [
+      1061
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Dellys",
+     "ids": [
+      1060
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Ammal",
+     "ids": [
+      1066
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Béni Amrane",
+     "ids": [
+      1064
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Souk El Had",
+     "ids": [
+      1075
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Boudouaou El Bahri",
+     "ids": [
+      1088
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Ouled Hedadj",
+     "ids": [
+      1082
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Haraoua",
+     "ids": [
+      496
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 35,
+     "name": "Leghata",
+     "ids": [
+      1078
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Hammedi",
+     "ids": [
+      1090
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 37,
+     "name": "Khemis El Khechna",
+     "ids": [
+      1065
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 38,
+     "name": "El Kharrouba",
+     "ids": [
+      1059
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 40,
+   "code": 36,
+   "declared": 24,
+   "pdf_pages": "13",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Bouhadjar",
+     "ids": [
+      1097
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "El Tarf",
+     "ids": [
+      1093
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Ben M'Hidi",
+     "ids": [
+      1100
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Bougous",
+     "ids": [
+      1092
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "El Kala",
+     "ids": [
+      1105
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Aïn El Assel",
+     "ids": [
+      1091
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "El Aïoun",
+     "ids": [
+      1104
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Bouteldja",
+     "ids": [
+      1108
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Souarekh",
+     "ids": [
+      1106
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Berrihane",
+     "ids": [
+      1101
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Lac des Oiseaux",
+     "ids": [
+      1110
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Chefia",
+     "ids": [
+      1109
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Dréan",
+     "ids": [
+      1114
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Chihani",
+     "ids": [
+      1111
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Chebaïta Mokhtar",
+     "ids": [
+      1102
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Besbès",
+     "ids": [
+      1095
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Asfour",
+     "ids": [
+      1113
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Béni Amar",
+     "ids": [
+      1103
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 19,
+     "name": "Zerizer",
+     "ids": [
+      1107
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Zitouna",
+     "ids": [
+      1094
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Aïn Kerma",
+     "ids": [
+      1096
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Oued Zitoun",
+     "ids": [
+      1099
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Hammam Béni Salah",
+     "ids": [
+      1098
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Raml Souk",
+     "ids": [
+      1112
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 41,
+   "code": 37,
+   "declared": 2,
+   "pdf_pages": "13",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Tindouf",
+     "ids": [
+      1115
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Oum El Assel",
+     "ids": [
+      1116
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 42,
+   "code": 38,
+   "declared": 22,
+   "pdf_pages": "13",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Bordj Bou Naama",
+     "ids": [
+      1138
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Theniet El Had",
+     "ids": [
+      1118
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Tissemsilt",
+     "ids": [
+      1121
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Lazharia",
+     "ids": [
+      1129
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Béni Chaïb",
+     "ids": [
+      1123
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Lardjem",
+     "ids": [
+      1130
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Melaab",
+     "ids": [
+      1131
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Sidi Lantri",
+     "ids": [
+      1122
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Bordj El Emir Abdelkader",
+     "ids": [
+      1135
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Layoune",
+     "ids": [
+      1132
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Khemisti",
+     "ids": [
+      1117
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Ouled Bessem",
+     "ids": [
+      1119
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Ammari",
+     "ids": [
+      1136
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Oued El Ghergua",
+     "ids": [
+      1134
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 15,
+     "name": "Sidi Boutouchent",
+     "ids": [
+      1120
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Larbaa",
+     "ids": [
+      1128
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Maassem",
+     "ids": [
+      1137
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 18,
+     "name": "Sidi Abed",
+     "ids": [
+      1125
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Tamalaht",
+     "ids": [
+      1133
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Sidi Slimane",
+     "ids": [
+      1126
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Boucaïd",
+     "ids": [
+      1127
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Béni Lahcène",
+     "ids": [
+      1124
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 44,
+   "code": 40,
+   "declared": 21,
+   "pdf_pages": "13",
+   "items": [
+    {
+     "pos": 1,
+     "name": "M'Toussa",
+     "ids": [
+      1177
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Kaïs",
+     "ids": [
+      1168
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Khenchela",
+     "ids": [
+      1167
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Baghaï",
+     "ids": [
+      1172
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "El Hamma",
+     "ids": [
+      1173
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Aïn Touila",
+     "ids": [
+      1176
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Faïs",
+     "ids": [
+      1171
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 8,
+     "name": "Bouhmama",
+     "ids": [
+      1178
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "El Oueldja",
+     "ids": [
+      1179
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Remila",
+     "ids": [
+      1170
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Cherchar",
+     "ids": [
+      1181
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 12,
+     "name": "Djellal",
+     "ids": [
+      1165
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Babar",
+     "ids": [
+      1162
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Tamza",
+     "ids": [
+      1175
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Ensigha",
+     "ids": [
+      1174
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Ouled Rechache",
+     "ids": [
+      1164
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "El Mahmal",
+     "ids": [
+      1163
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "M'Sara",
+     "ids": [
+      1180
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Yabous",
+     "ids": [
+      1166
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Khirane",
+     "ids": [
+      1161
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Chelia",
+     "ids": [
+      1169
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 45,
+   "code": 41,
+   "declared": 26,
+   "pdf_pages": "14",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Sedrata",
+     "ids": [
+      1184
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Souk Ahras",
+     "ids": [
+      1182
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Hanancha",
+     "ids": [
+      1185
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Mechroha",
+     "ids": [
+      1186
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Ouled Driss",
+     "ids": [
+      1188
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Tiffech",
+     "ids": [
+      1192
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Zaarouria",
+     "ids": [
+      1196
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Taoura",
+     "ids": [
+      1195
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Dréa",
+     "ids": [
+      1194
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Haddada",
+     "ids": [
+      1197
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Khedara",
+     "ids": [
+      1198
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Merahna",
+     "ids": [
+      1200
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Ouled Moumen",
+     "ids": [
+      1199
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Bir Bouhouche",
+     "ids": [
+      1203
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "M'Daourach",
+     "ids": [
+      1206
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Oum El Adhaïm",
+     "ids": [
+      1190
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Aïn Zana",
+     "ids": [
+      1187
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Aïn Soltane",
+     "ids": [
+      1183
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Ouillen",
+     "ids": [
+      1201
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Sidi Fredj",
+     "ids": [
+      1202
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Safel El Ouiden",
+     "ids": [
+      1204
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Ragouba",
+     "ids": [
+      1193
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Khemissa",
+     "ids": [
+      1205
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Oued Keberit",
+     "ids": [
+      1191
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Terraguelt",
+     "ids": [
+      1189
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Zouabi",
+     "ids": [
+      1207
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 46,
+   "code": 42,
+   "declared": 42,
+   "pdf_pages": "14",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Tipaza",
+     "ids": [
+      1234
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Menaceur",
+     "ids": [
+      1210
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Larhat",
+     "ids": [
+      1220
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Douaouda",
+     "ids": [
+      1228
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Bourkika",
+     "ids": [
+      1227
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Khemisti",
+     "ids": [
+      1225
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Zeralda",
+     "ids": [
+      503
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 8,
+     "name": "Saoula",
+     "ids": [
+      518
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 9,
+     "name": "Mahelma",
+     "ids": [
+      499
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 10,
+     "name": "Aghbal",
+     "ids": [
+      1211
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Baba Hassen",
+     "ids": [
+      504
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 12,
+     "name": "Hadjout",
+     "ids": [
+      1208
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Sidi Amar",
+     "ids": [
+      1213
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Gouraya",
+     "ids": [
+      1214
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Nador",
+     "ids": [
+      1212
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Chaïba",
+     "ids": [
+      1231
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Aïn Tagourait",
+     "ids": [
+      1222
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Douéra",
+     "ids": [
+      505
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 19,
+     "name": "Draria",
+     "ids": [
+      506
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 20,
+     "name": "Rahmania",
+     "ids": [
+      500
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 21,
+     "name": "Ouled Fayet",
+     "ids": [
+      513
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 22,
+     "name": "Cherchell",
+     "ids": [
+      1216
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Damous",
+     "ids": [
+      1219
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Meurad",
+     "ids": [
+      1209
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Fouka",
+     "ids": [
+      1221
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Bou Ismaïl",
+     "ids": [
+      1224
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Ahmer El Aïn",
+     "ids": [
+      1226
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Cheraga",
+     "ids": [
+      510
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 29,
+     "name": "Staouéli",
+     "ids": [
+      502
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 30,
+     "name": "Bou Haroun",
+     "ids": [
+      1223
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "El Achour",
+     "ids": [
+      507
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 32,
+     "name": "Sidi Ghilès",
+     "ids": [
+      1218
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Messelmoun",
+     "ids": [
+      1215
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Sidi Rached",
+     "ids": [
+      1229
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Koléa",
+     "ids": [
+      1232
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Attatba",
+     "ids": [
+      1230
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 37,
+     "name": "Souidania",
+     "ids": [
+      501
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 38,
+     "name": "Khraicia",
+     "ids": [
+      508
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 39,
+     "name": "Aïn Benian",
+     "ids": [
+      509
+     ],
+     "match": "name",
+     "now_wilaya": 16
+    },
+    {
+     "pos": 40,
+     "name": "Sidi Semiane",
+     "ids": [
+      1233
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 41,
+     "name": "Béni Milleuk",
+     "ids": [
+      1235
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 42,
+     "name": "Hadjerat Ennous",
+     "ids": [
+      1217
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 47,
+   "code": 43,
+   "declared": 32,
+   "pdf_pages": "14",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Mila",
+     "ids": [
+      1266
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Ferdjioua",
+     "ids": [
+      1264
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Chelghoum Laïd",
+     "ids": [
+      1262
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Oued Athménia",
+     "ids": [
+      1260
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Aïn Mellouk",
+     "ids": [
+      1255
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Télerghma",
+     "ids": [
+      1258
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 7,
+     "name": "Oued Seguen",
+     "ids": [
+      1259
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Tadjenanet",
+     "ids": [
+      1254
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Benyahia Abderrahmane",
+     "ids": [
+      1257
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Oued Endja",
+     "ids": [
+      1252
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Ahmed Rachedi",
+     "ids": [
+      1253
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Ouled Khalouf",
+     "ids": [
+      1256
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Tiberguent",
+     "ids": [
+      1248
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Bouhatem",
+     "ids": [
+      1267
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Rouached",
+     "ids": [
+      1249
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Tessala Lematai",
+     "ids": [
+      1239
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Grarem Gouga",
+     "ids": [
+      1247
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Sidi Merouane",
+     "ids": [
+      1244
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Tassadane Haddada",
+     "ids": [
+      1242
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Derradji Bousselah",
+     "ids": [
+      1250
+     ],
+     "match": "variant"
+    },
+    {
+     "pos": 21,
+     "name": "Minar Zarza",
+     "ids": [
+      1243
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Amira Arras",
+     "ids": [
+      1241
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Terraï Baïnen",
+     "ids": [
+      1240
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Hamala",
+     "ids": [
+      1246
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Aïn Tine",
+     "ids": [
+      1261
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "El Mechira",
+     "ids": [
+      1236
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Sidi Khelifa",
+     "ids": [
+      1265
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Zeghaïa",
+     "ids": [
+      1251
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Elayadi Barbès",
+     "ids": [
+      1237
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Aïn Beïda Harriche",
+     "ids": [
+      1238
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Yahia Beniguecha",
+     "ids": [
+      1263
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Chigara",
+     "ids": [
+      1245
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 48,
+   "code": 44,
+   "declared": 36,
+   "pdf_pages": "14",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Miliana",
+     "ids": [
+      1302
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Aïn Defla",
+     "ids": [
+      1301
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Boumedfaa",
+     "ids": [
+      1288
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Khemis Miliana",
+     "ids": [
+      1268
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Hammam Righa",
+     "ids": [
+      1272
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Arib",
+     "ids": [
+      1276
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Djelida",
+     "ids": [
+      1275
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "El Amra",
+     "ids": [
+      1278
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Bourached",
+     "ids": [
+      1273
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "El Attaf",
+     "ids": [
+      1279
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "El Abadia",
+     "ids": [
+      1282
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Djendel",
+     "ids": [
+      1285
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Oued Chorfa",
+     "ids": [
+      1287
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Aïn Lechiakh",
+     "ids": [
+      1289
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Oued Djemaa",
+     "ids": [
+      1291
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Rouina",
+     "ids": [
+      1293
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Zeddine",
+     "ids": [
+      1294
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "El Hassania",
+     "ids": [
+      1300
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Bir Ould Khelifa",
+     "ids": [
+      1295
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Aïn Soltane",
+     "ids": [
+      1290
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Tarik Ibn Ziad",
+     "ids": [
+      1297
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Bordj Emir Khaled",
+     "ids": [
+      1296
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Aïn Torki",
+     "ids": [
+      1271
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Sidi Lakhdar",
+     "ids": [
+      1269
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Ben Allal",
+     "ids": [
+      1286
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Aïn Benian",
+     "ids": [
+      1270
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Hoceïnia",
+     "ids": [
+      1274
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Barbouche",
+     "ids": [
+      1284
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Djemaa Ouled Chikh",
+     "ids": [
+      1277
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Mekhatria",
+     "ids": [
+      1303
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Bathia",
+     "ids": [
+      1298
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Tacheta Zougagha",
+     "ids": [
+      1283
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "Aïn Bouyahia",
+     "ids": [
+      1281
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "El Maïne",
+     "ids": [
+      1292
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Tiberkanine",
+     "ids": [
+      1280
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "Belaas",
+     "ids": [
+      1299
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 49,
+   "code": 45,
+   "declared": 12,
+   "pdf_pages": "14",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Mecheria",
+     "ids": [
+      1310
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Aïn Sefra",
+     "ids": [
+      1309
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Tiout",
+     "ids": [
+      1304
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Sfissifa",
+     "ids": [
+      1315
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Moghrar",
+     "ids": [
+      1305
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Assela",
+     "ids": [
+      1306
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Djeniane Bourzeg",
+     "ids": [
+      1314
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Naama",
+     "ids": [
+      1313
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Aïn Ben Khelil",
+     "ids": [
+      1312
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Makman Ben Amer",
+     "ids": [
+      1308
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Kasdir",
+     "ids": [
+      1307
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "El Biod",
+     "ids": [
+      1311
+     ],
+     "match": "variant"
+    }
+   ]
+  },
+  {
+   "article": 50,
+   "code": 46,
+   "declared": 28,
+   "pdf_pages": "14",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Chaabet El Ham",
+     "ids": [
+      1318
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Aïn Kihal",
+     "ids": [
+      1328
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Hammam Bouhadjar",
+     "ids": [
+      1343
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Bou Zedjar",
+     "ids": [
+      1342
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Oued Berkèche",
+     "ids": [
+      1339
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "Aïn Témouchent",
+     "ids": [
+      1341
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Aghlal",
+     "ids": [
+      1327
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Terga",
+     "ids": [
+      1322
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Aïn El Arbaa",
+     "ids": [
+      1337
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Tamzoura",
+     "ids": [
+      1317
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Chentouf",
+     "ids": [
+      1321
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Sidi Ben Adda",
+     "ids": [
+      1340
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Aoubellil",
+     "ids": [
+      1330
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "El Malah",
+     "ids": [
+      1319
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "Sidi Boumediène",
+     "ids": [
+      1316
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Oued Sabah",
+     "ids": [
+      1323
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "Ouled Boudjemaa",
+     "ids": [
+      1326
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Aïn Tolba",
+     "ids": [
+      1329
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "El Amria",
+     "ids": [
+      1324
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Hassi El Ghella",
+     "ids": [
+      1325
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Hassasna",
+     "ids": [
+      1332
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Ouled Kihal",
+     "ids": [
+      1320
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Béni Saf",
+     "ids": [
+      1331
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Sidi Safi",
+     "ids": [
+      1334
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Oulhaça El Gheraba",
+     "ids": [
+      1335
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Tadmaya",
+     "ids": [
+      1336
+     ],
+     "match": "renamed"
+    },
+    {
+     "pos": 27,
+     "name": "El Emir Abdelkader",
+     "ids": [
+      1333
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "El Messaïd",
+     "ids": [
+      1338
+     ],
+     "match": "name"
+    }
+   ]
+  },
+  {
+   "article": 52,
+   "code": 48,
+   "declared": 38,
+   "pdf_pages": "15",
+   "items": [
+    {
+     "pos": 1,
+     "name": "Oued Rhiou",
+     "ids": [
+      1382
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 2,
+     "name": "Belaassel Bouzegza",
+     "ids": [
+      1361
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 3,
+     "name": "Sidi Saada",
+     "ids": [
+      1371
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 4,
+     "name": "Ouled Aïche",
+     "ids": [
+      1355
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 5,
+     "name": "Sidi Lazreg",
+     "ids": [
+      1376
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 6,
+     "name": "El Hamadna",
+     "ids": [
+      1390
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 7,
+     "name": "Sidi M'Hamed Ben Ali",
+     "ids": [
+      1384
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 8,
+     "name": "Mediouna",
+     "ids": [
+      1385
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 9,
+     "name": "Relizane",
+     "ids": [
+      1389
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 10,
+     "name": "Sidi Khettab",
+     "ids": [
+      1363
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 11,
+     "name": "Ammi Moussa",
+     "ids": [
+      1377
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 12,
+     "name": "Zemmoura",
+     "ids": [
+      1358
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 13,
+     "name": "Béni Dergoun",
+     "ids": [
+      1356
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 14,
+     "name": "Djidiouia",
+     "ids": [
+      1359
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 15,
+     "name": "El Guettar",
+     "ids": [
+      1354
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 16,
+     "name": "Hamri",
+     "ids": [
+      1360
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 17,
+     "name": "El Matmar",
+     "ids": [
+      1362
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 18,
+     "name": "Sidi M'Hamed Ben Aouda",
+     "ids": [
+      1364
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 19,
+     "name": "Aïn Tarek",
+     "ids": [
+      1365
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 20,
+     "name": "Oued Essalem",
+     "ids": [
+      1375
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 21,
+     "name": "Ouarizane",
+     "ids": [
+      1378
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 22,
+     "name": "Mazouna",
+     "ids": [
+      1368
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 23,
+     "name": "Kalaa",
+     "ids": [
+      1370
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 24,
+     "name": "Aïn Rahma",
+     "ids": [
+      1369
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 25,
+     "name": "Yellel",
+     "ids": [
+      1372
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 26,
+     "name": "Oued El Djemaa",
+     "ids": [
+      1387
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 27,
+     "name": "Ramka",
+     "ids": [
+      1391
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 28,
+     "name": "Mendès",
+     "ids": [
+      1374
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 29,
+     "name": "Lahlef",
+     "ids": [
+      1388
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 30,
+     "name": "Béni Zentis",
+     "ids": [
+      1386
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 31,
+     "name": "Souk El Haad",
+     "ids": [
+      1373
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 32,
+     "name": "Dar Ben Abdellah",
+     "ids": [
+      1357
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 33,
+     "name": "El Hassi",
+     "ids": [
+      1383
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 34,
+     "name": "Had Echkalla",
+     "ids": [
+      1366
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 35,
+     "name": "Bendaoud",
+     "ids": [
+      1381
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 36,
+     "name": "El Ouldja",
+     "ids": [
+      1367
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 37,
+     "name": "Merdja Sidi Abed",
+     "ids": [
+      1379
+     ],
+     "match": "name"
+    },
+    {
+     "pos": 38,
+     "name": "Ouled Sidi Mihoub",
+     "ids": [
+      1380
+     ],
+     "match": "name"
+    }
+   ]
+  }
+ ],
+ "doubtful": [
+  {
+   "article": 8,
+   "pos": 28,
+   "printed": "Ouled ?acem",
+   "read_as": "Ouled Gacem",
+   "note": "first letter of the second word is damaged in the scan (PDF page 7); the rest of the list and the upstream name agree"
+  }
+ ]
+}
