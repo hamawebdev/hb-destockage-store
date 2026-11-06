@@ -1,37 +1,13 @@
-// Display helpers. Money is integer DZD; dates are Africa/Algiers. Latin digits in both languages.
-// (Will delegate to `@hb/shared` format.ts once SHARED-1 lands; the component API stays.)
+// Display helpers: thin wrappers over @hb/shared format.ts (one formatting rule for the store and
+// the admin). Money is integer DZD; dates are Africa/Algiers with a 24-hour clock; Latin digits.
 import type { Child } from 'hono/jsx';
-import { localeOf, type Lang } from '../i18n/index.ts';
-import { ALGIERS_TZ } from '../lib/time.ts';
+import { formatDate, formatDateTime as sharedDateTime, formatNumber as sharedNumber, formatPrice } from '@hb/shared';
+import type { Lang } from '../i18n/index.ts';
 import { useUi } from './context.ts';
 
-const cache = new Map<string, Intl.NumberFormat | Intl.DateTimeFormat>();
-function nf(lang: Lang, kind: 'money' | 'num'): Intl.NumberFormat {
-  const k = `${lang}:${kind}`;
-  let f = cache.get(k) as Intl.NumberFormat | undefined;
-  if (!f) {
-    f = new Intl.NumberFormat(localeOf(lang), kind === 'money'
-      ? { style: 'currency', currency: 'DZD', minimumFractionDigits: 0, maximumFractionDigits: 0 }
-      : { maximumFractionDigits: 0 });
-    cache.set(k, f);
-  }
-  return f;
-}
-function df(lang: Lang, withTime: boolean): Intl.DateTimeFormat {
-  const k = `${lang}:date:${withTime}`;
-  let f = cache.get(k) as Intl.DateTimeFormat | undefined;
-  if (!f) {
-    f = new Intl.DateTimeFormat(localeOf(lang), withTime
-      ? { dateStyle: 'short', timeStyle: 'short', timeZone: ALGIERS_TZ }
-      : { dateStyle: 'medium', timeZone: ALGIERS_TZ });
-    cache.set(k, f);
-  }
-  return f;
-}
-
-export const formatMoney = (lang: Lang, dzd: number): string => nf(lang, 'money').format(dzd);
-export const formatNumber = (lang: Lang, n: number): string => nf(lang, 'num').format(n);
-export const formatDateTime = (lang: Lang, ms: number, withTime = true): string => df(lang, withTime).format(ms);
+export const formatMoney = (lang: Lang, dzd: number): string => formatPrice(dzd, lang);
+export const formatNumber = (lang: Lang, n: number): string => sharedNumber(n, lang);
+export const formatDateTime = (lang: Lang, ms: number, withTime = true): string => (withTime ? sharedDateTime(ms, lang) : formatDate(ms, lang));
 
 /** Isolates LTR tokens (phones, refs, SKUs, emails, Latin names) inside RTL text. */
 export function Bdi(props: { children: Child; ltr?: boolean }) {

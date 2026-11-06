@@ -136,7 +136,10 @@ describe('formatting', () => {
     expect(formatMoney('fr', 14600)).toMatch(/14\s?600/);
     expect(formatMoney('ar', 14600)).not.toMatch(/[٠-٩]/);
     expect(formatMoney('ar', 14600)).toMatch(/14\D?600/);
-    expect(formatDateTime('fr', Date.UTC(2026, 10, 4, 23, 30))).toContain('05/11/2026');
+    // Delegates to @hb/shared: medium date, 24-hour clock, Africa/Algiers.
+    const fr = formatDateTime('fr', Date.UTC(2026, 10, 4, 23, 30));
+    expect(fr).toMatch(/5 nov\.? 2026/);
+    expect(fr).toContain('00:30');
   });
 });
 

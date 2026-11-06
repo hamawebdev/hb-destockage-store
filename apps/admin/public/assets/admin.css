@@ -188,6 +188,22 @@
   }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.95em; overflow-wrap: anywhere; }
 
+  /* Dashboard tiles: one column at 360, auto-fill from there. The tone is shown by the border and
+     the badge text, never by colour alone. */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: var(--space-4); margin-block-end: var(--space-6); }
+  .tile { background: var(--color-surface); border: var(--bw-hairline) solid var(--color-border); border-inline-start-width: 4px; border-radius: var(--radius-md); }
+  .tile--warning { border-inline-start-color: var(--color-warning); }
+  .tile--danger { border-inline-start-color: var(--color-danger); }
+  .tile--success { border-inline-start-color: var(--color-success); }
+  .tile > .tile__title, .tile > .tile__body { padding: var(--space-3) var(--space-4); }
+  .tile > .tile__title { padding-block-end: 0; }
+  .tile__title { font-size: var(--fs-body); margin: 0 0 var(--space-2); }
+  .tile__link { display: flex; align-items: center; min-block-size: var(--tap-min, 44px); color: var(--color-accent-text); }
+  .tile__value { font-size: var(--fs-h2); font-weight: var(--fw-emphasis); line-height: var(--lh-heading); margin: 0 0 var(--space-2); }
+  .tile__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--fs-small); }
+  .tile__list a { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); }
+  .tile__body > :last-child { margin-block-end: 0; }
+
   .empty { padding: var(--space-6); text-align: center; color: var(--color-text-secondary); background: var(--color-surface); border-radius: var(--radius-md); }
   .muted { color: var(--color-text-secondary); }
 }
