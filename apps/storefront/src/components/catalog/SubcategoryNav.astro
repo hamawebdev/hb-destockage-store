@@ -1,0 +1,41 @@
+---
+/**
+ * Sub-category chips. First chip = the current category ("Tout voir", aria-current="true": the current category, whatever the page number), then its
+ * children. Text only (no images): images here would compete with the LCP card image.
+ * One row that scrolls sideways at 360 px, wraps from 768 px.
+ */
+import type { CategoryLink, Lang, StringTable } from '@hb/catalog';
+import { formatInt, showDevMarkers, t } from './lib/i18n.ts';
+
+interface Props {
+  current: { name: string; href: string };
+  totalCount: number;
+  items: readonly CategoryLink[];
+  lang: Lang;
+  strings: StringTable;
+  label?: string;
+}
+const { current, totalCount, items, lang, strings, label } = Astro.props;
+const dev = showDevMarkers();
+---
+{items.length > 0 && (
+  <nav class="cat-chips" aria-label={label ?? t(strings, 'catalog.subcategories')}>
+    <ul role="list">
+      <li><a class="cat-chip" href={current.href} aria-current="true">{t(strings, 'catalog.viewAll')} <span class="cat-chip-n">{formatInt(lang, totalCount)}</span></a></li>
+      {items.map((c) => (
+        <li>
+          <a class="cat-chip" href={c.href}>
+            {c.name}{dev && c.placeholder && ` ${t(strings, 'dev.placeholder')}`} <span class="cat-chip-n">{formatInt(lang, c.count)}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}
+
+<style is:global>
+  .cat-chips{margin-inline:calc(var(--gutter) * -1);overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+  .cat-chips::-webkit-scrollbar{display:none}
+  .cat-chips ul{display:flex;gap:var(--space-2);margin:0;padding:var(--space-1) var(--gutter);list-style:none;inline-size:max-content}
+  @media (min-width:768px){.cat-chips{margin-inline:0;overflow:visible}.cat-chips ul{flex-wrap:wrap;padding-inline:0;inline-size:auto}}
+</style>

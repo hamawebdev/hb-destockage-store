@@ -1,0 +1,75 @@
+---
+/**
+ * Product card (category grid, related products, search suggestions, home).
+ * Props are CAT-1 `ProductCard` as is. One link (the title), stretched over the card, so the
+ * card is one tab stop and one accessible name; the image is decorative here (alt="").
+ */
+import './catalog.css';
+import type { Lang, ProductCard as Card, StringTable } from '@hb/catalog';
+import Picture from '../Picture.astro';
+import Price from './Price.astro';
+import Stock from './Stock.astro';
+import { latinLang, showDevMarkers, t } from './lib/i18n.ts';
+import { swatchFill } from './lib/variants.ts';
+
+interface Props {
+  card: Card;
+  lang: Lang;
+  strings: StringTable;
+  /** Heading level of the card title: 2 directly under the page h1, 3 under a section h2. */
+  level?: 2 | 3;
+}
+const { card, lang, strings, level = 2 } = Astro.props;
+const H = `h${level}` as 'h2' | 'h3';
+const out = card.stock.state === 'out_of_stock';
+const dev = showDevMarkers();
+---
+<article class:list={['cat-card', { 'cat-card--out': out }]}>
+  <div class="cat-card-media">
+    {card.image ? (
+      <Picture image={{ ...card.image, alt: '' }} class="cat-card-img" />
+    ) : (
+      <span class="cat-card-noimg">{dev && t(strings, 'dev.photoPlaceholder')}</span>
+    )}
+    <ul class="cat-flags" role="list">
+      {card.kind === 'pack' && <li class="cat-flag">{t(strings, 'badge.pack')}</li>}
+      {dev && (card.placeholder || card.translationPlaceholder) && <li class="cat-flag cat-flag--ph">{t(strings, 'dev.placeholder')}</li>}
+    </ul>
+  </div>
+  <div class="cat-card-body">
+    {card.brandLatin && <p class="cat-card-brand"><bdi lang={latinLang(lang)} dir="ltr">{card.brandLatin}</bdi></p>}
+    <H class="cat-card-title"><a class="cat-card-link" href={card.href}>{card.name}</a></H>
+    <Price price={card.price} strings={strings} />
+    <Stock stock={card.stock} lang={lang} strings={strings} quiet />
+    {card.swatches.length > 1 && (
+      <ul class="cat-dots" role="list">
+        {card.swatches.map((s) => (
+          <li class="cat-dot"><svg viewBox="0 0 1 1" aria-hidden="true"><rect width="1" height="1" fill={swatchFill(s.hex) ?? '#d2d2d7'} /></svg><span class="cat-sr">{s.label}</span></li>
+        ))}
+      </ul>
+    )}
+  </div>
+</article>
+
+<style is:global>
+  .cat-card{position:relative;display:flex;flex-direction:column;gap:var(--space-3);min-inline-size:0}
+  .cat-card-media{position:relative;aspect-ratio:1;overflow:hidden;border-radius:var(--radius-lg);background:var(--color-surface-alt)}
+  .cat-card-img,.cat-card-media img{display:block;inline-size:100%;block-size:100%;object-fit:contain;transition:transform var(--dur-slow) var(--ease-standard)}
+  .cat-card:hover .cat-card-media img{transform:scale(1.03)}
+  .cat-card--out .cat-card-media img{opacity:.55}
+  .cat-card-noimg{display:grid;place-items:center;block-size:100%;padding:var(--space-4);text-align:center;color:var(--color-text-secondary);font-size:var(--fs-small)}
+  .cat-flags{position:absolute;inset-block-start:var(--space-2);inset-inline-start:var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1);margin:0;padding:0;list-style:none}
+  .cat-flag{padding:0 var(--space-2);border-radius:var(--radius-pill);background:var(--color-surface);color:var(--color-text);font-size:var(--fs-caption);line-height:1.7}
+  .cat-flag--sale{background:var(--color-sale-surface);color:var(--color-sale)}
+  .cat-flag--ph{background:var(--color-warning-surface);color:var(--color-warning)}
+  .cat-card-body{display:flex;flex-direction:column;gap:var(--space-1);padding-inline:var(--space-1)}
+  .cat-card-brand{margin:0;color:var(--color-text-secondary);font-size:var(--fs-caption);line-height:var(--lh-ui);text-transform:uppercase;letter-spacing:var(--ls-caps)}
+  .cat-card-title{margin:0;font-size:var(--fs-body);font-weight:var(--fw-emphasis);line-height:var(--lh-ui);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+  .cat-card-link{color:var(--color-text);text-decoration:none}
+  .cat-card-link::after{content:"";position:absolute;inset:0;border-radius:var(--radius-lg)}
+  .cat-card-link:focus-visible{outline:none}
+  .cat-card-link:focus-visible::after{outline:var(--focus-width,2px) solid var(--color-focus);outline-offset:var(--focus-offset,2px)}
+  .cat-card:hover .cat-card-link{color:var(--color-accent-text)}
+  .cat-dots{display:flex;gap:var(--space-1);margin:var(--space-1) 0 0;padding:0;list-style:none}
+  .cat-dot svg{display:block;inline-size:12px;block-size:12px;border-radius:var(--radius-round);outline:1px solid rgba(0,0,0,.15);outline-offset:-1px}
+</style>
