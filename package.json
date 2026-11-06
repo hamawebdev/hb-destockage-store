@@ -10,7 +10,7 @@
     "lh": "node tools/measure/src/lh/cli.ts",
     "shots": "node tools/measure/src/shots/cli.ts",
     "axe": "node tools/measure/src/axe/cli.ts",
-    "e2e": "scripts/not-wired.sh e2e",
+    "e2e": "node tools/measure/src/e2e/cli.ts",
     "test:data": "scripts/test-data.sh"
   },
   "devDependencies": {
