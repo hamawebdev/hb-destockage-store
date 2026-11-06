@@ -45,6 +45,14 @@ npm run seed -w @hb/db            # migrations + data/ + dev admin users + photo
    - with data loaded at 0000, no text cell ends up equal to a column name, on SQLite **and** on workerd D1.
    Also run `npx drizzle-kit check` and `npx drizzle-kit generate` (it must say "No schema changes").
 
+## Stock
+
+- `createOrder` takes stock only from tracked variants (`stock IS NOT NULL`), and records it per line in
+  `order_items.stock_taken` (qty, or 0 when untracked). A cancel or return adds back exactly
+  `stock_taken`, once (`orders.stock_restored_at`), and only to a variant that is still tracked.
+- Any future path that changes an order line's qty or variant must adjust `stock_taken` and the
+  variant's stock in the same version-guarded batch. No such path exists in v1 (no line editing).
+
 ## Writing batches (D1)
 
 - Every item in `db.batch([...])` must be a Drizzle **query builder** (`db.insert/update/select/delete`).
