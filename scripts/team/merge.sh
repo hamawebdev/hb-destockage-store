@@ -89,12 +89,12 @@ line_re="^($id_re) r([0-9]+) (APPROVED|CHANGES_REQUESTED) tier=(low|high) review
 # otherwise ALL merges are refused, naming the line. Same rule for team/SIGNOFFS.md below.
 looks_re="$id_re"
 skip_line() { [[ -z "${1//[[:space:]]/}" || "$1" == '#'* ]]; }
-# A line starting with a backtick is a format TEMPLATE only when it holds a <placeholder> (e.g.
+# A line starting with a backtick is a format TEMPLATE only when it holds the <ID> placeholder (e.g.
 # "`<ID> r<n> …`"); any other backticked line is a real line pasted from markdown: the surrounding
 # backticks are stripped and it must parse strictly (rev-d TOOL-5 r3 R4). Sets $line; 1 = skip it.
 normalize_line() {
   if [[ "$line" == '`'* ]]; then
-    [[ "$line" == *'<'* ]] && return 1
+    [[ "$line" == *'<ID>'* ]] && return 1   # only the real format templates (rev-d r4 Nit R4b)
     line="${line#\`}"; line="${line%\`}"
   fi
   return 0

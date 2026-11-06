@@ -32,7 +32,6 @@
     "ACAT": "admin-catalog",
     "ADMIN": "admin-core",
     "AORD": "admin-orders",
-    "BOOT": "lead",
     "BRAND": "brand",
     "CAT": "pagedata",
     "DB": "db",

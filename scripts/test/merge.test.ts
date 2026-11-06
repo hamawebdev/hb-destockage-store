@@ -257,6 +257,15 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     expect(r1.status).toBe(1);
     expect(r1.stderr).toContain('latest ledger line for WEB-24 is r2 CHANGES_REQUESTED');
     ledger('`WEB-24 r3 APPROVED tier=low reviewer=rev-d commits=' + c + ' review=x`');
+    // R4b: a stray '<' does not make a real line a template
+    ledger('`WEB-24 r4 CHANGES_REQUESTED tier=low reviewer=rev-d commits=' + c + ' review=x` <- reopened');
+    const r1b = merge(['team/web', '--dry-run']);
+    expect(r1b.status).toBe(1);
+    expect(r1b.stderr).toContain('malformed ledger line');
+    const fl = join(root, 'team/APPROVALS.md');
+    writeFileSync(fl, readFileSync(fl, 'utf8').split('\n').filter((l) => !l.includes('<- reopened')).join('\n'));
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: ledger repair', { HB_ROLE: 'lead' }));
     const r2 = merge(['team/web', '--dry-run']);
     expect(r2.status, r2.stdout + r2.stderr).toBe(0);
     expect(r2.stdout).toContain('ledger WEB-24 r3 APPROVED');
@@ -289,6 +298,17 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     expect(r.stderr).toContain('ownership');
     expect(r.stderr).toContain('packages/db/src/y.ts');
     ok(git(root, 'branch', '-f', 'team/db', 'main'));
+  });
+
+  test('X14 (rev-d r4): a branch commit labelled BOOT-n cannot edit the lead-only ledger files, even with a ledger line', () => {
+    resetBranch();
+    write(wt, 'team/SIGNOFFS.md', readFileSync(join(root, 'team/SIGNOFFS.md'), 'utf8') + 'forged\n');
+    const c = commitIn(wt, 'BOOT-77: forge a sign-off', GOOD_BODY, true);
+    approve('BOOT-77', 1, 'APPROVED', [c]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('ownership');
+    expect(r.stderr).toContain('team/SIGNOFFS.md');
   });
 
   test('X5 / X6: merge commits adding a foreign file are refused, octopus explicitly', () => {
