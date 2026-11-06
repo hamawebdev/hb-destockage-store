@@ -4,7 +4,7 @@ import * as v from 'valibot';
 import { adminUsers } from '@hb/db';
 import { rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
-import { withAudit } from '../../audit/audit.ts';
+import { noAudit, withAudit } from '../../audit/audit.ts';
 import { LANGS } from '../../i18n/index.ts';
 import { parseForm, vPicklist } from '../../lib/forms.ts';
 import { createRouter } from '../../lib/router.ts';
@@ -37,7 +37,7 @@ r.post('/language', requirePerm('self.lang'), async (c) => {
       c.var.db.update(adminUsers).set({ uiLang: f.data.lang }).where(eq(adminUsers.id, user.id)),
     );
   } else {
-    c.set('audited', true);
+    noAudit(c, 'language unchanged: nothing written');
   }
   return c.redirect(safeReturnPath(f.data.return_to), 303);
 });

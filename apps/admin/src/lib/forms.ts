@@ -90,9 +90,15 @@ export const vInt = (min: number, max: number) =>
     v.maxValue(max, MSG.invalid),
   );
 
-/** Optional integer; '' → null. */
+/**
+ * Optional integer; '' or an absent key → null. The outer `v.optional` matters: object schemas
+ * only treat optional/nullish entries as allowed-missing, not a union containing one.
+ */
 export const vOptionalInt = (min: number, max: number) =>
-  v.union([v.pipe(v.optional(v.string(), ''), v.trim(), v.length(0), v.transform(() => null)), vInt(min, max)], MSG.invalid);
+  v.optional(
+    v.union([v.pipe(v.string(), v.trim(), v.length(0), v.transform(() => null)), vInt(min, max)], MSG.invalid),
+    '',
+  );
 
 /**
  * Integer DZD ≥ 0. Accepts Eastern-Arabic digits and spaces / NBSP / dots / commas as thousands
@@ -108,8 +114,13 @@ export const vMoneyDzd = (max = 100_000_000) =>
     v.maxValue(max, MSG.invalid),
   );
 
-/** HTML checkbox: present (any value) → true, absent → false. */
-export const vCheckbox = () => v.pipe(v.optional(v.string()), v.transform((s) => s !== undefined));
+const ABSENT = '\u0000absent';
+/**
+ * HTML checkbox: present (any value) → true, absent → false. The key is ALWAYS in the output:
+ * an optional without a default would drop it, and Drizzle's `.set({ active: undefined })` then
+ * silently leaves the column unchanged (unticking would never deactivate).
+ */
+export const vCheckbox = () => v.pipe(v.optional(v.string(), ABSENT), v.transform((s) => s !== ABSENT));
 
 export const vPicklist = <const T extends readonly [string, ...string[]]>(values: T) =>
   v.pipe(v.optional(v.string(), ''), v.picklist(values, MSG.invalid));

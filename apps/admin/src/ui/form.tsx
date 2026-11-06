@@ -75,7 +75,7 @@ function Field(props: BaseFieldProps & { children: (a: { id: string; describedBy
   );
 }
 
-type TextType = 'text' | 'email' | 'search' | 'url' | 'tel';
+type TextType = 'text' | 'email' | 'search' | 'url' | 'tel' | 'date';
 
 export function TextInput(
   props: BaseFieldProps & {
