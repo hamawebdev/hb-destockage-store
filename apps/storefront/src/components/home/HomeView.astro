@@ -1,0 +1,207 @@
+---
+/**
+ * Home page body (both languages). Apple-like: one idea per band, generous air, light surfaces.
+ *  1. Type-led hero (eyebrow, display headline, lead, two pill CTAs). The LCP is the headline:
+ *     no image on the critical path. Why not the hero photo: the seed's hero product (101) has only
+ *     one client photo and it shows two burned-in prices (13 600 and 14 600 DA) for a 14 600 DA
+ *     product; the lead's rule forbids such a photo as LCP (data/photos/README.md). Type-led also
+ *     keeps the critical path to HTML (+ the Arabic font on /ar/).
+ *  2. Trust strip (cash on delivery, 69 wilayas, confirmation call, WhatsApp).
+ *  3. Category tiles (top-level categories, product counts).
+ *  4. Featured products (pages' ProductGrid/ProductCard, CAT-1 ProductCard props).
+ *  5. How ordering works (3 steps).
+ *  6. WhatsApp / phone band (plain links, never a widget).
+ * Owner: shell. Plan: artifacts/SHELL-0/plan.md §4 (LCP), SHELL-3.
+ */
+import type { HomeProps } from '@hb/catalog';
+import Icon from '../Icon.astro';
+import ProductGrid from '../catalog/ProductGrid.astro';
+import { tp } from '../catalog/lib/i18n.ts';
+import { groupPhone, t } from '../../lib/strings.ts';
+
+interface Props {
+  props: HomeProps;
+}
+const { props: p } = Astro.props;
+const l = p.layout;
+const s = (key: string) => t(l.strings, key);
+const trust = [
+  { icon: 'check', key: 'trust.cod' },
+  { icon: 'truck', key: 'trust.delivery69' },
+  { icon: 'phone', key: 'trust.call' },
+  { icon: 'whatsapp', key: 'trust.whatsapp' },
+];
+const steps = [1, 2, 3];
+const featuredIds = new Set(p.featured.map((c) => c.id));
+const morePacks = p.packs.filter((c) => !featuredIds.has(c.id));
+---
+<section class="hm-hero" aria-labelledby="hm-title">
+  <div class="container hm-hero-in">
+    <p class="hm-eyebrow">{s('home.heroEyebrow')}</p>
+    <h1 id="hm-title" class="hero-title hm-title">{s('home.heroTitle')}</h1>
+    <p class="lead hm-lead">{s('home.heroLead')}</p>
+    <p class="hm-ctas">
+      <a class="btn btn-primary" href="#hm-featured">{s('home.heroCta')}</a>
+      <a class="btn btn-secondary" href="#hm-how">{s('home.heroSecondaryCta')}</a>
+    </p>
+  </div>
+</section>
+
+<section class="container hm-trust" aria-label={s('home.howTitle')}>
+  <ul role="list" class="hm-trust-list">
+    {
+      trust.map((x) => (
+        <li class="hm-trust-item">
+          <span class="hm-trust-ic"><Icon name={x.icon} /></span>
+          <span>
+            <strong class="hm-trust-t">{s(x.key)}</strong>
+            <span class="hm-trust-b">{s(`${x.key}Body`)}</span>
+          </span>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+{
+  p.categories.length > 0 && (
+    <section class="container hm-sec" aria-labelledby="hm-cats">
+      <h2 id="hm-cats" class="hm-h2">{s('home.categoriesTitle')}</h2>
+      <ul role="list" class="hm-cats">
+        {p.categories.map((c) => (
+          <li>
+            <a class="hm-cat" href={c.href}>
+              <span class="hm-cat-name">{c.name}</span>
+              <span class="hm-cat-n">{tp(l.strings, l.lang, 'catalog.count', c.count)}</span>
+              <span class="hm-cat-go"><Icon name="chevron-end" class="icon-sm" /></span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+{
+  p.featured.length > 0 && (
+    <section id="hm-featured" class="container hm-sec" aria-labelledby="hm-feat">
+      <h2 id="hm-feat" class="hm-h2">{s('home.featuredTitle')}</h2>
+      <p class="hm-sub">{s('home.featuredLead')}</p>
+      <ProductGrid cards={[...p.featured, ...morePacks]} lang={l.lang} strings={l.strings} level={3} />
+    </section>
+  )
+}
+
+<section id="hm-how" class="hm-how" aria-labelledby="hm-how-t">
+  <div class="container">
+    <h2 id="hm-how-t" class="hm-h2">{s('home.howTitle')}</h2>
+    <ol role="list" class="hm-steps">
+      {
+        steps.map((n) => (
+          <li class="hm-step">
+            <span class="hm-step-n nums" aria-hidden="true">{n}</span>
+            <h3 class="hm-step-t">{s(`home.howStep${n}Title`)}</h3>
+            <p class="hm-step-b">{s(`home.howStep${n}Body`)}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<section class="container hm-sec" aria-labelledby="hm-wa">
+  <div class="hm-wa">
+    <div>
+      <h2 id="hm-wa" class="hm-wa-t">{s('home.whatsappTitle')}</h2>
+      <p class="hm-wa-b">{s('home.whatsappBody')}</p>
+    </div>
+    <p class="hm-wa-ctas">
+      <a class="btn btn-primary" href={l.contact.whatsappHref}><Icon name="whatsapp" />{s('home.whatsappCta')}</a>
+      <a class="hm-wa-tel" href={l.contact.phoneHref}><Icon name="phone" /><bdi dir="ltr" class="nums">{groupPhone(l.contact.phoneDisplay)}</bdi></a>
+    </p>
+  </div>
+</section>
+
+<style is:global>
+  @layer components {
+    /* 1. Hero: centred type on a soft band (reference: apple.com product heroes). */
+    .hm-hero { background: var(--color-surface-alt); text-align: center; }
+    .hm-hero-in { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding-block: var(--space-16) var(--space-16); }
+    @media (min-width: 768px) { .hm-hero-in { padding-block: var(--space-24); } }
+    .hm-eyebrow { font-size: var(--fs-small); font-weight: var(--fw-emphasis); color: var(--color-accent-text); }
+    .hm-title { max-inline-size: 18ch; }
+    .hm-lead { max-inline-size: 36ch; color: var(--color-text-secondary); }
+    .hm-ctas { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-block-start: var(--space-4); }
+
+    /* 2. Trust strip */
+    .hm-trust { padding-block: var(--space-8); border-block-end: var(--bw-hairline) solid var(--color-border); }
+    .hm-trust-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6) var(--space-4); padding: 0; }
+    @media (min-width: 1024px) { .hm-trust-list { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .hm-trust-item { display: flex; align-items: flex-start; gap: var(--space-3); font-size: var(--fs-small); line-height: var(--lh-ui); }
+    .hm-trust-ic { display: inline-flex; padding: var(--space-2); border-radius: var(--radius-round); background: var(--color-accent-surface); color: var(--color-accent-text); }
+    .hm-trust-t { display: block; color: var(--color-text); }
+    .hm-trust-b { display: block; margin-block-start: var(--space-1); color: var(--color-text-secondary); }
+
+    /* Section rhythm */
+    .hm-sec { padding-block-start: var(--section-block); }
+    .hm-h2 { font-size: var(--fs-h2); }
+    .hm-sub { margin-block: var(--space-2) var(--space-8); color: var(--color-text-secondary); }
+    .hm-h2 + .hm-cats, .hm-h2 + .hm-steps { margin-block-start: var(--space-6); }
+
+    /* 3. Category tiles */
+    .hm-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gap); padding: 0; }
+    @media (min-width: 1024px) { .hm-cats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .hm-cat {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: var(--space-1);
+      min-block-size: 112px;
+      padding: var(--space-5);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface-alt);
+      color: var(--color-text);
+      text-decoration: none;
+      transition: background-color var(--dur-fast) var(--ease-standard);
+    }
+    .hm-cat:hover { background: var(--color-accent-surface); }
+    .hm-cat-name { font-size: var(--fs-lead); font-weight: var(--fw-emphasis); line-height: var(--lh-heading); }
+    .hm-cat-n { font-size: var(--fs-small); color: var(--color-text-secondary); }
+    .hm-cat-go { position: absolute; inset-block-start: var(--space-4); inset-inline-end: var(--space-4); color: var(--color-accent-text); }
+
+    /* 5. How it works */
+    .hm-how { margin-block-start: var(--section-block); padding-block: var(--section-block); background: var(--color-surface-alt); }
+    .hm-steps { display: grid; gap: var(--space-8); padding: 0; }
+    @media (min-width: 768px) { .hm-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .hm-step-n {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: var(--tap-min);
+      block-size: var(--tap-min);
+      border-radius: var(--radius-round);
+      background: var(--color-text);
+      color: var(--color-surface);
+      font-weight: var(--fw-emphasis);
+    }
+    .hm-step-t { margin-block: var(--space-4) var(--space-2); font-size: var(--fs-lead); }
+    .hm-step-b { color: var(--color-text-secondary); }
+
+    /* 6. WhatsApp band (dark tile) */
+    .hm-wa {
+      display: grid;
+      gap: var(--space-6);
+      padding: var(--space-8) var(--space-6);
+      border-radius: var(--radius-xl);
+      background: var(--color-surface-inverse);
+      color: var(--color-text-inverse);
+    }
+    @media (min-width: 1024px) { .hm-wa { grid-template-columns: 1fr auto; align-items: center; padding: var(--space-12); } }
+    .hm-wa-t { font-size: var(--fs-h3); }
+    .hm-wa-b { margin-block-start: var(--space-2); color: var(--color-text-inverse-secondary); }
+    .hm-wa-ctas { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-6); }
+    .hm-wa-tel { display: inline-flex; align-items: center; gap: var(--space-2); min-block-size: var(--tap-min); color: var(--color-accent-inverse); text-decoration: none; }
+    .hm-wa-tel:hover { text-decoration: underline; }
+  }
+</style>

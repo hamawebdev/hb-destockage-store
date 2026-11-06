@@ -1,9 +1,11 @@
 ---
-// Home (ar). SHELL-3 builds the page (hero <Picture image={layout.lcpImage}> + <Base lcp>). Owner: shell.
+// Home (ar). Body: components/home/HomeView.astro (type-led hero, no LCP image → no `lcp`).
+// og:image: brand's default, not the hero product photo (burned-in prices; data/photos/README.md). Owner: shell.
 import Base from '../../layouts/Base.astro';
+import HomeView from '../../components/home/HomeView.astro';
 import { pageProps } from '../../lib/catalog.ts';
 const props = pageProps('home', 'ar');
 ---
-<Base layout={props.layout}>
-  <div class="container"><h1><bdi lang="fr" dir="ltr">{props.layout.storeName}</bdi></h1></div>
+<Base layout={{ ...props.layout, ogImage: null }}>
+  <HomeView props={props} />
 </Base>

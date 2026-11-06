@@ -8,6 +8,10 @@
  *  - HB_SNAPSHOT (required; unset fails the build): `seed` | <export.json> | `fixture` (dev/tests
  *    only) — see @hb/catalog/sources loadSnapshot.
  *  - HB_SITE_ORIGIN: absolute origin (src/lib/site.mjs).
+ *  - HB_IMAGE_MANIFEST: CAT-4 manifest, default apps/storefront/.catalog/image-manifest.json, written
+ *    by `node packages/catalog/src/bin/images.ts --out apps/storefront/public --manifest …` before the
+ *    build. Required for `seed`/export snapshots; `fixture` uses the stub manifest (no files) unless
+ *    HB_IMAGE_MANIFEST is set.
  *  - HB_STRICT_COPY=1 (production): brand/copy/strings.{ar,fr}.json must exist; otherwise the
  *    catalogue's fixture copies of them are used.
  */
@@ -18,6 +22,7 @@ import type {
   ContentProps,
   HomeProps,
   Lang,
+  ImageManifest,
   Localized,
   NotFoundProps,
   OrderConfirmationProps,
@@ -55,7 +60,18 @@ async function strings(): Promise<Localized<StringTable>> {
 requireSnapshot(process.env);
 const snapshot = await loadSnapshot({ repoRoot });
 // TODO(CAT-4): replace the stub with the image manifest (AVIF variants written to public/img/).
-const ctx = createBuildContext(snapshot, { siteUrl: SITE_ORIGIN, strings: await strings(), images: stubImageManifest(snapshot) });
+function images(): ImageManifest {
+  const explicit = process.env['HB_IMAGE_MANIFEST'];
+  // The fixture snapshot has no originals: stub entries, unless a manifest is named explicitly
+  // (a seed manifest left in .catalog/ must not be applied to the fixture).
+  if (process.env['HB_SNAPSHOT'] === 'fixture' && explicit === undefined) return stubImageManifest(snapshot);
+  const file = explicit ?? join(repoRoot, 'apps/storefront/.catalog/image-manifest.json');
+  if (existsSync(file)) return JSON.parse(readFileSync(file, 'utf8')) as ImageManifest;
+  throw new Error(`image manifest not found at ${file}: run CAT-4 first (node packages/catalog/src/bin/images.ts --out apps/storefront/public --manifest ${file})`);
+}
+
+// createBuildContext fails if a published image is missing from the manifest (no broken images ship).
+const ctx = createBuildContext(snapshot, { siteUrl: SITE_ORIGIN, strings: await strings(), images: images() });
 
 /** Route-file parameter names, by template (file names under src/pages/<lang>/). */
 type ParamsByTemplate = {

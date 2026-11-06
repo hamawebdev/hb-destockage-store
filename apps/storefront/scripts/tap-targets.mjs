@@ -8,9 +8,9 @@
 // data-tap-exempt="<reason>" (reviewed).
 // Usage: node apps/storefront/scripts/tap-targets.mjs [--dist apps/storefront/dist] [--port 4152] [--all] [--out dir]
 // Exit 0 = pass, 1 = violations, 2 = setup error. Owner: shell. Run it under /tmp/hb-locks/heavy.sh on the shared machine.
-import { createServer } from 'node:http';
+import { serveDist } from './serve-dist.mjs';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { extname, join, relative, resolve, sep } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
@@ -25,7 +25,6 @@ const out = opt('--out', null);
 const all = args.includes('--all');
 const MIN = 44;
 
-const types = { '.html': 'text/html; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.avif': 'image/avif', '.jpg': 'image/jpeg', '.png': 'image/png', '.ico': 'image/x-icon', '.js': 'text/javascript', '.json': 'application/json' };
 
 async function* walk(dir) {
   for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -64,29 +63,30 @@ try {
   process.exit(2);
 }
 
-const server = createServer(async (req, res) => {
-  const p = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname);
-  let f = join(dist, p);
-  try {
-    if ((await stat(f)).isDirectory()) f = join(f, 'index.html');
-    res.writeHead(200, { 'content-type': types[extname(f)] ?? 'application/octet-stream' });
-    res.end(await readFile(f));
-  } catch {
-    res.writeHead(404);
-    res.end();
-  }
-}).listen(port, '127.0.0.1');
+const server = serveDist(dist, port);
 
 // Runs in the page: every visible interactive element smaller than MIN in either direction.
-const probe = (min) => {
+const probe = ({ min, scope }) => {
   const sel = 'a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [tabindex]:not([tabindex="-1"])';
   const bad = [];
-  for (const el of document.querySelectorAll(sel)) {
+  for (const el of (scope ? document.querySelector(scope) ?? document : document).querySelectorAll(sel)) {
     if (el.closest('[data-tap-exempt]')) continue;
     const cs = getComputedStyle(el);
     if (cs.visibility === 'hidden' || cs.display === 'none') continue;
-    const r = el.getBoundingClientRect();
+    let r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) continue; // not rendered (e.g. closed popover, visually-hidden)
+    // Stretched link: an absolutely positioned ::before/::after with inset 0 makes the hit area its
+    // containing block (nearest positioned ancestor), e.g. a product card's title link.
+    for (const pseudo of ['::before', '::after']) {
+      const ps = getComputedStyle(el, pseudo);
+      if (ps.content === 'none' || ps.position !== 'absolute') continue;
+      if (![ps.top, ps.right, ps.bottom, ps.left].every((v) => v === '0px')) continue;
+      let cb = el.parentElement;
+      while (cb && getComputedStyle(cb).position === 'static') cb = cb.parentElement;
+      if (!cb) continue;
+      const c = cb.getBoundingClientRect();
+      if (c.width * c.height > r.width * r.height) r = c;
+    }
     if (el.matches('.skip-link, .visually-hidden') && !el.matches(':focus')) continue; // off-screen until focused
     const parent = el.parentElement;
     if (el.tagName === 'A' && parent && /^(P|LI|DD)$/.test(parent.tagName) && parent.textContent.trim() !== el.textContent.trim()) continue; // inline link in running text
@@ -108,7 +108,7 @@ try {
     const page = await ctx.newPage();
     for (const [key, url] of list) {
       await page.goto(`http://127.0.0.1:${port}${url}`, { waitUntil: 'load' });
-      const bad = await page.evaluate(probe, MIN);
+      const bad = await page.evaluate(probe, { min: MIN, scope: null });
       // The skip link is checked focused (it is only on screen then).
       await page.keyboard.press('Tab');
       const skip = await page.evaluate((min) => {
@@ -122,7 +122,7 @@ try {
       const btn = page.locator('[popovertarget="hd-menu"]:not([popovertargetaction])');
       if (await btn.isVisible()) {
         await btn.click();
-        bad.push(...(await page.evaluate(probe, MIN)).map((b) => ({ ...b, where: 'menu' })));
+        bad.push(...(await page.evaluate(probe, { min: MIN, scope: '#hd-menu' })).map((b) => ({ ...b, where: 'menu' })));
         await page.keyboard.press('Escape');
       }
       report.push({ width, key, url, violations: bad });

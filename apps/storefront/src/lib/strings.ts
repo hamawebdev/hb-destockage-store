@@ -1,15 +1,17 @@
 /**
  * Build-time UI strings. The table is LayoutProps.strings (brand/copy/strings.<lang>.json via
  * CAT-3); nothing reaches the client. A missing key fails the build; with HB_STRICT_COPY=1 (the
- * production build) so does a rendered value still marked [PLACEHOLDER]. `{name}` placeholders are
- * filled from `vars`; a missing var fails the build. Owner: shell.
+ * production build) so does a rendered value still marked [PLACEHOLDER]. Without `vars` the raw
+ * template is returned (pages' catalog i18n wraps this as its lookup and fills `{count}` itself);
+ * with `vars`, every `{name}` is filled and a missing one fails the build. Owner: shell.
  */
 import type { StringTable } from '@hb/catalog';
 
-export function t(strings: StringTable, key: string, vars: Readonly<Record<string, string | number>> = {}): string {
+export function t(strings: StringTable, key: string, vars?: Readonly<Record<string, string | number>>): string {
   const v = strings[key];
   if (v === undefined) throw new Error(`missing UI string "${key}"`);
   if (process.env['HB_STRICT_COPY'] === '1' && v.includes('[PLACEHOLDER]')) throw new Error(`UI string "${key}" is a placeholder`);
+  if (vars === undefined) return v;
   return v.replace(/\{(\w+)\}/g, (_, name: string) => {
     const x = vars[name];
     if (x === undefined) throw new Error(`UI string "${key}" needs {${name}}`);

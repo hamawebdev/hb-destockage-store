@@ -8,6 +8,7 @@
  */
 import type { LayoutProps } from '@hb/catalog';
 import Icon from '../Icon.astro';
+import Copy from '../Copy.astro';
 import { groupPhone, t } from '../../lib/strings.ts';
 import { buildYear } from '../../lib/build-env.mjs';
 
@@ -20,8 +21,6 @@ const c = l.contact;
 const legalKeys = new Set(['privacy', 'legal']);
 const help = l.footerLinks.filter((f) => !legalKeys.has(f.key));
 const legal = l.footerLinks.filter((f) => legalKeys.has(f.key));
-const hours = s('footer.hours');
-const hoursIsPlaceholder = hours.includes('[PLACEHOLDER]');
 ---
 <footer class="ft">
   <div class="container">
@@ -61,7 +60,7 @@ const hoursIsPlaceholder = hours.includes('[PLACEHOLDER]');
             </a>
           </li>
         </ul>
-        <p class="ft-hours" data-placeholder={hoursIsPlaceholder ? '' : undefined}>{hours.replace(' [PLACEHOLDER]', '').replace('[PLACEHOLDER]', '')}</p>
+        <p class="ft-hours"><Copy strings={l.strings} k="footer.hours" /></p>
       </section>
     </div>
 
