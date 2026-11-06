@@ -18,3 +18,5 @@ apps/web/src/generated/
 **/hb-restore-*/
 **/backups/
 d1-export-*
+# storefront build temp/cache dir (shell; rev-e)
+apps/storefront/.hb/

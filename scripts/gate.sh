@@ -208,6 +208,8 @@ for s in "${steps[@]}"; do
     check-tap) run_step "$s" npm --prefix apps/storefront run check:tap ;;
     # measure's gate mode: refuses any option that narrows or relaxes the run (--runs, --url, …)
     lh) run_step "$s" env HB_GATE=1 npm run lh ;;
+    # root `npm test` chains `npm run test:data` (rev-e); the gate runs those as named data-* steps
+    test) run_step "$s" env HB_SKIP_DATA_TESTS=1 npm run test ;;
     *) run_step "$s" npm run "$s" ;;
   esac
 done

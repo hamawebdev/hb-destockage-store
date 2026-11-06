@@ -356,7 +356,8 @@ describe('gate.sh', () => {
   });
 
   test('data/ checks are named steps that can go RED', () => {
-    const root = makeRepo();
+    // the gate's own `test` step skips test:data (HB_SKIP_DATA_TESTS=1) so data tests run once, as named steps
+    const root = makeRepo({ test: 'test "$HB_SKIP_DATA_TESTS" = 1' });
     prepNodeModules(root);
     write(root, 'data/geo/test/geo.test.mjs', "import test from 'node:test';\ntest('ok', () => {});\n");
     write(root, 'data/catalog/validate.mjs', 'process.exit(0);\n');

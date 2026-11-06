@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p tsconfig.json",
-    "test": "npm run test --workspaces --if-present && vitest run --config scripts/vitest.config.ts",
+    "test": "npm run test --workspaces --if-present && vitest run --config scripts/vitest.config.ts && npm run test:data",
     "build": "npm run build --workspaces --if-present",
     "budget": "node tools/measure/src/budget/cli.ts",
     "lh": "node tools/measure/src/lh/cli.ts",
