@@ -237,10 +237,16 @@ used = {}
 for p in P:
     for i in p['images']:
         used.setdefault(i['key'], []).append(p['id'])
-dump(os.path.join(OUT, '..', 'photos', 'manifest.json'), dict(
-  about='Every real (non-generated) photo file in data/photos/. printedPrices = DZD amounts printed in the picture '
-        '([] = none); a product may only use a photo whose printed prices are all prices of its own variants '
-        '(data/catalog/validate.mjs, BUG-14). usedBy = product ids whose gallery has it (informative). Generated '
-        'placeholder photos are not listed: they print no price.',
-  photos=[dict(**PHOTOS[k], usedBy=used.get(k, [])) for k in sorted(PHOTOS)]))
+man_path = os.path.join(OUT, '..', 'photos', 'manifest.json')
+generated = [x for x in json.load(open(man_path, encoding='utf-8'))['photos'] if x['source'] == 'generated'] \
+    if os.path.exists(man_path) else []  # written by placeholders/build.py, kept
+real = [dict(**PHOTOS[k], usedBy=used.get(k, [])) for k in PHOTOS]
+dump(man_path, dict(
+  about='Every photo file under data/photos/ (BUG-14). source: client_own | supplier_render = a real photo; '
+        '"generated" = a placeholder rendered by data/catalog/placeholders/. printedPrices = DZD amounts printed '
+        'in the picture ([] = none); a product may only use a photo whose printed prices are all prices of its own '
+        'variants, and an image row may be placeholder: true only for a generated photo (data/catalog/validate.mjs). '
+        'usedBy = product ids whose gallery has it (informative). Written by build_real.py (real photos) and '
+        'placeholders/build.py (generated photos); each keeps the other\'s entries.',
+  photos=sorted(real + generated, key=lambda x: x['key'])))
 print(len(categories), len(P))

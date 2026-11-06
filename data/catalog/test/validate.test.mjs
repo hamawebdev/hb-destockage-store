@@ -1,6 +1,7 @@
 // node --test data/catalog/test/
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { copyFileSync, cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -307,6 +308,40 @@ test('every real photo is in data/photos/manifest.json with printedPrices', () =
   s = seed();
   s.photoManifest = null;
   expectIssue(s, /data\/photos\/manifest\.json: missing/);
+});
+
+test('BUG-14 r2: every photo file has a manifest entry, and only generated photos may be placeholders', () => {
+  // The reviewer's case: a new real photo dropped into data/photos without a manifest entry,
+  // used by a product and flagged placeholder: true.
+  const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), 'seed-photos-'));
+  try {
+    cpSync(base.photosDir, dir, { recursive: true });
+    copyFileSync(join(base.photosDir, 'pack-a-3-en-1-colonne-piano-led/1.jpg'), join(dir, 'ecouteurs-sans-fil/9.jpg'));
+    const s = seed();
+    s.photosDir = dir;
+    const e = product(s, 'ecouteurs-sans-fil');
+    e.images.push({ ...structuredClone(e.images[0]), id: 2019, key: 'ecouteurs-sans-fil/9.jpg', width: 3190, height: 3511, position: 9 });
+    expectIssue(s, /^data\/photos\/ecouteurs-sans-fil\/9\.jpg: photo file has no data\/photos\/manifest\.json entry/);
+    expectIssue(s, /ecouteurs-sans-fil\.json\.images\[4\]: placeholder: true but ecouteurs-sans-fil\/9\.jpg is not a generated photo/);
+    // Even unused, an unlisted file fails.
+    const t = seed();
+    t.photosDir = dir;
+    expectIssue(t, /^data\/photos\/ecouteurs-sans-fil\/9\.jpg: photo file has no data\/photos\/manifest\.json entry/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  // A generated photo dropped from the manifest is unlisted too.
+  let s = seed();
+  s.photoManifest.photos = s.photoManifest.photos.filter((x) => x.key !== 'huile-argan/1.jpg');
+  expectIssue(s, /^data\/photos\/huile-argan\/1\.jpg: photo file has no data\/photos\/manifest\.json entry/);
+  expectIssue(s, /huile-argan\.json\.images\[0\]: placeholder: true but huile-argan\/1\.jpg is not a generated photo/);
+  // Generated photos print no price; sources are a closed list.
+  s = seed();
+  s.photoManifest.photos.find((x) => x.key === 'huile-argan/1.jpg').printedPrices = [2500];
+  expectIssue(s, /\(huile-argan\/1\.jpg\): a generated photo prints no price/);
+  s = seed();
+  s.photoManifest.photos.find((x) => x.key === 'huile-argan/1.jpg').source = 'stock';
+  expectIssue(s, /\(huile-argan\/1\.jpg\): source must be client_own, supplier_render or generated/);
 });
 
 test('file name follows the French slug', () => {

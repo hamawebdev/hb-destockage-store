@@ -6,8 +6,10 @@ These are the original image files that the seed catalogue refers to. `images[].
 
 Layout: `<product fr-slug>/<n>.<ext>`. A single file can be referenced by more than one product.
 For example, `colonne-de-douche-piano/1.jpg` is used by product 111 and by Pack B. Duplicates are
-stored once. `manifest.json` lists every real (non-generated) photo with its source, the prices
-printed in it and the products using it. It is written by `data/catalog/source/build_real.py`.
+stored once. `manifest.json` lists **every** photo file here with its source (`client_own`,
+`supplier_render` or `generated`), the prices printed in it and the products using it. Real
+entries are written by `data/catalog/source/build_real.py`, generated ones by
+`data/catalog/placeholders/build.py`. A file without an entry fails the validator.
 
 ## Real product photos: source and fetch date
 
@@ -48,9 +50,12 @@ printed in it and the products using it. It is written by `data/catalog/source/b
   is a price of one of that product's variants. `data/catalog/validate.mjs` fails otherwise, so a
   price change that makes a photo stale fails the build until the photos are fixed. Current
   prices: 101 = 14 600, 102 = 13 600, 103 = 16 500.
-- **A photo is real if `manifest.json` lists it**, whatever the `placeholder` flag on its image row
-  says. A real photo's image row may not be `placeholder: true`. Invented (placeholder) products
-  may only show generated placeholders. The price and provenance checks run on every real photo.
+- **A photo is real if `manifest.json` lists it as `client_own` or `supplier_render`**, whatever
+  the `placeholder` flag on its image row says. A real photo's image row may not be
+  `placeholder: true`, and `placeholder: true` is accepted only on a `generated` entry. Invented
+  (placeholder) products may only show generated placeholders. The price and provenance checks run
+  on every real photo. Every file under `data/photos/` must have an entry, so a new photo can't
+  slip in unlisted.
 - **BUG-14:** `pack-a-3-en-1-colonne-piano-led/1.jpg` (Pack A and Pack B with paper signs 13 600
   and 14 600) was 101's first image and 102's second. It prints a price each of them doesn't
   sell at, so it is now in no gallery. The file stays here with its provenance. 101 now opens
@@ -69,4 +74,5 @@ All the other folders (`ecouteurs-sans-fil/`, `t-shirt-coton-homme/`, …) hold 
 placeholders**, not photographs. Each is a 1200×1200 sRGB JPEG with a flat shape on a light surface,
 labelled "PLACEHOLDER" at the top, with the product name (ar/fr) and "not a real product" at the
 bottom. They come from `data/catalog/placeholders/build.py` + `render.mjs`, and nothing in them is
-copied from another website. Every one has `placeholder: true` in its image row.
+copied from another website. Every one has `placeholder: true` in its image row and a
+`source: "generated"` entry in `manifest.json`.

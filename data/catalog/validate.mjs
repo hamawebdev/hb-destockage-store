@@ -20,8 +20,10 @@
 //     no "[PLACEHOLDER]" text anywhere on an entity marked placeholder: false; the README id scheme;
 //     home products are active; provenance.json entries exist and cover every real image
 //     (supplier renders flagged needsClientConfirmation); every real photo is listed in
-//     data/photos/manifest.json with printedPrices. A photo is real iff the manifest lists its key
-//     (whatever its placeholder flag): real photos may not be flagged placeholder, invented
+//     data/photos/manifest.json with printedPrices — and so is every generated photo (source
+//     "generated"); any photo file on disk without an entry fails. A photo is real iff the manifest
+//     lists its key as client_own/supplier_render (whatever its placeholder flag); placeholder: true
+//     is allowed only on a generated key: real photos may not be flagged placeholder, invented
 //     products may not use them, they need provenance, and a product may only use one whose
 //     printed prices are all prices of its own variants (BUG-14).
 // Used by `db` (seed loader, before loading D1) and `pagedata` (fromSeed, before the build).
@@ -66,6 +68,15 @@ export function toSnapshot(seed) {
     settings: seed.settings,
     wilayas: [],
   };
+}
+
+/** Every image file under `photosDir` as a key relative to it (README.md / manifest.json skipped). */
+export function listPhotoFiles(photosDir) {
+  if (!existsSync(photosDir)) return [];
+  return readdirSync(photosDir, { recursive: true })
+    .map((f) => String(f).split('\\').join('/'))
+    .filter((f) => /\.(jpe?g|png|webp|avif|gif|svg)$/i.test(f))
+    .sort();
 }
 
 /** Width/height from a JPEG or PNG header; null if the format is not recognised. */
@@ -148,14 +159,26 @@ export function validateLoadedSeed(seed) {
     }
   });
 
-  // 2a'. Photo manifest: every real photo file with the prices printed in it.
+  // 2a'. Photo manifest: every photo file under data/photos/, real or generated, with the prices
+  // printed in it. `photoByKey` holds the real ones (client_own / supplier_render), `generatedKeys`
+  // the rendered placeholders.
   const photoByKey = new Map();
+  const generatedKeys = new Set();
   if (!seed.photoManifest) add('data/photos/manifest.json', 'missing');
   else {
+    const listed = new Set();
     seed.photoManifest.photos.forEach((ph, i) => {
       const at = `data/photos/manifest.json photos[${i}] (${ph.key})`;
-      if (photoByKey.has(ph.key)) add(at, 'key listed twice');
-      photoByKey.set(ph.key, ph);
+      if (listed.has(ph.key)) add(at, 'key listed twice');
+      listed.add(ph.key);
+      if (ph.source === 'generated') {
+        generatedKeys.add(ph.key);
+        if (ph.printedPrices?.length) add(at, 'a generated photo prints no price: printedPrices must be []');
+      } else if (['client_own', 'supplier_render'].includes(ph.source)) {
+        photoByKey.set(ph.key, ph);
+      } else {
+        add(at, 'source must be client_own, supplier_render or generated');
+      }
       if (typeof ph.key !== 'string' || ph.key.startsWith('/') || ph.key.split('/').includes('..') || !existsSync(join(seed.photosDir, ph.key))) {
         add(at, 'file does not exist under data/photos/');
       }
@@ -163,6 +186,11 @@ export function validateLoadedSeed(seed) {
         add(at, 'printedPrices must be an array of integer DZD amounts > 0 ([] when the photo prints no price)');
       }
     });
+    // Every file on disk is listed, whatever any image row says (BUG-14 r2 nit): a new real photo
+    // can't slip in as an unlisted "placeholder".
+    for (const key of listPhotoFiles(seed.photosDir)) {
+      if (!listed.has(key)) add(`data/photos/${key}`, 'photo file has no data/photos/manifest.json entry (add it with its source and printedPrices)');
+    }
   }
 
   // 2b. Products.
@@ -209,6 +237,9 @@ export function validateLoadedSeed(seed) {
     p.images.forEach((img, j) => {
       const real = photoByKey.has(img.key);
       if (real && img.placeholder) add(`${at}.images[${j}]`, `${img.key} is a real photo (data/photos/manifest.json): placeholder: true is not allowed`);
+      if (img.placeholder && !real && !generatedKeys.has(img.key)) {
+        add(`${at}.images[${j}]`, `placeholder: true but ${img.key} is not a generated photo in data/photos/manifest.json`);
+      }
       if (!isReal && real) add(`${at}.images[${j}]`, `invented product ${p.id} may not use the real photo ${img.key}`);
       if (!isReal && !img.placeholder) add(`${at}.images[${j}]`, 'image of an invented product must be placeholder: true');
     });

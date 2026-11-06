@@ -1,5 +1,5 @@
 {
-  "about": "Every real (non-generated) photo file in data/photos/. printedPrices = DZD amounts printed in the picture ([] = none); a product may only use a photo whose printed prices are all prices of its own variants (data/catalog/validate.mjs, BUG-14). usedBy = product ids whose gallery has it (informative). Generated placeholder photos are not listed: they print no price.",
+  "about": "Every photo file under data/photos/ (BUG-14). source: client_own | supplier_render = a real photo; \"generated\" = a placeholder rendered by data/catalog/placeholders/. printedPrices = DZD amounts printed in the picture ([] = none); a product may only use a photo whose printed prices are all prices of its own variants, and an image row may be placeholder: true only for a generated photo (data/catalog/validate.mjs). usedBy = product ids whose gallery has it (informative). Written by build_real.py (real photos) and placeholders/build.py (generated photos); each keeps the other's entries.",
   "photos": [
     {
       "key": "_unreferenced/wp-media-409.jpg",
@@ -26,6 +26,138 @@
       "usedBy": []
     },
     {
+      "key": "baskets-toile/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        210
+      ]
+    },
+    {
+      "key": "baskets-toile/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        210
+      ]
+    },
+    {
+      "key": "baskets-toile/3.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        210
+      ]
+    },
+    {
+      "key": "blocs-construction-120/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        217
+      ]
+    },
+    {
+      "key": "blocs-construction-120/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        217
+      ]
+    },
+    {
+      "key": "cable-usb-c-usb-c/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        204
+      ]
+    },
+    {
+      "key": "cable-usb-c-usb-c/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        204
+      ]
+    },
+    {
+      "key": "chargeur-rapide-usb-c-20w/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        203
+      ]
+    },
+    {
+      "key": "chargeur-rapide-usb-c-20w/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        203
+      ]
+    },
+    {
+      "key": "coffret-soin-visage/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        216
+      ]
+    },
+    {
+      "key": "coffret-soin-visage/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        216
+      ]
+    },
+    {
       "key": "colonne-de-douche-piano/1.jpg",
       "wpMediaId": 498,
       "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7689.jpeg",
@@ -36,6 +168,234 @@
       "usedBy": [
         111,
         102
+      ]
+    },
+    {
+      "key": "coque-silicone-smartphone/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        205
+      ]
+    },
+    {
+      "key": "coque-silicone-smartphone/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        205
+      ]
+    },
+    {
+      "key": "coque-silicone-smartphone/3.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        205
+      ]
+    },
+    {
+      "key": "creme-hydratante-visage/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        211
+      ]
+    },
+    {
+      "key": "creme-hydratante-visage/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        211
+      ]
+    },
+    {
+      "key": "ecouteurs-sans-fil/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        201
+      ]
+    },
+    {
+      "key": "ecouteurs-sans-fil/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        201
+      ]
+    },
+    {
+      "key": "ecouteurs-sans-fil/3.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        201
+      ]
+    },
+    {
+      "key": "ecouteurs-sans-fil/4.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        201
+      ]
+    },
+    {
+      "key": "enceinte-bluetooth-portable/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        202
+      ]
+    },
+    {
+      "key": "enceinte-bluetooth-portable/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        202
+      ]
+    },
+    {
+      "key": "enceinte-bluetooth-portable/3.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        202
+      ]
+    },
+    {
+      "key": "foulard-mousseline/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        209
+      ]
+    },
+    {
+      "key": "foulard-mousseline/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        209
+      ]
+    },
+    {
+      "key": "foulard-mousseline/3.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        209
+      ]
+    },
+    {
+      "key": "gel-nettoyant-visage/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        213
+      ]
+    },
+    {
+      "key": "gel-nettoyant-visage/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        213
+      ]
+    },
+    {
+      "key": "huile-argan/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        215
+      ]
+    },
+    {
+      "key": "huile-argan/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        215
       ]
     },
     {
@@ -133,6 +493,246 @@
       "note": null,
       "usedBy": [
         103
+      ]
+    },
+    {
+      "key": "peluche-ourson/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        219
+      ]
+    },
+    {
+      "key": "peluche-ourson/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        219
+      ]
+    },
+    {
+      "key": "puzzle-500-pieces/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        218
+      ]
+    },
+    {
+      "key": "puzzle-500-pieces/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        218
+      ]
+    },
+    {
+      "key": "robe-ete-fleurie/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        208
+      ]
+    },
+    {
+      "key": "robe-ete-fleurie/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        208
+      ]
+    },
+    {
+      "key": "serum-vitamine-c/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        212
+      ]
+    },
+    {
+      "key": "serum-vitamine-c/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        212
+      ]
+    },
+    {
+      "key": "shampooing-reparateur/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        214
+      ]
+    },
+    {
+      "key": "shampooing-reparateur/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        214
+      ]
+    },
+    {
+      "key": "sweat-a-capuche/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        207
+      ]
+    },
+    {
+      "key": "sweat-a-capuche/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        207
+      ]
+    },
+    {
+      "key": "t-shirt-coton-homme/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        206
+      ]
+    },
+    {
+      "key": "t-shirt-coton-homme/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        206
+      ]
+    },
+    {
+      "key": "t-shirt-coton-homme/3.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        206
+      ]
+    },
+    {
+      "key": "t-shirt-coton-homme/4.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        206
+      ]
+    },
+    {
+      "key": "voiture-telecommandee/1.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        220
+      ]
+    },
+    {
+      "key": "voiture-telecommandee/2.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        220
+      ]
+    },
+    {
+      "key": "voiture-telecommandee/3.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        220
+      ]
+    },
+    {
+      "key": "voiture-telecommandee/4.jpg",
+      "wpMediaId": null,
+      "sourceUrl": null,
+      "source": "generated",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        220
       ]
     }
   ]

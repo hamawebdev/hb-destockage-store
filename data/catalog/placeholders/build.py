@@ -367,6 +367,15 @@ for prod in PRODUCTS:
     prod.d['images'] = rows
     dump(os.path.join(CAT, 'products', slug + '.json'), prod.d)
 
+# Every generated file is listed in data/photos/manifest.json as source "generated" (BUG-14 r2):
+# the validator accepts placeholder: true only on such a key and fails on any unlisted file.
+man_path = os.path.join(ROOT, 'data', 'photos', 'manifest.json')
+man = json.load(open(man_path, encoding='utf-8'))
+gen = [dict(key=img['key'], wpMediaId=None, sourceUrl=None, source='generated', needsClientConfirmation=False,
+            printedPrices=[], note=None, usedBy=[prod.d['id']]) for prod in PRODUCTS for img in prod.d['images']]
+man['photos'] = sorted([x for x in man['photos'] if x['source'] != 'generated'] + gen, key=lambda x: x['key'])
+dump(man_path, man)
+
 cats_path = os.path.join(CAT, 'categories.json')
 own = {c['id'] for c in CATS}
 existing = [c for c in json.load(open(cats_path, encoding='utf-8')) if c['id'] not in own]  # build_real.py's
