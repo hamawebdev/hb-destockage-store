@@ -47,7 +47,7 @@ const morePacks = p.packs.filter((c) => !featuredIds.has(c.id));
   </div>
 </section>
 
-<section class="container hm-trust" aria-label={s('home.howTitle')}>
+<div class="container hm-trust">
   <ul role="list" class="hm-trust-list">
     {
       trust.map((x) => (
@@ -61,7 +61,7 @@ const morePacks = p.packs.filter((c) => !featuredIds.has(c.id));
       ))
     }
   </ul>
-</section>
+</div>
 
 {
   p.categories.length > 0 && (
