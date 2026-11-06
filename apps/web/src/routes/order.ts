@@ -196,9 +196,12 @@ async function reviewPage(
     const quote = await quoteFromReads(input, reads, feeProvider(db, c.env));
     const first = input.items[0]!;
     hiddenItem = { variantId: first.variantId, qty: first.qty, wilayaCode: input.wilayaCode };
-    const snap = reads.snapshots?.get(first.variantId);
+    // Only sellable variants are shown: a draft/archived/inactive variant id must not reveal its
+    // product's name or slug (rev-d WEB-3 r2); the variant_unavailable message explains instead.
+    const sellable = (id: number) => reads.variants.get(id)?.sellable === true;
+    const snap = sellable(first.variantId) ? reads.snapshots?.get(first.variantId) : undefined;
     if (snap !== undefined) backHref = `/${lang}/p/${lang === 'ar' ? snap.slugAr : snap.slugFr}/`;
-    const qLines = quote.ok ? quote.lines : (quote.lines ?? []);
+    const qLines = (quote.ok ? quote.lines : (quote.lines ?? [])).filter((l) => sellable(l.variantId));
     lines = qLines.map((l) => {
       const s = reads.snapshots?.get(l.variantId);
       return {

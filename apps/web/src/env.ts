@@ -43,6 +43,8 @@ export class ConfigError extends Error {
 }
 
 const ENV_NAMES: readonly EnvName[] = ['development', 'test', 'production'];
+const HOSTNAME_RE = /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
 
 function intVar(name: string, raw: string, min: number, max: number): number {
   if (!/^\d+$/.test(raw)) throw new ConfigError(`${name} must be an integer`);
@@ -64,6 +66,12 @@ export function readConfig(env: Env): Config {
     .map((h) => h.trim().toLowerCase())
     .filter((h) => h !== '');
   if (siteHosts.length === 0) throw new ConfigError('SITE_HOSTS must list at least one hostname');
+  if (siteHosts.some((h) => !HOSTNAME_RE.test(h))) throw new ConfigError('SITE_HOSTS must be a comma-separated list of hostnames');
+  // Production must name the real storefront: a local hostname would make every real Turnstile
+  // verdict fail the hostname check and flag every order (rev-d, WEB-2 r2).
+  if (env.ENV === 'production' && siteHosts.some((h) => LOCAL_HOSTS.has(h))) {
+    throw new ConfigError('SITE_HOSTS must not contain a local hostname in production');
+  }
   const rumSample = Number(env.RUM_SAMPLE);
   if (!Number.isFinite(rumSample) || rumSample < 0 || rumSample > 1) {
     throw new ConfigError('RUM_SAMPLE must be a number in [0, 1]');

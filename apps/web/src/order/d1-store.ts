@@ -14,6 +14,8 @@ export interface OrderWrites {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** More orders than this for one phone + variant in 30 min is abuse, not a shopper: the rest are flagged anyway. */
+const RECENT_LIMIT = 20;
 
 const existingColumns = {
   id: orders.id,
@@ -56,8 +58,8 @@ export function createD1OrderStore(db: Db, writes: OrderWrites): OrderStore {
             sql`exists (select 1 from ${orderItems} where ${orderItems.orderId} = ${orders.id} and ${inArray(orderItems.variantId, [...variantIds])})`,
           ),
         )
-        .orderBy(desc(orders.createdAt))
-        .limit(1);
+        .orderBy(desc(orders.createdAt), desc(orders.id))
+        .limit(RECENT_LIMIT);
       const countQuery = db
         .select({ n: sql<number>`count(*)` })
         .from(orders)
@@ -65,7 +67,7 @@ export function createD1OrderStore(db: Db, writes: OrderWrites): OrderStore {
       const customerQuery = db.select({ blocked: customers.blocked }).from(customers).where(eq(customers.phoneE164, phoneE164)).limit(1);
       const [dup, count, customer] = await db.batch([dupQuery, countQuery, customerQuery]);
       return {
-        recent: dup[0] === undefined ? null : toExisting(dup[0]),
+        recent: dup.map(toExisting),
         ordersLast24h: Number(count[0]?.n ?? 0),
         blocked: customer[0]?.blocked === true,
       };

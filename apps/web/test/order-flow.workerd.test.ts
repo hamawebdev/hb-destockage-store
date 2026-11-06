@@ -133,6 +133,17 @@ describe('JSON order, real D1', () => {
     expect(JSON.parse((await one<{ flags: string }>(`select flags from orders where ref = ?`, probe.json['ref']))!.flags)).toEqual(['turnstile_missing', 'duplicate']);
   });
 
+  test("interleaving: A orders, B (same phone + variant, other name) orders, A resubmits → A's ref back, no third order", async () => {
+    const phone = freshPhone();
+    const a = await send(order({ phone, name: 'Amine' }));
+    const b = await send(order({ phone, name: 'Karim', communeId: 1602 }));
+    expect(b.json['ref']).not.toBe(a.json['ref']);
+    const again = await send(order({ phone, name: ' amine ' }));
+    expect(again.status).toBe(201);
+    expect(again.json).toMatchObject({ ref: a.json['ref'], duplicate: true });
+    expect(await count(`select count(*) n from orders where phone_e164 = ?`, e164(phone))).toBe(2);
+  });
+
   test('a real replay and a sunk decoy are indistinguishable (status, headers, body shape)', async () => {
     const real = order();
     await send(real);

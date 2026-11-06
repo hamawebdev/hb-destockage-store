@@ -62,8 +62,12 @@ export type CreateOrderResult =
 
 /** The phone's recent history, read in one round trip before deciding dedup / velocity / blocked. */
 export interface PhoneHistory {
-  /** Most recent non-cancelled order for this phone with an overlapping variant inside the dedup window. */
-  readonly recent: ExistingOrder | null;
+  /**
+   * Every non-cancelled order for this phone with an overlapping variant inside the dedup window,
+   * newest first (bounded). All are checked: another person's order in between must not hide a
+   * genuine double submit (rev-d WEB-3 r2).
+   */
+  readonly recent: readonly ExistingOrder[];
   /** Non-cancelled orders for this phone in the last 24 h. */
   readonly ordersLast24h: number;
   readonly blocked: boolean;

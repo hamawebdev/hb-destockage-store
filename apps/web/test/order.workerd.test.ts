@@ -182,6 +182,21 @@ describe('no-JS step 1: server review page', () => {
     expect(html).toContain('حزمة المطبخ');
   });
 
+  test.each([
+    ['draft product', '31', ['Brouillon', 'مسودة', 'musawwada', 'brouillon']],
+    ['archived product', '41', ['Archivé', 'مؤرشف', 'arshif', '/archive/']],
+    ['inactive variant', '23', ['PK-BAIN-L', '16 900', '16.900']],
+  ])('unsellable %s → 409 variant_unavailable; its name, slug and price never appear', async (_l, variantId, secrets) => {
+    for (const lang of ['ar', 'fr']) {
+      const res = await postForm(h.server, '/api/order', { lang, variantId, qty: '2', name: 'Amine', phone: '0555123456', wilayaCode: '16' });
+      expect(res.status).toBe(409);
+      const html = await res.text();
+      expect(visible(html, 'variant_unavailable')).toBe(true);
+      expect(html).not.toContain('class="of-line"');
+      for (const s of secrets) expect(html, `${lang}: ${s}`).not.toContain(s);
+    }
+  });
+
   test('wilaya not served → 409, delivery_unavailable shown, no confirm', async () => {
     const res = await postForm(h.server, '/api/order', { lang: 'fr', variantId: '11', qty: '1', name: 'Amine', phone: '0555123456', wilayaCode: '31' });
     expect(res.status).toBe(409);

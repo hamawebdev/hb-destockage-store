@@ -67,7 +67,7 @@ function input(over: Record<string, unknown> = {}): OrderInput {
 class FakeStore implements OrderStore {
   byKey = new Map<string, ExistingOrder>();
   byId = new Map<number, ExistingOrder>();
-  history: PhoneHistory = { recent: null, ordersLast24h: 0, blocked: false };
+  history: PhoneHistory = { recent: [], ordersLast24h: 0, blocked: false };
   created: CreateOrderInput[] = [];
   duplicates: { orderId: number; attempt: DuplicateAttempt }[] = [];
   enqueueNotes: number[] = [];
@@ -399,7 +399,7 @@ describe('layer 7: dedup (lead ruling: no data about another order unless it is 
   };
 
   test('genuine double submit (same phone + variant + name + wilaya + commune) → the existing order, 201, duplicate:true, attempt noted', async () => {
-    store.history = { recent: existing, ordersLast24h: 1, blocked: false };
+    store.history = { recent: [existing], ordersLast24h: 1, blocked: false };
     const out = wire(await place({ items: [{ variantId: 11, qty: 2 }], expectedTotalDzd: 29800 }));
     expect(out).toEqual({
       kind: 'duplicate',
@@ -416,7 +416,7 @@ describe('layer 7: dedup (lead ruling: no data about another order unless it is 
     ['another commune', { communeId: 1602 }],
     ['another wilaya', { wilayaCode: 31, communeId: 3101 }],
   ])('%s → a NEW order flagged duplicate; nothing of the first order is returned', async (_l, over) => {
-    store.history = { recent: existing, ordersLast24h: 1, blocked: false };
+    store.history = { recent: [existing], ordersLast24h: 1, blocked: false };
     const fees = { 16: 600, 31: 900 } as Record<number, number>;
     deps = { ...deps, fees: createStaticFeeProvider(fees) };
     COMMUNE_WILAYA[1602] = 16;
@@ -431,27 +431,36 @@ describe('layer 7: dedup (lead ruling: no data about another order unless it is 
     expect(store.duplicates).toHaveLength(0);
   });
 
+  test("another person's order in between does not hide a genuine double submit (every recent order is checked)", async () => {
+    const other: ExistingOrder = { ...existing, id: 43, ref: 'HB-43434' as OrderRef, name: 'Someone Else', communeId: 1602 };
+    store.history = { recent: [other, existing], ordersLast24h: 2, blocked: false }; // newest first
+    const out = await place();
+    expect(out).toMatchObject({ kind: 'duplicate', status: 201, body: { ref: 'HB-42424', duplicate: true } });
+    expect(store.duplicates.map((d) => d.orderId)).toEqual([42]);
+    expect(store.created).toHaveLength(0);
+  });
+
   test('names compare as typed: case, spaces and Unicode normalisation do not matter', async () => {
-    store.history = { recent: { ...existing, name: '  AMINE   ben ali ' }, ordersLast24h: 1, blocked: false };
+    store.history = { recent: [{ ...existing, name: '  AMINE   ben ali ' }], ordersLast24h: 1, blocked: false };
     expect((await place({ name: 'Amine Ben Ali' })).kind).toBe('duplicate');
   });
 });
 
 describe('layers 8–9: velocity and blocked customers (flags only)', () => {
   test('3 orders in 24 h already → the next is accepted and flagged rate_limited', async () => {
-    store.history = { recent: null, ordersLast24h: 3, blocked: false };
+    store.history = { recent: [], ordersLast24h: 3, blocked: false };
     await place();
     expect(store.created[0]!.order).toMatchObject({ flags: ['rate_limited'], riskScore: 30 });
   });
 
   test('2 orders in 24 h → no flag', async () => {
-    store.history = { recent: null, ordersLast24h: 2, blocked: false };
+    store.history = { recent: [], ordersLast24h: 2, blocked: false };
     await place();
     expect(store.created[0]!.order.flags).toEqual([]);
   });
 
   test('blocked customer → accepted silently, flagged, risk 100 (capped)', async () => {
-    store.history = { recent: null, ordersLast24h: 5, blocked: true };
+    store.history = { recent: [], ordersLast24h: 5, blocked: true };
     verdict = 'invalid';
     const out = await place({ website: 'x' });
     expect(out.kind).toBe('created');

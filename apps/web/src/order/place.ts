@@ -150,10 +150,10 @@ export async function placeOrder(req: PlaceRequest, deps: PlaceDeps): Promise<Pl
 
   // 7. Dedup. Only a genuine double submit (same phone + variant within the window AND the same
   // name, wilaya and commune) gets the existing order back; anything else is a new order, flagged.
-  const recent = history.recent;
-  if (recent !== null && sameSubmitter(recent, input)) {
-    await deps.store.markDuplicate(recent.id, { items: input.items, wilayaCode: input.wilayaCode, communeId: input.communeId }, now);
-    return { kind: 'duplicate', status: 201, body: existingBody(recent, true) };
+  const same = history.recent.find((o) => sameSubmitter(o, input));
+  if (same !== undefined) {
+    await deps.store.markDuplicate(same.id, { items: input.items, wilayaCode: input.wilayaCode, communeId: input.communeId }, now);
+    return { kind: 'duplicate', status: 201, body: existingBody(same, true) };
   }
 
   // 8–9 + submission flags.
@@ -161,7 +161,7 @@ export async function placeOrder(req: PlaceRequest, deps: PlaceDeps): Promise<Pl
     ipOverLimit,
     ordersLast24h: history.ordersLast24h,
     blockedCustomer: history.blocked,
-    possibleDuplicate: recent !== null,
+    possibleDuplicate: history.recent.length > 0,
   });
 
   const snapshots = reads.snapshots;

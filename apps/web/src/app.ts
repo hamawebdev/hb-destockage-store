@@ -14,6 +14,19 @@ import { registerQuote } from './routes/quote.ts';
 export const app = new Hono<{ Bindings: Env }>();
 
 app.use('/api/*', apiHeaders);
+// Fail closed on a misconfigured deploy: no /api/* runs with invalid vars (e.g. production without
+// its SITE_HOSTS), so orders are never accepted half-configured or silently mis-flagged.
+app.use('/api/*', async (c, next) => {
+  try {
+    readConfig(c.env);
+  } catch (err) {
+    if (!(err instanceof ConfigError)) throw err;
+    log('config_invalid', { error: err.message });
+    return apiError(c, 500, 'server_error');
+  }
+  await next();
+  return undefined;
+});
 
 // --- /api/health --------------------------------------------------------------------------------
 app.get('/api/health', async (c) => {

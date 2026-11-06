@@ -32,16 +32,22 @@
     { "name": "ORDER_RL_IP", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }
   ],
   // Secrets (never here): TURNSTILE_SECRET, ORDER_SIGNING_KEY, IP_HASH_KEY — `.dev.vars` locally.
+  // TOP LEVEL = PRODUCTION (what `wrangler deploy` and `npm run build` = `deploy --dry-run --env=""`
+  // ship). ENV=production refuses placeholder (invented, seeded) delivery fees. Nothing local here:
+  // development values come only from the dev script (`--var ENV:development --var SITE_HOSTS:…`,
+  // the admin Worker's pattern); tests use env "test".
+  // SITE_HOSTS is REQUIRED in production and deliberately absent: set the client's storefront
+  // hostname(s) at deploy ([PLACEHOLDER] in ops/README.md §5). Missing, or containing localhost,
+  // ⇒ every /api/* answers 500 and logs `config_invalid` instead of mis-flagging orders.
   "vars": {
-    "ENV": "development",
-    "SITE_HOSTS": "localhost,127.0.0.1",
+    "ENV": "production",
     "MIN_FILL_MS": "2500",
     "MIN_REVIEW_MS": "1500",
     "RUM_SAMPLE": "1"
   },
   // WEB-4: before bundling, generate the static-assets `_headers` (hash CSP + security headers)
   // from the built storefront HTML. Fails the build when a page has inline code no hash can cover.
-  "build": { "command": "node scripts/csp.ts" },
+  "build": { "command": "node scripts/csp.ts", "cwd": "." },
   "minify": true,
   "observability": { "enabled": true },
   "dev": { "port": 4210, "inspector_port": 4211 },
