@@ -1,0 +1,13 @@
+{
+  "_comment": "WEB-6: the ONE coarse WAF rate-limiting rule for the storefront zone (STACK-REPORT §6 layer 6). Flood guard only: per-phone limits live in the Worker (ORDER_RL_PHONE). Apply via dashboard (Security → WAF → Rate limiting rules) or the Rulesets API phase http_ratelimit. Free plan: 1 rule, counts by IP, 10 s period, 10 s mitigation timeout.",
+  "description": "hb: coarse flood guard on the order and quote APIs",
+  "expression": "(http.request.method eq \"POST\" and http.request.uri.path in {\"/api/order\" \"/api/quote\"})",
+  "action": "block",
+  "ratelimit": {
+    "characteristics": ["ip.src", "cf.colo.id"],
+    "period": 10,
+    "requests_per_period": 30,
+    "mitigation_timeout": 10
+  },
+  "enabled": true
+}
