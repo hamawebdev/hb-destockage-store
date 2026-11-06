@@ -19,7 +19,16 @@ export const DZ_TIME_ZONE = 'Africa/Algiers';
 const priceFormatters = /* @__PURE__ */ new Map<Lang, Intl.NumberFormat>();
 const numberFormatters = /* @__PURE__ */ new Map<Lang, Intl.NumberFormat>();
 const dateFormatters = /* @__PURE__ */ new Map<Lang, Intl.DateTimeFormat>();
-const dateTimeFormatters = /* @__PURE__ */ new Map<Lang, Intl.DateTimeFormat>();
+const mediumDateFormatters = /* @__PURE__ */ new Map<Lang, Intl.DateTimeFormat>();
+const timeFormatters = /* @__PURE__ */ new Map<Lang, Intl.DateTimeFormat>();
+
+/**
+ * Separator between date and time in `formatDateTime`. Fixed here rather than taken from CLDR's
+ * dateTime pattern, which differs between runtimes: for ar-DZ, Node 24 / workerd (ICU 77) put
+ * "، " and Chrome 143 puts " " (artifacts/SHARED-5/chrome.json). The date and time parts
+ * themselves are identical everywhere.
+ */
+const DATE_TIME_SEPARATOR: { readonly [L in Lang]: string } = { ar: '\u060C ', fr: ', ' };
 
 function cached<F>(map: Map<Lang, F>, lang: Lang, make: () => F): F {
   let f = map.get(lang);
@@ -56,14 +65,16 @@ export function formatDate(at: number | Date, lang: Lang): string {
   ).format(at);
 }
 
-/** Date and 24-hour time in Algeria's time zone (admin lists, order events). */
+/**
+ * Medium date and 24-hour time in Algeria's time zone (admin lists, order events), e.g.
+ * `15‏/07‏/2026، 13:00` / `15 juil. 2026, 13:00`. Same string in Node, workerd and browsers.
+ */
 export function formatDateTime(at: number | Date, lang: Lang): string {
-  return cached(dateTimeFormatters, lang, () =>
-    new Intl.DateTimeFormat(intlLocale(lang), {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-      hourCycle: 'h23',
-      timeZone: DZ_TIME_ZONE,
-    }),
+  const date = cached(mediumDateFormatters, lang, () =>
+    new Intl.DateTimeFormat(intlLocale(lang), { dateStyle: 'medium', timeZone: DZ_TIME_ZONE }),
   ).format(at);
+  const time = cached(timeFormatters, lang, () =>
+    new Intl.DateTimeFormat(intlLocale(lang), { timeStyle: 'short', hourCycle: 'h23', timeZone: DZ_TIME_ZONE }),
+  ).format(at);
+  return `${date}${DATE_TIME_SEPARATOR[lang]}${time}`;
 }
