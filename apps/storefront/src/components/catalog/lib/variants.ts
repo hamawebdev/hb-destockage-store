@@ -79,4 +79,4 @@ export function variantBlocks({ options, variants }: PickerInput): readonly (Var
 }
 
 /** How many values per option the template's positional CSS covers; beyond, variant.js does it. */
-export const CSS_POSITIONS = 12;
+export const CSS_POSITIONS = 8;

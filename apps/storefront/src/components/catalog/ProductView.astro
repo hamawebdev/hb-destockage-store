@@ -51,7 +51,7 @@ const dev = import.meta.env.DEV;
     <div class="cat-pdp-buy">
       <header class="cat-pdp-head">
         {product.brandLatin && <p class="cat-pdp-brand"><bdi lang={latinLang(lang)} dir="ltr">{product.brandLatin}</bdi></p>}
-        <h1 class="cat-pdp-title">{product.name}</h1>
+        <h1 class="cat-title">{product.name}</h1>
         {ph && <p class="cat-pdp-ph">{t(strings, 'dev.placeholderBanner')}</p>}
         {product.summary && <p class="cat-pdp-summary">{product.summary}</p>}
       </header>
@@ -114,7 +114,6 @@ const dev = import.meta.env.DEV;
 <style is:global>
   .cat-pdp{inline-size:min(100% - 2 * var(--gutter), var(--container-max));margin-inline:auto;padding-block:var(--space-2) var(--section-block);timeline-scope:--cat-order}
   .cat-pdp-crumbs{margin-block-end:var(--space-3)}
-  .cat-dev-slot{margin:0;padding:var(--space-4);border:1px dashed var(--color-warning);border-radius:var(--radius-md);color:var(--color-warning);font-size:var(--fs-small)}
   .cat-pdp-top{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-6)}
   @media (min-width:1024px){
     .cat-pdp-top{grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:var(--space-16);align-items:start}
@@ -123,7 +122,6 @@ const dev = import.meta.env.DEV;
   .cat-pdp-buy{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-6);min-inline-size:0}
   .cat-pdp-head{display:grid;gap:var(--space-2)}
   .cat-pdp-brand{margin:0;color:var(--color-text-secondary);font-size:var(--fs-small);line-height:var(--lh-ui);text-transform:uppercase;letter-spacing:var(--ls-caps)}
-  .cat-pdp-title{margin:0;font-size:var(--fs-h1);font-weight:var(--fw-emphasis);line-height:var(--lh-heading);letter-spacing:var(--ls-display);text-wrap:balance}
   .cat-pdp-ph{margin:0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-warning-surface);color:var(--color-warning);font-size:var(--fs-small)}
   .cat-pdp-summary{margin:0;color:var(--color-text-secondary);font-size:var(--fs-lead);line-height:var(--lh-body);text-wrap:pretty}
   .cat-vp{display:none}
