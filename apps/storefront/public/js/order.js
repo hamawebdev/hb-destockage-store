@@ -113,6 +113,10 @@ function init(f) {
   let qCtrl = null;
   let qTimer = 0;
   let ts = null; // Turnstile module (ORDER-3)
+  // A "total changed" alert must stay until the customer acts (edits a field or presses confirm): a quote arriving
+  // on its own (e.g. the re-quote that follows it) must not clear it (ORDER-2 review r2 F1, lead's rule).
+  let stickyAlert = false;
+  const customerActed = () => (stickyAlert = false);
 
   const readVariant = () => variants.get(Number(el.namedItem('variantId')?.value)) ?? null;
   let variant = readVariant();
@@ -169,17 +173,20 @@ function init(f) {
   f.addEventListener('click', (e) => {
     const b = e.target.closest?.('.of-step');
     if (b) {
+      customerActed();
       qty.value = String((n() || 1) + Number(b.dataset.d));
       changed();
     }
   });
   qty.addEventListener('input', () => {
     clearTimeout(qTimer);
+    customerActed();
     qTimer = setTimeout(changed, 300);
   });
 
   // --- variant (pages' contract: hb:variant on the form; inputs outside <form> carry form="order-form") ----
   f.addEventListener('hb:variant', (e) => {
+    customerActed();
     const x = e.detail;
     variant = x?.variantId ? { id: x.variantId, price: x.priceDzd, max: x.maxQty, ok: !!x.available } : null;
     changed();
@@ -187,6 +194,7 @@ function init(f) {
   D.addEventListener('change', (e) => {
     const t = e.target;
     if (t.form !== f) return;
+    customerActed();
     if (t === wil) loadCommunes();
     if (t.name === 'variantId') variant = readVariant();
     if (t === wil || t === com || t === qty || t.name === 'variantId') changed();
@@ -282,7 +290,8 @@ function init(f) {
     if (d.ok && d.status === 200) {
       quote = { ...d, k };
       setBlocked(!d.available);
-      showAlert(d.available ? '' : msg('delivery_unavailable'), !d.available);
+      if (!d.available) showAlert(msg('delivery_unavailable'), true);
+      else if (!stickyAlert) showAlert('');
       render();
       if (d.available && k === inputs()) say(msg('updated', { total: money(d.totalDzd) })); // never announce a stale total
       return quote;
@@ -295,6 +304,7 @@ function init(f) {
       setErr(qty, d.code);
     } else {
       setBlocked(true);
+      stickyAlert = false; // the failure message replaces it and is not sticky itself
       showAlert(msg('quote_failed'), true);
     }
     return null;
@@ -346,6 +356,7 @@ function init(f) {
       return;
     }
     e.preventDefault();
+    customerActed();
     if (busy) return;
     showAlert('');
     const bad = check();
@@ -426,6 +437,7 @@ function init(f) {
     }
     if (c === 'total_changed') {
       showAlert(msg('total_changed'));
+      stickyAlert = true;
       sumH.focus();
     } else if (c === 'validation') {
       showAlert(countMsg(d.errors?.length || 1));

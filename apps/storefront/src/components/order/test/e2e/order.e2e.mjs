@@ -229,23 +229,40 @@ async function run(browser, lang) {
     assert.equal(a.idempotencyKey, b.idempotencyKey); assert.equal(b.expectedTotalDzd, 15600);
   });
 
-  await t('409 answer while the customer edits qty: stale quote never confirmable (ORDER-2 review r1 F1)', async (p) => {
+  await t('409 answer while the customer edits qty: stale quote never confirmable, alert kept (ORDER-2 r1 F1, r2 F1)', async (p) => {
     mode.orderDelay = 1200; mode.totalChangedOnce = true; // the 409 also moves the server price to 15 000
+    const changedMsg = await p.evaluate(() => document.querySelector('#of-msgs').content.querySelector('[data-k="total_changed"]').textContent);
     await fill(p);
     await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
     await p.click('#of-submit');
     await p.waitForTimeout(300);
     await p.click('.of-step[data-d="1"]'); // qty 2 while the order request is pending
-    await p.waitForFunction(() => document.getElementById('of-alert').textContent.length > 0); // 409 handled
-    // The summary must end on the server's current price for qty 2: 2 × 15 000 + 600 = 30 600, never 15 600 (qty 1).
+    // State, not timing: the re-quote for qty 2 has landed (2 × 15 000 + 600 = 30 600, never 15 600)…
     await p.waitForFunction(() => /30[.\s\u202f]?600/.test(document.getElementById('of-s-total').textContent));
+    // …and the "total changed" alert is still there: a quote arriving on its own does not clear it.
+    assert.equal(await p.textContent('#of-alert'), changedMsg);
     assert.doesNotMatch(await total(p), /15[.\s\u202f]?600/);
+    // The customer's next edit clears it once its quote lands (3 × 15 000 + 600 = 45 600).
+    await p.click('.of-step[data-d="1"]');
+    await p.waitForFunction(() => /45[.\s\u202f]?600/.test(document.getElementById('of-s-total').textContent));
+    assert.equal(await p.textContent('#of-alert'), '');
     await Promise.all([p.waitForURL('**/confirmation/**'), p.click('#of-submit')]);
     const posts = orderPosts().map((r) => JSON.parse(r.body));
     assert.equal(posts.length, 2);
-    assert.deepEqual(posts[1].items, [{ variantId: 12, qty: 2 }]);
-    assert.equal(posts[1].expectedTotalDzd, 30600);
+    assert.deepEqual(posts[1].items, [{ variantId: 12, qty: 3 }]);
+    assert.equal(posts[1].expectedTotalDzd, 45600);
     assert.equal(posts[0].idempotencyKey, posts[1].idempotencyKey);
+  });
+
+  await t('409 total_changed with no edit: alert kept until the confirm press', async (p) => {
+    mode.totalChangedOnce = true;
+    const changedMsg = await p.evaluate(() => document.querySelector('#of-msgs').content.querySelector('[data-k="total_changed"]').textContent);
+    await fill(p);
+    await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
+    await p.click('#of-submit');
+    await p.waitForFunction(() => /15[.\s\u202f]?600/.test(document.getElementById('of-s-total').textContent));
+    assert.equal(await p.textContent('#of-alert'), changedMsg);
+    await Promise.all([p.waitForURL('**/confirmation/**'), p.click('#of-submit')]);
   });
 
   await t('bfcache return (pageshow persisted) rotates the key', async (p) => {
