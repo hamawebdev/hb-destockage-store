@@ -48,6 +48,9 @@ printed in it and the products using it. It is written by `data/catalog/source/b
   is a price of one of that product's variants. `data/catalog/validate.mjs` fails otherwise, so a
   price change that makes a photo stale fails the build until the photos are fixed. Current
   prices: 101 = 14 600, 102 = 13 600, 103 = 16 500.
+- **A photo is real if `manifest.json` lists it**, whatever the `placeholder` flag on its image row
+  says. A real photo's image row may not be `placeholder: true`. Invented (placeholder) products
+  may only show generated placeholders. The price and provenance checks run on every real photo.
 - **BUG-14:** `pack-a-3-en-1-colonne-piano-led/1.jpg` (Pack A and Pack B with paper signs 13 600
   and 14 600) was 101's first image and 102's second. It prints a price each of them doesn't
   sell at, so it is now in no gallery. The file stays here with its provenance. 101 now opens

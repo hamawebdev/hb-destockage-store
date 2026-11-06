@@ -260,6 +260,40 @@ test('BUG-14: a product never shows a photo printing a price it does not sell at
   expectIssue(s, /pack-b-3-en-1-colonne-piano\.json\.images\[0\]: photo .* prints 14600 DZD, but product 102 sells at 13600 DZD/);
 });
 
+test('BUG-14 r1: a real photo is decided by the manifest, not by the placeholder flag', () => {
+  const BAD = { key: 'pack-a-3-en-1-colonne-piano-led/1.jpg', width: 3190, height: 3511, placeholder: true };
+  const putFirst = (p, id) => { p.images.forEach((i) => i.position++); p.images.unshift({ ...structuredClone(p.images[0]), ...BAD, id, position: 1 }); };
+  // rev-c: BUG-14 photo back first on 101, flagged placeholder.
+  let s = seed();
+  putFirst(product(s, 'pack-a-3-en-1-colonne-piano-led'), 1019);
+  expectIssue(s, /pack-a-3-en-1-colonne-piano-led\.json\.images\[0\]: pack-a-3-en-1-colonne-piano-led\/1\.jpg is a real photo .*placeholder: true is not allowed/);
+  expectIssue(s, /pack-a-3-en-1-colonne-piano-led\.json\.images\[0\]: photo .*\/1\.jpg prints 13600 DZD, but product 101 sells at 14600 DZD/);
+  expectIssue(s, /provenance\.json: real image 1019 .* has no provenance entry/);
+  // rev-c: invented product 201 shows it last, and first.
+  s = seed();
+  const e = product(s, 'ecouteurs-sans-fil');
+  e.images.push({ ...structuredClone(e.images[0]), ...BAD, id: 2019, position: 9 });
+  expectIssue(s, /ecouteurs-sans-fil\.json\.images\[4\]: invented product 201 may not use the real photo pack-a-3-en-1-colonne-piano-led\/1\.jpg/);
+  expectIssue(s, /ecouteurs-sans-fil\.json\.images\[4\]: photo .*\/1\.jpg prints 13600 \/ 14600 DZD, but product 201 sells at 3900 DZD/);
+  s = seed();
+  putFirst(product(s, 'ecouteurs-sans-fil'), 2019);
+  expectIssue(s, /ecouteurs-sans-fil\.json\.images\[0\]: invented product 201 may not use the real photo/);
+  // rev-d case A: invented product 204's first image swapped for the BUG-14 photo.
+  s = seed();
+  Object.assign(product(s, 'cable-usb-c-usb-c').images[0], BAD);
+  expectIssue(s, /cable-usb-c-usb-c\.json\.images\[0\]: invented product 204 may not use the real photo/);
+  expectIssue(s, /cable-usb-c-usb-c\.json\.images\[0\]: photo .* prints 13600 \/ 14600 DZD, but product 204 sells at 600 \/ 800 DZD/);
+  // rev-d case B: the BUG-14 photo back as real product 102's first image, flagged placeholder.
+  s = seed();
+  putFirst(product(s, 'pack-b-3-en-1-colonne-piano'), 1029);
+  expectIssue(s, /pack-b-3-en-1-colonne-piano\.json\.images\[0\]: .*placeholder: true is not allowed/);
+  expectIssue(s, /pack-b-3-en-1-colonne-piano\.json\.images\[0\]: photo .*\/1\.jpg prints 14600 DZD, but product 102 sells at 13600 DZD/);
+  // A real photo mis-flagged placeholder on its own product is refused even when its price is right.
+  s = seed();
+  product(s, 'pack-luxe-4-en-1').images[0].placeholder = true;
+  expectIssue(s, /pack-luxe-4-en-1\.json\.images\[0\]: pack-luxe-4-en-1\/1\.jpg is a real photo .*placeholder: true is not allowed/);
+});
+
 test('every real photo is in data/photos/manifest.json with printedPrices', () => {
   let s = seed();
   s.photoManifest.photos = s.photoManifest.photos.filter((x) => x.key !== 'pack-luxe-4-en-1/1.jpg');

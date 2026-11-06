@@ -20,7 +20,9 @@
 //     no "[PLACEHOLDER]" text anywhere on an entity marked placeholder: false; the README id scheme;
 //     home products are active; provenance.json entries exist and cover every real image
 //     (supplier renders flagged needsClientConfirmation); every real photo is listed in
-//     data/photos/manifest.json with printedPrices, and a product may only use a real photo whose
+//     data/photos/manifest.json with printedPrices. A photo is real iff the manifest lists its key
+//     (whatever its placeholder flag): real photos may not be flagged placeholder, invented
+//     products may not use them, they need provenance, and a product may only use one whose
 //     printed prices are all prices of its own variants (BUG-14).
 // Used by `db` (seed loader, before loading D1) and `pagedata` (fromSeed, before the build).
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -201,10 +203,14 @@ export function validateLoadedSeed(seed) {
     }
     for (const img of p.images) if (!child(img.id, p.id, 10)) add(`${at}.images`, `image id ${img.id} must be ${p.id}×10 + n`);
 
-    // Invented products have invented photos (a real component with a placeholder price may show a
-    // real photo).
-    if (!isReal) p.images.forEach((img, j) => {
-      if (!img.placeholder) add(`${at}.images[${j}]`, 'image of an invented product must be placeholder: true');
+    // A photo is *real* iff data/photos/manifest.json lists its key (BUG-14 r1): the hand-set
+    // `placeholder` flag must agree with that, never decide it. Invented products show only
+    // generated placeholders (a real component with a placeholder price may show a real photo).
+    p.images.forEach((img, j) => {
+      const real = photoByKey.has(img.key);
+      if (real && img.placeholder) add(`${at}.images[${j}]`, `${img.key} is a real photo (data/photos/manifest.json): placeholder: true is not allowed`);
+      if (!isReal && real) add(`${at}.images[${j}]`, `invented product ${p.id} may not use the real photo ${img.key}`);
+      if (!isReal && !img.placeholder) add(`${at}.images[${j}]`, 'image of an invented product must be placeholder: true');
     });
 
     // Images: keys, files, sizes.
@@ -228,9 +234,13 @@ export function validateLoadedSeed(seed) {
     // in any gallery position — a stale or foreign price misleads wherever it appears.
     const prices = new Set(p.variants.map((x) => x.priceDzd));
     p.images.forEach((img, j) => {
-      if (img.placeholder) return; // generated placeholders print no price
       const entry = photoByKey.get(img.key);
-      if (!entry) return add(`${at}.images[${j}]`, `real photo ${img.key} has no data/photos/manifest.json entry (printedPrices)`);
+      if (!entry) {
+        // Not a real photo: it must be a generated placeholder (they print no price).
+        if (!img.placeholder) add(`${at}.images[${j}]`, `real photo ${img.key} has no data/photos/manifest.json entry (printedPrices)`);
+        return;
+      }
+      // Checked whatever the image's placeholder flag says.
       const wrong = entry.printedPrices.filter((x) => !prices.has(x));
       if (wrong.length) {
         add(`${at}.images[${j}]`, `photo ${img.key} prints ${wrong.join(' / ')} DZD, but product ${p.id} sells at ${[...prices].join(' / ')} DZD`);
@@ -267,7 +277,9 @@ export function validateLoadedSeed(seed) {
       if (x.source === 'supplier_render' && x.needsClientConfirmation !== true) add('provenance.json', `image ${x.imageId}: supplier_render needs needsClientConfirmation: true`);
     }
     for (const [id, img] of imageById) {
-      if (!img.placeholder && !provImages.has(id)) add('provenance.json', `real image ${id} (${img.key}) has no provenance entry`);
+      // Real = manifest key or flagged real, whatever the flag says (BUG-14 r1).
+      const real = photoByKey.has(img.key) || !img.placeholder;
+      if (real && !provImages.has(id)) add('provenance.json', `real image ${id} (${img.key}) has no provenance entry`);
     }
   }
 
