@@ -13,16 +13,16 @@ def L(ar, fr): return {'ar': ar, 'fr': fr}
 # All categories are ours (the client only had "Non classé"), hence placeholder: True.
 categories = [
     dict(id=1, parentId=None, slug=L('al-hammam', 'salle-de-bain'), name=L('الحمّام', 'Salle de bain'),
-         description=L('كل ما يلزم لحمّام عصري: أطقم الاستحمام والخلّاطات والحنفيات.',
-                       'Tout pour une salle de bain moderne : packs de douche, mitigeurs et robinetterie.'),
+         description=L('[PLACEHOLDER] كل ما يلزم لحمّام عصري: أطقم الاستحمام والخلّاطات والحنفيات.',
+                       '[PLACEHOLDER] Tout pour une salle de bain moderne : packs de douche, mitigeurs et robinetterie.'),
          sort=10, active=True, placeholder=True, translationPlaceholder=['ar', 'fr']),
     dict(id=11, parentId=1, slug=L('atqum-al-hammam', 'packs-salle-de-bain'), name=L('أطقم الحمّام', 'Packs salle de bain'),
-         description=L('أطقم كاملة: عمود استحمام وخلّاط مغسلة وحنفية مرحاض بسعر واحد.',
-                       'Packs complets : colonne de douche, mitigeur de lavabo et robinet de toilette à prix unique.'),
+         description=L('[PLACEHOLDER] أطقم كاملة: عمود استحمام وخلّاط مغسلة وحنفية مرحاض بسعر واحد.',
+                       '[PLACEHOLDER] Packs complets : colonne de douche, mitigeur de lavabo et robinet de toilette à prix unique.'),
          sort=10, active=True, placeholder=True, translationPlaceholder=['ar', 'fr']),
     dict(id=12, parentId=1, slug=L('al-hanafiyat', 'robinetterie'), name=L('الحنفيات والخلّاطات', 'Robinetterie'),
-         description=L('القطع الموجودة في الأطقم. غير معروضة للبيع منفردة حاليًا.',
-                       'Les pièces contenues dans les packs. Pas encore vendues à l’unité.'),
+         description=L('[PLACEHOLDER] القطع الموجودة في الأطقم. غير معروضة للبيع منفردة حاليًا.',
+                       '[PLACEHOLDER] Les pièces contenues dans les packs. Pas encore vendues à l’unité.'),
          sort=20, active=False, placeholder=True, translationPlaceholder=['ar', 'fr']),
 ]
 
@@ -206,6 +206,7 @@ prov = dict(
   source='https://hbdestockagedz.com/', fetchedAt=FETCH, rawDump='data/catalog/source/',
   decision='De-duplicated 5 WooCommerce products into 3 packs (lead, 2026-11-04); pending client confirmation.',
   wcProducts=WC,
+  categories=[],  # categoryId entries for categories that are the client's (none: the site only had "Non classé")
   products=[dict(productId=k, needsClientConfirmation=(k == 102), **v) for k, v in sorted(PROV.items())],
   imagesNote='source: client_own = the client\'s own photograph (iPhone EXIF); supplier_render = Instagram screenshot of a collage of product renders, rights to be confirmed by the client. burnedInPrice = price printed in the image (stale if the price changes). Unreferenced files: data/photos/_unreferenced/ (see data/photos/README.md).',
   images=IMG_PROV)

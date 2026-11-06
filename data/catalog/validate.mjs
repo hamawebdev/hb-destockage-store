@@ -14,10 +14,12 @@
 //  2. Seed-only rules below: product file named after its French slug; exactly one default variant
 //     overall; every image key is a lowercase relative path to an existing JPEG/PNG ≤ 3 MB whose real
 //     size matches width/height; no key twice per product; unique image positions; placeholder
-//     marking (a product not listed in provenance.json is invented: placeholder: true and all its
-//     images placeholder; "[PLACEHOLDER]" in placeholder descriptions); home products are active;
-//     provenance.json entries exist and cover every real image (supplier renders flagged
-//     needsClientConfirmation).
+//     marking — a category or product not listed in provenance.json is ours: placeholder: true
+//     (a category also whenever it holds a placeholder product), "[PLACEHOLDER]" in the description
+//     of every placeholder category and product, all images of an invented product placeholder, and
+//     no "[PLACEHOLDER]" text anywhere on an entity marked placeholder: false; the README id scheme;
+//     home products are active; provenance.json entries exist and cover every real image
+//     (supplier renders flagged needsClientConfirmation).
 // Used by `db` (seed loader, before loading D1) and `pagedata` (fromSeed, before the build).
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -103,9 +105,39 @@ export function validateLoadedSeed(seed) {
   // CAT-1 integrity.
   for (const i of checkSnapshotIntegrity(parsed.output, { requireAllWilayas: false })) add(where(i.path), i.message);
 
-  // A product is *real* (the client's) iff provenance.json lists it; everything else is invented.
-  // Categories are all ours (the client had only "Non classé"), so they say nothing about realness.
+  // An entity is *real* (the client's) iff provenance.json lists it; everything else is ours and
+  // must be marked. Today provenance lists no category (the client only had "Non classé").
   const provProducts = new Set((seed.provenance?.products ?? []).map((x) => x.productId));
+  const provCategories = new Set((seed.provenance?.categories ?? []).map((x) => x.categoryId));
+  const tagged = (loc) => loc != null && (loc.ar.includes(PLACEHOLDER_TAG) || loc.fr.includes(PLACEHOLDER_TAG));
+
+  // 2a. Categories: placeholder marking and the id scheme.
+
+  const placeholderProductsByCat = new Map();
+  for (const { product: p } of seed.products) {
+    if (p.placeholder || !provProducts.has(p.id)) {
+      placeholderProductsByCat.set(p.categoryId, [...(placeholderProductsByCat.get(p.categoryId) ?? []), p.id]);
+    }
+  }
+  seed.categories.forEach((c, i) => {
+    const at = `categories.json[${i}](id ${c.id})`;
+    if (!provCategories.has(c.id) && !c.placeholder) {
+      add(at, `category ${c.id} is not in provenance.json, so it is ours and must be placeholder: true`);
+    }
+    const holds = placeholderProductsByCat.get(c.id);
+    if (holds && !c.placeholder) add(at, `holds placeholder/invented product(s) ${holds.join(', ')} but is placeholder: false`);
+    if (c.placeholder) {
+      for (const lang of ['ar', 'fr']) {
+        if (!c.description?.[lang]?.includes(PLACEHOLDER_TAG)) add(`${at}.description.${lang}`, `placeholder category: description must contain "${PLACEHOLDER_TAG}"`);
+      }
+    } else if (tagged(c.name) || tagged(c.description)) {
+      add(at, `placeholder: false but its text contains "${PLACEHOLDER_TAG}"`);
+    }
+    // Ids (README "Ids"): top level 1–9, child = parent×10 + n.
+    if (c.parentId === null ? !(c.id >= 1 && c.id <= 9) : !(Math.floor(c.id / 10) === c.parentId && c.id % 10 >= 1)) {
+      add(`${at}.id`, c.parentId === null ? 'top-level category id must be 1–9' : `child category id must be parent×10 + n (parent ${c.parentId})`);
+    }
+  });
 
   // 2b. Products.
   for (const { file, product: p } of seed.products) {
@@ -124,6 +156,27 @@ export function validateLoadedSeed(seed) {
         if (!p.description[lang].includes(PLACEHOLDER_TAG)) add(`${at}.description.${lang}`, `placeholder product: description must contain "${PLACEHOLDER_TAG}"`);
       }
     }
+    if (!p.placeholder) {
+      const texts = [p.name, p.summary, p.description, ...p.options.flatMap((o) => [o.name, ...o.values.map((x) => x.value)])];
+      if (texts.some(tagged)) add(at, `placeholder: false but its text contains "${PLACEHOLDER_TAG}"`);
+    }
+    p.images.forEach((img, j) => {
+      if (!img.placeholder && tagged(img.alt)) add(`${at}.images[${j}]`, `placeholder: false but its alt contains "${PLACEHOLDER_TAG}"`);
+    });
+
+    // Ids (README "Ids"): real products 101–199, invented 201–999; variant = product×100 + n;
+    // option = product×10 + n; option value = option×100 + n; image = product×10 + n.
+    const child = (id, parent, k) => Math.floor(id / k) === parent && id % k >= 1;
+    if (isReal ? !(p.id >= 101 && p.id <= 199) : !(p.id >= 201 && p.id <= 999)) {
+      add(`${at}.id`, isReal ? 'real product id must be 101–199' : 'invented product id must be 201–999');
+    }
+    for (const x of p.variants) if (!child(x.id, p.id, 100)) add(`${at}.variants`, `variant id ${x.id} must be ${p.id}×100 + n`);
+    for (const o of p.options) {
+      if (!child(o.id, p.id, 10)) add(`${at}.options`, `option id ${o.id} must be ${p.id}×10 + n`);
+      for (const x of o.values) if (!child(x.id, o.id, 100)) add(`${at}.options`, `option value id ${x.id} must be ${o.id}×100 + n`);
+    }
+    for (const img of p.images) if (!child(img.id, p.id, 10)) add(`${at}.images`, `image id ${img.id} must be ${p.id}×10 + n`);
+
     // Invented products have invented photos (a real component with a placeholder price may show a
     // real photo).
     if (!isReal) p.images.forEach((img, j) => {
@@ -165,6 +218,8 @@ export function validateLoadedSeed(seed) {
     add('provenance.json', 'missing');
   } else {
     for (const x of prov.products ?? []) if (!productById.has(x.productId)) add('provenance.json', `product ${x.productId} does not exist`);
+    const categoryIds = new Set(seed.categories.map((c) => c.id));
+    for (const x of prov.categories ?? []) if (!categoryIds.has(x.categoryId)) add('provenance.json', `category ${x.categoryId} does not exist`);
     const imageById = new Map();
     for (const { product } of seed.products) for (const img of product.images) imageById.set(img.id, img);
     const provImages = new Map((prov.images ?? []).map((x) => [x.imageId, x]));

@@ -18,8 +18,10 @@ NOTE = L('[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر و
 
 # ---------------------------------------------------------------- categories
 def cat(id, parent, slug_ar, slug_fr, ar, fr, sort, d_ar=None, d_fr=None):
+    if not d_ar:  # sub-categories: a generic tagged description
+        d_ar, d_fr = f'[PLACEHOLDER] قسم فرعي تجريبي: {ar}.', f'[PLACEHOLDER] Sous-rayon de démonstration : {fr}.'
     return dict(id=id, parentId=parent, slug=L(slug_ar, slug_fr), name=L(ar, fr),
-                description=L(d_ar, d_fr) if d_ar else None, sort=sort, active=True, placeholder=True,
+                description=L(d_ar, d_fr), sort=sort, active=True, placeholder=True,
                 translationPlaceholder=TP)
 
 CATS = [

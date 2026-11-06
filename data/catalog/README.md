@@ -25,7 +25,7 @@ Wilayas come from `data/geo/` and content pages from `data/content/`. They are n
 | option value | `option×100 + n` | 111101 |
 | image | `product×10 + n` (≤ 9 images per product) | 1011 |
 
-Each id space is its own D1 table, so equal numbers in different tables do not collide.
+Each id space is its own D1 table, so equal numbers in different tables do not collide. `validate.mjs` enforces this scheme.
 
 Array order matters for `variants` and `packItems`, which have no position field.
 
@@ -34,9 +34,12 @@ Array order matters for `variants` and `packItems`, which have no position field
 - `placeholder: true` means invented content: a product, category or image the client never
   published, or a real component whose **price** we invented. Text placeholders inside a
   real description are also tagged `[PLACEHOLDER]`.
-- **Every category is `placeholder: true`**, including Salle de bain › Packs salle de bain /
-  Robinetterie, because the client's site has a single "Non classé" category. The category tree
-  and its names are our proposal.
+- **Every category is `placeholder: true`** and its description starts with `[PLACEHOLDER]`.
+  That includes Salle de bain › Packs salle de bain / Robinetterie: the client's site has a single
+  "Non classé" category, so the category tree and its names are our proposal. A category becomes
+  real only when `provenance.json` → `categories` lists it (empty today). Even then it stays a
+  placeholder while it holds a placeholder product. Nothing marked `placeholder: false` may contain
+  `[PLACEHOLDER]` text.
 - A product is **real** if, and only if, `provenance.json` → `products` lists it. Any other
   product is invented, so it must be `placeholder: true` and so must all its images. The validator
   enforces this.

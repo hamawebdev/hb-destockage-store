@@ -11,8 +11,8 @@
       "fr": "Salle de bain"
     },
     "description": {
-      "ar": "كل ما يلزم لحمّام عصري: أطقم الاستحمام والخلّاطات والحنفيات.",
-      "fr": "Tout pour une salle de bain moderne : packs de douche, mitigeurs et robinetterie."
+      "ar": "[PLACEHOLDER] كل ما يلزم لحمّام عصري: أطقم الاستحمام والخلّاطات والحنفيات.",
+      "fr": "[PLACEHOLDER] Tout pour une salle de bain moderne : packs de douche, mitigeurs et robinetterie."
     },
     "sort": 10,
     "active": true,
@@ -34,8 +34,8 @@
       "fr": "Packs salle de bain"
     },
     "description": {
-      "ar": "أطقم كاملة: عمود استحمام وخلّاط مغسلة وحنفية مرحاض بسعر واحد.",
-      "fr": "Packs complets : colonne de douche, mitigeur de lavabo et robinet de toilette à prix unique."
+      "ar": "[PLACEHOLDER] أطقم كاملة: عمود استحمام وخلّاط مغسلة وحنفية مرحاض بسعر واحد.",
+      "fr": "[PLACEHOLDER] Packs complets : colonne de douche, mitigeur de lavabo et robinet de toilette à prix unique."
     },
     "sort": 10,
     "active": true,
@@ -57,8 +57,8 @@
       "fr": "Robinetterie"
     },
     "description": {
-      "ar": "القطع الموجودة في الأطقم. غير معروضة للبيع منفردة حاليًا.",
-      "fr": "Les pièces contenues dans les packs. Pas encore vendues à l’unité."
+      "ar": "[PLACEHOLDER] القطع الموجودة في الأطقم. غير معروضة للبيع منفردة حاليًا.",
+      "fr": "[PLACEHOLDER] Les pièces contenues dans les packs. Pas encore vendues à l’unité."
     },
     "sort": 20,
     "active": false,
@@ -102,7 +102,10 @@
       "ar": "الهواتف وملحقاتها",
       "fr": "Téléphonie"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الهواتف وملحقاتها.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Téléphonie."
+    },
     "sort": 10,
     "active": true,
     "placeholder": true,
@@ -122,7 +125,10 @@
       "ar": "الشواحن والكوابل",
       "fr": "Chargeurs & câbles"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الشواحن والكوابل.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Chargeurs & câbles."
+    },
     "sort": 10,
     "active": true,
     "placeholder": true,
@@ -142,7 +148,10 @@
       "ar": "الأغطية والحماية",
       "fr": "Coques & protections"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الأغطية والحماية.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Coques & protections."
+    },
     "sort": 20,
     "active": true,
     "placeholder": true,
@@ -162,7 +171,10 @@
       "ar": "الصوتيات",
       "fr": "Audio"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الصوتيات.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Audio."
+    },
     "sort": 20,
     "active": true,
     "placeholder": true,
@@ -205,7 +217,10 @@
       "ar": "رجال",
       "fr": "Homme"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: رجال.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Homme."
+    },
     "sort": 10,
     "active": true,
     "placeholder": true,
@@ -225,7 +240,10 @@
       "ar": "نساء",
       "fr": "Femme"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: نساء.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Femme."
+    },
     "sort": 20,
     "active": true,
     "placeholder": true,
@@ -245,7 +263,10 @@
       "ar": "أحذية",
       "fr": "Chaussures"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: أحذية.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Chaussures."
+    },
     "sort": 30,
     "active": true,
     "placeholder": true,
@@ -288,7 +309,10 @@
       "ar": "العناية بالوجه",
       "fr": "Soins du visage"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: العناية بالوجه.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Soins du visage."
+    },
     "sort": 10,
     "active": true,
     "placeholder": true,
@@ -308,7 +332,10 @@
       "ar": "العناية بالشعر",
       "fr": "Soins des cheveux"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: العناية بالشعر.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Soins des cheveux."
+    },
     "sort": 20,
     "active": true,
     "placeholder": true,
@@ -328,7 +355,10 @@
       "ar": "العلب والأطقم",
       "fr": "Coffrets"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: العلب والأطقم.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Coffrets."
+    },
     "sort": 30,
     "active": true,
     "placeholder": true,
@@ -371,7 +401,10 @@
       "ar": "ألعاب التركيب",
       "fr": "Jeux de construction"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: ألعاب التركيب.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Jeux de construction."
+    },
     "sort": 10,
     "active": true,
     "placeholder": true,
@@ -391,7 +424,10 @@
       "ar": "الدمى المحشوّة",
       "fr": "Peluches"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الدمى المحشوّة.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Peluches."
+    },
     "sort": 20,
     "active": true,
     "placeholder": true,
@@ -411,7 +447,10 @@
       "ar": "المركبات",
       "fr": "Véhicules"
     },
-    "description": null,
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: المركبات.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Véhicules."
+    },
     "sort": 30,
     "active": true,
     "placeholder": true,

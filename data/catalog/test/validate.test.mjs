@@ -106,6 +106,91 @@ test('placeholders are marked', () => {
   expectIssue(s, /huile-argan\.json: product 215 is not in provenance\.json, so it is invented and must be placeholder: true/);
 });
 
+const category = (s, id) => s.categories.find((c) => c.id === id);
+const claim = (s, id) => (s.provenance.categories = [...(s.provenance.categories ?? []), { categoryId: id }]);
+
+test('every category of ours is placeholder: true (F1)', () => {
+  let s = seed();
+  category(s, 2).placeholder = false; // top level
+  expectIssue(s, /\(id 2\): category 2 is not in provenance\.json, so it is ours and must be placeholder: true/);
+  s = seed();
+  category(s, 21).placeholder = false; // child
+  expectIssue(s, /\(id 21\): category 21 is not in provenance\.json/);
+  s = seed();
+  category(s, 11).placeholder = false; // holds the real packs, still ours
+  expectIssue(s, /\(id 11\): category 11 is not in provenance\.json/);
+  s = seed();
+  for (const c of s.categories) c.placeholder = false; // all of them
+  assert.equal(messages(s).filter((m) => /must be placeholder: true/.test(m) && m.startsWith('categories.json')).length, s.categories.length);
+});
+
+test('a category holding a placeholder product is placeholder: true, even if claimed as the client\'s', () => {
+  const s = seed();
+  claim(s, 22);
+  category(s, 22).placeholder = false;
+  for (const lang of ['ar', 'fr']) category(s, 22).description[lang] = category(s, 22).description[lang].replace('[PLACEHOLDER] ', '');
+  const m = messages(s);
+  assert.ok(m.some((x) => /\(id 22\): holds placeholder\/invented product\(s\) 201, 202 but is placeholder: false/.test(x)), m.join('\n'));
+  assert.ok(!m.some((x) => /\(id 22\): category 22 is not in provenance/.test(x)), 'claimed category is not "ours"');
+  // A claimed category holding only real products may be unmarked: no issue for 11 alone.
+  const t = seed();
+  claim(t, 11);
+  category(t, 11).placeholder = false;
+  for (const lang of ['ar', 'fr']) category(t, 11).description[lang] = category(t, 11).description[lang].replace('[PLACEHOLDER] ', '');
+  assert.deepEqual(messages(t).filter((x) => x.includes('(id 11)')), []);
+});
+
+test('placeholder categories carry [PLACEHOLDER] copy', () => {
+  let s = seed();
+  category(s, 22).description.fr = 'Audio.';
+  expectIssue(s, /\(id 22\)\.description\.fr: placeholder category: description must contain "\[PLACEHOLDER\]"/);
+  s = seed();
+  category(s, 1).description = null;
+  expectIssue(s, /\(id 1\)\.description\.ar: placeholder category: description must contain/);
+});
+
+test('no [PLACEHOLDER] text on anything marked placeholder: false', () => {
+  let s = seed();
+  claim(s, 11);
+  category(s, 11).placeholder = false; // description still says [PLACEHOLDER]
+  expectIssue(s, /\(id 11\): placeholder: false but its text contains "\[PLACEHOLDER\]"/);
+  s = seed();
+  product(s, 'pack-luxe-4-en-1').summary.fr += ' [PLACEHOLDER]';
+  expectIssue(s, /pack-luxe-4-en-1\.json: placeholder: false but its text contains "\[PLACEHOLDER\]"/);
+  s = seed();
+  product(s, 'pack-luxe-4-en-1').images[0].alt.ar = '[PLACEHOLDER] ' + product(s, 'pack-luxe-4-en-1').images[0].alt.ar;
+  expectIssue(s, /pack-luxe-4-en-1\.json\.images\[0\]: placeholder: false but its alt contains/);
+  s = seed();
+  claim(s, 99);
+  expectIssue(s, /provenance\.json: category 99 does not exist/);
+});
+
+test('ids follow the README scheme', () => {
+  let s = seed();
+  product(s, 'puzzle-500-pieces').variants[0].id = 99901;
+  expectIssue(s, /puzzle-500-pieces\.json\.variants: variant id 99901 must be 218×100 \+ n/);
+  s = seed();
+  product(s, 'peluche-ourson').options[0].values[0].id = 219999;
+  expectIssue(s, /peluche-ourson\.json\.options: option value id 219999 must be 2191×100 \+ n/);
+  s = seed();
+  product(s, 'peluche-ourson').options[0].id = 2290;
+  expectIssue(s, /option id 2290 must be 219×10 \+ n/);
+  s = seed();
+  product(s, 'huile-argan').images[0].id = 2150;
+  expectIssue(s, /huile-argan\.json\.images: image id 2150 must be 215×10 \+ n/);
+  s = seed();
+  category(s, 211).id = 220;
+  expectIssue(s, /\(id 220\)\.id: child category id must be parent×10 \+ n \(parent 21\)/);
+  s = seed();
+  category(s, 5).id = 10;
+  expectIssue(s, /\(id 10\)\.id: top-level category id must be 1–9/);
+  s = seed();
+  const real = product(s, 'pack-luxe-4-en-1');
+  s.provenance.products.find((x) => x.productId === 103).productId = 250;
+  real.id = 250;
+  expectIssue(s, /pack-luxe-4-en-1\.json\.id: real product id must be 101–199/);
+});
+
 test('real products and real images have provenance', () => {
   let s = seed();
   s.provenance.products = s.provenance.products.filter((x) => x.productId !== 103);
