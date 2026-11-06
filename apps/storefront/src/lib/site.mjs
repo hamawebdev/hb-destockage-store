@@ -1,5 +1,6 @@
-// The single absolute origin (no trailing slash) for canonical/hreflang/og and pagedata's sitemap.
-// HB_SITE_ORIGIN; unset is allowed only with HB_SNAPSHOT=fixture (src/lib/build-env.mjs siteOrigin).
-import { siteOrigin } from './build-env.mjs';
+// The single absolute origin (no trailing slash) for canonical/hreflang/og and pagedata's
+// sitemap/robots: @hb/catalog's siteOriginFromEnv (HB_SITE_ORIGIN; unset only with
+// HB_SNAPSHOT=fixture → https://hbdestockage.example). One implementation for both layers.
+import { siteOriginFromEnv } from '@hb/catalog/sources';
 
-export const SITE_ORIGIN = siteOrigin(process.env);
+export const SITE_ORIGIN = siteOriginFromEnv(process.env);

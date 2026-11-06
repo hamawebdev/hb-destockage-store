@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Which element is the LCP? Serves dist/, loads each path at 360, 412 (Lighthouse mobile),
 // 768 and 1440 px in Chrome, and records the last `largest-contentful-paint` entry's element
-// (tag, id, class, text/src). Also lists every <img loading="lazy"> intersecting the first viewport:
-// a lazy image above the fold can become a late LCP, so it is a failure.
+// (tag, id, class, text/src). Fails when the LCP element is a lazy image (it must be eager +
+// fetchpriority=high). Lazy non-LCP images inside the first viewport are listed for information
+// only: by the lead's BUG-17 ruling every non-LCP image stays loading="lazy", even above the fold.
 // Usage: node apps/storefront/scripts/lcp-element.mjs [--dist dir] [--port 4153] [--out dir] [--expect "#hm-title"] path…
 // --expect <selector>: fail unless the LCP element matches it at every width.
 // Exit 0 ok, 1 violation, 2 setup error. Run under /tmp/hb-locks/heavy.sh. Owner: shell.
@@ -74,12 +75,13 @@ try {
             return b.width > 0 && b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth;
           })
           .map((i) => ({ src: i.getAttribute('src'), top: Math.round(i.getBoundingClientRect().top) }));
-        return { lcp: describe(el), size: last?.size ?? 0, renderTime: Math.round(last?.renderTime || last?.loadTime || 0), matches: sel && el ? el.matches(sel) : null, lazyAbove };
+        const lcpLazy = !!el && el.tagName === 'IMG' && el.getAttribute('loading') === 'lazy';
+        return { lcp: describe(el), size: last?.size ?? 0, renderTime: Math.round(last?.renderTime || last?.loadTime || 0), matches: sel && el ? el.matches(sel) : null, lazyAbove, lcpLazy };
       }, expect);
       rows.push({ width: w, path: p, ...r });
-      const bad = r.lazyAbove.length > 0 || (expect && !r.matches);
+      const bad = r.lcpLazy || (expect && !r.matches);
       if (bad) fails++;
-      console.log(`${bad ? 'FAIL' : 'ok  '} ${String(w).padStart(4)}px ${p}  LCP=<${r.lcp?.tag}${r.lcp?.id ? '#' + r.lcp.id : ''}${r.lcp?.cls ? '.' + r.lcp.cls.split(' ').join('.') : ''}> "${r.lcp?.text ?? ''}" size=${r.size}${r.lazyAbove.length ? `  lazy-in-viewport=${r.lazyAbove.length}` : ''}`);
+      console.log(`${bad ? 'FAIL' : 'ok  '} ${String(w).padStart(4)}px ${p}  LCP=<${r.lcp?.tag}${r.lcp?.id ? '#' + r.lcp.id : ''}${r.lcp?.cls ? '.' + r.lcp.cls.split(' ').join('.') : ''}> "${r.lcp?.text ?? ''}" size=${r.size}${r.lcpLazy ? '  LCP IS LAZY' : ''}${r.lazyAbove.length ? `  (info: ${r.lazyAbove.length} lazy non-LCP image(s) in viewport)` : ''}`);
     }
     await ctx.close();
   }

@@ -39,3 +39,17 @@ describe('siteOrigin', () => {
     expect(() => siteOrigin({ HB_SITE_ORIGIN: 'https://shop.example.dz/fr' })).toThrow(/must be/);
   });
 });
+
+describe('siteOrigin matches @hb/catalog siteOriginFromEnv', async () => {
+  const { siteOriginFromEnv } = await import('@hb/catalog/sources');
+  const cases: Record<string, string>[] = [
+    { HB_SNAPSHOT: 'fixture' },
+    { HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'https://shop.example.dz/' },
+    { HB_SITE_ORIGIN: 'http://localhost:4150' },
+  ];
+  test.each(cases)('%o', (env) => expect(siteOrigin(env)).toBe(siteOriginFromEnv(env)));
+  test('both refuse an unset origin outside the fixture', () => {
+    expect(() => siteOrigin({ HB_SNAPSHOT: 'seed' })).toThrow();
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed' })).toThrow();
+  });
+});

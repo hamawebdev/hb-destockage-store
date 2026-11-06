@@ -41,7 +41,8 @@ export const FIXTURE_ORIGIN = 'https://hbdestockage.example';
  * The single site origin (canonical, hreflang, og:url, og:image, and pagedata's sitemap/robots):
  * HB_SITE_ORIGIN, normalised (trailing slashes dropped), https://host[:port] or http://localhost[:port].
  * Unset: FIXTURE_ORIGIN for HB_SNAPSHOT=fixture, otherwise the build fails (lead ruling on CAT-6).
- * Same rule as @hb/catalog/sources siteOriginFromEnv; switch to it once it is on this branch.
+ * Mirror of @hb/catalog/sources siteOriginFromEnv, which src/lib/site.mjs uses; kept for the unit
+ * tests that pin the rule (test/build-env.test.ts) and must stay identical to it.
  * @param {Readonly<Record<string, string | undefined>>} env
  * @returns {string}
  */

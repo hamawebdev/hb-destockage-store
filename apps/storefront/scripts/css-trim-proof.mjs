@@ -98,7 +98,8 @@ try {
       }
       console.log(`${!sameSize || changed ? 'FAIL' : 'ok  '} ${String(width).padStart(4)}px ${key.padEnd(22)} ${url}  changed px: ${sameSize ? changed : `size ${row.size} vs ${row.sizeB}`}`);
       if (width === 360) {
-        const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
+        // axe's default rule set (incl. best-practice), no tag filter: the lead's definition of "zero axe violations".
+        const r = await new AxeBuilder({ page }).analyze();
         report.axe.push({ key, url, violations: r.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })) });
         if (r.violations.length) {
           fail++;
