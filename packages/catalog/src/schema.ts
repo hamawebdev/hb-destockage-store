@@ -383,6 +383,15 @@ export type SnapshotResult =
   | { readonly ok: true; readonly snapshot: CatalogSnapshot }
   | { readonly ok: false; readonly issues: readonly SnapshotIssue[] };
 
+/**
+ * Structure only (the Valibot schema, no cross-references). For callers that assemble a partial
+ * snapshot themselves (seed's validate.mjs) without importing Valibot. Empty array = valid.
+ */
+export function checkSnapshotStructure(input: unknown): SnapshotIssue[] {
+  const parsed = v.safeParse(CatalogSnapshotSchema, input);
+  return parsed.success ? [] : parsed.issues.map((i) => ({ path: v.getDotPath(i) ?? '', message: i.message }));
+}
+
 /** Structure + integrity. Never throws. */
 export function validateSnapshot(input: unknown, opts: IntegrityOptions = {}): SnapshotResult {
   const parsed = v.safeParse(CatalogSnapshotSchema, input);
