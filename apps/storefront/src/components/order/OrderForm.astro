@@ -130,7 +130,12 @@ const { t, summary: s } = m;
   .of-fields { border: 0; margin: 0; padding: 0; min-inline-size: 0; display: grid; gap: var(--space-5); }
   .of-fields p { margin: 0; }
   .of-hp { display: none; }
-  .of .error:empty, .of-alert:empty, .of-status:empty, .of-ts:empty { display: none; }
+  .of .error:empty, .of-ts:empty { display: none; }
+  /* Live regions stay in the accessibility tree while empty (a region that is display:none when text arrives is
+     often not announced): visually hidden instead, out of the grid flow. ORDER-5. */
+  .of-alert:empty, .of-status:empty {
+    position: absolute; inline-size: 1px; block-size: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
   .of .error::before { content: "!"; flex: none; display: inline-grid; place-items: center; inline-size: 1.25em; block-size: 1.25em; border-radius: var(--radius-round); background: var(--color-danger); color: var(--color-surface); font-size: .8em; }
   .of-qty { display: grid; grid-template-columns: var(--tap-min) minmax(0, 8rem) var(--tap-min); gap: var(--space-2); }
   .of-qty .input { text-align: center; }

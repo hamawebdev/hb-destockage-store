@@ -25,7 +25,7 @@ const around = (k: string): [string, string] => {
 const missed = around('confirmation.missedCall');
 const questions = around('confirmation.questions');
 ---
-<div class="oc">
+<div class="container"><div class="oc">
   <h1 class="oc-title">{t('confirmation.title')}</h1>
 
   <div class="oc-ref" data-hb-when="has-ref" hidden>
@@ -53,10 +53,11 @@ const questions = around('confirmation.questions');
     <a class="btn btn-primary" href={continueHref}>{t('confirmation.continue')}</a>
   </p>
   {deliveryHref && <p class="oc-p"><a class="oc-link" href={deliveryHref}>{t('confirmation.deliveryInfo')}</a></p>}
-</div>
+</div></div>
 
 <style is:global>
-  .oc { max-inline-size: var(--reading-max); margin-inline: auto; padding-block: var(--section-block); padding-inline: var(--gutter); display: grid; gap: var(--space-5); }
+  /* Gutter and page width: shell/tokens .container (QA-2 BUG-10). Here only the reading width and rhythm. */
+  .oc { max-inline-size: var(--reading-max); padding-block: var(--section-block); display: grid; gap: var(--space-5); }
   .oc-title { font-size: var(--fs-h1); line-height: var(--lh-heading); margin: 0; }
   .oc-ref:not([hidden]) { display: grid; gap: var(--space-1); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--color-surface-alt); }
   .oc-ref-row { margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: baseline; }

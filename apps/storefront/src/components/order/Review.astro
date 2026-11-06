@@ -24,7 +24,7 @@ const err = (code: string) => str(strings, `order.errors.${code}`, { phone: ltr(
 
 const FIELD_CODES = REVIEW_FIELD_CODES;
 ---
-<div class="or">
+<div class="container"><div class="or">
   <h1 class="or-title">{t('order.review.title')}</h1>
   <p class="or-intro">{t('order.review.intro')}</p>
 
@@ -82,13 +82,14 @@ const FIELD_CODES = REVIEW_FIELD_CODES;
     </div>
     <p class="or-back"><a class="or-link" data-hb="back" href={`/${lang}/`}>{t('order.review.edit')}</a></p>
   </form>
-</div>
+</div></div>
 
 <style is:global>
   /* The Worker shows and hides blocks only through the `hidden` attribute, so it must win over every display rule:
      ours (.or-sum is a grid) and tokens' (.note, .error are flex), which otherwise override the UA's [hidden]. */
   .or [hidden] { display: none !important; }
-  .or { max-inline-size: var(--reading-max); margin-inline: auto; padding-block: var(--section-block); padding-inline: var(--gutter); display: grid; gap: var(--space-5); }
+  /* Gutter and page width: shell/tokens .container (QA-2 BUG-10). Here only the reading width and rhythm. */
+  .or { max-inline-size: var(--reading-max); padding-block: var(--section-block); display: grid; gap: var(--space-5); }
   .or-title { font-size: var(--fs-h1); line-height: var(--lh-heading); margin: 0; }
   .or-intro { margin: 0; color: var(--color-text-secondary); }
   .or-errors-h, .or-errors-list, .or-help { margin: 0; }
