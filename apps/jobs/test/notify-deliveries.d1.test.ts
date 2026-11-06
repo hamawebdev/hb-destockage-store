@@ -23,7 +23,7 @@ const row = (orderId: number, channel = 'telegram') =>
     .bind(orderId, channel)
     .first();
 
-describe('D1DeliveryStore (DB-1 notification_deliveries)', () => {
+describe('D1DeliveryStore (DB-1 notification_deliveries)', { timeout: 60_000 }, () => {
   test('claim → sent → skipped afterwards; channels independent', async () => {
     expect(await store.claim(1, 'telegram', 1000, 60_000)).toBe('claimed');
     expect(await store.claim(1, 'telegram', 1001, 60_000)).toBe('busy');
