@@ -389,10 +389,14 @@ function toFieldErrors(issues: readonly v.BaseIssue<unknown>[]): OrderFieldError
   for (const issue of issues) {
     const rootKey = issue.path?.[0]?.key;
     const field = fieldOf(rootKey);
+    const lastKey = issue.path?.at(-1)?.key;
     let code: OrderErrorCode;
-    if (isOrderErrorCode(issue.message)) code = issue.message;
+    // Any issue on a `qty` key (including a missing one inside an item) is a quantity error.
+    if (lastKey === 'qty') code = 'qty_invalid';
+    // A missing key is reported by the object schema with the object's message
+    // (`invalid_request`); on a known field it means "not filled in", i.e. the field's own code.
+    else if (isOrderErrorCode(issue.message) && !(issue.message === 'invalid_request' && field !== 'form')) code = issue.message;
     else if (field === 'form') code = 'invalid_request';
-    else if (rootKey === 'qty') code = 'qty_invalid';
     else code = FIELD_DEFAULT_CODE[field];
     const idx = rootKey === 'items' ? issue.path?.[1]?.key : undefined;
     const index = typeof idx === 'number' ? idx : undefined;
