@@ -1,8 +1,9 @@
 /**
  * Search folding shared by the storefront commune/wilaya picker, product search, admin customer
  * search and order dedup (task #156). Ported line for line from GEO-5 `data/geo/search.mjs`
- * @3eb06f1 (`normalizeForSearch`, `searchKey`); behaviour is identical, pinned by GEO-5's
- * 505-row parity corpus (test/fixtures/search.corpus.json).
+ * (`normalizeForSearch`, `searchKey`; last changed in GEO-5 r1 3eb06f1, identical at team/geo
+ * 7c9c1c8); behaviour is identical, pinned by GEO-5's 505-row parity corpus taken from team/geo
+ * 7c9c1c8 (test/fixtures/search.corpus.json).
  *
  * Contract (unchanged from GEO-5): fold each name once with `searchKey(name)` (index side), fold
  * what the customer types with `foldForSearch(query)`, and show the name when
@@ -26,19 +27,19 @@ export function foldForSearch(text: string | null | undefined, _lang?: Lang): st
   return String(text ?? '')
     .normalize('NFD') // أ إ آ ؤ ئ → base letter + hamza/madda mark; é → e + accent
     .toLowerCase()
-    .replace(/[̀-ͯـً-ٰٟ]/g, '') // Latin diacritics, tatweel, tashkeel, hamza/madda marks
-    .replace(/œ/g, 'oe')
-    .replace(/æ/g, 'ae')
-    .replace(/ß/g, 'ss')
-    .replace(/[ڧڨ]/g, 'ق') // Maghrebi ڨ ڧ → ق
-    .replace(/ڢ/g, 'ف') // ڢ → ف
-    .replace(/ک/g, 'ك') // Persian ک → ك
-    .replace(/[ىی]/g, 'ي') // ى ی → ي
-    .replace(/ٱ/g, 'ا') // ٱ → ا
-    .replace(/ة/g, 'ه') // ة → ه
-    .replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 15)) // Eastern Arabic / Persian digits → ASCII
-    .replace(/['`’ʼ]/g, '') // apostrophes join: M'Sila ≡ Msila
-    .replace(/[^a-z0-9ء-ي]+/g, ' ') // hyphens, punctuation, any other symbol → one space
+    .replace(/[\u0300-\u036f\u0640\u064b-\u065f\u0670]/g, '') // Latin diacritics, tatweel, tashkeel, hamza/madda marks
+    .replace(/\u0153/g, 'oe')
+    .replace(/\u00e6/g, 'ae')
+    .replace(/\u00df/g, 'ss')
+    .replace(/[\u06a7\u06a8]/g, '\u0642') // Maghrebi ڨ ڧ → ق
+    .replace(/\u06a2/g, '\u0641') // ڢ → ف
+    .replace(/\u06a9/g, '\u0643') // Persian ک → ك
+    .replace(/[\u0649\u06cc]/g, '\u064a') // ى ی → ي
+    .replace(/\u0671/g, '\u0627') // ٱ → ا
+    .replace(/\u0629/g, '\u0647') // ة → ه
+    .replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (d) => String(d.charCodeAt(0) & 15)) // Eastern Arabic / Persian digits → ASCII
+    .replace(/['`\u2019\u02bc]/g, '') // apostrophes join: M'Sila ≡ Msila
+    .replace(/[^a-z0-9\u0621-\u064a]+/g, ' ') // hyphens, punctuation, any other symbol → one space
     .trim();
 }
 
@@ -51,7 +52,7 @@ export function searchKey(name: string | null | undefined, lang?: Lang): string 
   const alt = [
     k.replace(/^(el|al|ech|es|ed|er|et|ez|en) /, '$1'), // El Oued → also "eloued"
     k.replace(/^in /, 'ain '), // In Salah → also "ain salah" ("in salah" is already inside "ain salah")
-    k.replace(/^ان /, 'عين '), // إن صالح → also "عين صالح"
+    k.replace(/^\u0627\u0646 /, '\u0639\u064a\u0646 '), // إن صالح → also "عين صالح"
   ].filter((a) => a !== k);
   return [k, ...alt].join('|');
 }

@@ -1,7 +1,7 @@
 /**
- * #156 — foldForSearch / searchKey, ported from GEO-5 data/geo/search.test.mjs @3eb06f1.
- * Fixtures: search.corpus.json = GEO-5's 505-row parity corpus (verbatim); geo-names.json =
- * the 69 wilaya and 1,541 commune names (both languages) from data/geo at team/geo 7c9c1c8.
+ * #156 — foldForSearch / searchKey, ported from GEO-5 data/geo/search.test.mjs (3eb06f1).
+ * Fixtures, both from team/geo 7c9c1c8: search.corpus.json = GEO-5's 505-row parity corpus
+ * (verbatim); geo-names.json = the 69 wilaya and 1,541 commune names in both languages.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
