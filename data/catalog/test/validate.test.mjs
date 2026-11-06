@@ -130,7 +130,7 @@ test('a category holding a placeholder product is placeholder: true, even if cla
   category(s, 22).placeholder = false;
   for (const lang of ['ar', 'fr']) category(s, 22).description[lang] = category(s, 22).description[lang].replace('[PLACEHOLDER] ', '');
   const m = messages(s);
-  assert.ok(m.some((x) => /\(id 22\): holds placeholder\/invented product\(s\) 201, 202 but is placeholder: false/.test(x)), m.join('\n'));
+  assert.ok(m.some((x) => /\(id 22\): holds placeholder\/invented product\(s\) 201, 202 \(itself or in a sub-category\) but is placeholder: false/.test(x)), m.join('\n'));
   assert.ok(!m.some((x) => /\(id 22\): category 22 is not in provenance/.test(x)), 'claimed category is not "ours"');
   // A claimed category holding only real products may be unmarked: no issue for 11 alone.
   const t = seed();
@@ -138,6 +138,19 @@ test('a category holding a placeholder product is placeholder: true, even if cla
   category(t, 11).placeholder = false;
   for (const lang of ['ar', 'fr']) category(t, 11).description[lang] = category(t, 11).description[lang].replace('[PLACEHOLDER] ', '');
   assert.deepEqual(messages(t).filter((x) => x.includes('(id 11)')), []);
+});
+
+test('a parent whose sub-category holds a placeholder product is placeholder: true', () => {
+  const s = seed();
+  claim(s, 2); // Électronique: products only in sub-categories 21/211/212/22
+  category(s, 2).placeholder = false;
+  for (const lang of ['ar', 'fr']) category(s, 2).description[lang] = category(s, 2).description[lang].replace('[PLACEHOLDER] ', '');
+  expectIssue(s, /\(id 2\): holds placeholder\/invented product\(s\) .*201.* \(itself or in a sub-category\) but is placeholder: false/);
+  const t = seed();
+  claim(t, 1); // Salle de bain: its sub-category 12 holds the placeholder-priced draft components
+  category(t, 1).placeholder = false;
+  for (const lang of ['ar', 'fr']) category(t, 1).description[lang] = category(t, 1).description[lang].replace('[PLACEHOLDER] ', '');
+  expectIssue(t, /\(id 1\): holds placeholder\/invented product\(s\) (11[1-4](, )?){4} \(itself or in a sub-category\)/);
 });
 
 test('placeholder categories carry [PLACEHOLDER] copy', () => {

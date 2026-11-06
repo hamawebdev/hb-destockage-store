@@ -15,7 +15,7 @@
 //     overall; every image key is a lowercase relative path to an existing JPEG/PNG ≤ 3 MB whose real
 //     size matches width/height; no key twice per product; unique image positions; placeholder
 //     marking — a category or product not listed in provenance.json is ours: placeholder: true
-//     (a category also whenever it holds a placeholder product), "[PLACEHOLDER]" in the description
+//     (a category also whenever it or a sub-category holds a placeholder product), "[PLACEHOLDER]" in the description
 //     of every placeholder category and product, all images of an invented product placeholder, and
 //     no "[PLACEHOLDER]" text anywhere on an entity marked placeholder: false; the README id scheme;
 //     home products are active; provenance.json entries exist and cover every real image
@@ -112,11 +112,15 @@ export function validateLoadedSeed(seed) {
   const tagged = (loc) => loc != null && (loc.ar.includes(PLACEHOLDER_TAG) || loc.fr.includes(PLACEHOLDER_TAG));
 
   // 2a. Categories: placeholder marking and the id scheme.
-
+  // A placeholder product marks its category *and every ancestor* (the whole subtree holds it).
+  const parentOf = new Map(seed.categories.map((c) => [c.id, c.parentId]));
   const placeholderProductsByCat = new Map();
   for (const { product: p } of seed.products) {
-    if (p.placeholder || !provProducts.has(p.id)) {
-      placeholderProductsByCat.set(p.categoryId, [...(placeholderProductsByCat.get(p.categoryId) ?? []), p.id]);
+    if (!(p.placeholder || !provProducts.has(p.id))) continue;
+    const seen = new Set();
+    for (let id = p.categoryId; id != null && !seen.has(id); id = parentOf.get(id)) {
+      seen.add(id); // guards against a cycle (CAT-1 reports it)
+      placeholderProductsByCat.set(id, [...(placeholderProductsByCat.get(id) ?? []), p.id]);
     }
   }
   seed.categories.forEach((c, i) => {
@@ -125,7 +129,7 @@ export function validateLoadedSeed(seed) {
       add(at, `category ${c.id} is not in provenance.json, so it is ours and must be placeholder: true`);
     }
     const holds = placeholderProductsByCat.get(c.id);
-    if (holds && !c.placeholder) add(at, `holds placeholder/invented product(s) ${holds.join(', ')} but is placeholder: false`);
+    if (holds && !c.placeholder) add(at, `holds placeholder/invented product(s) ${holds.join(', ')} (itself or in a sub-category) but is placeholder: false`);
     if (c.placeholder) {
       for (const lang of ['ar', 'fr']) {
         if (!c.description?.[lang]?.includes(PLACEHOLDER_TAG)) add(`${at}.description.${lang}`, `placeholder category: description must contain "${PLACEHOLDER_TAG}"`);
