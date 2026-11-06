@@ -4,7 +4,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { Hono } from 'hono';
 import type { Env } from '../src/env.ts';
 import { apiHeaders } from '../src/http.ts';
-import { cleanPath, rate, registerRum, toRows } from '../src/routes/rum.ts';
+import { cleanPath, MINUTE_MS, minuteOf, rate, registerRum, toRows } from '../src/routes/rum.ts';
 
 const BEACON = {
   v: 1,
@@ -68,10 +68,17 @@ describe('pure helpers', () => {
     ['/ar/p/pack/?utm=1#x', '/ar/p/pack/'],
     ['https://evil.example/fr/c/x/?a=b', '/fr/c/x/'],
     ['/404.html', '/404.html'],
+    ['/ar/c/cuisine/2/', '/ar/c/cuisine/2/'],
+    ['/fr/order/confirmation/?ref=HB-7K2Q9', '/fr/order/confirmation/'],
+    ['/fr/livraison/', '/fr/livraison/'],
     ['/api/order', null],
     ['/', null],
     ['/en/', null],
-    [`/ar/${'x'.repeat(300)}/`, `/ar/${'x'.repeat(196)}`],
+    ['/ar/%3Fphone%3D0555123456/', null], // a client string under /ar/ that is not a site URL
+    ['/ar/p/pack/extra/', null],
+    ['/ar/p/Pack/', null],
+    ['/ar/0555123456@x/', null],
+    [`/ar/${'x'.repeat(300)}/`, null],
   ])('cleanPath(%j) = %j', (raw, out) => {
     expect(cleanPath(raw)).toBe(out);
   });
@@ -110,9 +117,33 @@ describe('POST /api/rum', () => {
     expect(json).not.toContain('utm_source');
     expect(json).not.toContain('0555123456');
     expect(json).not.toContain('4102444800000');
-    const ats = vals.filter((x) => typeof x === 'number' && x >= before && x <= Date.now() + 1);
+    // `at` = server receive time truncated to the minute (no linking to an order's created_at).
+    const ats = vals.filter((x) => typeof x === 'number' && x % MINUTE_MS === 0 && x >= minuteOf(before) && x <= Date.now());
     expect(ats.length).toBeGreaterThanOrEqual(5);
+    expect(vals.some((x) => typeof x === 'number' && x > 1e12 && x % MINUTE_MS !== 0)).toBe(false);
     for (const m of ['TTFB', 'LCP', 'DNS', 'CONNECT', 'TLS']) expect(vals).toContain(m);
+  });
+
+  test('a chunked body with no Content-Length is cut off at 1 KiB (413), never buffered whole', async () => {
+    const { app, env, ctx, inserted } = setup();
+    let pulled = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(c) {
+        pulled += 512;
+        if (pulled > 64 * 1024) return c.close();
+        c.enqueue(new Uint8Array(512).fill(0x20));
+      },
+    });
+    const res = await app.request('/api/rum', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: stream, duplex: 'half' } as RequestInit, env, ctx);
+    expect(res.status).toBe(413);
+    expect(pulled).toBeLessThan(4096);
+    expect(inserted).toHaveLength(0);
+  });
+
+  test('an understated Content-Length does not get past the cap', async () => {
+    const { send, inserted } = setup();
+    expect((await send({ ...BEACON, pad: 'x'.repeat(2000) }, { 'Content-Length': '10' })).status).toBe(413);
+    expect(inserted).toHaveLength(0);
   });
 
   test('application/json is accepted too (sendBeacon with a Blob)', async () => {

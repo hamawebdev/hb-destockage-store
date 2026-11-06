@@ -35,7 +35,9 @@ test('a beacon becomes one row per metric, server-timed, path without query, no 
   ]);
   for (const r of rows) {
     expect(r).toMatchObject({ template: 'home', lang: 'fr', nav_type: 'navigate', proto: 'h2', prerendered: 0 });
-    expect(r['at'] as number).toBeGreaterThanOrEqual(before);
+    // Server time truncated to the minute (rev-a WEB-5 r1).
+    expect((r['at'] as number) % 60_000).toBe(0);
+    expect(r['at'] as number).toBeGreaterThanOrEqual(Math.floor(before / 60_000) * 60_000);
     expect(r['at'] as number).toBeLessThanOrEqual(Date.now());
   }
   expect(JSON.stringify(rows)).not.toMatch(/105\.98|gclid/);

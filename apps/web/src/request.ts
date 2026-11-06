@@ -35,10 +35,20 @@ export async function readBody(req: Request, allowed: readonly MediaKind[]): Pro
   if (req.headers.get('Sec-Fetch-Site') === 'cross-site') return { ok: false, code: 'forbidden_origin' };
   const kind = mediaKind(req.headers.get('Content-Type') ?? undefined);
   if (kind === null || !allowed.includes(kind)) return { ok: false, code: 'unsupported_media_type' };
-  const declared = req.headers.get('Content-Length');
-  if (declared !== null && Number(declared) > MAX_BODY_BYTES) return { ok: false, code: 'payload_too_large' };
-  if (req.body === null) return { ok: false, code: 'invalid_request' };
+  const text = await readCappedText(req, MAX_BODY_BYTES);
+  if (text === 'too_large') return { ok: false, code: 'payload_too_large' };
+  if (text === null) return { ok: false, code: 'invalid_request' };
+  return { ok: true, kind, text };
+}
 
+/**
+ * Streams the body as strict UTF-8 with a hard byte cap: never buffers more than `max` bytes, whatever
+ * Content-Length says (chunked or understated bodies included). `null` = no body or invalid UTF-8.
+ */
+export async function readCappedText(req: Request, max: number): Promise<string | null | 'too_large'> {
+  const declared = req.headers.get('Content-Length');
+  if (declared !== null && Number(declared) > max) return 'too_large';
+  if (req.body === null) return null;
   const reader = req.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
@@ -46,9 +56,9 @@ export async function readBody(req: Request, allowed: readonly MediaKind[]): Pro
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > MAX_BODY_BYTES) {
+    if (size > max) {
       await reader.cancel().catch(() => {});
-      return { ok: false, code: 'payload_too_large' };
+      return 'too_large';
     }
     chunks.push(value);
   }
@@ -59,9 +69,9 @@ export async function readBody(req: Request, allowed: readonly MediaKind[]): Pro
     offset += c.byteLength;
   }
   try {
-    return { ok: true, kind, text: new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(bytes) };
+    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(bytes);
   } catch {
-    return { ok: false, code: 'invalid_request' };
+    return null;
   }
 }
 
