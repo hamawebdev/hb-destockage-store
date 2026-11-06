@@ -11,6 +11,7 @@
  * External servers instead: HB_E2E_WEB_URL / HB_E2E_ADMIN_URL (then D1 checks use HB_E2E_PERSIST).
  */
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { createServer } from 'node:net';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,7 +38,9 @@ export const FEATURES: Record<Feature, () => string | null> = {
   storefront: () => (existsSync(path.join(DIST, 'ar/index.html')) ? null : 'storefront not built (npm run build -w @hb/storefront)'),
   seed: () => (!has('packages/db/src/seed/cli.ts') ? 'DB seed command not in this checkout (DB-3)'
     : !has('data/catalog') ? 'seed catalogue data/catalog not in this checkout (SEED)'
-    : !has('data/geo') ? 'geo dataset data/geo not in this checkout (GEO)' : null),
+    : !has('data/geo') ? 'geo dataset data/geo not in this checkout (GEO)'
+    : !has('data/content') ? 'content pages data/content not in this checkout (PAGES)'
+    : !has('data/photos/manifest.json') ? 'photo manifest data/photos/manifest.json not in this checkout (SEED)' : null),
   webOrder: () => (has('apps/web/src/routes/order.ts') ? null : 'POST /api/order not in this checkout (WEB order route)'),
   webQuote: () => (has('apps/web/src/routes/quote.ts') ? null : 'POST /api/quote not in this checkout'),
   orderForm: () => {
@@ -48,15 +51,45 @@ export const FEATURES: Record<Feature, () => string | null> = {
   },
   geoFiles: () => (existsSync(path.join(DIST, 'geo/communes/ar/1.json')) ? null : 'per-wilaya commune JSON not in the build (CAT-5 /geo/communes/<lang>/<code>.json)'),
   adminAuth: () => (has('apps/admin/src/auth/dev-routes.tsx') ? null : 'admin auth (ADMIN-1 dev login + Access JWT) not in this checkout'),
-  adminOrders: () => (has('apps/admin/src/routes/orders/index.tsx', /\bref\b/) ? null : 'admin order list not in this checkout (ADMIN orders)'),
+  adminOrders: () => (ORDER_ROUTES().some(([m, p]) => m === 'GET' && p === '/:ref') ? null : 'admin order list and detail not in this checkout (admin-orders route table: GET /:ref)'),
   adminTransitions: () => {
-    const dir = path.join(REPO, 'apps/admin/src/routes/orders');
-    if (!existsSync(dir)) return 'admin order routes not in this checkout';
-    const hit = spawnSync('grep', ['-rlE', "r\\.post\\(['\"]/:[a-zA-Z]+/(transition|status)", dir], { encoding: 'utf8' }).stdout;
-    return hit.trim() ? null : 'admin order status transitions not in this checkout (ADMIN orders: POST /orders/:id/transition)';
+    const have = ORDER_ROUTES().map(([m, p]) => `${m} ${p}`);
+    const want = ['POST /:ref/call', 'POST /:ref/transition'].filter((r) => !have.includes(r));
+    return want.length ? `admin order actions not in this checkout (admin-orders route table: ${want.join(', ')})` : null;
   },
 };
 export type Feature = 'storefront' | 'seed' | 'webOrder' | 'webQuote' | 'orderForm' | 'geoFiles' | 'adminAuth' | 'adminOrders' | 'adminTransitions';
+
+/**
+ * admin-orders' route table: the `//   GET  /:ref   …` header of apps/admin/src/routes/orders/index.tsx
+ * (paths relative to /orders). Read from the table, not from code, so a refactor of how routes
+ * are written does not hide them.
+ */
+export function ORDER_ROUTES(): Array<[method: 'GET' | 'POST', path: string]> {
+  const f = path.join(REPO, 'apps/admin/src/routes/orders/index.tsx');
+  if (!existsSync(f)) return [];
+  const out: Array<['GET' | 'POST', string]> = [];
+  for (const m of readFileSync(f, 'utf8').matchAll(/^\/\/\s+(GET|POST)\s+(\/\S*)/gm)) out.push([m[1] as 'GET' | 'POST', m[2]!]);
+  return out;
+}
+
+/** A syntactically valid order ref that matches the routes' `:ref` pattern. */
+export const SAMPLE_REF = 'HB-AAAAA';
+
+/**
+ * Every admin route to probe without auth: each section admin-core mounts in apps/admin/src/app.ts
+ * (`app.route('/x', …)`, GET and POST), the orders routes from admin-orders' route table, and the
+ * core's own pages. Empty when the admin is not in this checkout.
+ */
+export function ADMIN_ROUTES(): Array<[method: 'GET' | 'POST', path: string]> {
+  const app = path.join(REPO, 'apps/admin/src/app.ts');
+  if (!existsSync(app)) return [];
+  const mounts = [...readFileSync(app, 'utf8').matchAll(/app\.route\('(\/[a-z-]+)'/g)].map((m) => m[1]!);
+  const routes: Array<['GET' | 'POST', string]> = [['GET', '/'], ['GET', '/assets/admin.css'], ['POST', '/settings/language']];
+  for (const m of mounts) routes.push(['GET', m], ['POST', m]);
+  for (const [meth, p] of ORDER_ROUTES()) routes.push([meth, `/orders${p === '/' ? '' : p.replace(':ref', SAMPLE_REF)}`]);
+  return [...new Map(routes.map((r) => [`${r[0]} ${r[1]}`, r])).values()];
+}
 
 /** Reason the given features are not all available, or null. */
 export function missing(...need: Feature[]): string | null {
@@ -114,7 +147,9 @@ export interface Running { url: string; stop: () => Promise<void> }
  * documented always-pass test secret, random-looking fillers for keys and HMAC secrets.
  */
 export function testSecrets(name: 'web' | 'admin'): Record<string, string> {
-  const out: Record<string, string> = name === 'admin' ? { ENV: 'development' } : {};
+  // web: its wrangler.jsonc top level is production; development values come from the dev script
+  // (tooling f4696e9: --var ENV:development --var SITE_HOSTS:localhost,127.0.0.1), as here
+  const out: Record<string, string> = name === 'admin' ? { ENV: 'development' } : { ENV: 'development', SITE_HOSTS: 'localhost,127.0.0.1' };
   const ex = path.join(REPO, 'apps', name, '.dev.vars.example');
   const keys = existsSync(ex) ? readFileSync(ex, 'utf8').split('\n').map((l) => /^\s*([A-Z][A-Z0-9_]*)\s*=/.exec(l)?.[1]).filter((k): k is string => !!k) : [];
   for (const k of [...keys, ...(name === 'web' ? ['ORDER_SIGNING_KEY', 'IP_HASH_KEY', 'TURNSTILE_SECRET'] : ['DEV_SESSION_SECRET', 'CSRF_SECRET'])]) {
@@ -124,16 +159,38 @@ export function testSecrets(name: 'web' | 'admin'): Record<string, string> {
   return out;
 }
 
-async function waitHttp(url: string, ms: number, child: ChildProcess, log: () => string): Promise<void> {
+/** Throws when something already listens on 127.0.0.1:port (e.g. another checkout's e2e run). */
+export function assertPortFree(port: number): Promise<void> {
+  return new Promise((ok, fail) => {
+    const srv = createServer();
+    srv.once('error', (e: NodeJS.ErrnoException) => fail(new Error(e.code === 'EADDRINUSE'
+      ? `port ${port} is already in use (another e2e run or dev server?): refusing to test against a Worker this run did not start`
+      : `port ${port}: ${e.message}`)));
+    srv.listen(port, '127.0.0.1', () => srv.close(() => ok()));
+  });
+}
+
+/**
+ * Ready = our child is alive and the URL answers (< 500). The port was free before the child
+ * started (assertPortFree), so what answers is this run's Worker, not another checkout's.
+ */
+async function waitReady(url: string, ms: number, child: ChildProcess, log: () => string): Promise<void> {
   const end = Date.now() + ms;
-  let last = '';
+  let last = 'no answer yet';
   while (Date.now() < end) {
-    if (child.exitCode !== null) throw new Error(`worker exited (${child.exitCode}) before ${url} answered:\n${log().slice(-3000)}`);
-    try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(5000), redirect: 'manual' });
-      if (r.status < 500) return;
+    if (child.exitCode !== null) throw new Error(`worker exited (${child.exitCode}) before it was ready:\n${log().slice(-3000)}`);
+    let r: Response | null = null;
+    try { r = await fetch(url, { signal: AbortSignal.timeout(5000), redirect: 'manual' }); } catch (e) { last = (e as Error).message; }
+    if (r && r.status < 500) return;
+    if (r) {
+      const body = await r.text().catch(() => '');
+      // self-check: a Worker that rejects its own configuration never becomes ready, so fail now
+      if (body.includes('config_invalid')) {
+        throw new Error(`${url} answers HTTP ${r.status} config_invalid: the Worker rejects its configuration (testSecrets() passes `
+          + `ENV=development and SITE_HOSTS=localhost,127.0.0.1, as the dev script does; a newly required var must be added there):\n${body.slice(0, 500)}`);
+      }
       last = `HTTP ${r.status}`;
-    } catch (e) { last = (e as Error).message; }
+    }
     await new Promise((ok) => setTimeout(ok, 500));
   }
   throw new Error(`${url} not ready after ${ms} ms (${last}):\n${log().slice(-3000)}`);
@@ -141,6 +198,8 @@ async function waitHttp(url: string, ms: number, child: ChildProcess, log: () =>
 
 export async function startWorker(name: 'web' | 'admin', logDir: string): Promise<Running> {
   const port = name === 'web' ? WEB_PORT : ADMIN_PORT;
+  await assertPortFree(port);
+  await assertPortFree(port + 1);
   const cwd = path.join(REPO, 'apps', name);
   const args = ['dev', '--env=', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(port + 1),
     '--persist-to', PERSIST, '--log-level', 'warn', '--show-interactive-dev-session=false'];
@@ -160,7 +219,7 @@ export async function startWorker(name: 'web' | 'admin', logDir: string): Promis
     try { process.kill(-child.pid, 'SIGKILL'); } catch { /* gone */ }
   };
   try {
-    await waitHttp(name === 'web' ? `${url}/api/health` : `${url}/__dev/login`, 150_000, child, () => log);
+    await waitReady(name === 'web' ? `${url}/api/health` : `${url}/__dev/login`, 150_000, child, () => log);
   } catch (e) {
     await stop();
     throw e;

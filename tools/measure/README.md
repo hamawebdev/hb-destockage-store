@@ -328,39 +328,45 @@ template × width, how each walk ended: `left`/`wrapped`/`trap`/`limit`), `axe.t
 ## `npm run e2e`
 
 ```
-node tools/measure/src/e2e/cli.ts                  # = npm run e2e once tooling wires the root script
-node tools/measure/src/e2e/cli.ts admin-auth       # extra args go to vitest (here: one spec)
-HB_E2E_STRICT=1 node tools/measure/src/e2e/cli.ts  # acceptance: a missing feature FAILS instead of skipping
-HB_E2E_WEB_URL=http://127.0.0.1:4270 HB_E2E_ADMIN_URL=http://127.0.0.1:4278 HB_E2E_PERSIST=<dir> node tools/measure/src/e2e/cli.ts   # running servers
+npm run e2e                                    # = node tools/measure/src/e2e/cli.ts (root script: tooling 22a6def)
+npm run e2e -- admin-auth                      # extra args go to vitest (here: one spec)
+HB_E2E_STRICT=1 npm run e2e                    # acceptance: a missing feature FAILS instead of skipping
+HB_E2E_ALLOW_SKIP=1 npm run e2e                # a partial checkout: skipped specs do not fail the run
+HB_E2E_WEB_URL=http://127.0.0.1:4270 HB_E2E_ADMIN_URL=http://127.0.0.1:4278 HB_E2E_PERSIST=<dir> npm run e2e   # running servers
 ```
 
 The entry point (`src/e2e/cli.ts`) runs the checkout's vitest with `tests/e2e/vitest.config.ts`
 from the checkout root and writes results to `<main checkout>/artifacts/e2e/` (`HB_E2E_OUT`
-overrides). Root script requested from tooling: `"e2e": "node tools/measure/src/e2e/cli.ts"`,
-plus `../../tests/e2e/**/*.ts` in this workspace's `tsconfig.json` so the specs are typechecked.
+overrides). Afterwards it lists every skipped spec with what it waits for, and **a run with
+skips exits 1** unless `HB_E2E_ALLOW_SKIP=1`: green never means "nothing ran".
 
 The global setup (`tests/e2e/setup.ts`) builds one fresh local D1 in `.wrangler/e2e` (seed command
 of DB-3 when `data/catalog` and `data/geo` are present, else migrations only), then boots with
 `wrangler dev` (local, test secrets via `--var`, never real ones):
 - the **web Worker** (`apps/web`: storefront static assets + `/api/*`) on **4110** (inspector 4111),
-  when `apps/storefront/dist` exists. For the order specs, build the storefront from the same
-  data the D1 was seeded from (`HB_SNAPSHOT=seed`), so product slugs match;
+  when `apps/storefront/dist` exists, with the dev script's vars (`ENV=development`,
+  `SITE_HOSTS=localhost,127.0.0.1`: its wrangler.jsonc top level is production). For the order
+  specs, build the storefront from the same data the D1 was seeded from (`HB_SNAPSHOT=seed`);
 - the **admin Worker** (`apps/admin`, `ENV=development` for the dev login) on **4118** (inspector 4119).
+Before starting a Worker the harness checks that its ports are free (another checkout's run
+answering there would otherwise be tested against this run's D1); ready = our child alive and
+the URL answering < 500. A Worker answering `config_invalid` fails at once with the vars to add.
 A Worker that fails to boot makes every spec that needs it **fail** (not skip). Worker logs:
 `<out>/logs/`; JSON results: `<out>/e2e-results.json`.
 
 **Specs, written against the contracts** (form field names from `packages/shared` order-schema,
-D1 columns from `packages/db` migrations, admin dev login from `apps/admin/src/auth`). Each spec
-declares the features it needs (`tests/e2e/harness.ts` `FEATURES`, probed from the checkout) and
-is skipped with the reason in its name until they exist, e.g. `[waiting: POST /api/order not in
-this checkout (WEB order route)]`:
+D1 columns from `packages/db` migrations; admin: admin-core's dev login, CSRF and `postAs` test
+pattern, admin-orders' route table and detail-page forms). Each spec declares the features it
+needs (`tests/e2e/harness.ts` `FEATURES`: files and route tables in the checkout) and is skipped
+with the reason in its name until they exist, e.g. `[waiting: POST /api/order not in this
+checkout (WEB order route)]`. Once it runs, a 403/404/409/422 from any step fails it.
 
 | Spec | What it proves |
 |---|---|
-| `order.spec.ts` | per language: a **variant** (non-default variant of a variable product) order shows the wilaya's fee and the correct total (price × 2 + fee) before confirming, creates the order with those amounts and that variant in D1; a duplicate JSON submit with the same idempotency key returns 200 and the same ref, and D1 holds one order; the order appears in the admin's order list; the admin moves it new → called → confirmed → shipped (assumed route `POST /orders/:id/transition`, field `to`, until admin-orders lands) and order_events records it |
+| `order.spec.ts` | per language: a **variant** (non-default variant of a variable product) order shows the wilaya's fee and the correct total (price × 2 + fee) before confirming, creates the order with those amounts and that variant in D1; a duplicate JSON submit with the same idempotency key returns 200 and the same ref, and D1 holds one order; the order appears in the admin's list and detail page; in the admin (admin-orders' contract: forms read from the detail page, `_csrf` and `version` included, each POST must answer 303) a confirmer logs a call with a callback (new → called) and a confirmed call (called → confirmed), logistics ships it with a courier (→ shipped), and order_events grows by ≥ 3 |
 | `nojs.spec.ts` | per language, JavaScript disabled: the form posts to the Worker's review page, which shows fee and total; confirm (after the 1.5 s minimum review time) → 303 to the confirmation page and the order in D1 |
 | `geo.spec.ts` | per language: the wilaya picker lists 69 wilayas (codes 1–69); `/geo/communes/<lang>/<code>.json` totals 1,541 distinct communes; the seeded D1 holds 69 wilayas and 1,541 communes |
-| `admin-auth.spec.ts` | every admin route (GET and POST) answers 401/403 with no credentials, a garbage Access JWT, or a forged dev cookie; an inactive dev user is refused; the dev login refuses a non-loopback Host; control: a real dev session gets the dashboard (200) |
+| `admin-auth.spec.ts` | each test proves its success path first (a real dev login → 303 + cookie served the dashboard). Then every admin route (admin-core's mounts from `app.ts` + admin-orders' route table, GET and POST) answers 401/403 with no credentials, a garbage Access JWT, or a forged dev cookie (real payload, wrong signature); an inactive dev user is refused where the owner, same request, is let in; the dev login answers a loopback Host and refuses another; every dev role is served the dashboard |
 
 ### Adding or changing a rule
 

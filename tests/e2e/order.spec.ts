@@ -1,13 +1,14 @@
 /**
  * A variant order in /ar/ and in /fr/ (JS on): the form shows the wilaya's fee and the correct
  * total before confirming; the order reaches D1 and the admin; a duplicate submit returns the same
- * ref and creates one order; then (admin) new → called → confirmed → shipped.
+ * ref and creates one order; then (admin, admin-orders' contract) new → called → confirmed by
+ * call outcomes and → shipped by a manual transition with a courier, each recorded in order_events.
  */
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import type { Browser } from 'playwright';
 import { d1 } from './harness.ts';
 import { needs } from './needs.ts';
-import { adminLogin, chooseVariant, expectNumbersShown, fillCustomer, launch, orderByRef, pickPlace, pickVariant, submitUntilConfirmed } from './flows.ts';
+import { adminLogin, adminPage, chooseVariant, orderAction, tomorrowAlgiers, expectNumbersShown, fillCustomer, launch, orderByRef, pickPlace, pickVariant, submitUntilConfirmed } from './flows.ts';
 
 let browser: Browser | undefined;
 beforeAll(async () => { browser = await launch(); });
@@ -59,25 +60,26 @@ describe.each(['ar', 'fr'] as const)('variant order in /%s/', (lang) => {
     const ref = refs[lang];
     if (!ref) throw new Error('the order test above did not create an order');
     const cookie = await adminLogin(admin);
-    const r = await fetch(`${admin}/orders`, { headers: { cookie } });
-    expect(r.status).toBe(200);
-    expect(await r.text()).toContain(ref);
+    expect(await adminPage(admin, cookie, '/orders')).toContain(ref);
+    expect(await adminPage(admin, cookie, `/orders/${ref}`)).toContain(ref);
   });
 
-  needs('storefront', 'seed', 'webOrder', 'orderForm', 'adminAuth', 'adminTransitions')('the order moves new → called → confirmed → shipped in the admin', async ({ admin }) => {
+  needs('storefront', 'seed', 'webOrder', 'orderForm', 'adminAuth', 'adminOrders', 'adminTransitions')('the order moves new → called → confirmed → shipped in the admin', async ({ admin }) => {
     const ref = refs[lang];
     if (!ref) throw new Error('the order test above did not create an order');
     const o = orderByRef(ref);
-    // contract assumed until admin-orders lands: POST /orders/:id/transition, form field `to`
-    for (const [email, to] of [['confirmer@dev.local', 'called'], ['confirmer@dev.local', 'confirmed'], ['logistics@dev.local', 'shipped']] as const) {
-      const cookie = await adminLogin(admin, email);
-      const r = await fetch(`${admin}/orders/${o.id}/transition`, {
-        method: 'POST', redirect: 'manual', headers: { cookie, 'content-type': 'application/x-www-form-urlencoded', origin: admin }, body: new URLSearchParams({ to }),
-      });
-      expect(r.status, `transition to ${to} as ${email}`).toBeLessThan(400);
-      expect(orderByRef(ref).status).toBe(to);
-    }
-    const events = d1<{ n: number }>(`SELECT COUNT(*) AS n FROM order_events WHERE order_id = ${o.id}`)[0]?.n ?? 0;
-    expect(events).toBeGreaterThanOrEqual(3);
+    const before = d1<{ n: number }>(`SELECT COUNT(*) AS n FROM order_events WHERE order_id = ${o.id}`)[0]?.n ?? 0;
+    const confirmer = await adminLogin(admin, 'confirmer@dev.local');
+    // a call with a callback: new → called (flagsChecked: a flagged order must be checked before confirming)
+    await orderAction(admin, confirmer, ref, 'call', { outcome: 'callback', callbackAt: tomorrowAlgiers() });
+    expect(orderByRef(ref).status).toBe('called');
+    await orderAction(admin, confirmer, ref, 'call', { outcome: 'confirmed', flagsChecked: '1' });
+    expect(orderByRef(ref).status).toBe('confirmed');
+    const logistics = await adminLogin(admin, 'logistics@dev.local');
+    await orderAction(admin, logistics, ref, 'transition', { to: 'shipped', courierName: 'E2E Express', courierTracking: `E2E-${ref}` });
+    const shipped = d1<{ status: string; courier_name: string | null }>(`SELECT status, courier_name FROM orders WHERE id = ${o.id}`)[0];
+    expect(shipped).toEqual({ status: 'shipped', courier_name: 'E2E Express' });
+    const after = d1<{ n: number }>(`SELECT COUNT(*) AS n FROM order_events WHERE order_id = ${o.id}`)[0]?.n ?? 0;
+    expect(after - before, 'order_events rows for new→called, called→confirmed, confirmed→shipped').toBeGreaterThanOrEqual(3);
   });
 });
