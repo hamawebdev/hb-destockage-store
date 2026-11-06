@@ -1,0 +1,47 @@
+---
+/** Delivery / payment reassurance under the order form. Icons are decorative inline SVG. */
+import type { FooterLink, StringTable } from '@hb/catalog';
+import { t } from './lib/i18n.ts';
+
+interface Props {
+  strings: StringTable;
+  links: readonly FooterLink[];
+}
+const { strings, links } = Astro.props;
+const more = links.find((l) => l.key === 'delivery') ?? links.find((l) => l.key === 'returns');
+const icon = {
+  cash: 'M3 7h18v10H3zM7 7v10M17 7v10M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z',
+  truck: 'M2 7h11v9H2zM13 10h4l3 3v3h-7M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z',
+};
+const rows = [
+  { d: icon.cash, text: t(strings, 'product.delivery.cod') },
+  { d: icon.truck, text: t(strings, 'product.delivery.fee'), mirror: true },
+  { d: icon.clock, text: t(strings, 'product.delivery.time') },
+  { d: icon.phone, text: t(strings, 'product.delivery.call') },
+];
+---
+<section class="cat-ship" aria-labelledby="cat-ship-h">
+  <h2 id="cat-ship-h" class="cat-ship-h">{t(strings, 'product.delivery.title')}</h2>
+  <ul role="list">
+    {rows.map((r) => (
+      <li>
+        <svg viewBox="0 0 24 24" aria-hidden="true" data-mirror={('mirror' in r) || undefined} fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d={r.d} /></svg>
+        <span>{r.text}</span>
+      </li>
+    ))}
+  </ul>
+  {more && <a class="cat-ship-more" href={more.href}>{t(strings, 'product.delivery.more')}</a>}
+</section>
+
+<style is:global>
+  .cat-ship{display:grid;gap:var(--space-3);padding-block:var(--space-6);border-block-start:1px solid var(--color-border)}
+  .cat-ship-h{margin:0;font-size:var(--fs-body);font-weight:var(--fw-emphasis);line-height:var(--lh-ui)}
+  .cat-ship ul{display:grid;gap:var(--space-3);margin:0;padding:0;list-style:none}
+  .cat-ship li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:var(--space-3);align-items:start;font-size:var(--fs-small);line-height:var(--lh-body)}
+  [dir="rtl"] .cat-ship svg[data-mirror]{transform:scaleX(-1)}
+  .cat-ship svg{inline-size:var(--icon-lg);block-size:var(--icon-lg);color:var(--color-text-secondary)}
+  .cat-ship-more{justify-self:start;display:inline-flex;align-items:center;min-block-size:var(--tap-min);color:var(--color-accent-text);font-size:var(--fs-small);text-decoration:none}
+  .cat-ship-more:hover{text-decoration:underline}
+</style>

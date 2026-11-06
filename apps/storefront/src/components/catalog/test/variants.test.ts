@@ -44,9 +44,11 @@ describe('variantBlocks', () => {
 });
 
 describe('helpers', () => {
-  test('defaultVariant prefers isDefault, else the first', () => {
+  test('defaultVariant prefers an orderable isDefault, else the first orderable, never a sold-out default', () => {
     expect(defaultVariant([v(1, [], 1), v(2, [], 1, true)])?.id).toBe(2);
     expect(defaultVariant([v(1, [], 1)])?.id).toBe(1);
+    expect(defaultVariant([v(1, [], 0, true), v(2, [], 0), v(3, [], 4)])?.id).toBe(3);
+    expect(defaultVariant([v(1, [], 0), v(2, [], 0, true)])?.id).toBe(2);
   });
   test('variantByValue maps value ids', () => {
     expect(variantByValue([v(1, [11], 1), v(2, [12], 1)]).get(12)?.id).toBe(2);
