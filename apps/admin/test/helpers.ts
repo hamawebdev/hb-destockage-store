@@ -8,6 +8,7 @@ import type { Hono } from 'hono';
 import { createApp } from '../src/app.ts';
 import type { IdentifyFn } from '../src/auth/authenticate.ts';
 import type { AppEnv, Env } from '../src/env.ts';
+import { issueCsrfToken } from '../src/lib/csrf.ts';
 
 const WRANGLER_CONFIG = fileURLToPath(new URL('../wrangler.jsonc', import.meta.url).href);
 const MIGRATIONS = fileURLToPath(new URL('../../../packages/db/migrations', import.meta.url).href);
@@ -112,4 +113,16 @@ export function form(data: Record<string, string>): RequestInit {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', Origin: 'http://localhost', 'Sec-Fetch-Site': 'same-origin' },
     body: new URLSearchParams(data).toString(),
   };
+}
+
+/** A valid CSRF token for a seeded user (same derivation as the app). */
+export async function tokenFor(db: D1Database, email: string): Promise<string> {
+  const row = await db.prepare('select id from admin_users where email = ?').bind(email.trim().toLowerCase()).first<{ id: number }>();
+  if (!row) throw new Error(`no admin user ${email}`);
+  return issueCsrfToken(CSRF_SECRET, row.id);
+}
+
+/** POST a same-origin form as `email`, with a valid CSRF token added. */
+export async function postAs(h: Harness, email: string, path: string, data: Record<string, string> = {}): Promise<Response> {
+  return h.as(email, path, form({ _csrf: await tokenFor(h.db, email), ...data }));
 }
