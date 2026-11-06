@@ -44,8 +44,9 @@ export interface OrderFormInput {
 /**
  * Messages order.js needs at runtime (BUG-12). Error and confirm-gate copy travels in the per-language
  * `/{lang}/order/form.json` (fetched after LCP, never blocking: without it, a confirm press posts the no-JS form and
- * the server's review page shows its own messages). Only the six short UI-state strings that the live quote and the
- * commune list need even before that JSON arrives stay inline, in `<template id="of-ui">`.
+ * the server's review page shows its own messages). The UI-state strings that the live quote and the commune list
+ * need even before that JSON arrives stay inline, in `<template id="of-ui">`, with the four messages a quote can
+ * trigger before it loads.
  */
 export const UI_MESSAGE_KEYS = {
   calculating: 'order.summary.calculating',
@@ -54,6 +55,12 @@ export const UI_MESSAGE_KEYS = {
   submitting: 'order.submitting',
   commune_placeholder: 'order.commune.placeholder',
   loading: 'common.loading',
+  // Messages a live quote can trigger before form.json has loaded: kept inline so no alert is ever empty
+  // (BUG-12 review r1 nit, lead). Every other message appears only after the confirm gate, which needs form.json.
+  delivery_unavailable: 'order.errors.delivery_unavailable',
+  quote_failed: 'order.errors.quote_failed',
+  out_of_stock: 'order.errors.out_of_stock',
+  variant_unavailable: 'order.errors.variant_unavailable',
 } as const;
 
 export const ERROR_MESSAGE_KEYS = {
@@ -164,10 +171,11 @@ export function defaultVariant(form: OrderFormProps): VariantProps | undefined {
 export function orderFormModel(input: OrderFormInput): OrderFormModel {
   const { lang, form, strings, contact } = input;
   const t = (key: string): string => str(strings, key);
-  // {total}, {wilaya} are filled by order.js.
+  // {phone} filled here inside LTR isolates; {total}, {wilaya} are filled by order.js.
+  const phone = ltr(contact.phoneDisplay);
   const uiMessages = (Object.keys(UI_MESSAGE_KEYS) as (keyof typeof UI_MESSAGE_KEYS)[]).map((code) => ({
     code,
-    text: str(strings, UI_MESSAGE_KEYS[code]),
+    text: str(strings, UI_MESSAGE_KEYS[code], { phone }),
   }));
 
   const dv = defaultVariant(form);

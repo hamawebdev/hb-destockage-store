@@ -68,7 +68,10 @@ describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
   it('inlines only the UI-state strings; error copy lives in form.json (BUG-12)', async () => {
     const html = await render(lang);
     const tpl = html.slice(html.indexOf('<template id="of-ui">'));
-    expect(tpl.match(/data-k=/g)).toHaveLength(6);
+    expect(tpl.match(/data-k=/g)).toHaveLength(10); // 6 UI states + 4 messages a quote can trigger before form.json
+    expect(tpl).toContain('data-k="delivery_unavailable"');
+    expect(tpl).toContain('\u20660560417403\u2069'); // {phone} filled, isolated LTR
+    expect(tpl).not.toMatch(/\{phone\}|\[PLACEHOLDER\]/);
     expect(tpl).not.toContain('data-k="network_error"');
     expect(html).not.toContain('of-msgs');
     expect(html).toMatch(/data-cfg="\/(ar|fr)\/order\/form\.json\?v=[\w-]+"/);

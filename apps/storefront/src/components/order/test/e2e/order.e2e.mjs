@@ -328,6 +328,23 @@ async function run(browser, lang) {
     assert.equal(nativeReview(orderPosts().at(-1)).get('phone'), '0501234567');
   }, { preset: { cfgDown: true }, waitCfg: false });
 
+  await t('form.json blocked + unserved wilaya: the alert is never empty; confirm still posts the no-JS form', async (p) => {
+    const expected = await p.evaluate(() => document.querySelector('#of-ui').content.querySelector('[data-k="delivery_unavailable"]').textContent);
+    assert.ok(expected.length > 20);
+    await fill(p, { wilaya: '5' });
+    await p.waitForFunction(() => document.getElementById('of-alert').textContent.length > 0);
+    assert.equal(await p.textContent('#of-alert'), expected);
+    assert.ok(await p.isVisible('#of-help a[href="https://wa.me/213779942022"]'));
+    await Promise.all([p.waitForURL('**/api/order'), p.click('#of-submit', { force: true })]);
+    nativeReview(orderPosts().at(-1));
+  }, { preset: { cfgDown: true }, waitCfg: false });
+
+  await t('form.json blocked + quote down: quote_failed shown, not an empty alert', async (p) => {
+    await fill(p);
+    await p.waitForFunction(() => document.getElementById('of-alert').textContent.length > 20);
+    assert.ok(await p.isVisible('#of-retry'));
+  }, { preset: { cfgDown: true, quoteDown: true }, waitCfg: false });
+
   // ---- ORDER-3: lazy Turnstile -----------------------------------------------------------------------
   const tsJsReqs = () => log.filter((r) => r.path.startsWith('/js/order-ts.js'));
   await t('Turnstile: nothing from challenges.cloudflare.com (nor the loader) before interaction', async (p, tsReqs) => {
