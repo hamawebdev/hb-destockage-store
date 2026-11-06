@@ -12,7 +12,8 @@ challenge_trust_ops.md D5. Plan: artifacts/WEB-0/plan.md §3.
 | WAF rate-limit rule (below) | Cloudflare edge, before the Worker | block 10 s, per IP, high threshold: flood guard only |
 | Honeypot + minimum fill time | Worker | flag; sink only when both fire |
 | Exact DZ mobile validation | Worker (`@hb/shared`) | 422 |
-| Idempotency + dedup (phone + variant, 30 min) | Worker + D1 | same order returned |
+| Idempotency (same key) | Worker + D1 | the original order (201) |
+| Dedup: same phone + variant within 30 min | Worker + D1 | existing order returned **only** for a genuine double submit (same name, wilaya and commune too); otherwise a new order flagged `duplicate`, never another order's ref or totals |
 | Rate limit **by phone** (`ORDER_RL_PHONE`, 5 / 60 s) | Worker binding | 429 + Retry-After |
 | Rate limit by IP (`ORDER_RL_IP`, 30 / 60 s) | Worker binding | flag only, never reject (CGNAT) |
 | Turnstile (lazy, invisible) | Worker siteverify | missing / invalid ⇒ accept and flag |
@@ -21,14 +22,18 @@ challenge_trust_ops.md D5. Plan: artifacts/WEB-0/plan.md §3.
 ## 2. The one WAF rate-limiting rule
 
 File: [`waf-rate-limit-rule.json`](waf-rate-limit-rule.json).
-- Expression: `POST` to `/api/order` **or** `/api/quote`. Quote shares the one D1 database with orders
-  (rev-d, WEB-2 r1).
+- Expression: **path only**, `(http.request.uri.path eq "/api/order") or (http.request.uri.path eq "/api/quote")`.
+  Quote shares the one D1 database with orders (rev-d, WEB-2 r1). There is no method condition: on the Free
+  plan, rate-limiting expressions may use only *Path* and *Verified Bot*. Method needs Business or above
+  ([Cloudflare: Rate limiting rules, Availability](https://developers.cloudflare.com/waf/rate-limiting-rules/#availability)).
+  Both endpoints answer only POST (other methods get 405 from the Worker), so nothing is lost.
 - Threshold: **30 requests per 10 s per IP**, then block for 10 s. A real shopper sends 1 order and a few
   quotes. The threshold is high on purpose: Algerian mobile carriers put many users behind one IP (CGNAT,
   [Cloudflare, Oct 2025](https://blog.cloudflare.com/detecting-cgn-to-reduce-collateral-damage/)).
   Never lower it to catch individual spammers; the per-phone binding does that.
-- Free plan: 1 rule, IP-only counting, 10 s period and timeout, which is exactly this rule. On Pro and above,
-  keep the same rule; don't add an IP-only rule with a lower threshold.
+- Free plan: 1 rule, path and verified-bot fields only, IP counting, 10 s period, 10 s timeout. This rule fits
+  inside those limits (same page). On Pro and above, keep the same rule; don't add an IP-only rule with a lower
+  threshold.
 - `characteristics` must include `cf.colo.id` (required by the API for IP counting). Counting is per data center.
 - **Do not add `/api/rum` to this rule.** The rule has one counter per IP across every path it matches. Page-view
   beacons from a busy CGNAT address would then use up that address's budget and block its real orders. RUM has
