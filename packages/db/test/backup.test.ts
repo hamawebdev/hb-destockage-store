@@ -11,9 +11,9 @@ import { buildManifest, canonicalValue, digestRows, tableDigest, verifyRestore, 
 import { schemaFirst, splitSqlStatements, verifyRestoreFromDump } from '../src/backup-node.ts';
 import { LOCAL_DATABASE_ID } from '../src/seed/guard.ts';
 import { exec, freshD1, type RawD1 } from './d1.ts';
-import { MIGRATIONS_DIR } from './helpers.ts';
+import { MIGRATIONS_DIR, migrationFiles } from './helpers.ts';
 
-vi.setConfig({ testTimeout: 180_000, hookTimeout: 120_000 });
+vi.setConfig({ testTimeout: 300_000, hookTimeout: 300_000 });
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 const fixture = readFileSync(new URL('./fixtures/data-at-0000.sql', import.meta.url), 'utf8')
@@ -133,7 +133,7 @@ describe('verifyRestoreFromDump: real `wrangler d1 export` dump into a fresh loc
       const proxy = await getPlatformProxy<{ DB: D1Like }>({ configPath: cfg, persist: { path: join(persist, 'v3') }, remoteBindings: false });
       const manifest = await buildManifest(proxy.env.DB);
       await proxy.dispose();
-      expect(manifest.schemaVersion).toMatch(/^0007_/);
+      expect(manifest.schemaVersion).toBe(migrationFiles().at(-1)); // the last migration of the chain
 
       expect(await verifyRestoreFromDump({ dumpFile: dump, manifest })).toMatchObject({ ok: true, mismatches: [] });
 

@@ -2,7 +2,7 @@
 //   data/geo/{wilayas,communes,fees.seed}.json     (geo)
 //   data/catalog/** via data/catalog/validate.mjs   (seed: validateSeed, loadSeed, toSnapshot)
 //   data/content/<key>.json                         (brand)
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { SeedCategory, SeedCommune, SeedContentPage, SeedFee, SeedInput, SeedProduct, SeedWilaya } from './build.ts';
@@ -42,6 +42,14 @@ export async function loadSeedInput(root: string): Promise<{ input: SeedInput; p
     .sort()
     .map((f) => readJson<SeedContentPage>(join(contentDir, f)));
 
+  // data/photos/manifest.json (seed BUG-14): printed prices per real photo key.
+  const manifestPath = join(root, 'data', 'photos', 'manifest.json');
+  const printedPrices: Record<string, number[]> = {};
+  if (existsSync(manifestPath)) {
+    const m = readJson<{ photos?: { key: string; printedPrices?: number[] }[] }>(manifestPath);
+    for (const ph of m.photos ?? []) printedPrices[ph.key] = [...(ph.printedPrices ?? [])];
+  }
+
   return {
     input: {
       wilayas,
@@ -52,6 +60,7 @@ export async function loadSeedInput(root: string): Promise<{ input: SeedInput; p
       settings: snapshot.settings,
       contentPages,
       adminUsers: DEV_ADMIN_USERS,
+      printedPrices,
     },
     photosDir: join(root, 'data', 'photos'),
   };

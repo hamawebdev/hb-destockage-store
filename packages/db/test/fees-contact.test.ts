@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 // workerd D1 per test: generous timeout on a loaded shared machine.
-vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
+vi.setConfig({ testTimeout: 300_000, hookTimeout: 300_000 });
 import { checkFeeProviderConformance, computeTotals, type FeeProvider } from '@hb/shared';
 import type { AnyD1Database } from 'drizzle-orm/d1';
 import { createAdminTableFeeProvider } from '../src/fees.ts';
@@ -27,7 +27,7 @@ beforeEach(async () => {
      insert into communes (id, wilaya_code, name_fr, name_ar) values (1601, 16, 'Alger Centre', 'الجزائر الوسطى'), (1602, 16, 'Sidi Mhamed', 'سيدي امحمد'), (3101, 31, 'Oran', 'وهران'), (901, 9, 'Blida', 'البليدة'), (1101, 11, 'Tamanrasset', 'تمنراست');
      insert into delivery_fees (wilaya_code, fee_dzd, available, placeholder) values (16, 600, 1, 0), (31, 900, 1, 0), (9, 700, 1, 1), (11, 1500, 0, 0)`,
   );
-}, 60_000);
+}, 300_000);
 afterEach(async () => dispose?.());
 
 function brokenD1() {

@@ -308,6 +308,12 @@ export const images = sqliteTable(
     position: integer('position').notNull().default(0),
     placeholder: bool('placeholder', false),
     createdAt: createdAt(),
+    /**
+     * Prices (integer DZD) printed on the photo, [] = none (DB-8). The admin refuses to activate a
+     * product whose photo prints a price none of its variants has (BUG-14). Guarded by triggers
+     * (0008): a JSON array of non-negative integers.
+     */
+    printedPricesDzd: text('printed_prices_dzd', { mode: 'json' }).$type<number[]>().notNull().default(sql`'[]'`),
   },
   (t) => [
     index('images_r2_key_idx').on(t.r2Key),

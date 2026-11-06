@@ -127,6 +127,11 @@ export interface SeedInput {
   readonly settings: Readonly<Record<string, unknown>>;
   /** Dev only. Production gets admin users from the owner, never from a migration or seed. */
   readonly adminUsers: readonly SeedAdminUser[];
+  /**
+   * Prices printed on each real photo, by image key (data/photos/manifest.json, seed BUG-14). A key
+   * absent here (a generated placeholder photo) prints none: [].
+   */
+  readonly printedPrices?: Readonly<Record<string, readonly number[]>>;
 }
 
 export interface Statement {
@@ -162,7 +167,7 @@ export function categoriesInTreeOrder(categories: readonly SeedCategory[]): Seed
   return [...categories].sort((a, z) => depths.get(a.id)! - depths.get(z.id)! || a.id - z.id);
 }
 
-function imageRow(img: SeedImage, owner: { productId: number } | { categoryId: number }) {
+function imageRow(img: SeedImage, owner: { productId: number } | { categoryId: number }, printed: Readonly<Record<string, readonly number[]>>) {
   return upsert('images', ['id'], {
     id: img.id,
     product_id: 'productId' in owner ? owner.productId : null,
@@ -176,6 +181,7 @@ function imageRow(img: SeedImage, owner: { productId: number } | { categoryId: n
     alt_ar: img.alt.ar,
     position: img.position,
     placeholder: b(img.placeholder),
+    printed_prices_dzd: json(printed[img.key] ?? []),
   });
 }
 
@@ -319,10 +325,10 @@ export function buildCatalogueStatements(input: SeedInput): Statement[] {
     p.packItems.forEach((it, i) => {
       out.push({ sql: 'INSERT INTO "pack_items" ("pack_product_id", "variant_id", "qty", "position") VALUES (?, ?, ?, ?)', params: [p.id, it.variantId, it.qty, i] });
     });
-    for (const img of p.images) out.push(imageRow(img, { productId: p.id }));
+    for (const img of p.images) out.push(imageRow(img, { productId: p.id }, input.printedPrices ?? {}));
   }
   for (const c of input.categories) {
-    if (c.image) out.push(imageRow(c.image, { categoryId: c.id }));
+    if (c.image) out.push(imageRow(c.image, { categoryId: c.id }, input.printedPrices ?? {}));
   }
 
   for (const cp of input.contentPages) {

@@ -214,6 +214,18 @@ describe('DB-3 seed statements', () => {
     expect(blockedVariantDeletionsQuery(fixture).flatMap((q) => sqlite.prepare(q.sql).all(...q.params))).toEqual([]);
   });
 
+  test('printed_prices_dzd comes from the photo manifest by key; photos absent from it print none (DB-8)', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, { ...fixture, printedPrices: { 'shared/1.jpg': [14600, 13600] } });
+    // One key backs two image rows (1011 on the pack, 2011 on the shirt): both get it.
+    expect(sqlite.prepare('select id, printed_prices_dzd p from images order by id').all()).toEqual([
+      { id: 1011, p: '[14600,13600]' },
+      { id: 2011, p: '[14600,13600]' },
+      { id: 2012, p: '[]' },
+      { id: 9001, p: '[]' },
+    ]);
+  });
+
   test('categories are written parents first; a cycle or unknown parent throws', () => {
     expect(categoriesInTreeOrder(fixture.categories).map((c) => c.id)).toEqual([2, 21]);
     expect(() => categoriesInTreeOrder([{ ...fixture.categories[0]!, parentId: 999 }])).toThrow(/unknown parent/);
@@ -285,6 +297,10 @@ describe.skipIf(!hasData)('DB-3 real data/ loads into a fresh DB, twice', () => 
     expect(first.products).toBe(input.products.length);
     expect(first.content_pages).toBe(input.contentPages.length);
     expect(sqlite.pragma('foreign_key_check')).toEqual([]);
+    // DB-8: every image's printed prices equal the manifest's for its key ([] when not listed).
+    for (const r of sqlite.prepare('select r2_key k, printed_prices_dzd p from images').all() as { k: string; p: string }[]) {
+      expect(JSON.parse(r.p), r.k).toEqual(input.printedPrices?.[r.k] ?? []);
+    }
     run(sqlite, input);
     expect(counts(sqlite)).toEqual(first);
   }, 60_000);
