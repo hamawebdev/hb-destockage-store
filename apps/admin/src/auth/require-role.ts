@@ -12,15 +12,29 @@ import { replaceResponse } from '../lib/response.ts';
 import { renderError } from '../ui/error-page.tsx';
 import { rolesFor, type Permission } from './permissions.ts';
 
-export function requireRole(...roles: readonly Role[]) {
+function roleCheck(roles: readonly Role[], marksRoute: boolean) {
   if (roles.length === 0) throw new Error('requireRole() needs at least one role');
   return createMiddleware<AppEnv>(async (c, next) => {
-    c.set('roleChecked', true);
+    if (marksRoute) c.set('roleChecked', true);
     const user = c.get('user') as AppEnv['Variables']['user'] | undefined;
     if (!user) return renderError(c, 401);
     if (user.role !== 'owner' && !roles.includes(user.role)) return renderError(c, 403);
     return next();
   });
+}
+
+/** Route-level check. Satisfies `roleGuard`: every route handler must sit behind one. */
+export function requireRole(...roles: readonly Role[]) {
+  return roleCheck(roles, true);
+}
+
+/**
+ * Router-wide floor used by `createRouter`. It refuses roles outside the router but does NOT
+ * count as the route's check, so a route that forgets `requirePerm` still answers 500
+ * (review ADMIN-1 r1 F1: otherwise a POST without requirePerm inherited the router's wider roles).
+ */
+export function requireRoleFloor(...roles: readonly Role[]) {
+  return roleCheck(roles, false);
 }
 
 export function requirePerm(perm: Permission) {

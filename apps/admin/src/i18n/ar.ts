@@ -48,6 +48,7 @@ export const ar = {
   'form.errorSummary': '{count, plural, one {خطأ واحد يجب تصحيحه} two {خطآن يجب تصحيحهما} few {# أخطاء يجب تصحيحها} other {# خطأ يجب تصحيحه}}',
   'form.required': 'حقل إلزامي',
   'form.invalid': 'قيمة غير صالحة',
+  'form.moneyInteger': 'أدخل المبلغ بالدينار دون كسور أو فاصلة (مثال: 14 600 أو 14600).',
   'form.tooLong': 'طويل جدًا (الحد الأقصى {max} حرفًا)',
   'form.confirm': 'تأكيد هذا الإجراء؟',
   'table.empty': 'لا توجد عناصر.',
