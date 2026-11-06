@@ -247,6 +247,50 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     }
   });
 
+  test('R4 (rev-d r3): a backticked verdict line is a real line — CHANGES_REQUESTED refuses, APPROVED counts', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/r4.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-24: r4');
+    approve('WEB-24', 1, 'APPROVED', [c]);
+    ledger('`WEB-24 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=' + c + ' review=x`');
+    const r1 = merge(['team/web', '--dry-run']);
+    expect(r1.status).toBe(1);
+    expect(r1.stderr).toContain('latest ledger line for WEB-24 is r2 CHANGES_REQUESTED');
+    ledger('`WEB-24 r3 APPROVED tier=low reviewer=rev-d commits=' + c + ' review=x`');
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status, r2.stdout + r2.stderr).toBe(0);
+    expect(r2.stdout).toContain('ledger WEB-24 r3 APPROVED');
+  });
+
+  test('R7: prose with ID-shaped tokens fails closed and names the line and its text', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/r7.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-25: r7');
+    approve('WEB-25', 1, 'APPROVED', [c]);
+    ledger('Note: evidence hashes are SHA-256; files are UTF-8.');
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/team\/APPROVALS\.md:\d+ malformed ledger line: .*SHA-256.*'#' comment/);
+    const f = join(root, 'team/APPROVALS.md');
+    writeFileSync(f, readFileSync(f, 'utf8').replace('Note: evidence hashes', '# Note: evidence hashes'));
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: ledger prose as comment', { HB_ROLE: 'lead' }));
+    expect(merge(['team/web', '--dry-run']).status).toBe(0);
+  });
+
+  test('X12 (rev-d): attribution never follows a moved team/* ref — a WEB commit editing packages/db is refused', () => {
+    resetBranch();
+    write(wt, 'packages/db/src/y.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-26: sneaks into db', GOOD_BODY, true);
+    approve('WEB-26', 1, 'APPROVED', [c]);
+    ok(git(root, 'branch', '-f', 'team/db', c)); // the tamper: point team/db at it
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('ownership');
+    expect(r.stderr).toContain('packages/db/src/y.ts');
+    ok(git(root, 'branch', '-f', 'team/db', 'main'));
+  });
+
   test('X5 / X6: merge commits adding a foreign file are refused, octopus explicitly', () => {
     for (const kind of ['octopus', 'two']) {
       resetBranch();

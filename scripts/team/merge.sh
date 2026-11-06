@@ -8,9 +8,10 @@
 #   non-merge commit  - the full commit-msg format (main's .githooks/commit-msg) and exactly one
 #                       "Risk tier: low|high" line
 #                     - files within its author's paths, using main's team/owners.json — the backstop
-#                       for --no-verify and worktrees without hooks. Author = <branch>'s owner for
-#                       commits on its first-parent line; a commit merged in from another team
-#                       branch is attributed to the team/* branch(es) whose first-parent line has it
+#                       for --no-verify and worktrees without hooks. Author = the owner of the
+#                       commit's own ID area (owners.json idAreas, e.g. SHARED → shared), or the
+#                       merging branch's owner when the commit is on that branch's first-parent
+#                       line. Never inferred from movable team/* refs (rev-d X12).
 #                     - approved per the lead-only ledger main:team/APPROVALS.md (review files under
 #                       artifacts/ are evidence, never authority): the full sha is listed on SOME
 #                       ledger line for its ID, and the LATEST line for that ID (highest r<n>) is
@@ -87,11 +88,22 @@ line_re="^($id_re) r([0-9]+) (APPROVED|CHANGES_REQUESTED) tier=(low|high) review
 # exactly (no leading/double spaces, tabs, CRLF, lowercase verdicts, short shas, trailing junk);
 # otherwise ALL merges are refused, naming the line. Same rule for team/SIGNOFFS.md below.
 looks_re="$id_re"
-skip_line() { [[ -z "${1//[[:space:]]/}" || "$1" == '#'* || "$1" == '`'* ]]; }
+skip_line() { [[ -z "${1//[[:space:]]/}" || "$1" == '#'* ]]; }
+# A line starting with a backtick is a format TEMPLATE only when it holds a <placeholder> (e.g.
+# "`<ID> r<n> …`"); any other backticked line is a real line pasted from markdown: the surrounding
+# backticks are stripped and it must parse strictly (rev-d TOOL-5 r3 R4). Sets $line; 1 = skip it.
+normalize_line() {
+  if [[ "$line" == '`'* ]]; then
+    [[ "$line" == *'<'* ]] && return 1
+    line="${line#\`}"; line="${line%\`}"
+  fi
+  return 0
+}
 lnum=0
 while IFS= read -r line || [[ -n "$line" ]]; do
   lnum=$((lnum + 1))
   skip_line "$line" && continue
+  normalize_line || continue
   if [[ "$line" =~ $line_re ]]; then
     lid="${BASH_REMATCH[1]}" ln="${BASH_REMATCH[3]}" lv="${BASH_REMATCH[4]}" lt="${BASH_REMATCH[5]}"
     lw="${BASH_REMATCH[6]}" lc="${BASH_REMATCH[7]}" lr="${BASH_REMATCH[9]}"
@@ -100,7 +112,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     [[ "$lt" == high ]] && L_high[$lid]=1
     if (( ln >= ${L_n[$lid]:--1} )); then L_n[$lid]=$ln L_verdict[$lid]=$lv L_who[$lid]=$lw L_review[$lid]=$lr; fi
   elif [[ "$line" =~ $looks_re ]]; then
-    ledger_errors+=("team/APPROVALS.md:$lnum malformed ledger line: $(printf '%q' "$line")")
+    ledger_errors+=("team/APPROVALS.md:$lnum malformed ledger line: $(printf '%q' "$line") — fix it, or if it is prose mentioning ID-like tokens (SHA-256, UTF-8) make it a '#' comment")
   fi
 done <"$ledger_tmp"
 
@@ -110,10 +122,11 @@ lnum=0
 while IFS= read -r line || [[ -n "$line" ]]; do
   lnum=$((lnum + 1))
   skip_line "$line" && continue
+  normalize_line || continue
   if [[ "$line" =~ $sign_re && "$line" != *$'\r'* ]]; then
     S_signed["${BASH_REMATCH[1]} ${BASH_REMATCH[3]}"]=1
   elif [[ "$line" =~ $looks_re ]]; then
-    ledger_errors+=("team/SIGNOFFS.md:$lnum malformed sign-off line: $(printf '%q' "$line")")
+    ledger_errors+=("team/SIGNOFFS.md:$lnum malformed sign-off line: $(printf '%q' "$line") — fix it, or if it is prose mentioning ID-like tokens make it a '#' comment")
   fi
 done <"$signoffs_tmp"
 if [[ ${#ledger_errors[@]} -gt 0 ]]; then
@@ -130,11 +143,9 @@ merge_covered() { # a merge commit listed on a ledger line of an ID whose latest
 }
 
 # --- attribution: which teammate authored each commit ------------------------------------------
-declare -A fp_owners=()   # sha -> space-separated owners whose team/* first-parent line has it
-while IFS= read -r ref; do
-  o="${ref#refs/heads/team/}"
-  while IFS= read -r s; do fp_owners[$s]+="$o "; done < <(g rev-list --first-parent "main..$ref" 2>/dev/null)
-done < <(g for-each-ref --format='%(refname)' 'refs/heads/team/')
+# From the commit's own ID area (owners.json idAreas) — never from movable team/* refs (rev-d X12).
+declare -A area_owner=()
+while IFS='=' read -r k v; do [[ -n "$k" ]] && area_owner[$k]="$v"; done < <(node -e 'const a=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).idAreas||{};for(const[k,v]of Object.entries(a))console.log(k+"="+v)' "$owners_tmp")
 declare -A on_branch_fp=()
 while IFS= read -r s; do on_branch_fp[$s]=1; done < <(g rev-list --first-parent "main..$sha")
 
@@ -183,10 +194,14 @@ for c in "${commits[@]}"; do
   g log -1 --format=%B "$c" >"$msg_tmp"
   fmt="$(cd "$main_root" && "$here/../../.githooks/commit-msg" "$msg_tmp" 2>&1 | head -n1)" || why+=("message format: $fmt")
 
-  # Candidates: every team whose first-parent line has the commit (a fast-forward merge puts another
-  # team's commits on this branch's own first-parent line too), plus this branch's owner.
-  cands="${fp_owners[$c]:-}"
-  [[ -n "${on_branch_fp[$c]:-}" && " $cands " != *" $author "* ]] && cands="$author $cands"
+  # Candidates: the owner of the commit's ID area, plus the merging branch's owner when the commit is
+  # on that branch's own first-parent line (BUG-n and other unmapped areas rely on the latter).
+  cands=""
+  if [[ -n "$id" ]]; then
+    area="${id%-*}"
+    [[ -n "${area_owner[$area]:-}" ]] && cands="${area_owner[$area]}"
+  fi
+  [[ -n "${on_branch_fp[$c]:-}" && " $cands " != *" $author "* ]] && cands="$cands $author"
   owner_ok=""
   own=""
   for o in $cands; do
@@ -194,7 +209,7 @@ for c in "${commits[@]}"; do
     own+="[$o] ${out//$'\n'/ } "
   done
   if [[ -z "$cands" ]]; then
-    why+=("ownership: cannot attribute this commit to a team/* branch (merged from a non-team branch?)")
+    why+=("ownership: cannot attribute this commit: its ID area '${id%-*}' is not in owners.json idAreas and it is not on $branch's own line")
   elif [[ -z "$owner_ok" ]]; then
     why+=("ownership: $own")
   fi
@@ -218,7 +233,8 @@ for c in "${commits[@]}"; do
 
   if [[ ${#why[@]} -eq 0 ]]; then
     attributed+=("$c $owner_ok")
-    printf '%-9s %-10s %-5s %s\n' "$short" "$id" "$tier" "OK (author $owner_ok; $relied)"
+    note=""; [[ "$owner_ok" != "$author" ]] && note=" — NOT the merging branch's owner"
+    printf '%-9s %-10s %-5s %s\n' "$short" "$id" "$tier" "OK (author $owner_ok$note; $relied)"
   else
     printf '%-9s %-10s %-5s %s\n' "$short" "${id:-?}" "${tier:-?}" REFUSED
     for w in "${why[@]}"; do refusals+=("$short ${id:-?}: $w"); done

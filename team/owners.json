@@ -28,6 +28,27 @@
       "team/BRIEF.md"
     ]
   },
+  "idAreas": {
+    "ACAT": "admin-catalog",
+    "ADMIN": "admin-core",
+    "AORD": "admin-orders",
+    "BOOT": "lead",
+    "BRAND": "brand",
+    "CAT": "pagedata",
+    "DB": "db",
+    "GEO": "geo",
+    "JOBS": "jobs",
+    "MEAS": "measure",
+    "ORDER": "orderform",
+    "PAGES": "pages",
+    "QA": "qa",
+    "SEED": "seed",
+    "SHARED": "shared",
+    "SHELL": "shell",
+    "TOKENS": "tokens",
+    "TOOL": "tooling",
+    "WEB": "web"
+  },
   "owners": {
     "tooling": {
       "paths": [
