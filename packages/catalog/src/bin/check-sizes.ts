@@ -7,7 +7,7 @@
  *
  *   /tmp/hb-locks/heavy.sh node packages/catalog/src/bin/check-sizes.ts --dist apps/storefront/dist \
  *     --product-fr /fr/p/<slug>/ --product-ar /ar/p/<slug>/ --category-fr /fr/c/<slug>/ --category-ar /ar/c/<slug>/ \
- *     [--report artifacts/BUG-12/sizes.md] [--chrome /usr/bin/google-chrome] [--port 4181]
+ *     [--report artifacts/BUG-12/sizes.md] [--chrome /usr/bin/google-chrome] [--port 4181] [--source shipped|catalog]
  *
  * Needs playwright-core and a Chrome/Chromium binary; not part of the unit tests.
  */
@@ -28,6 +28,9 @@ const { values: a } = parseArgs({
     report: { type: 'string' },
     chrome: { type: 'string', default: process.env['CHROME_PATH'] ?? '/usr/bin/google-chrome' },
     port: { type: 'string', default: '4181' },
+    /** `shipped` (default): resolve each <img>'s own sizes attribute; `catalog`: resolve SLOT_SIZES
+     *  (proof before a build containing them exists). */
+    source: { type: 'string', default: 'shipped' },
   },
 });
 for (const k of ['dist', 'product-fr', 'product-ar', 'category-fr', 'category-ar'] as const) {
@@ -66,9 +69,11 @@ const browser = await chromium.launch({ executablePath: a.chrome!, args: ['--no-
  * browser (first entry whose media condition matches, else the last) and measures that length with
  * a probe element; returns the first visible matching <img>'s rendered width.
  */
-const IN_PAGE = `({ selector, sizes }) => {
+const IN_PAGE = `({ selector, sizes: catalogSizes, source }) => {
   const img = [...document.querySelectorAll(selector)].find((i) => i.getBoundingClientRect().width > 0);
   if (!img) return null;
+  const shipped = img.getAttribute('sizes') || '';
+  const sizes = source === 'shipped' ? shipped : catalogSizes;
   const entries = sizes.split(',').map((s) => s.trim());
   let length = entries[entries.length - 1];
   for (const e of entries) {
@@ -81,25 +86,32 @@ const IN_PAGE = `({ selector, sizes }) => {
   document.body.appendChild(probe);
   const resolved = probe.getBoundingClientRect().width;
   probe.remove();
-  return { rendered: img.getBoundingClientRect().width, resolved };
+  return { rendered: img.getBoundingClientRect().width, resolved, shipped };
 }`;
 
 interface Row { slot: string; lang: string; viewport: number; rendered: number; resolved: number; diff: number; ok: boolean }
 const rows: Row[] = [];
+const shippedSizes = new Set<string>();
+if (a.source !== 'shipped' && a.source !== 'catalog') {
+  console.error('--source must be shipped or catalog');
+  process.exit(2);
+}
 try {
   for (const { slot, selector, pages } of SLOTS) {
     for (const lang of ['ar', 'fr'] as const) {
       for (const vw of VIEWPORTS) {
         const page = await browser.newPage({ viewport: { width: vw, height: 900 } });
         await page.goto(origin + pages[lang], { waitUntil: 'load' });
-        const r = (await page.evaluate(`(${IN_PAGE})(${JSON.stringify({ selector, sizes: SLOT_SIZES[slot] })})`)) as {
+        const r = (await page.evaluate(`(${IN_PAGE})(${JSON.stringify({ selector, sizes: SLOT_SIZES[slot], source: a.source })})`)) as {
           rendered: number;
           resolved: number;
+          shipped: string;
         } | null;
         await page.close();
         if (!r) throw new Error(`${selector} not found on ${pages[lang]} at ${vw}px`);
         const diff = (r.resolved - r.rendered) / r.rendered;
         rows.push({ slot, lang, viewport: vw, rendered: r.rendered, resolved: r.resolved, diff, ok: Math.abs(diff) <= TOLERANCE });
+        shippedSizes.add(`${slot}: ${r.shipped}`);
       }
     }
   }
@@ -111,10 +123,12 @@ try {
 const lines = [
   '# BUG-12: `sizes` vs rendered width',
   '',
-  `Rendered <img> width (getBoundingClientRect) vs SLOT_SIZES resolved at the same viewport; tolerance ±${TOLERANCE * 100} %.`,
+  `Rendered <img> width (getBoundingClientRect) vs the ${a.source === 'shipped' ? "page's own sizes attribute" : 'SLOT_SIZES strings'} resolved at the same viewport; tolerance ±${TOLERANCE * 100} %.`,
   '',
-  `- gallery: \`${SLOT_SIZES.gallery}\``,
-  `- card: \`${SLOT_SIZES.card}\``,
+  `- source: ${a.source}`,
+  `- SLOT_SIZES gallery: \`${SLOT_SIZES.gallery}\``,
+  `- SLOT_SIZES card: \`${SLOT_SIZES.card}\``,
+  ...[...shippedSizes].map((s) => `- shipped ${s.replace(/^(\w+): (.*)$/, '$1: `$2`')}`),
   `- build: ${root}`,
   '',
   '| slot | lang | viewport | rendered px | sizes px | diff | ok |',
