@@ -43,12 +43,10 @@ describe.each(['ar', 'fr'] as const)('product page (%s)', (lang) => {
     expect(html).not.toContain('⟦');
   });
 
-  it('a sold-out default variant is never preselected (first orderable one instead)', async () => {
+  it('preselects CAT-3\'s effective default (isDefault), whichever variant it is', async () => {
     const p = product(lang, APRON);
-    const soldOut = { ...p.variants[0]!, isDefault: true, available: false, stock: { state: 'out_of_stock' as const, qty: 0 }, maxQty: 0 };
-    const rest = p.variants.slice(1).map((v) => ({ ...v, isDefault: false }));
-    const html = await render({ ...p, variants: [soldOut, ...rest] });
-    const pick = rest.find((v) => v.available)!;
+    const pick = p.variants.find((v) => v.available && !v.isDefault)!;
+    const html = await render({ ...p, variants: p.variants.map((v) => ({ ...v, isDefault: v === pick })) });
     for (const id of pick.optionValueIds) expect(tag(html, new RegExp(`<input[^>]*id="ov-${id}"[^>]*>`))).toContain('checked');
     expect(tag(html, /<div class="cat-vp cat-vp-d"[^>]*>/)).toContain(`data-v="${pick.id}"`);
   });

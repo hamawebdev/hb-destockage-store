@@ -1,0 +1,91 @@
+---
+/**
+ * Search page. A plain GET form (`?q=`) that also works without JS: the page then shows a note
+ * and the category list. search.js (after LCP) fetches the per-language index on the first
+ * focus/input — or at once when the URL already has `?q=` — and renders results client-side,
+ * announced through the status line (`role="status"`). The strings it needs travel as JSON in
+ * `data-i18n` (shell's build allows no inline scripts but its own).
+ */
+import './card.css';
+import './catalog.css';
+import type { SearchProps } from '@hb/catalog';
+import ProductGrid from './ProductGrid.astro';
+import { formatInt, showDevMarkers, t } from './lib/i18n.ts';
+
+type Props = SearchProps;
+const { layout, indexUrl, queryParam, minQueryLength, categories, suggested } = Astro.props;
+const { lang, strings } = layout;
+const dev = showDevMarkers();
+const PLURAL = ['zero', 'one', 'two', 'few', 'many', 'other'] as const;
+const i18n = JSON.stringify({
+  ...Object.fromEntries(PLURAL.map((f) => [`search.results.${f}`, t(strings, `search.results.${f}`)])),
+  'search.none': t(strings, 'search.none'),
+  'search.noneHint': t(strings, 'search.noneHint'),
+  'search.short': t(strings, 'search.short'),
+  'search.loading': t(strings, 'search.loading'),
+  'search.error': t(strings, 'search.error'),
+  'price.from': t(strings, 'price.from'),
+  'stock.out': t(strings, 'stock.out'),
+  ...(dev ? { 'dev.placeholder': t(strings, 'dev.placeholder') } : {}),
+});
+---
+<div class="cat-page cat-search" data-index={indexUrl} data-lang={lang} data-min={minQueryLength} data-q={queryParam} data-i18n={i18n}>
+  <h1 class="cat-title cat-search-title">{t(strings, 'search.title')}</h1>
+  <form class="cat-sform" role="search" method="get" action={layout.path}>
+    <label class="cat-sr" for="cat-q">{t(strings, 'search.label')}</label>
+    <span class="cat-sfield">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15zM16 16l5 5" /></svg>
+      <input id="cat-q" name={queryParam} type="search" dir="auto" autocomplete="off" enterkeyhint="search" spellcheck="false" placeholder={t(strings, 'search.placeholder')} />
+    </span>
+    <button class="cat-btn" type="submit">{t(strings, 'search.submit')}</button>
+  </form>
+
+  <p id="cat-sstatus" class="cat-sstatus" role="status"></p>
+  <ul id="cat-sresults" class="cat-sresults" role="list" hidden></ul>
+
+  <noscript><p class="cat-snote">{t(strings, 'search.noJs')}</p></noscript>
+
+  <section class="cat-sec cat-sbrowse" aria-labelledby="cat-sbrowse-h">
+    <h2 id="cat-sbrowse-h" class="cat-sec-h">{t(strings, 'search.browse')}</h2>
+    <ul class="cat-sbrowse-list" role="list">
+      {categories.map((c) => (
+        <li><a class="cat-chip" href={c.href}>{c.name}{dev && c.placeholder && ` ${t(strings, 'dev.placeholder')}`} <span class="cat-chip-n">{formatInt(lang, c.count)}</span></a></li>
+      ))}
+    </ul>
+  </section>
+
+  {suggested.length > 0 && (
+    <section class="cat-sec cat-ssuggest" aria-labelledby="cat-ssuggest-h">
+      <h2 id="cat-ssuggest-h" class="cat-sec-h">{t(strings, 'search.suggested')}</h2>
+      <ProductGrid cards={suggested} lang={lang} strings={strings} level={3} />
+    </section>
+  )}
+</div>
+
+<style is:global>
+  .cat-search-title{margin-block:var(--space-6) var(--space-6)}
+  @media (min-width:768px){.cat-search-title{margin-block:var(--space-10) var(--space-8)}}
+  .cat-sform{display:flex;gap:var(--space-2);max-inline-size:44rem}
+  .cat-sfield{position:relative;flex:1;display:flex;align-items:center}
+  .cat-sfield svg{position:absolute;inset-inline-start:var(--space-4);inline-size:var(--icon-md);block-size:var(--icon-md);color:var(--color-text-secondary);pointer-events:none}
+  .cat-sfield input{inline-size:100%;min-block-size:48px;padding-inline:calc(var(--space-4) + var(--icon-md) + var(--space-2)) var(--space-4);border:0;border-radius:var(--radius-pill);background:var(--color-surface-alt);box-shadow:inset 0 0 0 1px var(--color-border-control);color:var(--color-text);font:inherit;font-size:max(16px,var(--fs-body))}
+  .cat-sfield input::placeholder{color:var(--color-text-secondary)}
+  .cat-sfield input:focus-visible{outline:var(--focus-width,2px) solid var(--color-focus);outline-offset:var(--focus-offset,2px)}
+  .cat-sform .cat-btn{min-block-size:48px}
+  @media (max-width:479.98px){.cat-sform .cat-btn{padding-inline:var(--space-4)}}
+  .cat-sstatus{min-block-size:1.7em;margin:var(--space-4) 0 0;color:var(--color-text-secondary);font-size:var(--fs-small)}
+  .cat-sstatus:empty{min-block-size:0}
+  .cat-snote{margin:var(--space-4) 0 0;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--color-accent-surface);color:var(--color-text);font-size:var(--fs-small)}
+  .cat-sresults{display:grid;gap:var(--space-1);margin:var(--space-2) 0 0;padding:0;list-style:none;max-inline-size:44rem}
+  .cat-res{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:var(--space-4);padding:var(--space-2);border-radius:var(--radius-lg);color:var(--color-text);text-decoration:none}
+  .cat-res:hover{background:var(--color-surface-alt)}
+  .cat-res-img{inline-size:64px;block-size:64px;border-radius:var(--radius-md);background:var(--color-surface-alt);object-fit:contain}
+  .cat-res-text{display:grid;gap:2px;min-inline-size:0;line-height:var(--lh-ui)}
+  .cat-res-name{font-weight:var(--fw-emphasis);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cat-res-meta{color:var(--color-text-secondary);font-size:var(--fs-small)}
+  .cat-res-price{font-variant-numeric:tabular-nums}
+  .cat-res-out{color:var(--color-danger)}
+  .cat-res-low{color:var(--color-warning)}
+  .cat-sbrowse-list{display:flex;flex-wrap:wrap;gap:var(--space-2);margin:0;padding:0;list-style:none}
+  .cat-search.is-active .cat-ssuggest{display:none}
+</style>

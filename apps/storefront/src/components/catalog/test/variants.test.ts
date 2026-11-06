@@ -44,11 +44,10 @@ describe('variantBlocks', () => {
 });
 
 describe('helpers', () => {
-  test('defaultVariant prefers an orderable isDefault, else the first orderable, never a sold-out default', () => {
+  test('defaultVariant follows CAT-3\'s effective default (isDefault), else the first', () => {
     expect(defaultVariant([v(1, [], 1), v(2, [], 1, true)])?.id).toBe(2);
+    expect(defaultVariant([v(1, [], 0), v(2, [], 4, true)])?.id).toBe(2);
     expect(defaultVariant([v(1, [], 1)])?.id).toBe(1);
-    expect(defaultVariant([v(1, [], 0, true), v(2, [], 0), v(3, [], 4)])?.id).toBe(3);
-    expect(defaultVariant([v(1, [], 0), v(2, [], 0, true)])?.id).toBe(2);
   });
   test('variantByValue maps value ids', () => {
     expect(variantByValue([v(1, [11], 1), v(2, [12], 1)]).get(12)?.id).toBe(2);
