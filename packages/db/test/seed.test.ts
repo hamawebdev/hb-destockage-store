@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from 'vitest';
 import type Database from 'better-sqlite3';
-import { buildSeedStatements, categoriesInTreeOrder, referencedImageKeys, type SeedInput, type SeedProduct } from '../src/seed/build.ts';
+import { blockedVariantDeletionsQuery, buildSeedStatements, categoriesInTreeOrder, referencedImageKeys, type SeedInput, type SeedProduct } from '../src/seed/build.ts';
 import { DEV_ADMIN_USERS } from '../src/seed/dev-users.ts';
 import { databaseIdFromWranglerJsonc, LOCAL_DATABASE_ID, seedRefusals } from '../src/seed/guard.ts';
 import { loadSeedInput } from '../src/seed/load.ts';
@@ -139,6 +139,79 @@ describe('DB-3 seed statements', () => {
     expect(sqlite.prepare('select position, qty from pack_items where pack_product_id = 101 order by position').all()).toEqual([{ position: 0, qty: 2 }, { position: 1, qty: 1 }]);
     expect(sqlite.prepare('select category_id, product_id from images where id = 9001').get()).toEqual({ category_id: 2, product_id: null });
     expect(sqlite.prepare('select variant_id, option_value_id from images where id = 2012').get()).toEqual({ variant_id: null, option_value_id: 201102 });
+  });
+
+  // DB-3 r3: a re-run converges the catalogue to data/ exactly.
+  const ids = (sqlite: Database.Database, sql: string) => (sqlite.prepare(sql).all() as { id: number }[]).map((r) => r.id);
+  const changedFixture = (): SeedInput => ({
+    ...fixture,
+    categories: fixture.categories.map((c) => (c.id === 2 ? { ...c, image: null } : c)), // category image dropped
+    products: [
+      { ...pack, packItems: [pack.packItems[0]!] }, // one pack item dropped
+      {
+        ...shirt,
+        images: [shirt.images[1]!], // image 2011 dropped
+        // variant 20102 renamed to 20109 with the SAME sku: the old row must go before the new one is written
+        variants: shirt.variants.map((v) => (v.id === 20102 ? { ...v, id: 20109 } : v)),
+      },
+    ],
+  });
+
+  test('re-running with changed data converges the DB to data/ (drop image, rename variant id, drop pack item)', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    run(sqlite, changedFixture());
+    expect(ids(sqlite, 'select id from images order by id')).toEqual([1011, 2012]);
+    expect(ids(sqlite, 'select id from variants where product_id = 201 order by id')).toEqual([20101, 20109]);
+    expect(sqlite.prepare('select sku from variants where id = 20109').get()).toEqual({ sku: 'TS-B' });
+    expect(sqlite.prepare('select variant_id from pack_items').all()).toEqual([{ variant_id: 20101 }]);
+    expect(sqlite.prepare('select option_value_id from variant_option_values where variant_id = 20109').all()).toEqual([{ option_value_id: 201102 }]);
+    expect(sqlite.pragma('foreign_key_check')).toEqual([]);
+    // And back again: converges to the original.
+    run(sqlite, fixture);
+    expect(ids(sqlite, 'select id from images order by id')).toEqual([1011, 2011, 2012, 9001]);
+    expect(ids(sqlite, 'select id from variants where product_id = 201 order by id')).toEqual([20101, 20102]);
+  });
+
+  test('a dropped option value and option are deleted too', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    const noBlue: SeedProduct = {
+      ...shirt,
+      options: [{ ...shirt.options[0]!, values: [shirt.options[0]!.values[0]!] }],
+      variants: [shirt.variants[0]!],
+      images: [shirt.images[0]!],
+    };
+    const packOfRed: SeedProduct = { ...pack, packItems: [{ variantId: 20101, qty: 1 }] };
+    run(sqlite, { ...fixture, products: [packOfRed, noBlue] });
+    expect(ids(sqlite, 'select id from option_values order by id')).toEqual([201101]);
+    const noOptions: SeedProduct = { ...noBlue, kind: 'simple', options: [], variants: [{ ...shirt.variants[0]!, optionValueIds: [] }] };
+    run(sqlite, { ...fixture, products: [packOfRed, noOptions] });
+    expect(ids(sqlite, 'select id from product_options')).toEqual([]);
+  });
+
+  test('a variant to delete that an order line references: reported by the pre-check, and the batch would abort', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    sqlite.exec(`insert into customers (id, phone_e164, name) values (1, '+213560417403', 'A');
+      insert into orders (id, ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, subtotal_dzd, fee_dzd, total_dzd, fee_source)
+      values (1, 'HB-7K2Q9', 'k', 1, 'A', '+213560417403', 16, 1601, 'ar', 1500, 400, 1900, 'table');
+      insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd) values (1, 20102, 201, 'T', 'ق', 'TS-B', 1500, 1, 1500);`);
+    const blocked = blockedVariantDeletionsQuery(changedFixture()).flatMap((q) => sqlite.prepare(q.sql).all(...q.params));
+    expect(blocked).toEqual([{ id: 20102, sku: 'TS-B', order_lines: 1, other_packs: 0 }]);
+    expect(() => run(sqlite, changedFixture())).toThrow(/FOREIGN KEY/);
+    expect(ids(sqlite, 'select id from variants where product_id = 201 order by id')).toEqual([20101, 20102]); // rolled back
+    expect((sqlite.prepare('select count(*) n from orders').get() as { n: number }).n).toBe(1);
+  });
+
+  test('a variant to delete that a pack outside data/ references is reported', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    sqlite.exec(`insert into products (id, kind, category_id, slug_fr, slug_ar, name_fr, name_ar) values (999, 'pack', 21, 'admin-pack', 'admin-pack-ar', 'P', 'ب');
+      insert into pack_items (pack_product_id, variant_id, qty) values (999, 20102, 1);`);
+    const blocked = blockedVariantDeletionsQuery(changedFixture()).flatMap((q) => sqlite.prepare(q.sql).all(...q.params));
+    expect(blocked).toEqual([{ id: 20102, sku: 'TS-B', order_lines: 0, other_packs: 1 }]);
+    expect(blockedVariantDeletionsQuery(fixture).flatMap((q) => sqlite.prepare(q.sql).all(...q.params))).toEqual([]);
   });
 
   test('categories are written parents first; a cycle or unknown parent throws', () => {

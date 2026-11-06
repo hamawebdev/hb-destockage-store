@@ -179,8 +179,16 @@ function imageRow(img: SeedImage, owner: { productId: number } | { categoryId: n
   });
 }
 
-/** All statements, in foreign-key order. Run them in order (any batch size). */
+/** All statements, in foreign-key order: reference data, then the catalogue. */
 export function buildSeedStatements(input: SeedInput): Statement[] {
+  return [...buildReferenceStatements(input), ...buildCatalogueStatements(input)];
+}
+
+/**
+ * Reference data: wilayas, communes, fees, dev admin users. Plain idempotent upserts, safe to run in
+ * any number of batches (1,541 communes make one D1 batch too large for the local proxy's RPC).
+ */
+export function buildReferenceStatements(input: SeedInput): Statement[] {
   const out: Statement[] = [];
 
   for (const w of input.wilayas) {
@@ -197,6 +205,15 @@ export function buildSeedStatements(input: SeedInput): Statement[] {
   for (const u of input.adminUsers) {
     out.push(upsert('admin_users', ['email'], { email: u.email.toLowerCase(), name: u.name, role: u.role, active: b(u.active) }));
   }
+  return out;
+}
+
+/**
+ * The catalogue (categories, products and their children, content pages, settings), converging to
+ * data/. Run as ONE batch: it deletes rows that left data/ and must apply completely or not at all.
+ */
+export function buildCatalogueStatements(input: SeedInput): Statement[] {
+  const out: Statement[] = [];
 
   for (const c of categoriesInTreeOrder(input.categories)) {
     out.push(
@@ -238,6 +255,33 @@ export function buildSeedStatements(input: SeedInput): Statement[] {
         translation_placeholder: json(p.translationPlaceholder ?? []),
       }),
     );
+  }
+
+  // Convergence (DB-3 r3): a re-run makes every seeded product's child rows equal data/. Rows of a
+  // seeded product that are no longer in data/ are deleted BEFORE the upserts (this also frees a SKU
+  // when a variant id is renamed). Pack contents of every seeded pack go first, so a dropped variant
+  // is no longer referenced by them. A variant still referenced by an order line (or by a pack that
+  // is not in data/) is protected by its FK (RESTRICT): the batch aborts. The CLI refuses earlier
+  // with a report (blockedVariantDeletions). Orders, customers, events and audit are never touched.
+  for (const p of input.products) out.push({ sql: 'DELETE FROM "pack_items" WHERE "pack_product_id" = ?', params: [p.id] });
+  for (const p of input.products) {
+    out.push(notIn('DELETE FROM "images" WHERE "product_id" = ?', [p.id], 'id', p.images.map((i) => i.id)));
+    out.push(notIn('DELETE FROM "variants" WHERE "product_id" = ?', [p.id], 'id', p.variants.map((v) => v.id)));
+    out.push(
+      notIn(
+        'DELETE FROM "option_values" WHERE "option_id" IN (SELECT "id" FROM "product_options" WHERE "product_id" = ?)',
+        [p.id],
+        'id',
+        p.options.flatMap((o) => o.values.map((v) => v.id)),
+      ),
+    );
+    out.push(notIn('DELETE FROM "product_options" WHERE "product_id" = ?', [p.id], 'id', p.options.map((o) => o.id)));
+  }
+  for (const c of input.categories) {
+    out.push(notIn('DELETE FROM "images" WHERE "category_id" = ?', [c.id], 'id', c.image ? [c.image.id] : []));
+  }
+
+  for (const p of input.products) {
     for (const o of p.options) {
       out.push(upsert('product_options', ['id'], { id: o.id, product_id: p.id, kind: o.type, name_fr: o.name.fr, name_ar: o.name.ar, position: o.position }));
       for (const v of o.values) {
@@ -272,7 +316,6 @@ export function buildSeedStatements(input: SeedInput): Statement[] {
 
   // Pack contents and images after every variant exists (a pack may list a later product's variant).
   for (const p of input.products) {
-    out.push({ sql: 'DELETE FROM "pack_items" WHERE "pack_product_id" = ?', params: [p.id] });
     p.packItems.forEach((it, i) => {
       out.push({ sql: 'INSERT INTO "pack_items" ("pack_product_id", "variant_id", "qty", "position") VALUES (?, ?, ?, ?)', params: [p.id, it.variantId, it.qty, i] });
     });
@@ -307,6 +350,31 @@ export function buildSeedStatements(input: SeedInput): Statement[] {
     out.push(upsert('settings', ['key'], { key, value: json(value ?? null) }));
   }
   return out;
+}
+
+/**
+ * `<base> AND "<col>" NOT IN (keep)`. The keep-list travels as ONE JSON parameter (json_each), so the
+ * statement stays under D1's 100-bound-parameter limit however large the catalogue grows.
+ */
+function notIn(base: string, params: readonly number[], col: string, keep: readonly number[]): Statement {
+  return { sql: `${base} AND "${col}" NOT IN (SELECT value FROM json_each(?))`, params: [...params, JSON.stringify(keep)] };
+}
+
+/**
+ * Read-only check run BEFORE seeding: variants the seed would delete (dropped from data/) that an
+ * order line or a pack outside data/ still references. Non-empty ⇒ the seed must refuse.
+ */
+export function blockedVariantDeletionsQuery(input: Pick<SeedInput, 'products'>): Statement[] {
+  const packs = JSON.stringify(input.products.map((p) => p.id));
+  return input.products.map((p) => ({
+    sql:
+      `SELECT v."id" AS id, v."sku" AS sku, ` +
+      `(SELECT count(*) FROM "order_items" oi WHERE oi."variant_id" = v."id") AS order_lines, ` +
+      `(SELECT count(*) FROM "pack_items" pi WHERE pi."variant_id" = v."id" AND pi."pack_product_id" NOT IN (SELECT value FROM json_each(?))) AS other_packs ` +
+      `FROM "variants" v WHERE v."product_id" = ? AND v."id" NOT IN (SELECT value FROM json_each(?)) ` +
+      `AND (order_lines > 0 OR other_packs > 0)`,
+    params: [packs, p.id, JSON.stringify(p.variants.map((v) => v.id))],
+  }));
 }
 
 /** Distinct R2 keys referenced by image rows (what the seed uploads to local R2). */
