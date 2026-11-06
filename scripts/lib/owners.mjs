@@ -36,6 +36,8 @@ export function loadOwners() {
 const undot = (s) => s.replace(/(^|\/)\./g, '$1\u0001dot');
 const match = (path, glob) => matchesGlob(path, glob) || matchesGlob(undot(path), undot(glob));
 const any = (path, globs = []) => globs.some((g) => match(path, g));
+// Case-insensitive variant for the dump backstop (BACKUP.SQL.GZ, D1-EXPORT-…, Backups/; rev-a TOOL-7 N1).
+const anyCI = (path, globs = []) => globs.some((g) => match(path.toLowerCase(), g.toLowerCase()));
 
 /** Owner that a reserved glob pins this path to, or null. */
 export function reservedOwner(cfg, path) {
@@ -223,9 +225,10 @@ function checkChanges(cfg, name, { lead, changes, before, after, theirs }) {
 
   const max = cfg.maxFileBytes ?? 2 * 1024 * 1024;
   for (const t of touched) {
-    // backup dumps never enter git (JOBS-1 F5): forbidden for everyone, lead included
-    // (Drizzle/D1 migrations are SQL by design: cfg.forbiddenExcept, rev-a TOOL-7 blocker)
-    if (!t.deleted && any(t.path, cfg.forbiddenGlobs) && !any(t.path, cfg.forbiddenExcept)) {
+    // backup dumps never enter git (JOBS-1 F5): forbidden for everyone, lead included, everywhere —
+    // inside packages/db/migrations/ too. cfg.forbiddenExcept admits only the exact files Drizzle
+    // writes there (NNNN_*.sql, meta/_journal.json, meta/NNNN_snapshot.json; rev-a TOOL-7 r1).
+    if (!t.deleted && anyCI(t.path, cfg.forbiddenGlobs) && !any(t.path, cfg.forbiddenExcept)) {
       problems.push(`${t.path}: looks like a database dump/backup (${(cfg.forbiddenGlobs ?? []).join(', ')}); these never go into git — delete it or move it out of the repo`);
       continue;
     }

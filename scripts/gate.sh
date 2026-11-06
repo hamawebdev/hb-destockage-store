@@ -156,11 +156,15 @@ run_step() {
   local limit="${HB_STEP_TIMEOUT:-2700}"
   [[ "$name" == lh ]] && limit="${HB_LH_TIMEOUT:-14400}"
   HB_RUN_TIMEOUT="$limit" hb_run_group "$@" >>"$log" 2>&1 </dev/null || rc=$?
-  [[ $rc -eq 124 ]] && printf '\n===== %s: TIMED OUT after %ss (killed with its process group)\n' "$name" "$limit" >>"$log"
+  local timed_out=""
+  if [[ $rc -ne 0 ]] && (( SECONDS - t0 >= limit )); then
+    timed_out=", TIMED OUT after ${limit}s"
+    printf '\n===== %s: TIMED OUT after %ss (exit %s; killed with its process group)\n' "$name" "$limit" "$rc" >>"$log"
+  fi
   if [[ $rc -eq 0 ]]; then
     summary+=("GREEN $name ($((SECONDS - t0))s)")
   else
-    summary+=("RED   $name (exit $rc, $((SECONDS - t0))s)")
+    summary+=("RED   $name (exit $rc$timed_out, $((SECONDS - t0))s)")
     red="$name"
   fi
   return 0

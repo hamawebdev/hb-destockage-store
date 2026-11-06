@@ -205,6 +205,39 @@ describe('pre-commit ownership', () => {
     ok(git(root, 'clean', '-qfdx', '--', 'packages/db'));
   });
 
+  test('rev-a TOOL-7 r1: dumps are refused INSIDE migrations/ and in any letter case; Drizzle files commit', () => {
+    for (const [b, env] of [['team/db', {}], ['main', { HB_ROLE: 'lead' }]] as const) {
+      for (const f of [
+        'packages/db/migrations/prod-2026.sql.gz',
+        'packages/db/migrations/d1-export-2026.sql',
+        'packages/db/migrations/backups/b.sql',
+        'packages/db/migrations/hb-restore-1/x.db',
+        'packages/db/migrations/prod.dump',
+        'packages/db/migrations/0009_not-a-migration.sql.gz',
+        'apps/jobs/BACKUP.SQL.GZ',
+        'D1-EXPORT-2026.json',
+        'packages/db/Backups/x.json',
+        'data/geo/prod.DUMP',
+      ]) {
+        if (b === 'team/db' && !f.startsWith('packages/db/')) continue; // ownership would refuse first
+        branch(root, b);
+        write(root, f, 'x\n');
+        ok(git(root, 'add', '-f', '--', f));
+        const r = commit(root, 'DB-9: dump', env);
+        expect(r.status, `${b} ${f}`).not.toBe(0);
+        expect(r.stderr, f).toContain('dump');
+        ok(git(root, 'reset', '-q', '--hard'));
+        ok(git(root, 'clean', '-qfdx', '--', f.split('/')[0] ?? f));
+      }
+    }
+    branch(root, 'team/db');
+    for (const f of ['packages/db/migrations/0008_x.sql', 'packages/db/migrations/meta/_journal.json', 'packages/db/migrations/meta/0008_snapshot.json']) {
+      write(root, f, '{}\n');
+    }
+    ok(git(root, 'add', '--', 'packages/db/migrations'));
+    expect(commit(root, 'DB-9: drizzle output').status).toBe(0);
+  });
+
   test('database dumps are refused for everyone, and apps/jobs files over 1 MB (JOBS-1 F5 backstop)', () => {
     for (const f of ['apps/jobs/x.sql.gz', 'data/geo/a.dump', 'apps/jobs/backups/b.json', 'tmp/hb-restore-1/x.db', 'd1-export-2026.json', 'packages/db/backups/m.sql']) {
       branch(root, 'main');
@@ -452,7 +485,8 @@ describe('gate.sh', () => {
   });
 
   test('a hung step is killed at HB_STEP_TIMEOUT, goes RED (124) and frees the slot', () => {
-    const root = makeRepo({ test: 'sleep 300' });
+    const mark = `300.${process.pid}${Date.now() % 100000}`;
+    const root = makeRepo({ test: `sleep ${mark}` });
     prepNodeModules(root);
     const dir = mkdtempSync(join(tmpdir(), 'hb-locks-hang-'));
     tmpRoots.push(dir);
@@ -460,21 +494,44 @@ describe('gate.sh', () => {
     const t0 = Date.now();
     const r = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
     expect(r.status).toBe(1);
-    expect(r.stdout).toContain('RED   test (exit 124');
+    expect(r.stdout).toContain('RED   test (exit 124, TIMED OUT after 2s');
     expect(Date.now() - t0).toBeLessThan(60_000);
-    expect(spawnSync('pgrep', ['-f', '^sleep 300$']).status).toBe(1);
+    expect(spawnSync('pgrep', ['-f', `^sleep ${mark}$`]).status).toBe(1);
     const free = sh(root, join(root, 'scripts/lib/locks.sh'), ['heavy', '--wait', '2', '--', 'true'], env);
     expect(free.status, free.stderr).toBe(0); // the slot was released
   });
 
+  test('a descendant that ignores TERM is KILLed with its group; a TERM-ignoring hung step is TIMED OUT (rev-a TOOL-7 N2)', () => {
+    const m1 = `42.${process.pid}${Date.now() % 100000}`;
+    const root = makeRepo({ test: `(trap "" TERM; sleep ${m1}) & sleep 0.3; true` });
+    prepNodeModules(root);
+    const dir = mkdtempSync(join(tmpdir(), 'hb-locks-kill-'));
+    tmpRoots.push(dir);
+    const env = { HB_LOCK_DIR: dir, HB_KILL_GRACE: '1' };
+    const r1 = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
+    expect(r1.status, r1.stdout + r1.stderr).toBe(0);
+    expect(spawnSync('pgrep', ['-f', `^sleep ${m1}$`]).status).toBe(1);
+
+    const m2 = `43.${process.pid}${Date.now() % 100000}`;
+    const root2 = makeRepo({ test: `trap "" TERM; sleep ${m2}` });
+    prepNodeModules(root2);
+    const t0 = Date.now();
+    const r2 = sh(root2, join(root2, 'scripts/gate.sh'), [root2, '--no-cache'], { ...env, HB_STEP_TIMEOUT: '2' });
+    expect(r2.status).toBe(1);
+    expect(r2.stdout).toMatch(/RED {3}test \(exit \d+, TIMED OUT after 2s/);
+    expect(Date.now() - t0).toBeLessThan(60_000);
+    expect(spawnSync('pgrep', ['-f', `^sleep ${m2}$`]).status).toBe(1);
+  });
+
   test('a step that leaves an orphan behind neither keeps the slot nor survives the gate (review F3)', () => {
-    const root = makeRepo({ test: '(sleep 41 &) ; true' });
+    const mark = `41.${process.pid}${Date.now() % 100000}`;
+    const root = makeRepo({ test: `(sleep ${mark} &) ; true` });
     prepNodeModules(root);
     const dir = mkdtempSync(join(tmpdir(), 'hb-locks-orphan-'));
     tmpRoots.push(dir);
     const env = { HB_LOCK_DIR: dir, HB_GATE_SLOTS: '1', HB_HEAVY_SLOTS: '1', HB_GATE_WAIT: '3' };
     expect(sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env).status).toBe(0);
-    expect(spawnSync('pgrep', ['-f', '^sleep 41$']).status).toBe(1); // killed with its group
+    expect(spawnSync('pgrep', ['-f', `^sleep ${mark}$`]).status).toBe(1); // killed with its group
     const again = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
     expect(again.status, again.stdout + again.stderr).toBe(0); // the slot was free
   });

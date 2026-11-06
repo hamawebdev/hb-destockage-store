@@ -82,16 +82,27 @@ hb_acquire_gate_slot() {
 # hb_run_group <cmd…>: run <cmd> in a new process group (setsid) with every inherited fd above 2
 # closed (so no descendant can keep a lock alive), wait for it, then kill whatever is left in that
 # group (a wrangler/workerd or Chrome a test forgot). TERM/INT kill the group too.
-# HB_RUN_TIMEOUT (seconds, 0 = none): hard limit; the command is TERMed, then KILLed 30 s later, exit 124.
+# HB_RUN_TIMEOUT (seconds, 0 = none): hard limit; the command is TERMed, then KILLed HB_KILL_GRACE
+# (10) seconds later. Whatever is left in the group afterwards — e.g. a descendant that ignores TERM —
+# gets TERM, then KILL after the same grace (rev-a TOOL-7 N2), so nothing outlives the step.
+hb_kill_group() { # hb_kill_group <pgid>: TERM the group, KILL it if anything survives the grace
+  local g="$1" i
+  kill -TERM -- "-$g" 2>/dev/null || return 0
+  for ((i = 0; i < ${HB_KILL_GRACE:-10} * 5; i++)); do
+    kill -0 -- "-$g" 2>/dev/null || return 0
+    sleep 0.2
+  done
+  kill -KILL -- "-$g" 2>/dev/null || true
+}
 hb_run_group() {
   local rc=0 pid
   setsid bash -c 'for f in /proc/$$/fd/*; do n=${f##*/}; [[ $n =~ ^[0-9]+$ ]] && ((n > 2)) && eval "exec $n>&-"; done
-    t="${HB_RUN_TIMEOUT:-0}"; if [[ "$t" != 0 ]]; then exec timeout --kill-after=30s "$t" "$@"; fi; exec "$@"' hb-step "$@" &
+    t="${HB_RUN_TIMEOUT:-0}"; if [[ "$t" != 0 ]]; then exec timeout --kill-after="${HB_KILL_GRACE:-10}s" "$t" "$@"; fi; exec "$@"' hb-step "$@" &
   pid=$!
   HB_GROUP_PID=$pid
-  trap 'kill -TERM -- "-$HB_GROUP_PID" 2>/dev/null; exit 143' TERM INT
-  wait "$pid" || rc=$?
-  kill -TERM -- "-$pid" 2>/dev/null || true
+  trap 'hb_kill_group "$HB_GROUP_PID"; exit 143' TERM INT
+  { wait "$pid"; } 2>/dev/null || rc=$?   # (no "Killed" job notice in the step log)
+  hb_kill_group "$pid"
   trap - TERM INT
   HB_GROUP_PID=""
   return $rc
@@ -135,7 +146,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     rc=0
     # like /tmp/hb-locks/heavy.sh: a hung command cannot hold a slot forever
     HB_RUN_TIMEOUT="${HB_HEAVY_TIMEOUT:-2700}" hb_run_group "$@" || rc=$?
-    [[ $rc -eq 124 ]] && echo "locks: command exceeded ${HB_HEAVY_TIMEOUT:-2700}s and was killed (slot released)" >&2
+    [[ $rc -eq 124 || $rc -eq 137 ]] && echo "locks: command exceeded ${HB_HEAVY_TIMEOUT:-2700}s or was killed (exit $rc; slot released)" >&2
     flock -u "$HB_HEAVY_SLOT_FD"
     exit $rc
   else
