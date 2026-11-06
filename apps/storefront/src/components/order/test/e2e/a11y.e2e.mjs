@@ -36,6 +36,8 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, ORIGIN);
   const body = await new Promise((ok) => { let b = ''; req.on('data', (c) => (b += c)).on('end', () => ok(b)); });
   if (url.pathname.startsWith('/page/')) { const [, , lang, name] = url.pathname.split('/'); res.writeHead(200, { 'content-type': 'text/html' }); return res.end(page(lang, name, url.searchParams.get('prefill'))); }
+  const cfgM = url.pathname.match(/^\/(ar|fr)\/order\/form\.json$/); // BUG-12
+  if (cfgM) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(readFileSync(`${htmlDir}/${cfgM[1]}-form.json`)); }
   if (url.pathname.startsWith('/js/order.js')) { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(orderJs); }
   const m = url.pathname.match(/^\/geo\/communes\/(ar|fr)\/(\d+)\.json$/);
   if (m) { await wait(slow); return json(res, 200, m[2] === '16' ? [[1601, m[1] === 'ar' ? 'الجزائر الوسطى' : 'Alger Centre'], [1602, m[1] === 'ar' ? 'باب الواد' : 'Bab El Oued']] : [[501, 'Batna']]); }
@@ -57,7 +59,7 @@ async function axe(p, key) {
   axeReport[key] = r.violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target.join(' '), why: n.failureSummary })) }));
   assert.equal(r.violations.length, 0, `axe ${key}: ${r.violations.map((v) => v.id).join(', ')}`);
 }
-const ready = (p) => p.waitForSelector('#order-form.of-js');
+const ready = (p) => p.waitForSelector('#order-form.of-js.of-cfg'); // order.js + its form.json
 const totalShown = (p) => p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
 
 async function run(browser, lang) {

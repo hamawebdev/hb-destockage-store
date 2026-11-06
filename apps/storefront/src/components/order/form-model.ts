@@ -13,6 +13,7 @@
 import type { ContactProps, Lang, OrderFormProps, StringTable, VariantProps } from '@hb/catalog';
 import { DZ_MOBILE_NSN_PATTERN } from '@hb/shared/phone';
 import { HONEYPOT_FIELD, NAME_MIN_LENGTH } from '@hb/shared/order-schema';
+import { createHash } from 'node:crypto';
 import { ltr, str } from './str.ts';
 
 /**
@@ -40,8 +41,22 @@ export interface OrderFormInput {
   readonly tsJsVersion?: string | null;
 }
 
-/** Messages order.js needs at runtime, keyed by the code it looks up. Values are brand keys. */
-export const CLIENT_MESSAGE_KEYS = {
+/**
+ * Messages order.js needs at runtime (BUG-12). Error and confirm-gate copy travels in the per-language
+ * `/{lang}/order/form.json` (fetched after LCP, never blocking: without it, a confirm press posts the no-JS form and
+ * the server's review page shows its own messages). Only the six short UI-state strings that the live quote and the
+ * commune list need even before that JSON arrives stay inline, in `<template id="of-ui">`.
+ */
+export const UI_MESSAGE_KEYS = {
+  calculating: 'order.summary.calculating',
+  updated: 'order.summary.updated',
+  delivery_to: 'order.summary.deliveryTo',
+  submitting: 'order.submitting',
+  commune_placeholder: 'order.commune.placeholder',
+  loading: 'common.loading',
+} as const;
+
+export const ERROR_MESSAGE_KEYS = {
   name_required: 'order.errors.name_required',
   wilaya_required: 'order.errors.wilaya_required',
   commune_required: 'order.errors.commune_required',
@@ -53,7 +68,7 @@ export const CLIENT_MESSAGE_KEYS = {
   commune_invalid: 'order.errors.commune_invalid',
   qty_invalid: 'order.errors.qty_invalid',
   items_invalid: 'order.errors.items_invalid',
-  variant_required: 'product.option.choose',
+  variant_required: 'order.errors.variant_required',
   variant_unavailable: 'order.errors.variant_unavailable',
   out_of_stock: 'order.errors.out_of_stock',
   delivery_unavailable: 'order.errors.delivery_unavailable',
@@ -64,16 +79,6 @@ export const CLIENT_MESSAGE_KEYS = {
   quote_failed: 'order.errors.quote_failed',
   total_changed: 'order.errors.total_changed',
   check_total: 'order.summary.check',
-  calculating: 'order.summary.calculating',
-  updated: 'order.summary.updated',
-  delivery_to: 'order.summary.deliveryTo',
-  delivery_pending: 'order.summary.deliveryPending',
-  submitting: 'order.submitting',
-  submit: 'order.submit',
-  commune_placeholder: 'order.commune.placeholder',
-  commune_waiting: 'order.commune.waiting',
-  loading: 'common.loading',
-  retry: 'common.retry',
   count_zero: 'order.errors.count.zero',
   count_one: 'order.errors.count.one',
   count_two: 'order.errors.count.two',
@@ -81,6 +86,34 @@ export const CLIENT_MESSAGE_KEYS = {
   count_many: 'order.errors.count.many',
   count_other: 'order.errors.count.other',
 } as const;
+
+/** Every message code order.js looks up (UI + error). */
+export const CLIENT_MESSAGE_KEYS = { ...UI_MESSAGE_KEYS, ...ERROR_MESSAGE_KEYS } as const;
+
+/** `/{lang}/order/form.json`: built by pages/{lang}/order/form.json.ts from exactly this function. */
+export interface OrderFormConfig {
+  readonly v: 1;
+  /** @hb/shared DZ_MOBILE_NSN_PATTERN (client hint only; the server decides). */
+  readonly re: string;
+  /** Fallback confirmation URL (the server's answer carries confirmationUrl). */
+  readonly confirm: string;
+  /** Error and confirm-gate messages, page language, {phone} already filled inside LTR isolates. */
+  readonly m: Readonly<Record<keyof typeof ERROR_MESSAGE_KEYS, string>>;
+}
+
+export function orderFormConfig(lang: Lang, strings: StringTable, contact: ContactProps): OrderFormConfig {
+  const phone = ltr(contact.phoneDisplay);
+  const m = Object.fromEntries(
+    (Object.keys(ERROR_MESSAGE_KEYS) as (keyof typeof ERROR_MESSAGE_KEYS)[]).map((k) => [k, str(strings, ERROR_MESSAGE_KEYS[k], { phone })]),
+  ) as OrderFormConfig['m'];
+  return { v: 1, re: DZ_MOBILE_NSN_PATTERN, confirm: `/${lang}/order/confirmation/`, m };
+}
+
+/** Serialised config + its content hash (`?v=`, so web can serve every {lang}/order/form.json immutable). */
+export function orderFormConfigJson(lang: Lang, strings: StringTable, contact: ContactProps): { json: string; version: string } {
+  const json = JSON.stringify(orderFormConfig(lang, strings, contact));
+  return { json, version: createHash('sha256').update(json).digest('base64url').slice(0, 10) };
+}
 
 export type ClientMessageCode = keyof typeof CLIENT_MESSAGE_KEYS;
 
@@ -100,10 +133,13 @@ export interface OrderFormModel {
   readonly name: { readonly minLength: number };
   readonly phone: { readonly maxLength: number };
   readonly honeypotName: string;
-  readonly messages: readonly { readonly code: ClientMessageCode; readonly text: string }[];
+  /** Inline UI-state strings only (BUG-12); errors are in form.json. */
+  readonly uiMessages: readonly { readonly code: keyof typeof UI_MESSAGE_KEYS; readonly text: string }[];
+  /** Three rows (client requirement: product price, delivery fee and total before confirm). */
   readonly summary: {
     readonly product: string;
     readonly variantLabel: string;
+    /** Unit price; the row reads "unit × qty = subtotal". */
     readonly unitPrice: string;
     readonly qty: string;
     readonly subtotal: string;
@@ -128,13 +164,10 @@ export function defaultVariant(form: OrderFormProps): VariantProps | undefined {
 export function orderFormModel(input: OrderFormInput): OrderFormModel {
   const { lang, form, strings, contact } = input;
   const t = (key: string): string => str(strings, key);
-  const phone = ltr(contact.phoneDisplay);
-  const optionNames = form.options.map((o) => o.name).join(' / ') || t('order.variant.label');
-
-  const messages = (Object.keys(CLIENT_MESSAGE_KEYS) as ClientMessageCode[]).map((code) => ({
+  // {total}, {wilaya} are filled by order.js.
+  const uiMessages = (Object.keys(UI_MESSAGE_KEYS) as (keyof typeof UI_MESSAGE_KEYS)[]).map((code) => ({
     code,
-    // {phone} and {option} are known at build; {max}, {total}, {wilaya}, {count} are filled by order.js.
-    text: str(strings, CLIENT_MESSAGE_KEYS[code], { phone, option: optionNames }),
+    text: str(strings, UI_MESSAGE_KEYS[code]),
   }));
 
   const dv = defaultVariant(form);
@@ -145,9 +178,9 @@ export function orderFormModel(input: OrderFormInput): OrderFormModel {
   dataAttrs['data-lang'] = lang;
   dataAttrs['data-quote'] = form.quoteEndpoint;
   dataAttrs['data-communes'] = form.communesUrlTemplate;
-  dataAttrs['data-confirm'] = form.confirmationHref;
   dataAttrs['data-variants'] = variantsAttr(form.variants);
-  dataAttrs['data-phone-re'] = DZ_MOBILE_NSN_PATTERN;
+  // Error copy, phone pattern and confirmation fallback: /{lang}/order/form.json, versioned by content (BUG-12).
+  dataAttrs['data-cfg'] = `/${lang}/order/form.json?v=${orderFormConfigJson(lang, strings, contact).version}`;
   // Turnstile: first-party loader imported by order.js on the first interaction; never a third-party URL here.
   if (form.turnstileSiteKey && input.tsJsVersion) {
     dataAttrs['data-ts-key'] = form.turnstileSiteKey;
@@ -173,7 +206,7 @@ export function orderFormModel(input: OrderFormInput): OrderFormModel {
     name: { minLength: NAME_MIN_LENGTH },
     phone: { maxLength: PHONE_INPUT_MAX_LENGTH },
     honeypotName: HONEYPOT_FIELD,
-    messages,
+    uiMessages,
     summary: {
       product: input.productName,
       variantLabel: form.singleVariant ? '' : (dv?.label ?? ''),

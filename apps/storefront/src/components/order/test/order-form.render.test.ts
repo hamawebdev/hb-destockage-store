@@ -4,6 +4,7 @@ import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { writeFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import OrderForm from '../OrderForm.astro';
+import { orderFormConfigJson } from '../form-model.ts';
 import { contact, singleForm, strings, variableForm } from './fixtures.ts';
 
 let container: AstroContainer;
@@ -64,12 +65,15 @@ describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
     expect(html.slice(html.indexOf('class="of-hp"') - 20, html.indexOf('id="of-hp" name'))).not.toContain('aria-hidden');
   });
 
-  it('carries the client messages in an inert template, phone isolated LTR', async () => {
+  it('inlines only the UI-state strings; error copy lives in form.json (BUG-12)', async () => {
     const html = await render(lang);
-    const tpl = html.slice(html.indexOf('<template id="of-msgs">'));
-    expect(tpl).toContain('data-k="network_error"');
-    expect(tpl).toContain('⁦0560417403⁩');
-    expect(tpl).not.toContain('[PLACEHOLDER]');
+    const tpl = html.slice(html.indexOf('<template id="of-ui">'));
+    expect(tpl.match(/data-k=/g)).toHaveLength(6);
+    expect(tpl).not.toContain('data-k="network_error"');
+    expect(html).not.toContain('of-msgs');
+    expect(html).toMatch(/data-cfg="\/(ar|fr)\/order\/form\.json\?v=[\w-]+"/);
+    const out = process.env['ORDER_RENDER_OUT'];
+    if (out) writeFileSync(`${out}/${lang}-form.json`, orderFormConfigJson(lang, strings[lang], contact).json);
   });
 
   it('lets pages post the variant for multi-variant products', async () => {

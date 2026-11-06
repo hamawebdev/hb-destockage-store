@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DZ_MOBILE_NSN_PATTERN, normalizePhone } from '@hb/shared/phone';
-import { CLIENT_MESSAGE_KEYS, PHONE_INPUT_MAX_LENGTH, orderFormModel, variantsAttr } from '../form-model.ts';
+import { ERROR_MESSAGE_KEYS, PHONE_INPUT_MAX_LENGTH, UI_MESSAGE_KEYS, orderFormConfig, orderFormConfigJson, orderFormModel, variantsAttr } from '../form-model.ts';
 import { str } from '../str.ts';
 import { contact, singleForm, strings, variableForm } from './fixtures.ts';
 
@@ -19,8 +19,9 @@ describe('orderFormModel', () => {
   });
 
   it('renders the shared libphonenumber pattern, never ^0[567]', () => {
-    const re = new RegExp(`^(?:${model('ar').dataAttrs['data-phone-re']})$`);
-    expect(model('ar').dataAttrs['data-phone-re']).toBe(DZ_MOBILE_NSN_PATTERN);
+    const cfg = orderFormConfig('ar', strings.ar, contact); // /ar/order/form.json (BUG-12)
+    const re = new RegExp(`^(?:${cfg.re})$`);
+    expect(cfg.re).toBe(DZ_MOBILE_NSN_PATTERN);
     for (const ok of ['555123456', '661234567', '771234567', '540123456', '560123456']) expect(re.test(ok)).toBe(true);
     for (const bad of ['501234567', '531234567', '551234567'.slice(0, 8), '21123456']) expect(re.test(bad)).toBe(false);
   });
@@ -71,15 +72,26 @@ describe('orderFormModel', () => {
     expect(JSON.stringify(m.dataAttrs)).not.toMatch(/https?:\/\//);
   });
 
-  it.each(LANGS)('resolves every client message from brand copy (%s)', (lang) => {
+  it.each(LANGS)('resolves every message from brand copy: UI inline, errors in form.json (%s)', (lang) => {
     const m = model(lang, variableForm(lang));
-    expect(m.messages).toHaveLength(Object.keys(CLIENT_MESSAGE_KEYS).length);
-    for (const { code, text } of m.messages) {
+    expect(m.uiMessages.map((x) => x.code)).toEqual(Object.keys(UI_MESSAGE_KEYS));
+    for (const { code, text } of m.uiMessages) expect(text, code).not.toContain('[PLACEHOLDER]');
+    const cfg = orderFormConfig(lang, strings[lang], contact);
+    expect(Object.keys(cfg.m)).toEqual(Object.keys(ERROR_MESSAGE_KEYS));
+    for (const [code, text] of Object.entries(cfg.m)) {
       expect(text, code).not.toContain('[PLACEHOLDER]');
       expect(text, code).not.toMatch(/\{(phone|option)\}/);
     }
-    const rl = m.messages.find((x) => x.code === 'rate_limited')?.text ?? '';
-    expect(rl).toContain('⁦0560417403⁩'); // phone isolated LTR inside RTL text
+    expect(cfg.m.rate_limited).toContain('⁦0560417403⁩'); // phone isolated LTR inside RTL text
+    expect(cfg.confirm).toBe(`/${lang}/order/confirmation/`);
+  });
+
+  it('versions data-cfg by the exact JSON the endpoint serves', () => {
+    const { json, version } = orderFormConfigJson('fr', strings.fr, contact);
+    expect(model('fr').dataAttrs['data-cfg']).toBe(`/fr/order/form.json?v=${version}`);
+    expect(version).toMatch(/^[\w-]{10}$/);
+    expect(JSON.parse(json).v).toBe(1);
+    expect(model('fr').dataAttrs['data-phone-re']).toBeUndefined();
   });
 
   it('starts the summary with the static price and no fee/total', () => {
@@ -165,7 +177,7 @@ describe('real CAT-3 props fixtures (packages/catalog/fixtures/props.<lang>.json
       const m = orderFormModel({ lang, form: props.orderForm, productName: props.product.name, brandLatin: props.product.brandLatin, strings: props.layout.strings, contact: props.layout.contact });
       expect(m.wilayas.map((w) => w.value), path).toEqual(props.orderForm.wilayas.map((w: any) => String(w.code))); // fixture snapshot has a few wilayas; 69 is asserted above
       expect(m.dataAttrs['data-communes'], path).toBe(`/geo/communes/${lang}/{code}.json`);
-      expect(m.dataAttrs['data-confirm'], path).toBe(`/${lang}/order/confirmation/`);
+      expect(m.dataAttrs['data-cfg'], path).toMatch(new RegExp(`^/${lang}/order/form\\.json\\?v=`));
       const dv = props.orderForm.variants.find((v: any) => v.id === props.orderForm.defaultVariantId);
       expect(m.qty.max, path).toBeLessThanOrEqual(Math.max(1, dv.maxQty));
       expect(m.hidden.some((h) => h.name === 'variantId'), path).toBe(props.orderForm.singleVariant);

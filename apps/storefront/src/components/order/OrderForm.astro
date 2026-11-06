@@ -93,14 +93,10 @@ const { t, summary: s } = m;
       <section class="of-sum" id="of-sum" aria-labelledby="of-sum-h">
         <h3 id="of-sum-h" class="of-sum-h" tabindex="-1">{t('order.summary.title')}</h3>
         <dl class="of-dl">
-          <div><dt>{t('order.summary.product')}</dt><dd><bdi>{s.product}</bdi>{s.variantLabel && <> · <bdi id="of-s-var">{s.variantLabel}</bdi></>}</dd></div>
-          <div><dt>{t('order.summary.unitPrice')}</dt><dd id="of-s-unit">{s.unitPrice}</dd></div>
-          <div><dt>{t('order.summary.qty')}</dt><dd id="of-s-qty">{s.qty}</dd></div>
-          <div><dt>{t('order.summary.subtotal')}</dt><dd id="of-s-sub">{s.subtotal}</dd></div>
+          <div><dt><bdi>{s.product}</bdi>{s.variantLabel && <> · <bdi id="of-s-var">{s.variantLabel}</bdi></>}</dt><dd><bdi id="of-s-unit">{s.unitPrice}</bdi> × <bdi id="of-s-qty">{s.qty}</bdi> = <bdi id="of-s-sub">{s.subtotal}</bdi></dd></div>
           <div><dt id="of-s-fee-l">{t('order.summary.delivery')}</dt><dd id="of-s-fee">{s.delivery}</dd></div>
           <div class="of-total"><dt>{t('order.summary.total')}</dt><dd id="of-s-total">{s.total}</dd></div>
         </dl>
-        <p class="hint">{t('order.summary.note')}</p>
       </section>
 
       <div id="of-ts" class="of-ts"></div>
@@ -112,13 +108,12 @@ const { t, summary: s } = m;
       </p>
       <button type="submit" id="of-submit" class="btn btn-primary btn-block">{t('order.submit')}</button>
       <p id="of-status" class="of-status" role="status" aria-live="polite"></p>
-      <p class="hint">{t('order.callNote')}</p>
       <p class="hint">
         {t('order.privacyNote')}
         {m.privacyHref && <>{' '}<a class="of-link" href={m.privacyHref}>{t('order.privacyLink')}</a></>}
       </p>
     </fieldset>
-    <template id="of-msgs">{m.messages.map((x) => <p data-k={x.code}>{x.text}</p>)}</template>
+    <template id="of-ui">{m.uiMessages.map((x) => <p data-k={x.code}>{x.text}</p>)}</template>
   </form>
 </section>
 

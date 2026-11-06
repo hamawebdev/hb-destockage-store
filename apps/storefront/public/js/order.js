@@ -92,14 +92,32 @@ function init(f) {
   const $ = (id) => D.getElementById('of-' + id);
   const ds = f.dataset;
   const lang = ds.lang;
-  const M = new Map([...$('msgs').content.querySelectorAll('[data-k]')].map((p) => [p.dataset.k, p.textContent]));
-  const msg = (k, v = {}) => (M.get(k) ?? M.get('server_error')).replace(/\{(\w+)\}/g, (x, n) => (n in v ? v[n] : x));
+  // BUG-12: six UI-state strings inline (#of-ui); error copy + phone pattern in /{lang}/order/form.json, fetched now
+  // (after LCP). Until it is loaded a confirm press posts the plain no-JS form (server review page, its own messages).
+  const UI = new Map([...$('ui').content.querySelectorAll('[data-k]')].map((p) => [p.dataset.k, p.textContent]));
+  let M = new Map();
+  let cfg = null;
+  const loadCfg = (tries) =>
+    fetch(ds.cfg)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((c) => {
+        cfg = c;
+        M = new Map(Object.entries(c.m));
+        f.classList.add('of-cfg'); // state hook: error copy available (tests wait on it, not on timing)
+      })
+      .catch(() => tries > 0 && loadCfg(tries - 1));
+  if (ds.cfg) loadCfg(1);
+  const msg = (k, v = {}) => (M.get(k) ?? UI.get(k) ?? '').replace(/\{(\w+)\}/g, (x, n) => (n in v ? v[n] : x));
   const money = (n) => fmt(n, lang);
   const variants = parseVariants(ds.variants);
   const el = f.elements;
   const [name, phone, wil, com, qty, btn, sum, sumH, status, alertEl, help] =
     ['name', 'phone', 'wilaya', 'commune', 'qty', 'submit', 'sum', 'sum-h', 'status', 'alert', 'help'].map($);
   const feeLabel = $('s-fee-l').textContent;
+  // Texts already in the static DOM (not duplicated in #of-ui).
+  const pendingText = $('s-fee').textContent;
+  const waitingText = com.options[0].text;
+  const submitText = btn.textContent;
   const formMax = Number(qty.max) || 10;
   const communes = new Map();
   const quotes = new Map();
@@ -205,7 +223,7 @@ function init(f) {
     const code = wil.value;
     com.disabled = true;
     com.length = 0;
-    com.add(new Option(msg(code ? 'loading' : 'commune_waiting'), ''));
+    com.add(new Option(code ? msg('loading') : waitingText, ''));
     com.setAttribute('aria-busy', 'true');
     let list = communes.get(code);
     for (let i = 0; code && !list && i < 2; i++) {
@@ -218,7 +236,7 @@ function init(f) {
     com.removeAttribute('aria-busy');
     communeFail = !!code && !list;
     if (!list) {
-      com.options[0].text = msg('commune_waiting');
+      com.options[0].text = waitingText;
       return;
     }
     communes.set(code, list);
@@ -239,7 +257,7 @@ function init(f) {
     const wName = wil.selectedOptions[0]?.text.replace(/^\d+\s*-\s*/, '');
     text($('s-fee-l'), avail ? msg('delivery_to', { wilaya: wName }) : feeLabel);
     const waiting = !q && !blocked && variant?.ok && sum.getAttribute('aria-busy');
-    text($('s-fee'), avail ? money(q.feeDzd) : !wil.value ? msg('delivery_pending') : waiting ? msg('calculating') : '—');
+    text($('s-fee'), avail ? money(q.feeDzd) : !wil.value ? pendingText : waiting ? msg('calculating') : '—');
     text($('s-total'), avail ? money(q.totalDzd) : '—');
   }
 
@@ -338,7 +356,7 @@ function init(f) {
     const max = Number(qty.max);
     const list = [
       [name, !nm ? 'name_required' : nm.length < 2 || nm.length > 80 || !/\p{L}/u.test(nm) ? 'name_invalid' : 0],
-      [phone, phoneError(phone.value, ds.phoneRe)],
+      [phone, phoneError(phone.value, cfg.re)],
       [wil, wil.value ? 0 : 'wilaya_required'],
       [com, !wil.value || com.value ? 0 : 'commune_required'],
       [qty, q >= 1 && q <= max && String(q) === toAscii(qty.value).trim() ? 0 : 'qty_invalid'],
@@ -350,8 +368,9 @@ function init(f) {
 
   // --- submit ------------------------------------------------------------------------------------------
   f.addEventListener('submit', async (e) => {
-    if (communeFail && wil.value) {
-      // JS could not load the communes: let the browser post the no-JS form (server review step shows the total).
+    if (!cfg || (communeFail && wil.value)) {
+      // No error copy yet (form.json failed, slow or not loaded) or no commune list: never block the order. Let the
+      // browser post the no-JS form; the server's review step validates, shows its own messages and the total.
       el.idempotencyKey.value = '';
       return;
     }
@@ -418,12 +437,12 @@ function init(f) {
     }
     const d = r.body || {};
     if (d.ok && d.ref) {
-      location.assign(d.confirmationUrl || `${ds.confirm}?ref=${encodeURIComponent(d.ref)}`);
+      location.assign(d.confirmationUrl || `${cfg.confirm}?ref=${encodeURIComponent(d.ref)}`);
       return;
     }
     busy = false;
     btn.removeAttribute('aria-disabled');
-    text(btn, msg('submit'));
+    text(btn, submitText);
     say('');
     if (r.status) ts?.reset(); // the server has seen (and spent) this Turnstile token
     const c = d.code;
@@ -469,7 +488,7 @@ function init(f) {
     ts?.reset(); // the previous order spent the Turnstile token too (ORDER-3 review r1 nit)
     busy = false;
     btn.removeAttribute('aria-disabled');
-    text(btn, msg('submit'));
+    text(btn, submitText);
     say('');
   });
 

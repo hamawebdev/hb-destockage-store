@@ -42,6 +42,12 @@ const server = createServer(async (req, res) => {
   const body = await new Promise((ok) => { let b = ''; req.on('data', (c) => (b += c)).on('end', () => ok(b)); });
   log.push({ method: req.method, path: url.pathname, type: req.headers['content-type'] ?? '', body });
   if (url.pathname.startsWith('/page/')) { const [, , lang, name] = url.pathname.split('/'); res.writeHead(200, { 'content-type': 'text/html' }); return res.end(page(lang, name)); }
+  const cfgM = url.pathname.match(/^\/(ar|fr)\/order\/form\.json$/); // BUG-12: error copy, fetched after LCP
+  if (cfgM) {
+    if (mode.cfgDown) { res.writeHead(503); return res.end(); }
+    if (mode.cfgDelay) await new Promise((ok) => setTimeout(ok, mode.cfgDelay));
+    res.writeHead(200, { 'content-type': 'application/json' }); return res.end(readFileSync(`${htmlDir}/${cfgM[1]}-form.json`));
+  }
   if (url.pathname.startsWith('/js/order-ts.js')) { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(orderTsJs); }
   if (url.pathname.startsWith('/js/order.js')) { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(orderJs); }
   const m = url.pathname.match(/^\/geo\/communes\/(ar|fr)\/(\d+)\.json$/);
@@ -80,8 +86,8 @@ async function fill(p, { phone = '0555123456', wilaya = '16' } = {}) {
 const total = (p) => p.textContent('#of-s-total');
 
 async function run(browser, lang) {
-  const t = async (name, fn, { js = true, page: pageName = 'single', ts = null } = {}) => {
-    mode = {}; orders = new Map(); log = [];
+  const t = async (name, fn, { js = true, page: pageName = 'single', ts = null, preset = {}, waitCfg = true } = {}) => {
+    mode = { ...preset }; orders = new Map(); log = [];
     const ctx = await browser.newContext({ javaScriptEnabled: js, locale: lang === 'ar' ? 'ar-DZ' : 'fr-FR' });
     const tsReqs = [];
     if (ts) await ctx.route('https://challenges.cloudflare.com/**', (route) => {
@@ -95,7 +101,7 @@ async function run(browser, lang) {
     p.on('request', (r) => { if (!r.url().startsWith(ORIGIN) && !r.url().startsWith('https://challenges.cloudflare.com/')) external.push(r.url()); });
     try {
       await p.goto(`${ORIGIN}/page/${lang}/${pageName}`);
-      if (js) await p.waitForSelector('#order-form.of-js');
+      if (js) await p.waitForSelector(waitCfg ? '#order-form.of-js.of-cfg' : '#order-form.of-js');
       await fn(p, tsReqs);
       assert.deepEqual(external, [], 'no third-party request');
       if (!ts) assert.deepEqual(tsReqs, []);
@@ -231,7 +237,7 @@ async function run(browser, lang) {
 
   await t('409 answer while the customer edits qty: stale quote never confirmable, alert kept (ORDER-2 r1 F1, r2 F1)', async (p) => {
     mode.orderDelay = 1200; mode.totalChangedOnce = true; // the 409 also moves the server price to 15 000
-    const changedMsg = await p.evaluate(() => document.querySelector('#of-msgs').content.querySelector('[data-k="total_changed"]').textContent);
+    const changedMsg = JSON.parse(readFileSync(`${htmlDir}/${lang}-form.json`, 'utf8')).m.total_changed;
     await fill(p);
     await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
     await p.click('#of-submit');
@@ -256,7 +262,7 @@ async function run(browser, lang) {
 
   await t('409 total_changed with no edit: alert kept until the confirm press', async (p) => {
     mode.totalChangedOnce = true;
-    const changedMsg = await p.evaluate(() => document.querySelector('#of-msgs').content.querySelector('[data-k="total_changed"]').textContent);
+    const changedMsg = JSON.parse(readFileSync(`${htmlDir}/${lang}-form.json`, 'utf8')).m.total_changed;
     await fill(p);
     await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
     await p.click('#of-submit');
@@ -286,6 +292,41 @@ async function run(browser, lang) {
     assert.match(post.type, /x-www-form-urlencoded/);
     assert.equal(new URLSearchParams(post.body).get('idempotencyKey'), '');
   });
+
+  // ---- BUG-12: form.json (error copy) never blocks an order --------------------------------------------
+  const nativeReview = (post) => {
+    assert.match(post.type, /x-www-form-urlencoded/);
+    const f = new URLSearchParams(post.body);
+    assert.equal(f.get('step'), 'review'); assert.equal(f.get('idempotencyKey'), '');
+    return f;
+  };
+  await t('form.json blocked: quote still shown, confirm posts the no-JS form (server review step)', async (p) => {
+    await fill(p);
+    await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—'); // quotes don't need it
+    await Promise.all([p.waitForURL('**/api/order'), p.click('#of-submit')]);
+    const f = nativeReview(orderPosts().at(-1));
+    assert.equal(f.get('wilayaCode'), '16'); assert.equal(f.get('communeId'), '1601'); assert.equal(f.get('phone'), '0555123456');
+  }, { preset: { cfgDown: true }, waitCfg: false });
+
+  await t('form.json delayed 10 s: an early confirm posts the no-JS form; once loaded, the JSON order works', async (p) => {
+    await fill(p);
+    await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
+    assert.equal(await p.evaluate(() => document.getElementById('order-form').classList.contains('of-cfg')), false);
+    await Promise.all([p.waitForURL('**/api/order'), p.click('#of-submit')]);
+    nativeReview(orderPosts().at(-1));
+    await p.goBack();
+    await p.waitForSelector('#order-form.of-js.of-cfg', { timeout: 15000 }); // arrives after the 10 s delay
+    await fill(p);
+    await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
+    await Promise.all([p.waitForURL('**/confirmation/**'), p.click('#of-submit')]);
+    assert.match(orderPosts().at(-1).type, /application\/json/);
+  }, { preset: { cfgDelay: 10000 }, waitCfg: false });
+
+  await t('client hints need form.json: blocked → an invalid phone goes to the server, not silently stuck', async (p) => {
+    await p.fill('#of-name', 'Amine'); await p.fill('#of-phone', '0501234567');
+    await Promise.all([p.waitForURL('**/api/order'), p.click('#of-submit')]);
+    assert.equal(nativeReview(orderPosts().at(-1)).get('phone'), '0501234567');
+  }, { preset: { cfgDown: true }, waitCfg: false });
 
   // ---- ORDER-3: lazy Turnstile -----------------------------------------------------------------------
   const tsJsReqs = () => log.filter((r) => r.path.startsWith('/js/order-ts.js'));
