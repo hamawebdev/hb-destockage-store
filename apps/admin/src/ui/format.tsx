@@ -38,6 +38,11 @@ export function Bdi(props: { children: Child; ltr?: boolean }) {
   return props.ltr === false ? <bdi>{props.children}</bdi> : <bdi dir="ltr">{props.children}</bdi>;
 }
 
+/** SKUs, order refs and other codes: LTR-isolated and never wrapped at hyphens. */
+export function Code(props: { children: Child }) {
+  return <bdi dir="ltr" class="code">{props.children}</bdi>;
+}
+
 export function Money(props: { dzd: number }) {
   const { lang } = useUi();
   return <span class="num">{formatMoney(lang, props.dzd)}</span>;

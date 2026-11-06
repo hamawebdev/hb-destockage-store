@@ -168,3 +168,19 @@ describe('pagination, nav, flash, redirects', () => {
     expect(safeReturnPath('//evil')).toBe('/');
   });
 });
+
+describe('UI kit markup (admin-catalog / lead requests 2026-11-06)', () => {
+  test('Code never wraps; input size hints; table data-label', async () => {
+    const { Code } = await import('../src/ui/format.tsx');
+    const { MoneyInput, NumberInput, SkuInput } = await import('../src/ui/form.tsx');
+    expect(String(Code({ children: 'HB-7K2Q9' }))).toBe('<bdi dir="ltr" class="code">HB-7K2Q9</bdi>');
+    const html = String(
+      await Promise.resolve(
+        [MoneyInput({ name: 'p', label: 'Prix' }), NumberInput({ name: 'q', label: 'Qté' }), SkuInput({ name: 's', label: 'SKU' })].join(''),
+      ),
+    );
+    expect(html).toContain('class="input input--money"');
+    expect(html).toContain('class="input input--qty"');
+    expect(html).toContain('class="input input--sku"');
+  });
+});

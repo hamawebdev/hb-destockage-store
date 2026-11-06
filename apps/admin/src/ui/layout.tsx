@@ -111,7 +111,10 @@ export function Layout(props: PageProps & { ui: UiContext; flash: string | undef
             <>
               <a class="skip-link" href="#main">{ui.t('app.skip')}</a>
               <TopBar ui={ui} />
-              <details class="nav-disclosure" open>
+              {/* Closed in the HTML: on phones the menu does not push the page down (main starts
+                  under the top bar). From 768 px the nav is always shown (admin.css
+                  ::details-content; admin.js opens it as a fallback). */}
+              <details class="nav-disclosure">
                 <summary class="nav-disclosure__summary">{ui.t('nav.menu')}</summary>
                 <Nav ui={ui} />
               </details>

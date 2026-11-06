@@ -21,12 +21,14 @@ export function Table<Row>(props: {
   rows: readonly Row[];
   rowKey: (row: Row) => string | number;
   empty?: Child;
+  /** Below 600 px, show each row as a card of label/value pairs (CSS only, `.tbl-stack`). */
+  stack?: boolean;
 }) {
   const { t } = useUi();
   if (props.rows.length === 0) return <EmptyState>{props.empty}</EmptyState>;
   return (
     <div class="table-wrap" role="region" aria-label={`${props.caption} — ${t('table.scrollHint')}`} tabindex={0}>
-      <table class="table">
+      <table class={props.stack ? 'table tbl-stack' : 'table'}>
         <caption class="table__caption">{props.caption}</caption>
         <thead>
           <tr>
@@ -41,7 +43,7 @@ export function Table<Row>(props: {
           {props.rows.map((row) => (
             <tr data-key={String(props.rowKey(row))}>
               {props.columns.map((col) => (
-                <td class={col.numeric ? 'num' : undefined}>{col.cell(row)}</td>
+                <td class={col.numeric ? 'num' : undefined} data-label={col.header}>{col.cell(row)}</td>
               ))}
             </tr>
           ))}

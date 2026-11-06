@@ -134,7 +134,7 @@ describe('a JOIN with aliased sensitive columns, rendered as logistics, leaks no
     ]);
     await h.db
       .prepare(
-        "insert into orders (ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, subtotal_dzd, fee_dzd, total_dzd, fee_source, flags, risk_score, ip_hash) values ('HB-JOIN1', 'idem-join-1', ?, 'Amina', '+213560417403', 16, 1601, 'ar', 14600, 400, 15000, 'table', '[\"ORDERFLAG-dup\"]', 87, 'IPHASH-deadbeef')",
+        "insert into orders (ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, subtotal_dzd, fee_dzd, total_dzd, fee_source, flags, risk_score, ip_hash) values ('HB-JN7Q1', 'idem-join-1', ?, 'Amina', '+213560417403', 16, 1601, 'ar', 14600, 400, 15000, 'table', '[\"ORDERFLAG-dup\"]', 87, 'IPHASH-deadbeef')",
       )
       .bind(customerId)
       .run();
@@ -174,12 +174,12 @@ describe('a JOIN with aliased sensitive columns, rendered as logistics, leaks no
   }
   const LEAKS = [SECRET_NOTE, 'FLAG-fraud-suspect', 'ORDERFLAG-dup', 'IPHASH-deadbeef', 'idem-join-1', 'customerBlocked', 'customerNotes', 'customerOrderCount', 'customerFlags', 'riskScore', 'ipHash'];
   test('logistics: delivery data and the declared-safe commune only', async () => {
-    const html = await (await app().request('/t/order-joined/HB-JOIN1', { headers: { 'x-test-user': USERS.logistics } }, h.env)).text();
-    for (const ok of ['HB-JOIN1', 'Amina', '+213560417403', 'Alger Centre', '15000']) expect(html, ok).toContain(ok);
+    const html = await (await app().request('/t/order-joined/HB-JN7Q1', { headers: { 'x-test-user': USERS.logistics } }, h.env)).text();
+    for (const ok of ['HB-JN7Q1', 'Amina', '+213560417403', 'Alger Centre', '15000']) expect(html, ok).toContain(ok);
     for (const leak of LEAKS) expect(html, leak).not.toContain(leak);
   });
   test('confirmer sees them all', async () => {
-    const html = await (await app().request('/t/order-joined/HB-JOIN1', { headers: { 'x-test-user': USERS.confirmer } }, h.env)).text();
+    const html = await (await app().request('/t/order-joined/HB-JN7Q1', { headers: { 'x-test-user': USERS.confirmer } }, h.env)).text();
     for (const v of [SECRET_NOTE, 'ORDERFLAG-dup', 'IPHASH-deadbeef', 'customerBlocked']) expect(html, v).toContain(v);
   });
 });
