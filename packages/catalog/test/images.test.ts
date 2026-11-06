@@ -109,7 +109,7 @@ describe('buildImages', () => {
     for (const row of r.report) for (const c of row.candidates) expect(c.quality).toBeGreaterThanOrEqual(20);
     expect(r.warnings).toEqual([]);
     const { IMAGE_MAX_BYTES_UP_TO_960 } = await import('../src/types.ts');
-    expect(IMAGE_MAX_BYTES_UP_TO_960).toBe(25_600);
+    expect(IMAGE_MAX_BYTES_UP_TO_960).toBe(25_000);
   }, 300_000);
 
   test('the hash changes with the encoder settings', async () => {
@@ -145,6 +145,30 @@ describe('buildImages', () => {
       }),
     ).rejects.toThrow(/exceeds 400 B even at quality 40/);
   }, 120_000);
+
+  test('path 3 with the default limits: a candidate that stays over 25,000 B at the floor is refused', async () => {
+    // Default target/limit (20,000 / 25,000 B); a high floor (q90) makes the noisy photo unable to
+    // fit, so the refusal must cite exactly the 25,000 B spec limit.
+    const w = 1400, h = 1000;
+    const px = Buffer.alloc(w * h * 3);
+    let x = 12345;
+    for (let i = 0; i < px.length; i++) {
+      x = (Math.imul(x, 1103515245) + 12345) >>> 0;
+      px[i] = x >>> 24;
+    }
+    await writeFile(join(root, 'data/photos/a/noise.png'), await sharp(px, { raw: { width: w, height: h, channels: 3 } }).png().toBuffer());
+    const snap = snapshotWith(['a/noise.png'], { width: w, height: h });
+    await expect(
+      buildImages(snap, {
+        outDir: join(root, 'out8'),
+        cacheDir: join(root, 'cache8'),
+        readOriginal: seedOriginalReader(root),
+        maxQuality: 95,
+        minQuality: 90,
+        ...fast,
+      }),
+    ).rejects.toThrow(/exceeds 25000 B even at quality 90/);
+  }, 300_000);
 
   test('path 2: target unreachable at the floor ⇒ accepted up to the hard limit with IMAGE_OVER_TARGET', async () => {
     const snap = snapshotWith(['a/big.jpg'], { width: 1400, height: 1000 });

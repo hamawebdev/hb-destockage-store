@@ -49,7 +49,7 @@ export interface ImagePipelineOptions {
   /**
    * Hard limit when the target is unreachable at `minQuality`: such a candidate is accepted up to
    * this size and reported in `warnings` (IMAGE_OVER_TARGET); above it the build fails.
-   * Default IMAGE_MAX_BYTES_UP_TO_960 (25,600).
+   * Default IMAGE_MAX_BYTES_UP_TO_960 (25,000).
    */
   readonly hardMaxBytes?: number;
   /** Starting (highest) AVIF quality. Default 60. */
@@ -193,9 +193,11 @@ async function encodeOne(key: string, original: Buffer, s: Settings, hash: strin
         }
         if (!best) {
           // Fallback (lead's ruling): the target is out of reach at the floor; accept the highest
-          // quality that fits the spec limit (reported as IMAGE_OVER_TARGET), else fail.
+          // quality that fits the spec limit (reported as IMAGE_OVER_TARGET), else fail. The
+          // starting encode is a candidate too (rev-c r2 Nit).
+          if (file.length <= s.hardMaxBytes) best = { q: start, buf: file };
           lo = s.minQuality;
-          hi = start - 1;
+          hi = best ? 0 : start - 1;
           while (lo <= hi) {
             const mid = (lo + hi) >> 1;
             const buf = await enc(mid);
