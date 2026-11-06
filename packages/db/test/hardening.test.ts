@@ -1,9 +1,12 @@
 // DB-2: append-only triggers, FK child indexes, and index use for the admin queries.
 import { describe, expect, test } from 'vitest';
+import Database from 'better-sqlite3';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { eq, is, sql } from 'drizzle-orm';
 import { getTableConfig, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import * as schema from '../src/schema.ts';
-import { freshDb } from './helpers.ts';
+import { freshDb, MIGRATIONS_DIR, migrationFiles } from './helpers.ts';
 
 function withOrder() {
   const { sqlite, db } = freshDb();
@@ -315,6 +318,35 @@ describe('DB-2 delivery_fees.placeholder (lead ruling)', () => {
     expect(sqlite.prepare('select placeholder from delivery_fees where wilaya_code = 16').get()).toEqual({ placeholder: 0 });
     sqlite.prepare('update delivery_fees set placeholder = 1 where wilaya_code = 16').run();
     expect(sqlite.prepare('select placeholder from delivery_fees where wilaya_code = 16').get()).toEqual({ placeholder: 1 });
+  });
+});
+
+describe('DB-7 notification_deliveries dead status', () => {
+  test("accepts 'dead' with dead_at, still refuses unknown statuses", () => {
+    const { sqlite } = withOrder();
+    sqlite.prepare("insert into notification_deliveries (order_id, channel, status, last_error, dead_at) values (1, 'telegram', 'dead', 'telegram: HTTP 401', 1)").run();
+    expect(() => sqlite.prepare("insert into notification_deliveries (order_id, channel, status) values (1, 'email', 'failed')").run()).toThrow(/notification_deliveries_status_enum/);
+  });
+
+  test('rows written before 0006 survive the table rebuild', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    const files = migrationFiles();
+    const upTo = (pred: (f: string) => boolean) => {
+      for (const f of files.filter(pred)) for (const s of readFileSync(join(MIGRATIONS_DIR, f), 'utf8').split('--> statement-breakpoint')) if (s.trim()) sqlite.exec(s);
+    };
+    upTo((f) => f < '0006');
+    sqlite.exec(`insert into wilayas (code, name_fr, name_ar) values (16, 'Alger', 'الجزائر');
+      insert into communes (id, wilaya_code, name_fr, name_ar) values (1601, 16, 'a', 'b');
+      insert into customers (id, phone_e164, name) values (1, '+213560417403', 'A');
+      insert into orders (id, ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, subtotal_dzd, fee_dzd, total_dzd, fee_source)
+        values (1, 'HB-7K2Q9', 'k1', 1, 'A', '+213560417403', 16, 1601, 'ar', 1000, 400, 1400, 'table');
+      insert into notification_deliveries (order_id, channel, status, attempts, sent_at) values (1, 'telegram', 'sent', 2, 5);`);
+    upTo((f) => f >= '0006');
+    expect(sqlite.prepare('select order_id, channel, status, attempts, sent_at, dead_at from notification_deliveries').all()).toEqual([
+      { order_id: 1, channel: 'telegram', status: 'sent', attempts: 2, sent_at: 5, dead_at: null },
+    ]);
+    expect(sqlite.pragma('foreign_key_check')).toEqual([]);
   });
 });
 

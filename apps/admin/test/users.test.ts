@@ -43,8 +43,10 @@ describe('access: owner only', () => {
     expect((await h.as(null, '/users')).status).toBe(401);
     expect(await user('x@y.dz')).toBeNull();
   });
-  test('the owner sees the list with every user', async () => {
+  test('the owner sees the list with every user (stacked cards below 600 px)', async () => {
     const html = await (await h.as(USERS.owner, '/users')).text();
+    expect(html).toContain('class="table tbl-stack"');
+    expect(html).toMatch(/<td[^>]* data-label="E-mail \(identifiant Cloudflare Access\)"/);
     for (const e of Object.values(USERS)) expect(html).toContain(e);
     expect(html).toContain('href="/users/new"');
   });

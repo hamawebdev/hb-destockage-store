@@ -114,7 +114,7 @@ r.get('/', requirePerm('users.manage'), async (c) => {
     { key: 'updated', header: t('users.updated'), cell: (u) => <DateTime ms={u.updatedAt} /> },
     { key: 'edit', header: t('common.actions'), cell: (u) => <a href={`/users/${u.id}/edit`}>{t('common.edit')} <span class="visually-hidden"><bdi dir="ltr">{u.email}</bdi></span></a> },
   ];
-  return c.render(<Table caption={t('nav.users')} columns={columns} rows={rows} rowKey={(u) => u.id} />, {
+  return c.render(<Table caption={t('nav.users')} columns={columns} rows={rows} rowKey={(u) => u.id} stack />, {
     title: t('nav.users'),
     actions: <a class="btn btn--primary" href="/users/new">{t('users.new')}</a>,
   });

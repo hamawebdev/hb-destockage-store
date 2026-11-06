@@ -54,5 +54,6 @@ export type RumMetric = (typeof RUM_METRICS)[number];
 export const RUM_RATINGS = ['good', 'needs-improvement', 'poor'] as const;
 export type RumRating = (typeof RUM_RATINGS)[number];
 
-export const DELIVERY_STATUSES = ['sending', 'sent'] as const;
+/** `dead` (DB-7, JOBS-6): the queue dead-lettered the message; the admin shows it. */
+export const DELIVERY_STATUSES = ['sending', 'sent', 'dead'] as const;
 export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];

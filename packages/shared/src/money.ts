@@ -13,8 +13,9 @@ export const MAX_ORDER_LINES = 10;
 
 /**
  * Sanity ceiling on an order or quote total (lead decision, SHARED-3): about 100 × the dearest pack.
- * Not a business rule — it catches a mispriced row. `buildQuote` answers `order_total_out_of_range`
- * above it; the admin warns when a variant price × MAX_QTY_PER_LINE would exceed it.
+ * Not a business rule — it catches a mispriced row. Enforced by `buildQuote` (quote.ts), which
+ * answers `order_total_out_of_range` above it; `computeTotals` does not check it (it only guards
+ * integer safety). The admin warns when a variant price × MAX_QTY_PER_LINE would exceed it.
  */
 export const MAX_ORDER_TOTAL_DZD = 10_000_000;
 

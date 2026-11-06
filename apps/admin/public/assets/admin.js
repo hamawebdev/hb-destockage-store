@@ -4,8 +4,12 @@ document.addEventListener('submit', (e) => {
   const form = e.target;
   if (form instanceof HTMLFormElement && form.dataset.confirm && !window.confirm(form.dataset.confirm)) e.preventDefault();
 });
-// Mobile: start with the navigation collapsed (it is open in the HTML for no-JS users).
-if (window.matchMedia('(max-width: 767px)').matches) {
-  const d = document.querySelector('.nav-disclosure');
-  if (d) d.removeAttribute('open');
-}
+// The navigation <details> is closed in the HTML (phones). From 768 px it is always shown:
+// admin.css does it with ::details-content; this covers engines without that pseudo-element.
+const nav = document.querySelector('.nav-disclosure');
+const wide = window.matchMedia('(min-width: 768px)');
+const sync = () => {
+  if (nav && wide.matches) nav.setAttribute('open', '');
+};
+sync();
+wide.addEventListener('change', sync);

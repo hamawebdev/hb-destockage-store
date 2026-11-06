@@ -87,6 +87,8 @@ export function TextInput(
     inputmode?: 'text' | 'numeric' | 'tel' | 'email' | 'decimal' | 'search' | 'url';
     autocomplete?: string;
     pattern?: string;
+    /** Minimum width hint, mainly for inputs inside table cells: sku ≥ 12ch, money ≥ 9ch, qty ≥ 6ch. */
+    size?: 'sku' | 'money' | 'qty' | undefined;
   },
 ) {
   return (
@@ -94,7 +96,7 @@ export function TextInput(
       {({ id, describedBy, invalid }) => (
         <input
           id={id}
-          class="input"
+          class={props.size ? `input input--${props.size}` : 'input'}
           name={props.name}
           type={props.type ?? 'text'}
           value={props.value ?? ''}
@@ -115,11 +117,16 @@ export function TextInput(
 
 /** Integer DZD. Text input so Eastern-Arabic digits are accepted (normalised server-side). */
 export function MoneyInput(props: BaseFieldProps & { value?: string | undefined }) {
-  return <TextInput {...props} inputmode="numeric" dir="ltr" maxlength={12} />;
+  return <TextInput {...props} inputmode="numeric" dir="ltr" maxlength={16} size="money" />;
 }
 
 export function NumberInput(props: BaseFieldProps & { value?: string | undefined }) {
-  return <TextInput {...props} inputmode="numeric" dir="ltr" maxlength={12} />;
+  return <TextInput {...props} inputmode="numeric" dir="ltr" maxlength={12} size="qty" />;
+}
+
+/** SKU / code input: LTR, ≥ 12ch, no autocorrect-style transforms. */
+export function SkuInput(props: BaseFieldProps & { value?: string | undefined; maxlength?: number }) {
+  return <TextInput {...props} dir="ltr" maxlength={props.maxlength ?? 64} size="sku" autocomplete="off" />;
 }
 
 export function PhoneInput(props: BaseFieldProps & { value?: string | undefined }) {

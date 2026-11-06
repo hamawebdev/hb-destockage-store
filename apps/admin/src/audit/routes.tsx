@@ -12,7 +12,7 @@ import { createRouter } from '../lib/router.ts';
 import { fromAlgiersInput } from '../lib/time.ts';
 import { renderError } from '../ui/error-page.tsx';
 import { Form, Select, Submit, TextInput, FormActions } from '../ui/form.tsx';
-import { Bdi, DateTime } from '../ui/format.tsx';
+import { Bdi, Code, DateTime } from '../ui/format.tsx';
 import { CursorPagination } from '../ui/pagination.tsx';
 import { Table, type Column } from '../ui/table.tsx';
 
@@ -110,8 +110,8 @@ r.get('/', requirePerm('audit.view'), async (c) => {
   const columns: Column<Row>[] = [
     { key: 'at', header: t('audit.col.at'), cell: (r) => <DateTime ms={r.at} /> },
     { key: 'actor', header: t('audit.col.actor'), cell: (r) => (r.actorEmail ? <Bdi>{r.actorEmail}</Bdi> : t('audit.system')) },
-    { key: 'action', header: t('audit.col.action'), cell: (r) => <code><Bdi>{r.action}</Bdi></code> },
-    { key: 'entity', header: t('audit.col.entity'), cell: (r) => <code><Bdi>{r.entity}</Bdi></code> },
+    { key: 'action', header: t('audit.col.action'), cell: (r) => <Code>{r.action}</Code> },
+    { key: 'entity', header: t('audit.col.entity'), cell: (r) => <Code>{r.entity}</Code> },
     { key: 'entityId', header: t('audit.col.entityId'), cell: (r) => (r.entityId === null ? t('common.none') : <Bdi>{r.entityId}</Bdi>) },
     { key: 'details', header: t('audit.col.details'), cell: (r) => <a href={`/audit/${r.id}`}>{t('audit.view')}</a> },
   ];
@@ -141,7 +141,7 @@ r.get('/', requirePerm('audit.view'), async (c) => {
           <a class="btn btn--secondary" href="/audit">{t('common.reset')}</a>
         </FormActions>
       </Form>
-      <Table caption={t('audit.title')} columns={columns} rows={page.rows} rowKey={(r) => r.id} />
+      <Table caption={t('audit.title')} columns={columns} rows={page.rows} rowKey={(r) => r.id} stack />
       <CursorPagination next={page.next} baseUrl={listUrl(raw)} isFirst={cursorRaw === undefined} />
     </>,
     { title: t('audit.title') },
@@ -173,7 +173,7 @@ async function detail(c: Context<AppEnv>) {
   const truncated = [row.before, row.after].some((x) => x !== null && typeof x === 'object' && (x as Record<string, unknown>)['_truncated'] === true);
   type D = (typeof rows)[number];
   const cols: Column<D>[] = [
-    { key: 'field', header: t('audit.detail.field'), cell: (d) => <code><Bdi>{d.field}</Bdi></code> },
+    { key: 'field', header: t('audit.detail.field'), cell: (d) => <Code>{d.field}</Code> },
     { key: 'before', header: t('audit.detail.before'), cell: (d) => (d.before === undefined ? t('common.none') : <code dir="ltr">{d.before}</code>) },
     { key: 'after', header: t('audit.detail.after'), cell: (d) => (d.after === undefined ? t('common.none') : <code dir="ltr">{d.after}</code>) },
     { key: 'changed', header: '', cell: (d) => (d.changed ? <span class="badge badge--warning">{t('audit.detail.changed')}</span> : null) },
@@ -186,9 +186,9 @@ async function detail(c: Context<AppEnv>) {
         <dt>{t('audit.col.actor')}</dt>
         <dd>{row.actorEmail ? <Bdi>{row.actorEmail}</Bdi> : t('audit.system')}</dd>
         <dt>{t('audit.col.action')}</dt>
-        <dd><code><Bdi>{row.action}</Bdi></code></dd>
+        <dd><Code>{row.action}</Code></dd>
         <dt>{t('audit.col.entity')}</dt>
-        <dd><code><Bdi>{row.entity}</Bdi></code> {row.entityId !== null ? <Bdi>{row.entityId}</Bdi> : null}</dd>
+        <dd><Code>{row.entity}</Code> {row.entityId !== null ? <Bdi>{row.entityId}</Bdi> : null}</dd>
         <dt>{t('audit.detail.request')}</dt>
         <dd>{row.requestId ? <Bdi>{row.requestId}</Bdi> : t('common.none')}</dd>
       </dl>

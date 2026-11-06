@@ -798,9 +798,12 @@ export const notificationDeliveries = sqliteTable(
     leaseUntil: integer('lease_until'),
     sentAt: integer('sent_at'),
     lastError: text('last_error'),
+    /** When the message was dead-lettered (status `dead`), epoch ms. */
+    deadAt: integer('dead_at'),
   },
   (t) => [
     primaryKey({ columns: [t.orderId, t.channel] }),
+    index('notification_deliveries_status_dead_idx').on(t.status, t.deadAt),
     check('notification_deliveries_status_enum', oneOf(t.status, DELIVERY_STATUSES)),
     check('notification_deliveries_attempts_nonneg', nonNeg(t.attempts)),
   ],
