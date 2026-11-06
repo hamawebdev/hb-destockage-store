@@ -174,65 +174,49 @@ function StockPage(props: {
       {props.rows.length === 0 ? (
         <p class="empty">{tm('empty')}</p>
       ) : (
-        <div class="table-wrap" role="region" aria-label={tm('stock.caption')} tabindex={0}>
-          <table class="table">
-            <caption class="table__caption">{tm('stock.caption')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{tm('col.name')}</th>
-                <th scope="col">SKU</th>
-                <th scope="col" class="num">{tm('col.stock')}</th>
-                <th scope="col">{tm('stock.set')}</th>
-                <th scope="col">{tm('stock.adjust')}</th>
-                <th scope="col">{tm('stock.tracking')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {props.rows.map((r) => (
-                <tr>
-                  <th scope="row">
-                    <a href={`/products/${r.productId}`}>{label(r, lang)}</a>
-                    {r.status !== 'active' ? <> ({tm(`status.${r.status}` as 'status.draft')})</> : null}
-                  </th>
-                  <td><Bdi ltr>{r.sku}</Bdi></td>
-                  <td class="num">{r.stock === null ? tm('stock.untracked') : <Num value={r.stock} />}</td>
-                  <td>
-                    {r.stock !== null ? (
-                      <Form action="/products/stock/set" class="inline-form">
-                        <input type="hidden" name="variant_id" value={String(r.variantId)} />
-                        <input type="hidden" name="was" value={String(r.stock)} />
-                        <input type="hidden" name="back" value={props.back} />
-                        <input class="input" name="stock" value={String(r.stock)} inputmode="numeric" dir="ltr" maxlength={8} aria-label={`${tm('stock.set')} — ${r.sku}`} />
-                        <Submit variant="secondary">{tm('stock.setButton')}</Submit>
-                      </Form>
-                    ) : null}
-                  </td>
-                  <td>
-                    {r.stock !== null ? (
-                      <Form action="/products/stock/adjust" class="inline-form">
-                        <input type="hidden" name="variant_id" value={String(r.variantId)} />
-                        <input type="hidden" name="back" value={props.back} />
-                        <input class="input" name="delta" inputmode="numeric" dir="ltr" maxlength={8} placeholder="+5 / -2" aria-label={`${tm('stock.delta')} — ${r.sku}`} />
-                        <select class="input input--select" name="reason" aria-label={`${tm('stock.reason')} — ${r.sku}`}>
-                          {ADJUST_REASONS.map((x) => (
-                            <option value={x}>{tm(`stock.reason.${x}`)}</option>
-                          ))}
-                        </select>
-                        <input class="input" name="note" maxlength={200} aria-label={`${tm('stock.note')} — ${r.sku}`} />
-                        <Submit variant="secondary">{tm('stock.adjustButton')}</Submit>
-                      </Form>
-                    ) : null}
-                  </td>
-                  <td>
-                    <a class="btn btn--quiet" href={`/products/stock/track?variant=${r.variantId}&back=${encodeURIComponent(props.back)}`}>
-                      {r.stock === null ? tm('stock.track') : tm('stock.untrack')}
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        // One card per variant (not a table): at 360 px every control stays on screen.
+        <ol class="stock-list" aria-label={tm('stock.caption')}>
+          {props.rows.map((r) => (
+            <li class="panel">
+              <h3>
+                <a href={`/products/${r.productId}`}>{label(r, lang)}</a>
+                {r.status !== 'active' ? <> ({tm(`status.${r.status}` as 'status.draft')})</> : null}
+              </h3>
+              <p>
+                <Bdi ltr>{r.sku}</Bdi> · {tm('col.stock')}{lang === 'ar' ? ': ' : ' : '}
+                <strong>{r.stock === null ? tm('stock.untracked') : <Num value={r.stock} />}</strong>
+              </p>
+              {r.stock !== null ? (
+                <>
+                  <Form action="/products/stock/set">
+                    <input type="hidden" name="variant_id" value={String(r.variantId)} />
+                    <input type="hidden" name="was" value={String(r.stock)} />
+                    <input type="hidden" name="back" value={props.back} />
+                    <NumberInput name={`stock`} label={`${tm('stock.set')} (${r.sku})`} value={String(r.stock)} />
+                    <FormActions>
+                      <Submit variant="secondary">{tm('stock.setButton')}</Submit>
+                    </FormActions>
+                  </Form>
+                  <Form action="/products/stock/adjust">
+                    <input type="hidden" name="variant_id" value={String(r.variantId)} />
+                    <input type="hidden" name="back" value={props.back} />
+                    <NumberInput name="delta" label={`${tm('stock.delta')} (${r.sku})`} hint="5 / -2" />
+                    <Select name="reason" label={tm('stock.reason')} options={ADJUST_REASONS.map((x) => ({ value: x, label: tm(`stock.reason.${x}`) }))} />
+                    <TextInput name="note" label={tm('stock.note')} maxlength={200} />
+                    <FormActions>
+                      <Submit variant="secondary">{tm('stock.adjustButton')}</Submit>
+                    </FormActions>
+                  </Form>
+                </>
+              ) : null}
+              <p>
+                <a class="btn btn--quiet" href={`/products/stock/track?variant=${r.variantId}&back=${encodeURIComponent(props.back)}`}>
+                  {r.stock === null ? tm('stock.track') : tm('stock.untrack')}
+                </a>
+              </p>
+            </li>
+          ))}
+        </ol>
       )}
       <Pagination page={props.page} pages={props.pages} baseUrl={props.baseUrl} />
     </>

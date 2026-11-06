@@ -151,9 +151,11 @@ export function PackSection(props: { agg: ProductAggregate; lines: readonly Pack
                     </Form>
                   </td>
                   <td>
-                    {i > 0 ? action('move', l.variantId, { dir: 'up' }, tm('pack.up')) : null}
-                    {i < props.lines.length - 1 ? action('move', l.variantId, { dir: 'down' }, tm('pack.down')) : null}
-                    {action('remove', l.variantId, {}, tm('pack.remove'), 'danger')}
+                    <div class="form-actions">
+                      {i > 0 ? action('move', l.variantId, { dir: 'up' }, tm('pack.up')) : null}
+                      {i < props.lines.length - 1 ? action('move', l.variantId, { dir: 'down' }, tm('pack.down')) : null}
+                      {action('remove', l.variantId, {}, tm('pack.remove'), 'danger')}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -161,7 +163,7 @@ export function PackSection(props: { agg: ProductAggregate; lines: readonly Pack
           </table>
         </div>
       )}
-      <p>
+      <p class="muted">
         {tm('pack.value')} <Money dzd={value} /> · {tm('pack.price')} <Money dzd={packPrice} />
         {value > packPrice ? <> · {tm('pack.saving')} <Money dzd={value - packPrice} /></> : null}
       </p>

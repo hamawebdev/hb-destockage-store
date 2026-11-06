@@ -81,7 +81,18 @@ export function ProductList(props: {
       cell: (r) =>
         r.minPrice === null ? t('common.none') : r.minPrice === r.maxPrice ? <Money dzd={r.minPrice} /> : <><Money dzd={r.minPrice} /> – <Money dzd={r.maxPrice ?? r.minPrice} /></>,
     },
-    { key: 'stock', header: tm('col.stock'), numeric: true, cell: (r) => (r.trackedStock === null ? t('common.none') : <Num value={r.trackedStock} />) },
+    {
+      key: 'stock',
+      header: tm('col.stock'),
+      numeric: true,
+      // Untracked variants are always orderable: say so instead of silently leaving them out of the sum.
+      cell: (r) => (
+        <>
+          {r.trackedStock === null ? t('common.none') : <Num value={r.trackedStock} />}
+          {r.trackedStock !== null && r.untrackedCount > 0 ? <> {tm('list.untracked', { count: r.untrackedCount })}</> : null}
+        </>
+      ),
+    },
     { key: 'status', header: tm('col.status'), cell: (r) => <StatusBadges status={r.status} placeholder={r.placeholder} /> },
   ];
   return (
@@ -276,7 +287,7 @@ export function OptionsForm(props: { id: number; values: FormValues; errors?: Fi
               ) : (
                 <>
                   <input type="hidden" name={`o${i}_kind`} value={props.values[`o${i}_kind`] ?? 'other'} />
-                  <p>{tm('opt.kind')} : {tm(`opt.kind.${(props.values[`o${i}_kind`] ?? 'other') as 'size'}`)}</p>
+                  <p>{tm('opt.kind')}{lang === 'ar' ? ': ' : ' : '}{tm(`opt.kind.${(props.values[`o${i}_kind`] ?? 'other') as 'size'}`)}</p>
                 </>
               )}
               <TextInput name={`o${i}_name_fr`} label={`${tm('opt.name')} (${t('common.fr')})`} value={props.values[`o${i}_name_fr`]} error={err(`o${i}_name_fr`)} dir="ltr" lang="fr" maxlength={LIMITS.optionName} />
@@ -384,78 +395,44 @@ function CeilingWarning(props: { price: number }) {
   );
 }
 
+/**
+ * Variant editor as stacked cards (one fieldset per variant, the kit's labelled inputs at full
+ * width): readable at 360 px and on desktop, no table to scroll, no squeezed inputs.
+ */
 export function VariantGrid(props: { agg: ProductAggregate; values: FormValues; errors?: FieldErrors | undefined }) {
   const { lang } = useUi();
   const tm = m(lang);
   const valueName = new Map(props.agg.options.flatMap((o) => o.values.map((x) => [x.id, lang === 'ar' ? x.valueAr : x.valueFr] as const)));
-  const label = (vid: number, field: string) => `${field} — ${props.values[`sku_${vid}`] ?? ''}`;
-  const cell = (name: string, aria: string, opts: { inputmode?: 'numeric'; maxlength: number }) => {
-    const error = props.errors?.[name];
-    return (
-      <>
-        <input
-          class="input"
-          id={`f-${name}`}
-          name={name}
-          value={props.values[name] ?? ''}
-          dir="ltr"
-          inputmode={opts.inputmode}
-          maxlength={opts.maxlength}
-          aria-label={aria}
-          aria-invalid={error ? 'true' : undefined}
-          aria-describedby={error ? `f-${name}-err` : undefined}
-        />
-        {error ? <p class="field__error" id={`f-${name}-err`}>{error}</p> : null}
-      </>
-    );
-  };
+  const err = (k: string) => props.errors?.[k];
   return (
     <section aria-labelledby="sec-variants">
       <h2 id="sec-variants">{tm('section.variants')}</h2>
       <Form action={`/products/${props.agg.product.id}/variants`}>
         <ErrorSummary errors={props.errors} />
-        <div class="table-wrap" role="region" aria-label={tm('var.caption')} tabindex={0}>
-          <table class="table">
-            <caption class="table__caption">{tm('var.caption')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{tm('var.combination')}</th>
-                <th scope="col">SKU</th>
-                <th scope="col">{tm('field.price')}</th>
-                <th scope="col">{tm('field.compareAt')}</th>
-                <th scope="col">{tm('field.stock')}</th>
-                <th scope="col">{tm('field.weight')}</th>
-                <th scope="col">{tm('var.active')}</th>
-                <th scope="col">{tm('var.default')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {props.agg.variants.map((x) => (
-                <tr>
-                  <th scope="row">{x.links.length === 0 ? '—' : x.links.map((l) => valueName.get(l.valueId) ?? '?').join(' / ')}</th>
-                  <td>{cell(`sku_${x.id}`, label(x.id, 'SKU'), { maxlength: 40 })}</td>
-                  <td>
-                    {cell(`price_${x.id}`, label(x.id, tm('field.price')), { inputmode: 'numeric', maxlength: 12 })}
-                    <CeilingWarning price={x.priceDzd} />
-                  </td>
-                  <td>{cell(`compare_${x.id}`, label(x.id, tm('field.compareAt')), { inputmode: 'numeric', maxlength: 12 })}</td>
-                  <td>
-                    {cell(`stock_${x.id}`, label(x.id, tm('field.stock')), { inputmode: 'numeric', maxlength: 8 })}
-                    <input type="hidden" name={`stockwas_${x.id}`} value={props.values[`stockwas_${x.id}`] ?? ''} />
-                  </td>
-                  <td>{cell(`weight_${x.id}`, label(x.id, tm('field.weight')), { inputmode: 'numeric', maxlength: 6 })}</td>
-                  <td>
-                    <input type="checkbox" class="check" name={`active_${x.id}`} value="1" checked={Boolean(props.values[`active_${x.id}`])} aria-label={label(x.id, tm('var.active'))} />
-                  </td>
-                  <td>
-                    <input type="radio" class="check" name="default" value={String(x.id)} checked={props.values['default'] === String(x.id)} aria-label={label(x.id, tm('var.default'))} />
-                    <input type="hidden" name={`ver_${x.id}`} value={props.values[`ver_${x.id}`] ?? ''} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {props.agg.variants.map((x) => {
+          const combo = x.links.length === 0 ? null : x.links.map((l) => valueName.get(l.valueId) ?? '?').join(' / ');
+          return (
+            <fieldset class="localized">
+              <legend class="localized__legend">
+                {combo ?? tm('var.single')} · <Bdi ltr>{x.sku}</Bdi>
+              </legend>
+              <input type="hidden" name={`ver_${x.id}`} value={props.values[`ver_${x.id}`] ?? ''} />
+              <input type="hidden" name={`stockwas_${x.id}`} value={props.values[`stockwas_${x.id}`] ?? ''} />
+              <TextInput name={`sku_${x.id}`} label="SKU" value={props.values[`sku_${x.id}`]} error={err(`sku_${x.id}`)} dir="ltr" maxlength={40} required />
+              <MoneyInput name={`price_${x.id}`} label={tm('field.price')} value={props.values[`price_${x.id}`]} error={err(`price_${x.id}`)} required />
+              <CeilingWarning price={x.priceDzd} />
+              <MoneyInput name={`compare_${x.id}`} label={tm('field.compareAt')} hint={tm('field.compareAtHint')} value={props.values[`compare_${x.id}`]} error={err(`compare_${x.id}`)} />
+              <NumberInput name={`stock_${x.id}`} label={tm('field.stock')} hint={tm('field.stockHint')} value={props.values[`stock_${x.id}`]} error={err(`stock_${x.id}`)} />
+              <NumberInput name={`weight_${x.id}`} label={tm('field.weight')} value={props.values[`weight_${x.id}`]} error={err(`weight_${x.id}`)} />
+              <Checkbox name={`active_${x.id}`} label={tm('var.active')} checked={Boolean(props.values[`active_${x.id}`])} />
+              <div class="field field--check">
+                <input type="radio" class="check" id={`f-default-${x.id}`} name="default" value={String(x.id)} checked={props.values['default'] === String(x.id)} />
+                <label for={`f-default-${x.id}`}>{tm('var.default')}</label>
+              </div>
+            </fieldset>
+          );
+        })}
+        {err('default') ? <p class="field__error" id="f-default">{err('default')}</p> : null}
         <FormActions>
           <Submit>{tm('var.save')}</Submit>
         </FormActions>
@@ -493,9 +470,11 @@ export function StatusSection(props: { agg: ProductAggregate; issues?: readonly 
           </ul>
         </div>
       ) : null}
-      {p.status !== 'active' ? button('active', tm('status.activate')) : null}
-      {p.status !== 'draft' ? button('draft', tm('status.toDraft')) : null}
-      {p.status !== 'archived' ? button('archived', tm('status.archive')) : null}
+      <div class="form-actions">
+        {p.status !== 'active' ? button('active', tm('status.activate')) : null}
+        {p.status !== 'draft' ? button('draft', tm('status.toDraft')) : null}
+        {p.status !== 'archived' ? button('archived', tm('status.archive')) : null}
+      </div>
       <p class="muted">{tm('status.publishNote')}</p>
       <p>
         <a class="btn btn--danger" href={`/products/${p.id}/delete`}>{tm('delete')}</a>
@@ -514,9 +493,9 @@ export function ProductReadonly(props: { agg: ProductAggregate; categoryName: st
       <p class="callout">{tm('readonly')}</p>
       <dl class="details">
         <dt>{tm('field.name')} ({t('common.fr')})</dt>
-        <dd lang="fr" dir="ltr">{p.nameFr}</dd>
+        <dd><span lang="fr" dir="ltr">{p.nameFr}</span></dd>
         <dt>{tm('field.name')} ({t('common.ar')})</dt>
-        <dd lang="ar" dir="rtl">{p.nameAr}</dd>
+        <dd><span lang="ar" dir="rtl">{p.nameAr}</span></dd>
         {p.brandLatin ? <><dt>{tm('field.brand')}</dt><dd><bdi lang="fr" dir="ltr">{p.brandLatin}</bdi></dd></> : null}
         <dt>{tm('field.category')}</dt>
         <dd>{props.categoryName}</dd>

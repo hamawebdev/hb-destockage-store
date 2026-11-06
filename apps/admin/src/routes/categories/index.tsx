@@ -99,7 +99,7 @@ async function renderEdit(
         parentArchived={parent !== undefined && !parent.active}
       />
     </>,
-    { title: `${tm('edit')} : ${c.var.lang === 'ar' ? category.nameAr : category.nameFr}`, breadcrumbs: crumbs(c) },
+    { title: `${tm('edit')}${c.var.lang === 'ar' ? ': ' : ' : '}${c.var.lang === 'ar' ? category.nameAr : category.nameFr}`, breadcrumbs: crumbs(c) },
   );
 }
 

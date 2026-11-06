@@ -124,6 +124,7 @@ export interface ListRow {
   maxPrice: number | null;
   variantCount: number;
   trackedStock: number | null;
+  untrackedCount: number;
 }
 
 export async function listProducts(c: Ctx, f: ListFilters, limit: number, offset: number): Promise<{ rows: ListRow[]; total: number }> {
@@ -156,6 +157,7 @@ export async function listProducts(c: Ctx, f: ListFilters, limit: number, offset
         maxPrice: sql<number | null>`(select max(price_dzd) from variants v where v.product_id = ${products.id} and v.active = 1)`,
         variantCount: sql<number>`(select count(*) from variants v where v.product_id = ${products.id})`,
         trackedStock: sql<number | null>`(select sum(stock) from variants v where v.product_id = ${products.id} and v.active = 1)`,
+        untrackedCount: sql<number>`(select count(*) from variants v where v.product_id = ${products.id} and v.active = 1 and v.stock is null)`,
       })
       .from(products)
       .innerJoin(categories, eq(categories.id, products.categoryId))

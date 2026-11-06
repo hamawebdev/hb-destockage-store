@@ -174,7 +174,7 @@ async function renderEdit(c: Ctx, agg: ProductAggregate, o: EditOverrides = {}) 
       <VariantGrid agg={agg} values={o.grid?.values ?? gridValuesOf(agg)} errors={o.grid?.errors} />
       <StatusSection agg={agg} issues={o.issues} />
     </>,
-    { title: `${tm(c)('edit')} : ${nameOf(c, p)}`, breadcrumbs: crumbs(c) },
+    { title: `${tm(c)('edit')}${c.var.lang === 'ar' ? ': ' : ' : '}${nameOf(c, p)}`, breadcrumbs: crumbs(c) },
   );
 }
 

@@ -177,9 +177,9 @@ export function CategoryReadonly(props: { category: Category; parentName: string
       <p class="callout">{tm('readonly')}</p>
       <dl class="details">
         <dt>{tm('field.name')} ({t('common.fr')})</dt>
-        <dd lang="fr" dir="ltr">{c.nameFr}</dd>
+        <dd><span lang="fr" dir="ltr">{c.nameFr}</span></dd>
         <dt>{tm('field.name')} ({t('common.ar')})</dt>
-        <dd lang="ar" dir="rtl">{c.nameAr}</dd>
+        <dd><span lang="ar" dir="rtl">{c.nameAr}</span></dd>
         <dt>{tm('col.slugs')}</dt>
         <dd>
           <Bdi ltr>{c.slugFr}</Bdi> / <Bdi ltr>{c.slugAr}</Bdi>
