@@ -23,15 +23,11 @@ export interface RawD1 {
 
 const configPath = fileURLToPath(new URL('../wrangler.jsonc', import.meta.url));
 
-export async function freshD1(): Promise<{ d1: RawD1; db: Db; dispose: () => Promise<void> }> {
+/** A fresh, empty workerd D1 (no migrations applied). */
+export async function freshD1Empty(): Promise<{ d1: RawD1; db: Db; dispose: () => Promise<void> }> {
   const dir = mkdtempSync(join(tmpdir(), 'hb-db-test-'));
   const proxy = await getPlatformProxy<{ DB: RawD1 }>({ configPath, persist: { path: dir } });
   const d1 = proxy.env.DB;
-  for (const file of migrationFiles()) {
-    for (const stmt of readFileSync(join(MIGRATIONS_DIR, file), 'utf8').split('--> statement-breakpoint')) {
-      if (stmt.trim()) await d1.prepare(stmt).run();
-    }
-  }
   return {
     d1,
     db: createDb(d1 as unknown as AnyD1Database),
@@ -40,6 +36,17 @@ export async function freshD1(): Promise<{ d1: RawD1; db: Db; dispose: () => Pro
       rmSync(dir, { recursive: true, force: true });
     },
   };
+}
+
+/** A fresh workerd D1 with every repo migration applied. */
+export async function freshD1(): Promise<{ d1: RawD1; db: Db; dispose: () => Promise<void> }> {
+  const ctx = await freshD1Empty();
+  for (const file of migrationFiles()) {
+    for (const stmt of readFileSync(join(MIGRATIONS_DIR, file), 'utf8').split('--> statement-breakpoint')) {
+      if (stmt.trim()) await ctx.d1.prepare(stmt).run();
+    }
+  }
+  return ctx;
 }
 
 /** Run several statements in order (setup only). */

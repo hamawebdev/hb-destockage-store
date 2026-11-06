@@ -521,6 +521,11 @@ export const orderItems = sqliteTable(
     unitPriceDzd: integer('unit_price_dzd').notNull(),
     qty: integer('qty').notNull(),
     lineTotalDzd: integer('line_total_dzd').notNull(),
+    /**
+     * Units actually taken from `variants.stock` when the order was created: `qty` if the variant was
+     * tracked then, 0 if untracked (NULL stock). A cancel/return restores exactly this (DB-4 r1).
+     */
+    stockTaken: integer('stock_taken').notNull().default(0),
   },
   (t) => [
     index('order_items_order_idx').on(t.orderId),
@@ -798,9 +803,12 @@ export const notificationDeliveries = sqliteTable(
     leaseUntil: integer('lease_until'),
     sentAt: integer('sent_at'),
     lastError: text('last_error'),
+    /** When the message was dead-lettered (status `dead`), epoch ms. */
+    deadAt: integer('dead_at'),
   },
   (t) => [
     primaryKey({ columns: [t.orderId, t.channel] }),
+    index('notification_deliveries_status_dead_idx').on(t.status, t.deadAt),
     check('notification_deliveries_status_enum', oneOf(t.status, DELIVERY_STATUSES)),
     check('notification_deliveries_attempts_nonneg', nonNeg(t.attempts)),
   ],

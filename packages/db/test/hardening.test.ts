@@ -1,9 +1,12 @@
 // DB-2: append-only triggers, FK child indexes, and index use for the admin queries.
 import { describe, expect, test } from 'vitest';
+import Database from 'better-sqlite3';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { eq, is, sql } from 'drizzle-orm';
 import { getTableConfig, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import * as schema from '../src/schema.ts';
-import { freshDb } from './helpers.ts';
+import { freshDb, MIGRATIONS_DIR, migrationFiles } from './helpers.ts';
 
 function withOrder() {
   const { sqlite, db } = freshDb();
@@ -318,6 +321,48 @@ describe('DB-2 delivery_fees.placeholder (lead ruling)', () => {
   });
 });
 
+describe('DB-7 notification_deliveries dead status', () => {
+  test("accepts 'dead' with dead_at, still refuses unknown statuses", () => {
+    const { sqlite } = withOrder();
+    sqlite.prepare("insert into notification_deliveries (order_id, channel, status, last_error, dead_at) values (1, 'telegram', 'dead', 'telegram: HTTP 401', 1)").run();
+    expect(() => sqlite.prepare("insert into notification_deliveries (order_id, channel, status) values (1, 'email', 'failed')").run()).toThrow(/notification_deliveries_status_enum/);
+  });
+
+  test('rows written before 0006 survive the table rebuild', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    const files = migrationFiles();
+    const upTo = (pred: (f: string) => boolean) => {
+      for (const f of files.filter(pred)) for (const s of readFileSync(join(MIGRATIONS_DIR, f), 'utf8').split('--> statement-breakpoint')) if (s.trim()) sqlite.exec(s);
+    };
+    upTo((f) => f < '0006');
+    sqlite.exec(`insert into wilayas (code, name_fr, name_ar) values (16, 'Alger', 'الجزائر');
+      insert into communes (id, wilaya_code, name_fr, name_ar) values (1601, 16, 'a', 'b');
+      insert into customers (id, phone_e164, name) values (1, '+213560417403', 'A');
+      insert into orders (id, ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, subtotal_dzd, fee_dzd, total_dzd, fee_source)
+        values (1, 'HB-7K2Q9', 'k1', 1, 'A', '+213560417403', 16, 1601, 'ar', 1000, 400, 1400, 'table');
+      insert into notification_deliveries (order_id, channel, status, attempts, sent_at) values (1, 'telegram', 'sent', 2, 5);`);
+    upTo((f) => f >= '0006');
+    expect(sqlite.prepare('select order_id, channel, status, attempts, sent_at, dead_at from notification_deliveries').all()).toEqual([
+      { order_id: 1, channel: 'telegram', status: 'sent', attempts: 2, sent_at: 5, dead_at: null },
+    ]);
+    expect(sqlite.pragma('foreign_key_check')).toEqual([]);
+  });
+});
+
+describe('DB-4 r1 order_items.stock_taken', () => {
+  const ins = (qty: number, taken: string) =>
+    `insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd, stock_taken) values (1, 100, 10, 'a', 'b', 'S1', 1000, ${qty}, ${1000 * qty}, ${taken})`;
+  test('defaults to 0; must be an integer between 0 and qty (insert and update)', () => {
+    const { sqlite } = withOrder();
+    sqlite.prepare("insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd) values (1, 100, 10, 'a', 'b', 'S1', 1000, 2, 2000)").run();
+    expect(sqlite.prepare('select stock_taken from order_items').get()).toEqual({ stock_taken: 0 });
+    expect(sqlite.prepare(ins(2, '2')).run().changes).toBe(1);
+    for (const bad of ['3', '-1', '1.5', "'x'"]) expect(() => sqlite.prepare(ins(2, bad)).run(), bad).toThrow(/stock_taken must be/);
+    expect(() => sqlite.prepare('update order_items set qty = 1 where stock_taken = 2').run()).toThrow(/stock_taken must be/);
+  });
+});
+
 describe('DB-2 triggers exist with the expected names', () => {
   test('append-only and geography triggers', () => {
     const { sqlite } = freshDb();
@@ -340,6 +385,8 @@ describe('DB-2 triggers exist with the expected names', () => {
       'customers_flags_array_upd',
       'orders_fee_source_fmt_ins',
       'orders_fee_source_fmt_upd',
+      'order_items_stock_taken_ins',
+      'order_items_stock_taken_upd',
       'images_variant_or_option_value_ins',
       'images_variant_or_option_value_upd',
     ].sort());
