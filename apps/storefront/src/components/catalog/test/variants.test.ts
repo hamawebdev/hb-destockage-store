@@ -1,6 +1,7 @@
 import type { OptionProps, PriceProps, VariantProps } from '@hb/catalog';
 import { describe, expect, test } from 'vitest';
-import { defaultVariant, pickerMode, radioName, swatchFill, variantBlocks, variantByValue } from '../lib/variants.ts';
+import { readFileSync } from 'node:fs';
+import { CSS_POSITIONS, defaultVariant, pickerMode, radioName, swatchFill, variantBlocks, variantByValue } from '../lib/variants.ts';
 
 const price = (n: number): PriceProps => ({ amountDzd: n, label: `${n} DA`, compareAtDzd: null, compareAtLabel: null, discountPercent: null, from: false });
 const v = (id: number, ids: number[], stock: number | null, isDefault = false): VariantProps => ({
@@ -58,5 +59,18 @@ describe('helpers', () => {
     expect(swatchFill('#fff')).toBeNull();
     expect(swatchFill('#000000"/><script>')).toBeNull();
     expect(swatchFill(null)).toBeNull();
+  });
+});
+
+describe('constant positional CSS', () => {
+  const css = readFileSync(new URL('../VariantPicker.astro', import.meta.url), 'utf8');
+  test('covers exactly CSS_POSITIONS values for the price blocks and the legends', () => {
+    expect(css.match(/\.cat-vps>:nth-child\(\d+\)/g)).toHaveLength(CSS_POSITIONS);
+    expect(css.match(/\.cat-curs>:nth-child\(\d+\)/g)).toHaveLength(CSS_POSITIONS);
+    expect(css).toContain(`.cat-vps>:nth-child(${CSS_POSITIONS})`);
+  });
+  test('no JS: the default price hides only when a covered value (1–8) replaces it, so a price is always visible', () => {
+    expect(css).toContain(`.cat-pdp:has([data-mode=single] .cat-val:nth-child(-n+${CSS_POSITIONS})>:checked:not([checked])) .cat-vp-d{display:none}`);
+    expect(css).not.toMatch(/\[data-mode=single\] \.cat-val-in:checked\) \.cat-vp-d/);
   });
 });

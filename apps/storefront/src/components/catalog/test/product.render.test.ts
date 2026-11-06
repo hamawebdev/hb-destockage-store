@@ -2,6 +2,7 @@
 import { fixturePages } from '@hb/catalog/fixtures/props';
 import type { ProductProps } from '@hb/catalog';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
+import { writeFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import ProductView from '../ProductView.astro';
 import VariantPicker from '../VariantPicker.astro';
@@ -111,6 +112,27 @@ describe('single-option picker (no JS: radios post variantId)', () => {
     expect(tag(html, /<input[^>]*id="ov-301"[^>]*>/)).toMatch(/name="variantId" value="1011"[^>]*checked/);
     expect(tag(html, /<input[^>]*id="ov-302"[^>]*>/)).toMatch(/value="1012"[^>]*disabled/);
     expect(html).not.toContain('type="hidden"');
+  });
+});
+
+function tenSizes(p: ProductProps, defaultAt: number): ProductProps {
+  const base = p.variants[0]!;
+  const values = Array.from({ length: 10 }, (_, i) => ({ id: 900 + i, label: `T${i + 1}`, swatchHex: null, available: true, imageIndexes: [] }));
+  const variants = values.map((v, i) => ({ ...base, id: 9000 + i, sku: `T-${i + 1}`, optionValueIds: [v.id], key: String(v.id), label: v.label, isDefault: i === defaultAt, price: { ...base.price, amountDzd: 1000 + i, label: `${1000 + i} DA` } }));
+  return { ...p, options: [{ id: 99, type: 'size', name: 'Taille', values }], variants };
+}
+
+describe('single option with 9+ values (no JS)', () => {
+  it('one block per value in radio order; the default block is marked visible wherever it sits', async () => {
+    const p = tenSizes(product('fr', APRON), 9);
+    const html = await render(p);
+    expect(html).toContain('data-mode="single"');
+    expect(html.match(/<div class="cat-vp[^"]*"[^>]*data-k="/g)).toHaveLength(10);
+    expect(tag(html, /<div class="cat-vp cat-vp-d"[^>]*>/)).toContain('data-v="9009"');
+    expect(tag(html, /<input[^>]*id="ov-909"[^>]*>/)).toMatch(/name="variantId" value="9009"[^>]*checked/);
+    // PAGES_RENDER_OUT=<dir>: keep the markup for the no-JS browser check (artifacts/PAGES-5).
+    const out = process.env['PAGES_RENDER_OUT'];
+    if (out) writeFileSync(`${out}/ten-sizes-default-10.html`, html);
   });
 });
 

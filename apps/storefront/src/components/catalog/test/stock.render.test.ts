@@ -114,10 +114,20 @@ describe.each(['ar', 'fr'] as const)('stock states (%s)', (l) => {
 });
 
 describe('Arabic translation placeholder', () => {
-  it('flags the Arabic card only', async () => {
+  it('flags the Arabic card only, and the rendered pill follows translationPlaceholder', async () => {
     const ar = card('ar', product('ar', RACK).product.name.split(' ')[0]!);
     const fr = card('fr', product('fr', RACK).product.name.split(' ')[0]!);
     expect(ar.translationPlaceholder).toBe(true);
     expect(fr.translationPlaceholder).toBe(false);
+    // Same card without the content placeholder: only the translation flag decides the pill.
+    expect(await renderCard('ar', { ...ar, placeholder: false })).toContain('cat-flag--ph');
+    expect(await renderCard('fr', { ...fr, placeholder: false })).not.toContain('cat-flag--ph');
+  });
+  it('the product page banner follows translationPlaceholder too', async () => {
+    const ar = product('ar', RACK);
+    const fr = product('fr', RACK);
+    const html = (p: ProductProps) => container.renderToString(ProductView, { props: { ...p, product: { ...p.product, placeholder: false } } });
+    expect(await html(ar)).toContain('cat-pdp-ph');
+    expect(await html(fr)).not.toContain('cat-pdp-ph');
   });
 });

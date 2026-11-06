@@ -62,7 +62,17 @@ if (picker) {
         const alt = ids.slice();
         alt[fi] = r.dataset.ov;
         const b = alt.every(Boolean) && find(keyOf(alt));
-        r.parentElement.toggleAttribute('data-na', !(b && b.dataset.a === '1'));
+        const na = !(b && b.dataset.a === '1');
+        const label = r.parentElement;
+        label.toggleAttribute('data-na', na);
+        // Not colour (or the strike) alone: the radio's name says it too, for screen readers.
+        let note = label.querySelector('.cat-na-t');
+        if (na && !note && !r.disabled) {
+          note = document.createElement('span');
+          note.className = 'cat-sr cat-na-t';
+          note.textContent = ' (' + picker.dataset.naLabel + ')';
+          label.lastElementChild.append(note);
+        } else if (!na && note) note.remove();
       }
     });
 
