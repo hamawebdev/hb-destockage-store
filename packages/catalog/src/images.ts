@@ -44,8 +44,14 @@ export interface ImagePipelineOptions {
   /** Returns the original's bytes for a `SnapshotImage.key` (disk for seed, R2 for D1 exports). */
   readonly readOriginal: (key: string) => Promise<Buffer>;
   readonly widths?: readonly number[];
-  /** Byte ceiling for every candidate ≤ 960 w. Default IMAGE_TARGET_BYTES_UP_TO_960 (20,000). */
+  /** Target for every candidate ≤ 960 w. Default IMAGE_TARGET_BYTES_UP_TO_960 (20,000). */
   readonly maxBytes?: number;
+  /**
+   * Hard limit when the target is unreachable at `minQuality`: such a candidate is accepted up to
+   * this size and reported in `warnings` (IMAGE_OVER_TARGET); above it the build fails.
+   * Default IMAGE_MAX_BYTES_UP_TO_960 (25,600).
+   */
+  readonly hardMaxBytes?: number;
   /** Starting (highest) AVIF quality. Default 60. */
   readonly maxQuality?: number;
   /** Lowest AVIF quality the search may use; below it the build fails. Default 20. */
@@ -70,9 +76,21 @@ export interface ImageReportRow {
   readonly ms: number;
 }
 
+/** A candidate ≤ 960 w over the 20 kB target but within the spec limit (lead's fallback rule). */
+export interface ImageWarning {
+  readonly code: 'IMAGE_OVER_TARGET';
+  readonly key: string;
+  readonly width: number;
+  readonly bytes: number;
+  readonly quality: number;
+  readonly message: string;
+}
+
 export interface ImagePipelineResult {
   readonly manifest: ImageManifest;
   readonly report: readonly ImageReportRow[];
+  /** Never fatal. Derived from the encoded sizes, so cached runs report them too. */
+  readonly warnings: readonly ImageWarning[];
 }
 
 export class ImageBudgetError extends Error {
@@ -126,6 +144,7 @@ async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) 
 interface Settings {
   readonly widths: readonly number[];
   readonly maxBytes: number;
+  readonly hardMaxBytes: number;
   readonly maxQuality: number;
   readonly minQuality: number;
   readonly effort: number;
@@ -173,7 +192,23 @@ async function encodeOne(key: string, original: Buffer, s: Settings, hash: strin
           }
         }
         if (!best) {
-          throw new ImageBudgetError(`${key}: ${w} w exceeds ${s.maxBytes} B even at quality ${s.minQuality}`);
+          // Fallback (lead's ruling): the target is out of reach at the floor; accept the highest
+          // quality that fits the spec limit (reported as IMAGE_OVER_TARGET), else fail.
+          lo = s.minQuality;
+          hi = start - 1;
+          while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const buf = await enc(mid);
+            if (buf.length <= s.hardMaxBytes) {
+              best = { q: mid, buf };
+              lo = mid + 1;
+            } else {
+              hi = mid - 1;
+            }
+          }
+        }
+        if (!best) {
+          throw new ImageBudgetError(`${key}: ${w} w exceeds ${s.hardMaxBytes} B even at quality ${s.minQuality}`);
         }
         quality = best.q;
         file = best.buf;
@@ -204,6 +239,7 @@ export async function buildImages(snapshot: CatalogSnapshot, opts: ImagePipeline
   const s: Settings = {
     widths: opts.widths ?? IMAGE_WIDTHS,
     maxBytes: opts.maxBytes ?? IMAGE_TARGET_BYTES_UP_TO_960,
+    hardMaxBytes: opts.hardMaxBytes ?? IMAGE_MAX_BYTES_UP_TO_960,
     maxQuality: opts.maxQuality ?? 60,
     minQuality: opts.minQuality ?? 20,
     effort: opts.effort ?? 4,
@@ -259,7 +295,19 @@ export async function buildImages(snapshot: CatalogSnapshot, opts: ImagePipeline
       if (/^[0-9a-f]{16}-(\d+\.avif|og\.jpg)$/.test(f) && !keep.has(f)) await rm(join(imgDir, f));
     }
   }
-  return { manifest, report: rows };
+  const warnings: ImageWarning[] = rows.flatMap((r) =>
+    r.candidates
+      .filter((c) => c.width <= BUDGET_MAX_WIDTH && c.bytes > s.maxBytes)
+      .map((c) => ({
+        code: 'IMAGE_OVER_TARGET' as const,
+        key: r.key,
+        width: c.width,
+        bytes: c.bytes,
+        quality: c.quality,
+        message: `IMAGE_OVER_TARGET ${r.key}: ${c.width} w is ${c.bytes} B at q${c.quality} (target ${s.maxBytes} B, accepted up to ${s.hardMaxBytes} B); replace the photo with an easier-to-compress one`,
+      })),
+  );
+  return { manifest, report: rows, warnings };
 }
 
 /** Markdown sizes table (artifacts/CAT-4/sizes.md). */
@@ -286,6 +334,7 @@ export function sizesMarkdown(result: ImagePipelineResult, title = 'CAT-4 image 
   const above = result.report.flatMap((r) => r.candidates.filter((c) => c.width > BUDGET_MAX_WIDTH));
   const max = within.reduce((m, c) => Math.max(m, c.bytes), 0);
   const maxAbove = above.reduce((m, c) => Math.max(m, c.bytes), 0);
+  for (const w of result.warnings) lines.push('', `WARNING ${w.message}`);
   lines.push(
     '',
     `Images: ${result.report.length}. Largest candidate ≤ ${BUDGET_MAX_WIDTH} w: ${max.toLocaleString('en')} B. Over target: ${within.filter((c) => c.bytes > IMAGE_TARGET_BYTES_UP_TO_960).length}. ` +

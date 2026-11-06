@@ -353,8 +353,12 @@ export interface ImageManifestEntry {
 
 /** Where an image is shown; decides `sizes`. Templates may override `sizes` for other uses. */
 export type ImageSlot = 'hero' | 'gallery' | 'card' | 'thumb';
-/** Spec budget (CLAUDE.md): every candidate ≤ 960 w ≤ 25 KB. */
-export const IMAGE_MAX_BYTES_UP_TO_960 = 25_000;
+/**
+ * Spec budget (CLAUDE.md "≤ 25 KB", taken as 25 × 1024 B per the lead's ruling): the hard limit.
+ * A candidate ≤ 960 w that cannot reach the 20 kB target at the quality floor is accepted up to this
+ * size with an IMAGE_OVER_TARGET warning; above it the build fails.
+ */
+export const IMAGE_MAX_BYTES_UP_TO_960 = 25_600;
 /**
  * Pipeline target (BUG-12): every candidate ≤ 960 w ≤ 20,000 B, leaving critical-path headroom on
  * product pages (font + LCP AVIF + wordmark + HTML ≤ 45 KiB).

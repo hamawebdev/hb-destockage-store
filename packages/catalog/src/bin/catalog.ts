@@ -71,12 +71,13 @@ const t0 = performance.now();
 // still get search indexes, commune files, sitemap and robots.
 const images: ImagePipelineResult =
   snapshot.meta.source === 'fixture'
-    ? { manifest: stubImageManifest(snapshot), report: [] }
+    ? { manifest: stubImageManifest(snapshot), report: [], warnings: [] }
     : await buildImages(snapshot, {
         outDir: out,
         cacheDir: resolve(a.cache ?? `${repoRoot}/node_modules/.cache/hb-catalog-images`),
         readOriginal: a.originals ? dirOriginalReader(resolve(a.originals)) : seedOriginalReader(repoRoot),
       });
+for (const w of images.warnings) console.warn(`warning: ${w.message}`);
 const tImages = performance.now();
 await mkdir(dirname(resolve(a.manifest)), { recursive: true });
 await writeFile(resolve(a.manifest), JSON.stringify(images.manifest, null, 2) + '\n');
