@@ -57,19 +57,6 @@
     {
       "id": 1011,
       "variantId": null,
-      "key": "pack-a-3-en-1-colonne-piano-led/1.jpg",
-      "width": 3190,
-      "height": 3511,
-      "alt": {
-        "ar": "طقمان من عمود استحمام وخلّاط مغسلة وحنفية مرحاض باللون الأسود، موضوعان على صناديق، مع لافتتين مكتوب عليهما «13600 DA» و«14600 DA».",
-        "fr": "Deux packs noirs posés sur des cartons, chacun avec colonne de douche, mitigeur de lavabo et robinet de toilette, avec deux pancartes « 13600 DA » et « 14600 DA »."
-      },
-      "position": 1,
-      "placeholder": false
-    },
-    {
-      "id": 1012,
-      "variantId": null,
       "key": "pack-a-3-en-1-colonne-piano-led/2.jpg",
       "width": 1320,
       "height": 1620,
@@ -77,11 +64,11 @@
         "ar": "عمود استحمام «بيانو» أسود بشريط إضاءة LED أزرق وشاشة، وتحته حنفية المرحاض مع الشطّاف وخلّاط المغسلة، مع ملصق «14600 Da».",
         "fr": "Colonne de douche Piano noire à bandeau LED bleu et afficheur, avec le robinet de toilette à douchette et le mitigeur de lavabo ; étiquette « 14600 Da »."
       },
-      "position": 2,
+      "position": 1,
       "placeholder": false
     },
     {
-      "id": 1013,
+      "id": 1012,
       "variantId": null,
       "key": "pack-a-3-en-1-colonne-piano-led/3.jpg",
       "width": 1320,
@@ -90,11 +77,11 @@
         "ar": "عمود استحمام «بيانو» كامل في حمّام رمادي، مع خلّاط المغسلة وحنفية المرحاض، ونص «14600 da».",
         "fr": "Colonne de douche Piano complète dans une salle de bain grise, avec le mitigeur de lavabo et le robinet de toilette ; texte « 14600 da »."
       },
-      "position": 3,
+      "position": 2,
       "placeholder": false
     },
     {
-      "id": 1014,
+      "id": 1013,
       "variantId": null,
       "key": "pack-a-3-en-1-colonne-piano-led/4.jpg",
       "width": 1237,
@@ -103,11 +90,11 @@
         "ar": "لوحة عمود الاستحمام بإضاءة LED وشاشة، مع خلّاط المغسلة وحنفية المرحاض، ونص «14600 da».",
         "fr": "Panneau de la colonne de douche avec LED et afficheur, le mitigeur de lavabo et le robinet de toilette ; texte « 14600 da »."
       },
-      "position": 4,
+      "position": 3,
       "placeholder": false
     },
     {
-      "id": 1015,
+      "id": 1014,
       "variantId": null,
       "key": "pack-a-3-en-1-colonne-piano-led/5.jpg",
       "width": 1243,
@@ -116,7 +103,7 @@
         "ar": "لوحة عمود الاستحمام السوداء بحافة مضيئة زرقاء، وتحتها خلّاط المغسلة وحنفية المرحاض، مع ملصق «14600 da».",
         "fr": "Panneau noir de la colonne de douche à bord lumineux bleu, au-dessous le mitigeur de lavabo et le robinet de toilette ; étiquette « 14600 da »."
       },
-      "position": 5,
+      "position": 4,
       "placeholder": false
     }
   ]

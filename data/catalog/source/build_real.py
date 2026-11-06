@@ -130,42 +130,64 @@ P.append(product(
 # --- images (SEED-3). Files in data/photos/, EXIF stripped losslessly (jpegtran -copy icc), Display P3 ICC kept.
 UP = 'https://hbdestockagedz.com/wp-content/uploads/'
 IMG = {}   # product id -> list of (key, w, h, alt_ar, alt_fr, provenance)
-def img(pid, key, w, h, ar, fr, wp, url, kind, price):
+def img(pid, key, w, h, ar, fr, wp, url, kind):
     IMG.setdefault(pid, []).append(dict(key=key, w=w, h=h, ar=ar, fr=fr, prov=dict(
-        wpMediaId=wp, sourceUrl=url, source=kind, needsClientConfirmation=(kind == 'supplier_render'), burnedInPrice=price)))
+        wpMediaId=wp, sourceUrl=url, source=kind, needsClientConfirmation=(kind == 'supplier_render'))))
+
+# Every real photo file under data/photos/, with the prices printed in it (audited by eye, BUG-14).
+# Written to data/photos/manifest.json; the validator fails if a product uses a photo that prints a
+# price none of its variants has.
+PHOTOS = {}
+def photo(key, wp, url, kind, printed, note=None):
+    PHOTOS[key] = dict(key=key, wpMediaId=wp, sourceUrl=url, source=kind,
+                       needsClientConfirmation=(kind == 'supplier_render'), printedPrices=printed, note=note)
 A, B, C, LX = 'pack-a-3-en-1-colonne-piano-led/', 'pack-b-3-en-1-colonne-piano/', 'colonne-de-douche-piano/', 'pack-luxe-4-en-1/'
 BOTH_AR = 'طقمان من عمود استحمام وخلّاط مغسلة وحنفية مرحاض باللون الأسود، موضوعان على صناديق، مع لافتتين مكتوب عليهما «13600 DA» و«14600 DA».'
 BOTH_FR = 'Deux packs noirs posés sur des cartons, chacun avec colonne de douche, mitigeur de lavabo et robinet de toilette, avec deux pancartes « 13600 DA » et « 14600 DA ».'
 PANELS_AR = 'لوحتا تحكّم لعمود الاستحمام على طاولة: لوحة سوداء مستديرة بأزرار جانبية، ولوحة رمادية مصقولة بأربعة أزرار وشاشة.'
 PANELS_FR = 'Deux panneaux de commande de colonne de douche sur une table : un panneau noir arrondi à boutons latéraux et un panneau gris brossé à quatre touches et afficheur.'
-img(101, A + '1.jpg', 3190, 3511, BOTH_AR, BOTH_FR, 497, UP + '2026/08/IMG_7696.jpeg', 'client_own', '13600 / 14600 (paper signs)')
+# A + '1.jpg' (IMG_7696, both packs with paper signs 13600 / 14600) is in no gallery (BUG-14): it prints
+# a price that 101 (14 600) and 102 (13 600) each do not have.
 img(101, A + '2.jpg', 1320, 1620,
     'عمود استحمام «بيانو» أسود بشريط إضاءة LED أزرق وشاشة، وتحته حنفية المرحاض مع الشطّاف وخلّاط المغسلة، مع ملصق «14600 Da».',
     'Colonne de douche Piano noire à bandeau LED bleu et afficheur, avec le robinet de toilette à douchette et le mitigeur de lavabo ; étiquette « 14600 Da ».',
-    4272, UP + '2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg', 'supplier_render', '14600')
+    4272, UP + '2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg', 'supplier_render')
 img(101, A + '3.jpg', 1320, 1293,
     'عمود استحمام «بيانو» كامل في حمّام رمادي، مع خلّاط المغسلة وحنفية المرحاض، ونص «14600 da».',
     'Colonne de douche Piano complète dans une salle de bain grise, avec le mitigeur de lavabo et le robinet de toilette ; texte « 14600 da ».',
-    4436, UP + '2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg', 'supplier_render', '14600')
+    4436, UP + '2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg', 'supplier_render')
 img(101, A + '4.jpg', 1237, 1624,
     'لوحة عمود الاستحمام بإضاءة LED وشاشة، مع خلّاط المغسلة وحنفية المرحاض، ونص «14600 da».',
     'Panneau de la colonne de douche avec LED et afficheur, le mitigeur de lavabo et le robinet de toilette ; texte « 14600 da ».',
-    4441, UP + '2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg', 'supplier_render', '14600')
+    4441, UP + '2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg', 'supplier_render')
 img(101, A + '5.jpg', 1243, 1980,
     'لوحة عمود الاستحمام السوداء بحافة مضيئة زرقاء، وتحتها خلّاط المغسلة وحنفية المرحاض، مع ملصق «14600 da».',
     'Panneau noir de la colonne de douche à bord lumineux bleu, au-dessous le mitigeur de lavabo et le robinet de toilette ; étiquette « 14600 da ».',
-    4466, UP + '2026/11/8944D590-457D-4B4D-B703-1B942A809EEF.jpeg', 'supplier_render', '14600')
+    4466, UP + '2026/11/8944D590-457D-4B4D-B703-1B942A809EEF.jpeg', 'supplier_render')
 img(102, B + '1.jpg', 1320, 1701,
     'يد تمسك لوحة التحكّم السوداء لعمود الاستحمام برأس دش مربّع، وبجانبه خلّاط المغسلة وحنفية المرحاض، مع ملصق «13600 Da».',
     'Une main tient le panneau de commande noir de la colonne de douche à pommeau carré, à côté le mitigeur de lavabo et le robinet de toilette ; étiquette « 13600 Da ».',
-    150, UP + '2026/08/0A57AC22-93A3-40EF-BAE4-CB9D03CD520E.jpeg', 'client_own', '13600')
-img(102, A + '1.jpg', 3190, 3511, BOTH_AR, BOTH_FR, 497, UP + '2026/08/IMG_7696.jpeg', 'client_own', '13600 / 14600 (paper signs)')
-img(102, C + '1.jpg', 3716, 2287, PANELS_AR, PANELS_FR, 498, UP + '2026/08/IMG_7689.jpeg', 'client_own', None)
-img(111, C + '1.jpg', 3716, 2287, PANELS_AR, PANELS_FR, 498, UP + '2026/08/IMG_7689.jpeg', 'client_own', None)
+    150, UP + '2026/08/0A57AC22-93A3-40EF-BAE4-CB9D03CD520E.jpeg', 'client_own')
+img(102, C + '1.jpg', 3716, 2287, PANELS_AR, PANELS_FR, 498, UP + '2026/08/IMG_7689.jpeg', 'client_own')
+img(111, C + '1.jpg', 3716, 2287, PANELS_AR, PANELS_FR, 498, UP + '2026/08/IMG_7689.jpeg', 'client_own')
 img(103, LX + '1.jpg', 1284, 1533,
     'لوحة عمود الاستحمام السوداء بإضاءة LED، وتحتها حنفية المرحاض وخلّاط المغسلة وخلّاط المطبخ، مع ملصق «16500 Da».',
     'Panneau noir de la colonne de douche avec LED, au-dessous le robinet de toilette, le mitigeur de lavabo et le mitigeur de cuisine ; étiquette « 16500 Da ».',
-    147, UP + '2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg', 'supplier_render', '16500')
+    147, UP + '2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg', 'supplier_render')
+photo(A + '1.jpg', 497, UP + '2026/08/IMG_7696.jpeg', 'client_own', [13600, 14600],
+      'Pack B and Pack A side by side with paper signs. In no gallery since BUG-14 (prints both prices).')
+photo(A + '2.jpg', 4272, UP + '2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg', 'supplier_render', [14600])
+photo(A + '3.jpg', 4436, UP + '2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg', 'supplier_render', [14600])
+photo(A + '4.jpg', 4441, UP + '2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg', 'supplier_render', [14600])
+photo(A + '5.jpg', 4466, UP + '2026/11/8944D590-457D-4B4D-B703-1B942A809EEF.jpeg', 'supplier_render', [14600])
+photo(B + '1.jpg', 150, UP + '2026/08/0A57AC22-93A3-40EF-BAE4-CB9D03CD520E.jpeg', 'client_own', [13600])
+photo(C + '1.jpg', 498, UP + '2026/08/IMG_7689.jpeg', 'client_own', [])
+photo(LX + '1.jpg', 147, UP + '2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg', 'supplier_render', [16500])
+photo('_unreferenced/wp-media-409.jpg', 409, UP + '2026/08/96856807-1630-4929-A89D-4BF7180D23D2.jpeg', 'supplier_render', [14500],
+      'Alt "Pack nova 14500 DA". In no gallery: 14 500 matches no product.')
+photo('_unreferenced/wp-media-410.jpg', 410, UP + '2026/08/DEFDDED5-446C-4E9E-A05A-0B0A55C4CF3A.jpeg', 'supplier_render', [14500],
+      'In no gallery: 14 500 matches no product.')
+
 IMG_PROV = []
 for p in P:
     rows = []
@@ -208,7 +230,17 @@ prov = dict(
   wcProducts=WC,
   categories=[],  # categoryId entries for categories that are the client's (none: the site only had "Non classé")
   products=[dict(productId=k, needsClientConfirmation=(k == 102), **v) for k, v in sorted(PROV.items())],
-  imagesNote='source: client_own = the client\'s own photograph (iPhone EXIF); supplier_render = Instagram screenshot of a collage of product renders, rights to be confirmed by the client. burnedInPrice = price printed in the image (stale if the price changes). Unreferenced files: data/photos/_unreferenced/ (see data/photos/README.md).',
+  imagesNote='source: client_own = the client\'s own photograph (iPhone EXIF); supplier_render = Instagram screenshot of a collage of product renders, rights to be confirmed by the client. Prices printed in each photo: data/photos/manifest.json (printedPrices). Files used by no gallery: see data/photos/README.md.',
   images=IMG_PROV)
 dump(os.path.join(OUT, 'provenance.json'), prov)
+used = {}
+for p in P:
+    for i in p['images']:
+        used.setdefault(i['key'], []).append(p['id'])
+dump(os.path.join(OUT, '..', 'photos', 'manifest.json'), dict(
+  about='Every real (non-generated) photo file in data/photos/. printedPrices = DZD amounts printed in the picture '
+        '([] = none); a product may only use a photo whose printed prices are all prices of its own variants '
+        '(data/catalog/validate.mjs, BUG-14). usedBy = product ids whose gallery has it (informative). Generated '
+        'placeholder photos are not listed: they print no price.',
+  photos=[dict(**PHOTOS[k], usedBy=used.get(k, [])) for k in sorted(PHOTOS)]))
 print(len(categories), len(P))

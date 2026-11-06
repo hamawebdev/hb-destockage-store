@@ -19,7 +19,9 @@
 //     of every placeholder category and product, all images of an invented product placeholder, and
 //     no "[PLACEHOLDER]" text anywhere on an entity marked placeholder: false; the README id scheme;
 //     home products are active; provenance.json entries exist and cover every real image
-//     (supplier renders flagged needsClientConfirmation).
+//     (supplier renders flagged needsClientConfirmation); every real photo is listed in
+//     data/photos/manifest.json with printedPrices, and a product may only use a real photo whose
+//     printed prices are all prices of its own variants (BUG-14).
 // Used by `db` (seed loader, before loading D1) and `pagedata` (fromSeed, before the build).
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -47,6 +49,8 @@ export function loadSeed(repoRoot) {
     products: productFiles.map((f) => ({ file: f, product: readJson(join(dir, 'products', f)) })),
     provenance: existsSync(join(dir, 'provenance.json')) ? readJson(join(dir, 'provenance.json')) : null,
     photosDir: join(repoRoot, 'data', 'photos'),
+    photoManifest: existsSync(join(repoRoot, 'data', 'photos', 'manifest.json'))
+      ? readJson(join(repoRoot, 'data', 'photos', 'manifest.json')) : null,
   };
 }
 
@@ -142,6 +146,23 @@ export function validateLoadedSeed(seed) {
     }
   });
 
+  // 2a'. Photo manifest: every real photo file with the prices printed in it.
+  const photoByKey = new Map();
+  if (!seed.photoManifest) add('data/photos/manifest.json', 'missing');
+  else {
+    seed.photoManifest.photos.forEach((ph, i) => {
+      const at = `data/photos/manifest.json photos[${i}] (${ph.key})`;
+      if (photoByKey.has(ph.key)) add(at, 'key listed twice');
+      photoByKey.set(ph.key, ph);
+      if (typeof ph.key !== 'string' || ph.key.startsWith('/') || ph.key.split('/').includes('..') || !existsSync(join(seed.photosDir, ph.key))) {
+        add(at, 'file does not exist under data/photos/');
+      }
+      if (!Array.isArray(ph.printedPrices) || !ph.printedPrices.every((x) => Number.isSafeInteger(x) && x > 0)) {
+        add(at, 'printedPrices must be an array of integer DZD amounts > 0 ([] when the photo prints no price)');
+      }
+    });
+  }
+
   // 2b. Products.
   for (const { file, product: p } of seed.products) {
     const at = `products/${file}`;
@@ -201,6 +222,18 @@ export function validateLoadedSeed(seed) {
       if (!size) add(iat, `data/photos/${img.key}: not a readable JPEG/PNG`);
       else if (size.width !== img.width || size.height !== img.height) {
         add(iat, `width/height ${img.width}×${img.height} but the file is ${size.width}×${size.height}`);
+      }
+    });
+    // Printed prices (BUG-14): a real photo may only print prices this product actually sells at,
+    // in any gallery position — a stale or foreign price misleads wherever it appears.
+    const prices = new Set(p.variants.map((x) => x.priceDzd));
+    p.images.forEach((img, j) => {
+      if (img.placeholder) return; // generated placeholders print no price
+      const entry = photoByKey.get(img.key);
+      if (!entry) return add(`${at}.images[${j}]`, `real photo ${img.key} has no data/photos/manifest.json entry (printedPrices)`);
+      const wrong = entry.printedPrices.filter((x) => !prices.has(x));
+      if (wrong.length) {
+        add(`${at}.images[${j}]`, `photo ${img.key} prints ${wrong.join(' / ')} DZD, but product ${p.id} sells at ${[...prices].join(' / ')} DZD`);
       }
     });
     const positions = p.images.map((img) => img.position);

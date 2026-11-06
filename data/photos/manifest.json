@@ -1,0 +1,139 @@
+{
+  "about": "Every real (non-generated) photo file in data/photos/. printedPrices = DZD amounts printed in the picture ([] = none); a product may only use a photo whose printed prices are all prices of its own variants (data/catalog/validate.mjs, BUG-14). usedBy = product ids whose gallery has it (informative). Generated placeholder photos are not listed: they print no price.",
+  "photos": [
+    {
+      "key": "_unreferenced/wp-media-409.jpg",
+      "wpMediaId": 409,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/96856807-1630-4929-A89D-4BF7180D23D2.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "printedPrices": [
+        14500
+      ],
+      "note": "Alt \"Pack nova 14500 DA\". In no gallery: 14 500 matches no product.",
+      "usedBy": []
+    },
+    {
+      "key": "_unreferenced/wp-media-410.jpg",
+      "wpMediaId": 410,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/DEFDDED5-446C-4E9E-A05A-0B0A55C4CF3A.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "printedPrices": [
+        14500
+      ],
+      "note": "In no gallery: 14 500 matches no product.",
+      "usedBy": []
+    },
+    {
+      "key": "colonne-de-douche-piano/1.jpg",
+      "wpMediaId": 498,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7689.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "printedPrices": [],
+      "note": null,
+      "usedBy": [
+        111,
+        102
+      ]
+    },
+    {
+      "key": "pack-a-3-en-1-colonne-piano-led/1.jpg",
+      "wpMediaId": 497,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7696.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "printedPrices": [
+        13600,
+        14600
+      ],
+      "note": "Pack B and Pack A side by side with paper signs. In no gallery since BUG-14 (prints both prices).",
+      "usedBy": []
+    },
+    {
+      "key": "pack-a-3-en-1-colonne-piano-led/2.jpg",
+      "wpMediaId": 4272,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "printedPrices": [
+        14600
+      ],
+      "note": null,
+      "usedBy": [
+        101
+      ]
+    },
+    {
+      "key": "pack-a-3-en-1-colonne-piano-led/3.jpg",
+      "wpMediaId": 4436,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "printedPrices": [
+        14600
+      ],
+      "note": null,
+      "usedBy": [
+        101
+      ]
+    },
+    {
+      "key": "pack-a-3-en-1-colonne-piano-led/4.jpg",
+      "wpMediaId": 4441,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "printedPrices": [
+        14600
+      ],
+      "note": null,
+      "usedBy": [
+        101
+      ]
+    },
+    {
+      "key": "pack-a-3-en-1-colonne-piano-led/5.jpg",
+      "wpMediaId": 4466,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/11/8944D590-457D-4B4D-B703-1B942A809EEF.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "printedPrices": [
+        14600
+      ],
+      "note": null,
+      "usedBy": [
+        101
+      ]
+    },
+    {
+      "key": "pack-b-3-en-1-colonne-piano/1.jpg",
+      "wpMediaId": 150,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/0A57AC22-93A3-40EF-BAE4-CB9D03CD520E.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "printedPrices": [
+        13600
+      ],
+      "note": null,
+      "usedBy": [
+        102
+      ]
+    },
+    {
+      "key": "pack-luxe-4-en-1/1.jpg",
+      "wpMediaId": 147,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "printedPrices": [
+        16500
+      ],
+      "note": null,
+      "usedBy": [
+        103
+      ]
+    }
+  ]
+}

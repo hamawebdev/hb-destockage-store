@@ -237,6 +237,44 @@ test('an image binds to a variant or to an option value of its own product', () 
   expectIssue(s, /t-shirt-coton-homme\.json\.images\[\d\]\.optionValueId: option value 999999 is not in this product/);
 });
 
+test('BUG-14: a product never shows a photo printing a price it does not sell at', () => {
+  // The exact bug: the 13 600 / 14 600 signs photo back as 101's first image.
+  let s = seed();
+  const a = product(s, 'pack-a-3-en-1-colonne-piano-led');
+  a.images.unshift({ ...structuredClone(a.images[0]), id: 1015, key: 'pack-a-3-en-1-colonne-piano-led/1.jpg', width: 3190, height: 3511, position: 0 });
+  s.provenance.images.push({ imageId: 1015, productId: 101, key: 'pack-a-3-en-1-colonne-piano-led/1.jpg', source: 'client_own', needsClientConfirmation: false });
+  expectIssue(s, /pack-a-3-en-1-colonne-piano-led\.json\.images\[0\]: photo pack-a-3-en-1-colonne-piano-led\/1\.jpg prints 13600 DZD, but product 101 sells at 14600 DZD/);
+  // Any position, not only the first.
+  s = seed();
+  const b = product(s, 'pack-b-3-en-1-colonne-piano');
+  b.images.push({ ...structuredClone(b.images[0]), id: 1023, key: 'pack-a-3-en-1-colonne-piano-led/2.jpg', width: 1320, height: 1620, position: 3 });
+  s.provenance.images.push({ imageId: 1023, productId: 102, key: 'pack-a-3-en-1-colonne-piano-led/2.jpg', source: 'supplier_render', needsClientConfirmation: true });
+  expectIssue(s, /pack-b-3-en-1-colonne-piano\.json\.images\[2\]: photo .*\/2\.jpg prints 14600 DZD, but product 102 sells at 13600 DZD/);
+  // A price change makes the photo stale.
+  s = seed();
+  product(s, 'pack-luxe-4-en-1').variants[0].priceDzd = 15900;
+  expectIssue(s, /pack-luxe-4-en-1\.json\.images\[0\]: photo pack-luxe-4-en-1\/1\.jpg prints 16500 DZD, but product 103 sells at 15900 DZD/);
+  // The manifest is the record: a wrong audit is caught the same way.
+  s = seed();
+  s.photoManifest.photos.find((x) => x.key === 'pack-b-3-en-1-colonne-piano/1.jpg').printedPrices = [14600];
+  expectIssue(s, /pack-b-3-en-1-colonne-piano\.json\.images\[0\]: photo .* prints 14600 DZD, but product 102 sells at 13600 DZD/);
+});
+
+test('every real photo is in data/photos/manifest.json with printedPrices', () => {
+  let s = seed();
+  s.photoManifest.photos = s.photoManifest.photos.filter((x) => x.key !== 'pack-luxe-4-en-1/1.jpg');
+  expectIssue(s, /pack-luxe-4-en-1\.json\.images\[0\]: real photo pack-luxe-4-en-1\/1\.jpg has no data\/photos\/manifest\.json entry/);
+  s = seed();
+  s.photoManifest.photos[0].printedPrices = ['14500'];
+  expectIssue(s, /manifest\.json photos\[0\] .*: printedPrices must be an array of integer DZD amounts > 0/);
+  s = seed();
+  s.photoManifest.photos[0].key = 'nope/1.jpg';
+  expectIssue(s, /manifest\.json photos\[0\] \(nope\/1\.jpg\): file does not exist/);
+  s = seed();
+  s.photoManifest = null;
+  expectIssue(s, /data\/photos\/manifest\.json: missing/);
+});
+
 test('file name follows the French slug', () => {
   const s = seed();
   s.products.find((p) => p.product.slug.fr === 'huile-argan').file = 'argan.json';
