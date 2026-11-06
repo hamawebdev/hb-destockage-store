@@ -6,7 +6,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p tsconfig.json",
     "test": "npm run test --workspaces --if-present && vitest run --config scripts/vitest.config.ts && npm run test:data",
     "build": "npm run build --workspaces --if-present",
-    "budget": "echo 'budget: not wired yet' && exit 0",
+    "budget": "node tools/measure/src/budget/cli.ts",
     "lh": "echo 'lh: not wired yet' && exit 0",
     "shots": "echo 'shots: not wired yet' && exit 0",
     "axe": "echo 'axe: not wired yet' && exit 0",
