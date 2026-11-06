@@ -541,9 +541,13 @@ export interface OrderSuccess {
   /** `new` for a fresh order; the stored status when an existing order is returned. */
   readonly status: OrderStatus;
   /**
-   * True when the existing order for the same phone + variant (within DUPLICATE_WINDOW_MS) is
-   * returned instead of creating one. An idempotent replay returns the original body unchanged.
-   * HTTP 201 for a new order, 200 for a replay or a duplicate.
+   * True only for a genuine double submit: same phone + variant within DUPLICATE_WINDOW_MS AND the
+   * same name (NFC, case- and whitespace-insensitive), wilaya and commune; the existing order is
+   * returned instead of creating one. Any other phone + variant match creates a new order flagged
+   * `duplicate`, and its response never carries another order's ref or totals. An idempotent
+   * replay returns the original body unchanged.
+   * HTTP status is always 201 (new order, replay and double submit alike), so a client replaying
+   * its key cannot tell a sunk decoy from a real order (lead ruling, WEB-3).
    */
   readonly duplicate: boolean;
   readonly subtotalDzd: Dzd;
@@ -592,7 +596,10 @@ export const ORDER_FLAGS = [
   'turnstile_missing',
   /** siteverify said no, wrong hostname/action, or siteverify failed (`orders.turnstile` keeps the precise verdict). */
   'turnstile_invalid',
-  /** Same phone + variant within DUPLICATE_WINDOW_MS of an existing order. */
+  /**
+   * Same phone + variant within DUPLICATE_WINDOW_MS of an existing order, but not a genuine double
+   * submit (different name, wilaya or commune): a new order is created and flagged.
+   */
   'duplicate',
   /** Soft limits: IP secondary limit or per-phone 24 h velocity. The hard phone limit answers error `rate_limited`. */
   'rate_limited',
