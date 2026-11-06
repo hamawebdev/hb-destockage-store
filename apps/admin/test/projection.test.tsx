@@ -2,12 +2,16 @@
 // customers.sensitive: field-level projection enforced at SELECT time (lead decision 2026-11-05).
 import { eq } from 'drizzle-orm';
 import { createDb, customers, orders } from '@hb/db';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { createApp } from '../src/app.ts';
 import { PERMISSIONS } from '../src/auth/permissions.ts';
 import { requirePerm } from '../src/auth/require-role.ts';
 import { CUSTOMER_SENSITIVE, ORDER_SENSITIVE, customerColumns, orderColumns, projectCustomer, projectOrder, canSeeCustomerHistory } from '../src/lib/projection.ts';
 import { harness, testIdentify, USERS, type Harness } from './helpers.ts';
+
+// Real D1 (workerd) requests take seconds on the loaded shared machine: explicit budgets instead
+// of vitest's 5 s default, so the admin gate is not red at random (lead, 2026-11-06).
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 let customerId: number;

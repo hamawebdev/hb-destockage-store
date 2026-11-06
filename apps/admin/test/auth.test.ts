@@ -1,6 +1,6 @@
 // ADMIN-2: Cloudflare Access JWT, local dev login, and "every route refuses without auth".
 import { exportJWK, generateKeyPair, createLocalJWKSet, SignJWT, type JWK, type JWTVerifyGetKey } from 'jose';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { createApp } from '../src/app.ts';
 import { app as prodApp } from '../src/index.ts';
 import { verifyAccessJwt, MAX_JWT_LENGTH } from '../src/auth/access.ts';
@@ -8,6 +8,10 @@ import { createDefaultIdentify } from '../src/auth/authenticate.ts';
 import { DEV_COOKIE, readDevSession, signDevSession } from '../src/auth/dev-session.ts';
 import type { Env } from '../src/env.ts';
 import { harness, seedUsers, testEnv, USERS, type Harness } from './helpers.ts';
+
+// Real D1 (workerd) requests take seconds on the loaded shared machine: explicit budgets instead
+// of vitest's 5 s default, so the admin gate is not red at random (lead, 2026-11-06).
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 const TEAM = 'https://hbtest.cloudflareaccess.com';
 const AUD = 'b'.repeat(64);
@@ -326,7 +330,7 @@ describe('every registered route refuses without auth (route walk over the produ
       expect(res.status, `${r.method} ${r.path}`).toBe(r.path.startsWith('/__dev') ? 404 : 401);
       expect(res.headers.get('Cache-Control')).toBe('private, no-store');
     }
-  });
+  }, 60_000);
 
   test('production env, malformed token → 403 on every route and method', async () => {
     const env = { ...testEnv({} as D1Database), ENV: 'production' as const, ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD };
@@ -335,7 +339,7 @@ describe('every registered route refuses without auth (route walk over the produ
       const res = await prodApp.request(`https://admin.hb.example${concrete(r.path)}`, { method: r.method, headers: { 'Cf-Access-Jwt-Assertion': 'x.y.z' } }, env);
       expect(res.status, `${r.method} ${r.path}`).toBe(403);
     }
-  });
+  }, 60_000);
 
   test('production env, valid token for an unknown email → 403 on every route', async () => {
     const jwt = await token({ email: 'stranger@example.com' });
@@ -344,7 +348,7 @@ describe('every registered route refuses without auth (route walk over the produ
       const res = await withJwt(jwt, concrete(r.path), accessEnv, { method: r.method });
       expect(res.status, `${r.method} ${r.path}`).toBe(403);
     }
-  });
+  }, 60_000);
 
   test('development env on localhost, no session → 401 everywhere except the dev login itself', async () => {
     const env: Env = { ...h.env, ENV: 'development', DEV_SESSION_SECRET: DEV_SECRET };
@@ -357,7 +361,7 @@ describe('every registered route refuses without auth (route walk over the produ
         expect(res.status, `${r.method} ${r.path}`).toBe(401);
       }
     }
-  });
+  }, 60_000);
 });
 
 // seedUsers is re-exported for builders' tests; keep the import used.
