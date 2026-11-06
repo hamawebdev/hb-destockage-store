@@ -21,4 +21,4 @@ test('catalog CLI: the origin is required and single-sourced (CAT-6 r1)', () => 
   const mismatch = run({ HB_SITE_ORIGIN: 'https://hbdestockagedz.com' }, ['--site-url', 'https://hbdestockage.example']);
   expect(mismatch.status).toBe(2);
   expect(mismatch.stderr).toMatch(/disagrees with HB_SITE_ORIGIN/);
-});
+}, 120_000); // three node processes that load sharp: slow on the shared machine
