@@ -3,7 +3,6 @@
 import { eq } from 'drizzle-orm';
 import { categories, communes, createDb, customers, orderEvents, orderItems, orders, products, variants, wilayas, type Db } from '@hb/db';
 import type { OrderFlag, OrderStatus } from '@hb/shared';
-import { form, type Harness } from '../helpers.ts';
 
 export const GEO = {
   alger: { code: 16, nameFr: 'Alger', nameAr: 'الجزائر' },
@@ -144,11 +143,53 @@ export async function insertEvent(
   });
 }
 
+/** admin-core's postAs (ADMIN-3): same-origin form POST with a valid CSRF token for `email`. */
+export { postAs } from '../helpers.ts';
+
 /**
- * POST a same-origin form as `email`. Same signature as admin-core's `postAs` (ADMIN-3, adds the
- * CSRF token); switch to a re-export of it once ADMIN-3 is merged here: every orders test POSTs
- * through this one function.
+ * Many single-line orders for one customer in two D1 batches (orders, then items) instead of ~5
+ * round trips per order: list pagination tests need 100+ rows on a loaded host.
  */
-export async function postAs(h: Harness, email: string | null, path: string, data: Record<string, string> = {}): Promise<Response> {
-  return h.as(email, path, form(data));
+export async function insertOrdersBulk(
+  db: Db,
+  cat: CatalogFixture,
+  specs: readonly { ref: string; createdAt: number; status: OrderStatus }[],
+  phone: string,
+): Promise<void> {
+  const [cust] = await db.insert(customers).values({ phoneE164: phone, name: 'Bulk' }).returning({ id: customers.id });
+  const orderRows = specs.map((s) => ({
+    ref: s.ref,
+    idempotencyKey: crypto.randomUUID(),
+    customerId: cust!.id,
+    name: 'Bulk',
+    phoneE164: phone,
+    wilayaCode: GEO.alger.code,
+    communeId: GEO.communes.babEzzouar.id,
+    lang: 'ar' as const,
+    status: s.status,
+    subtotalDzd: 14_600,
+    feeDzd: 600,
+    totalDzd: 15_200,
+    feeSource: 'table',
+    createdAt: s.createdAt,
+    updatedAt: s.createdAt,
+  }));
+  const ins = orderRows.map((r) => db.insert(orders).values(r));
+  await db.batch(ins as [(typeof ins)[number], ...(typeof ins)[number][]]);
+  // By the bulk customer (one bound parameter): D1 allows at most 100 per statement.
+  const ids = await db.select({ id: orders.id }).from(orders).where(eq(orders.customerId, cust!.id));
+  const items = ids.map((o) =>
+    db.insert(orderItems).values({
+      orderId: o.id,
+      variantId: cat.variantA,
+      productId: cat.productId,
+      nameFr: 'Pack cuisine — Rouge',
+      nameAr: 'باك المطبخ — أحمر',
+      sku: 'PK-CUI-01',
+      unitPriceDzd: 14_600,
+      qty: 1,
+      lineTotalDzd: 14_600,
+    }),
+  );
+  await db.batch(items as [(typeof items)[number], ...(typeof items)[number][]]);
 }

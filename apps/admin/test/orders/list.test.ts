@@ -5,7 +5,7 @@ import { formatMoney } from '../../src/ui/format.tsx';
 import { ordersListQuery } from '../../src/routes/orders/list-data.ts';
 import { parseOrdersFilter } from '../../src/routes/orders/list-query.ts';
 import { harness, USERS, type Harness } from '../helpers.ts';
-import { dbOf, insertOrder, refOf, seedGeoAndCatalog } from './fixtures.ts';
+import { dbOf, insertOrder, insertOrdersBulk, refOf, seedGeoAndCatalog } from './fixtures.ts';
 
 let h: Harness;
 
@@ -46,13 +46,14 @@ beforeAll(async () => {
   });
   await insertOrder(db, cat, { ref: N.n6, createdAt: at(2026, 10, 30, 12), status: 'delivered', phone: '+213550000006' });
   await insertOrder(db, cat, { ref: N.n7, createdAt: at(2026, 10, 29, 12), status: 'cancelled', phone: '+213550000007' });
-  // 120 returned orders, three per timestamp (ties exercise the id tie-breaker).
-  for (let i = 0; i < BULK; i++) {
-    await insertOrder(db, cat, {
-      ref: refOf(100 + i), createdAt: at(2026, 9, 1, 12) - Math.floor(i / 3) * 1000, status: 'returned', phone: '+213550000099',
-    });
-  }
-}, 180_000);
+  // 120 returned orders, three per timestamp (ties exercise the id tie-breaker), ids ascending with i.
+  await insertOrdersBulk(
+    db,
+    cat,
+    Array.from({ length: BULK }, (_, i) => ({ ref: refOf(100 + i), createdAt: at(2026, 9, 1, 12) - Math.floor(i / 3) * 1000, status: 'returned' as const })),
+    '+213550000099',
+  );
+}, 300_000);
 
 afterAll(async () => {
   await h?.close();
@@ -225,7 +226,7 @@ describe('rendering', () => {
 describe('query plans on D1 (indexes from DB-1)', () => {
   async function plan(query: string): Promise<string> {
     const { filter } = parseOrdersFilter(new URLSearchParams(query), 'owner');
-    const { sql, params } = ordersListQuery(dbOf(h.db), filter).toSQL();
+    const { sql, params } = ordersListQuery(dbOf(h.db), filter, true).toSQL();
     const r = await h.db.prepare(`explain query plan ${sql}`).bind(...params).all<{ detail: string }>();
     return r.results.map((x) => x.detail).join('\n');
   }

@@ -16,6 +16,7 @@ import {
   type WilayaCode,
 } from '@hb/shared';
 import { decodeCursor, type Cursor } from '../../lib/pagination.ts';
+import { canSeeSensitive } from '../../lib/projection.ts';
 
 export const ORDERS_PAGE_SIZE = 50;
 
@@ -53,7 +54,8 @@ export type OrdersFilter = {
 };
 
 /** Query-string field that held a value we could not use (shown as a notice; never a 4xx). */
-export type InvalidField = 'status' | 'wilaya' | 'from' | 'to' | 'range' | 'after';
+/** `restricted`: a risk filter (flagged / duplicate / blocked) asked for by a role without `customers.sensitive`. */
+export type InvalidField = 'status' | 'wilaya' | 'from' | 'to' | 'range' | 'after' | 'restricted';
 
 export type ParsedOrdersFilter = {
   readonly filter: OrdersFilter;
@@ -167,7 +169,13 @@ export function parseOrdersFilter(params: URLSearchParams, role: AdminRole): Par
     if (!after) invalid.add('after');
   }
 
-  const flag = (name: string) => params.get(name) === '1';
+  // Risk filters reveal flags and blocked state: only with `customers.sensitive` (owner, confirmer).
+  const sensitive = canSeeSensitive({ role });
+  const flag = (name: string) => {
+    const on = params.get(name) === '1';
+    if (on && !sensitive) invalid.add('restricted');
+    return on && sensitive;
+  };
 
   const defaulted = rawStatuses.length === 0 && search === null;
   if (defaulted) statuses = [...defaultStatuses(role)];

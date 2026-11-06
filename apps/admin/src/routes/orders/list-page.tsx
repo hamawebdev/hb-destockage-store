@@ -84,7 +84,7 @@ function Notices(props: { tm: OrdersMessages; lang: Lang; parsed: ParsedOrdersFi
   );
 }
 
-function Filters(props: { tm: OrdersMessages; lang: Lang; parsed: ParsedOrdersFilter; page: OrdersPage; q: string }) {
+function Filters(props: { tm: OrdersMessages; lang: Lang; parsed: ParsedOrdersFilter; page: OrdersPage; q: string; sensitive: boolean }) {
   const { tm, lang, parsed, page } = props;
   const f = parsed.filter;
   return (
@@ -104,9 +104,13 @@ function Filters(props: { tm: OrdersMessages; lang: Lang; parsed: ParsedOrdersFi
       />
       <DateField name="from" label={tm('filter.from')} value={dayValue(f.fromMs)} />
       <DateField name="to" label={tm('filter.to')} value={dayValue(f.toMs === null ? null : f.toMs - 86_400_000)} />
-      <Checkbox name="flagged" label={tm('filter.flagged')} checked={f.flagged} />
-      <Checkbox name="duplicate" label={tm('filter.duplicate')} checked={f.duplicate} />
-      <Checkbox name="blocked" label={tm('filter.blocked')} checked={f.blockedCustomer} />
+      {props.sensitive ? (
+        <>
+          <Checkbox name="flagged" label={tm('filter.flagged')} checked={f.flagged} />
+          <Checkbox name="duplicate" label={tm('filter.duplicate')} checked={f.duplicate} />
+          <Checkbox name="blocked" label={tm('filter.blocked')} checked={f.blockedCustomer} />
+        </>
+      ) : null}
       <FormActions>
         <Submit>{tm('filter.submit')}</Submit>
         <a class="btn btn--secondary" href="/orders">{tm('filter.reset')}</a>
@@ -115,8 +119,8 @@ function Filters(props: { tm: OrdersMessages; lang: Lang; parsed: ParsedOrdersFi
   );
 }
 
-function columns(tm: OrdersMessages, lang: Lang): Column<OrderListRow>[] {
-  return [
+function columns(tm: OrdersMessages, lang: Lang, sensitive: boolean): Column<OrderListRow>[] {
+  const cols: Column<OrderListRow>[] = [
     { key: 'ref', header: tm('list.col.ref'), cell: (r) => <a href={`/orders/${r.ref}`}><Bdi>{r.ref}</Bdi></a> },
     { key: 'date', header: tm('list.col.date'), cell: (r) => <DateTime ms={r.createdAt} /> },
     {
@@ -165,7 +169,7 @@ function columns(tm: OrdersMessages, lang: Lang): Column<OrderListRow>[] {
       cell: (r) => (
         <>
           <StatusBadge tone={orderStatusTone(r.status)} label={orderStatusLabel(lang, r.status)} />
-          {r.callAttempts > 0 && (r.status === 'called' || r.status === 'unreachable') ? (
+          {r.callAttempts !== undefined && r.callAttempts > 0 && (r.status === 'called' || r.status === 'unreachable') ? (
             <>
               <br />
               <span class="muted">{tm('status.attempt', { n: r.callAttempts })}</span>
@@ -174,19 +178,23 @@ function columns(tm: OrdersMessages, lang: Lang): Column<OrderListRow>[] {
         </>
       ),
     },
-    {
+  ];
+  // Risk flags need `customers.sensitive`: the column is not rendered (and was not selected) otherwise.
+  if (sensitive) {
+    cols.push({
       key: 'flags',
       header: tm('list.col.flags'),
       cell: (r) =>
-        r.flags.length === 0
+        !r.flags || r.flags.length === 0
           ? '—'
           : r.flags.map((fl) => (
               <>
                 <StatusBadge tone={orderFlagTone(fl)} label={flagLabel(tm, fl)} />{' '}
               </>
             )),
-    },
-  ];
+    });
+  }
+  return cols;
 }
 
 /** Known flags get a label; an unknown flag (added later by `web`) is shown as its raw code. */
@@ -203,16 +211,18 @@ export function OrdersListPage(props: {
   q: string;
   /** Current path + query (for pagination links). */
   url: string;
+  /** canSeeSensitive(user): risk filters and the flags column. */
+  sensitive: boolean;
 }) {
   const tm = m(props.lang);
   const { parsed, page } = props;
   return (
     <>
-      <Filters tm={tm} lang={props.lang} parsed={parsed} page={page} q={props.q} />
+      <Filters tm={tm} lang={props.lang} parsed={parsed} page={page} q={props.q} sensitive={props.sensitive} />
       <Notices tm={tm} lang={props.lang} parsed={parsed} />
       <Table
         caption={tm('list.caption')}
-        columns={columns(tm, props.lang)}
+        columns={columns(tm, props.lang, props.sensitive)}
         rows={page.rows}
         rowKey={(r) => r.id}
         empty={tm('list.empty')}

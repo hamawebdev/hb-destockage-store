@@ -70,6 +70,7 @@ export const m = defineMessages({
     'filter.invalid.to': 'date de fin',
     'filter.invalid.range': 'période (début après la fin)',
     'filter.invalid.after': 'page',
+    'filter.invalid.restricted': 'filtres d’alerte (réservés à la confirmation)',
 
     'detail.title': 'Commande {ref}',
     'detail.created': 'Passée le',
@@ -275,6 +276,7 @@ export const m = defineMessages({
     'filter.invalid.to': 'تاريخ النهاية',
     'filter.invalid.range': 'الفترة (البداية بعد النهاية)',
     'filter.invalid.after': 'الصفحة',
+    'filter.invalid.restricted': 'عوامل تصفية التنبيهات (خاصة بفريق التأكيد)',
 
     'detail.title': 'الطلب {ref}',
     'detail.created': 'تاريخ الطلب',

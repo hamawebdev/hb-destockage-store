@@ -23,6 +23,7 @@ import { rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import type { AppEnv } from '../../env.ts';
 import { parseForm, readForm, type FormSchema } from '../../lib/forms.ts';
+import { canSeeSensitive } from '../../lib/projection.ts';
 import { createRouter } from '../../lib/router.ts';
 import { withFlash } from '../../ui/flash.tsx';
 import { audit, noAudit } from '../../audit/audit.ts';
@@ -62,10 +63,11 @@ const REF = ':ref{HB-[0-9A-HJKMNP-TV-Z]{5}}';
 r.get('/', requirePerm('orders.view'), async (c) => {
   const url = new URL(c.req.url);
   const parsed = parseOrdersFilter(url.searchParams, c.var.user.role);
-  const page = await fetchOrdersPage(c.var.db, parsed.filter);
+  const sensitive = canSeeSensitive(c.var.user);
+  const page = await fetchOrdersPage(c.var.db, parsed.filter, sensitive);
   const q = (url.searchParams.get('q') ?? '').slice(0, SEARCH_MAX_CHARS);
   return c.render(
-    <OrdersListPage lang={c.var.lang} parsed={parsed} page={page} q={q} url={`${url.pathname}${url.search}`} />,
+    <OrdersListPage lang={c.var.lang} parsed={parsed} page={page} q={q} url={`${url.pathname}${url.search}`} sensitive={sensitive} />,
     { title: m(c.var.lang)('list.title') },
   );
 });
@@ -79,9 +81,9 @@ async function renderQueue(c: Context<AppEnv>, opts: { afterNext?: boolean } = {
   const tm = m(c.var.lang);
   const title = tm('queue.title');
   const ref = await myClaim(c.var.db, c.var.user.id, now);
-  const order = ref ? await fetchOrderByRef(c.var.db, ref) : null;
+  const order = ref ? await fetchOrderByRef(c.var.db, ref, canSeeSensitive(c.var.user)) : null;
   if (order) {
-    const { items, events } = await fetchOrderChildren(c.var.db, order.id, { withAudit: false });
+    const { items, events } = await fetchOrderChildren(c.var.db, order.id, { withAudit: false, sensitive: canSeeSensitive(c.var.user) });
     return c.render(<QueueCallPage lang={c.var.lang} user={c.var.user} now={now} order={order} items={items} events={events} />, { title });
   }
   const counts = await queueCounts(c.var.db, now);
@@ -115,7 +117,7 @@ async function renderDetail(
   status: 200 | 403 | 409 | 422 = 200,
   extra: Pick<DetailProps, 'form' | 'conflict'> = {},
 ) {
-  const children = await fetchOrderChildren(c.var.db, order.id, { withAudit: c.var.user.role === 'owner' });
+  const children = await fetchOrderChildren(c.var.db, order.id, { withAudit: c.var.user.role === 'owner', sensitive: canSeeSensitive(c.var.user) });
   const tm = m(c.var.lang);
   c.status(status);
   return c.render(
@@ -129,7 +131,7 @@ async function renderDetail(
 }
 
 r.get(`/${REF}`, requirePerm('orders.view'), async (c) => {
-  const order = await fetchOrderByRef(c.var.db, c.req.param('ref'));
+  const order = await fetchOrderByRef(c.var.db, c.req.param('ref'), canSeeSensitive(c.var.user));
   if (!order) return c.notFound();
   return renderDetail(c, order);
 });
@@ -140,9 +142,10 @@ r.get(`/${REF}`, requirePerm('orders.view'), async (c) => {
 const stateOf = (o: OrderDetail): OrderState => ({
   status: o.status,
   version: o.version,
-  callAttempts: o.callAttempts,
-  nextCallAt: o.nextCallAt,
-  flags: o.flags,
+  // Logistics has no risk fields; its only plans (ship/deliver/return, note) do not read them.
+  callAttempts: o.risk?.callAttempts ?? 0,
+  nextCallAt: o.risk?.nextCallAt ?? null,
+  flags: o.risk?.flags ?? [],
 });
 
 async function readCallSettings(db: Db): Promise<CallSettings> {
@@ -155,9 +158,9 @@ async function readCallSettings(db: Db): Promise<CallSettings> {
 
 /** 409 page with who changed the order last (latest admin event, else the order's update time). */
 async function renderConflict(c: Context<AppEnv>, ref: string) {
-  const fresh = await fetchOrderByRef(c.var.db, ref);
+  const fresh = await fetchOrderByRef(c.var.db, ref, canSeeSensitive(c.var.user));
   if (!fresh) return c.notFound();
-  const { events } = await fetchOrderChildren(c.var.db, fresh.id, { withAudit: false });
+  const { events } = await fetchOrderChildren(c.var.db, fresh.id, { withAudit: false, sensitive: canSeeSensitive(c.var.user) });
   const last = events[events.length - 1];
   return renderDetail(c, fresh, 409, { conflict: { name: last?.actorName ?? null, at: last?.at ?? fresh.updatedAt } });
 }
@@ -177,7 +180,7 @@ async function mutate<S extends FormSchema>(
   plan: (order: OrderState, data: import('valibot').InferOutput<S>, ctx: { order: OrderDetail; now: number }) => Promise<PlanResult> | PlanResult,
 ) {
   const ref = c.req.param('ref') ?? '';
-  const order = await fetchOrderByRef(c.var.db, ref);
+  const order = await fetchOrderByRef(c.var.db, ref, canSeeSensitive(c.var.user));
   if (!order) return c.notFound();
   const f = await parseForm(c, schema);
   const to = kind === 'transition' ? (f.values['to'] ?? '') : undefined;
@@ -213,7 +216,7 @@ async function mutate<S extends FormSchema>(
 r.post(`/${REF}/call`, requirePerm('orders.call'), (c) =>
   mutate(c, 'call', CallForm, async (state, data, { order, now }) => {
     const [{ events }, s] = await Promise.all([
-      fetchOrderChildren(c.var.db, order.id, { withAudit: false }),
+      fetchOrderChildren(c.var.db, order.id, { withAudit: false, sensitive: canSeeSensitive(c.var.user) }),
       readCallSettings(c.var.db),
     ]);
     return planCall(state, data, { role: c.var.user.role, now, streak: unansweredStreak(events), settings: s });
@@ -232,15 +235,15 @@ r.post(`/${REF}/note`, requirePerm('orders.note'), (c) =>
 // Claims (claims.ts). Not version-guarded on purpose: a claim is not business data.
 
 r.post(`/${REF}/claim`, requirePerm('orders.call'), async (c) => {
-  const order = await fetchOrderByRef(c.var.db, c.req.param('ref'));
+  const order = await fetchOrderByRef(c.var.db, c.req.param('ref'), canSeeSensitive(c.var.user));
   if (!order) return c.notFound();
   if (await claimOrder(c, order.id)) return c.redirect(withFlash(`/orders/${order.ref}`, 'saved'), 303);
-  const fresh = (await fetchOrderByRef(c.var.db, order.ref)) ?? order;
+  const fresh = (await fetchOrderByRef(c.var.db, order.ref, canSeeSensitive(c.var.user))) ?? order;
   return renderDetail(c, fresh, 409, { form: { kind: 'call', values: {}, errors: translate(c, { _form: 'err.claimTaken' }) } });
 });
 
 r.post(`/${REF}/release`, requirePerm('orders.call'), async (c) => {
-  const order = await fetchOrderByRef(c.var.db, c.req.param('ref'));
+  const order = await fetchOrderByRef(c.var.db, c.req.param('ref'), canSeeSensitive(c.var.user));
   if (!order) return c.notFound();
   const back = (await readForm(c))['return'] === 'queue' ? '/orders/queue' : `/orders/${order.ref}`;
   if (await releaseOrder(c, order.id)) return c.redirect(withFlash(back, 'saved'), 303);
@@ -295,7 +298,7 @@ function contactErrors(c: Context<AppEnv>, errors: Partial<Record<string, Contac
 
 /** Loads the order and applies the role × status rule; a Response when the user may not edit. */
 async function editableOrder(c: Context<AppEnv>): Promise<OrderDetail | Response> {
-  const order = await fetchOrderByRef(c.var.db, c.req.param('ref') ?? '');
+  const order = await fetchOrderByRef(c.var.db, c.req.param('ref') ?? '', canSeeSensitive(c.var.user));
   if (!order) return c.notFound();
   if (!canEditContact(c.var.user.role, order.status)) {
     return renderDetail(c, order, 403, { form: { kind: 'call', values: {}, errors: contactErrors(c, { _form: 'contact.err.notEditable' }) } });

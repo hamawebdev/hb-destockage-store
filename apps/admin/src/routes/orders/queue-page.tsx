@@ -66,6 +66,8 @@ export function QueueCallPage(props: {
   const tm = m(props.lang);
   const { order, lang } = props;
   const name = (fr: string, ar: string) => (lang === 'ar' ? ar : fr);
+  // The queue is for callers (owner, confirmer), who always receive the risk fields.
+  const risk = order.risk ?? { callAttempts: 0, nextCallAt: null, flags: [], customerBlocked: false };
   const detail = { lang, user: props.user, now: props.now, order, items: props.items, events: props.events, audit: [] };
   return (
     <>
@@ -74,15 +76,15 @@ export function QueueCallPage(props: {
           {tm('detail.call')} <Bdi>{formatPhoneDisplay(order.phoneE164)}</Bdi>
         </a>
       </p>
-      {order.customer.blocked ? <p class="flash flash--danger" role="alert">{tm('detail.blocked')}</p> : null}
+      {risk.customerBlocked ? <p class="flash flash--danger" role="alert">{tm('detail.blocked')}</p> : null}
       <p>
         <Bdi>{order.ref}</Bdi> · <Bdi ltr={false}>{order.name}</Bdi> ·{' '}
         <StatusBadge tone={orderStatusTone(order.status)} label={orderStatusLabel(lang, order.status)} />{' '}
-        {order.callAttempts > 0 ? <span class="muted">{tm('status.attempt', { n: order.callAttempts })}</span> : null}
+        {risk.callAttempts > 0 ? <span class="muted">{tm('status.attempt', { n: risk.callAttempts })}</span> : null}
       </p>
-      {order.nextCallAt !== null && order.status === 'called' ? (
+      {risk.nextCallAt !== null && order.status === 'called' ? (
         <p>
-          {tm('queue.callbackAt')} <DateTime ms={order.nextCallAt} />
+          {tm('queue.callbackAt')} <DateTime ms={risk.nextCallAt} />
         </p>
       ) : null}
       <p>
@@ -101,9 +103,9 @@ export function QueueCallPage(props: {
       <p>
         {tm('detail.total')} : <strong><Money dzd={order.totalDzd} /></strong> <span class="muted">({tm('detail.fee')} <Money dzd={order.feeDzd} />)</span>
       </p>
-      {order.flags.length > 0 ? (
+      {risk.flags.length > 0 ? (
         <ul>
-          {order.flags.map((f) => {
+          {risk.flags.map((f) => {
             const help = tm(`flagHelp.${f}` as Parameters<OrdersMessages>[0]);
             return (
               <li>

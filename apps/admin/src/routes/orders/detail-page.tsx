@@ -86,12 +86,14 @@ function ReasonSelect(props: { tm: OrdersMessages; name: string; label: string; 
 /** The call form (detail page and call queue). `returnTo: 'queue'` brings the user back to the queue. */
 export function CallForm(props: DetailProps & { tm: OrdersMessages; returnTo?: 'queue' }) {
   const { tm, order } = props;
+  const risk = order.risk;
+  if (!risk) return null; // only callers (owner, confirmer) get here, and they see the risk fields
   const mine = props.form?.kind === 'call' ? props.form : undefined;
   const val = (k: string) => mine?.values[k];
   const err = (k: string) => mine?.errors[k];
   const minCallback = toAlgiersInput(props.now);
   return (
-    <Section title={tm('call.title', { n: order.callAttempts + 1 })} id="call">
+    <Section title={tm('call.title', { n: risk.callAttempts + 1 })} id="call">
       <Form action={`/orders/${order.ref}/call`}>
         <input type="hidden" name="version" value={String(order.version)} />
         {props.returnTo ? <input type="hidden" name="return" value={props.returnTo} /> : null}
@@ -103,7 +105,7 @@ export function CallForm(props: DetailProps & { tm: OrdersMessages; returnTo?: '
         </RawField>
         <ReasonSelect tm={tm} name="reason" label={tm('call.reason')} hint={tm('call.reasonHint')} reasons={CALL_CANCEL_REASONS} value={val('reason')} error={err('reason')} />
         <TextInput name="address" label={tm('call.address')} hint={tm('call.addressHint')} value={val('address') ?? order.address ?? ''} maxlength={300} dir="auto" error={err('address')} />
-        {order.flags.length > 0 ? (
+        {risk.flags.length > 0 ? (
           <>
             <Checkbox name="flagsChecked" label={tm('call.flagsChecked')} checked={val('flagsChecked') !== undefined} />
             {err('flagsChecked') ? <p class="field__error">{err('flagsChecked')}</p> : null}
@@ -162,7 +164,7 @@ function TransitionForms(props: DetailProps & { tm: OrdersMessages; targets: rea
 /** Take / release the call (claims never change the order's version: no hidden version field). */
 export function ClaimButtons(props: DetailProps & { tm: OrdersMessages; claimActive: boolean; returnTo?: 'queue' }) {
   const { tm, order, user } = props;
-  const mine = props.claimActive && order.claimedByUserId === user.id;
+  const mine = props.claimActive && order.risk?.claimedByUserId === user.id;
   const canRelease = props.claimActive && (mine || user.role === 'owner');
   return (
     <FormActions>
@@ -276,7 +278,8 @@ export function OrderDetailPage(props: DetailProps) {
   const tm = m(props.lang);
   const { order, lang, user } = props;
   const name = (fr: string, ar: string) => (lang === 'ar' ? ar : fr);
-  const claimActive = order.claimedUntil !== null && order.claimedUntil > props.now && order.claimedByUserId !== null;
+  const risk = order.risk;
+  const claimActive = risk !== null && risk.claimedUntil !== null && risk.claimedUntil > props.now && risk.claimedByUserId !== null;
   const canCall = can(user, 'orders.call') && CALLABLE_STATUSES.includes(order.status);
   const targets = manualTargets(order.status, user.role);
 
@@ -307,24 +310,24 @@ export function OrderDetailPage(props: DetailProps) {
       ) : null}
       {claimActive ? (
         <p class="flash flash--success" role="status">
-          {order.claimedByUserId === user.id
+          {risk!.claimedByUserId === user.id
             ? tm('detail.claimMine')
-            : tm('detail.claim', { name: order.claimedByName ?? '?' })}{' '}
-          <DateTime ms={order.claimedUntil!} />
+            : tm('detail.claim', { name: risk!.claimedByName ?? '?' })}{' '}
+          <DateTime ms={risk!.claimedUntil!} />
         </p>
       ) : null}
-      {order.customer.blocked ? <p class="flash flash--danger" role="alert">{tm('detail.blocked')}</p> : null}
+      {risk?.customerBlocked ? <p class="flash flash--danger" role="alert">{tm('detail.blocked')}</p> : null}
 
       <p>
         <StatusBadge tone={orderStatusTone(order.status)} label={orderStatusLabel(lang, order.status)} />{' '}
-        {order.callAttempts > 0 ? <span class="muted">{tm('status.attempt', { n: order.callAttempts })}</span> : null}{' '}
+        {risk && risk.callAttempts > 0 ? <span class="muted">{tm('status.attempt', { n: risk.callAttempts })}</span> : null}{' '}
         <span class="muted">
           {tm('detail.created')} <DateTime ms={order.createdAt} />
         </span>
       </p>
-      {order.nextCallAt !== null ? (
+      {risk && risk.nextCallAt !== null ? (
         <p class="muted">
-          {tm('detail.nextCall')} : <DateTime ms={order.nextCallAt} />
+          {tm('detail.nextCall')} : <DateTime ms={risk.nextCallAt} />
         </p>
       ) : null}
 
@@ -335,15 +338,21 @@ export function OrderDetailPage(props: DetailProps) {
           <Bdi>{formatPhoneDisplay(order.phoneE164)}</Bdi>{' '}
           <a class="btn btn--secondary" href={`tel:${order.phoneE164}`}>{tm('detail.call')}</a>
         </p>
-        <p class="muted">
-          {tm('detail.customerCounts', {
-            orders: order.customer.orderCount,
-            delivered: order.customer.deliveredCount,
-            returned: order.customer.returnedCount,
-            cancelled: order.customer.cancelledCount,
-          })}{' '}
-          <a href={`/customers/${order.customer.id}`}>{tm('detail.customerLink')}</a>
-        </p>
+        {risk ? (
+          <p class="muted">
+            {tm('detail.customerCounts', {
+              orders: risk.orderCount,
+              delivered: risk.deliveredCount,
+              returned: risk.returnedCount,
+              cancelled: risk.cancelledCount,
+            })}{' '}
+            <a href={`/customers/${order.customer.id}`}>{tm('detail.customerLink')}</a>
+          </p>
+        ) : (
+          <p>
+            <a href={`/customers/${order.customer.id}`}>{tm('detail.customerLink')}</a>
+          </p>
+        )}
       </Section>
 
       <Section title={tm('detail.delivery')} id="delivery">
@@ -420,23 +429,25 @@ export function OrderDetailPage(props: DetailProps) {
         </dl>
       </Section>
 
-      <Section title={tm('detail.flags')} id="flags">
-        {order.flags.length === 0 ? (
-          <p class="muted">{tm('detail.flagsNone')}</p>
-        ) : (
-          <ul>
-            {order.flags.map((f) => {
-              const help = tm(`flagHelp.${f}` as Parameters<OrdersMessages>[0]);
-              return (
-                <li>
-                  <StatusBadge tone={orderFlagTone(f)} label={flagLabel(tm, f)} />
-                  {help !== `flagHelp.${f}` ? <> {help}</> : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Section>
+      {risk ? (
+        <Section title={tm('detail.flags')} id="flags">
+          {risk.flags.length === 0 ? (
+            <p class="muted">{tm('detail.flagsNone')}</p>
+          ) : (
+            <ul>
+              {risk.flags.map((f) => {
+                const help = tm(`flagHelp.${f}` as Parameters<OrdersMessages>[0]);
+                return (
+                  <li>
+                    <StatusBadge tone={orderFlagTone(f)} label={flagLabel(tm, f)} />
+                    {help !== `flagHelp.${f}` ? <> {help}</> : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Section>
+      ) : null}
 
       {canCall ? <ClaimButtons {...props} tm={tm} claimActive={claimActive} /> : null}
       {canCall ? <CallForm {...props} tm={tm} /> : null}
