@@ -14,7 +14,8 @@ import { describe, expect, test, vi } from 'vitest';
 import { MIGRATIONS_DIR, migrationFiles } from './helpers.ts';
 import { freshD1Empty } from './d1.ts';
 
-vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
+// The D1 case applies every migration statement by statement over RPC: slow on a loaded machine.
+vi.setConfig({ testTimeout: 600_000, hookTimeout: 120_000 });
 
 const files = migrationFiles();
 const statements = (file: string) =>
@@ -88,7 +89,7 @@ describe('every migration, step by step (SQLite)', () => {
   });
 });
 
-/** Text cells equal to a column name of their table: the trace of a double-quoted literal copy. */
+/** Text values (in any column) equal to a column name of their table: the trace of a double-quoted literal copy. */
 async function columnNameValues(
   tables: string[],
   cols: (t: string) => Promise<{ name: string; type: string }[]>,
@@ -98,8 +99,10 @@ async function columnNameValues(
   for (const t of tables) {
     const c = await cols(t);
     const names = c.map((x) => x.name);
-    for (const col of c.filter((x) => x.type.toLowerCase() === 'text')) {
-      const n = await count(`select count(*) n from "${t}" where "${col.name}" in (${names.map(() => '?').join(', ')})`, names);
+    // Every column, whatever its declared type (rev-c DB-7 r1 nit): the 0006 literal landed in an
+    // INTEGER column; SQLite stores the text value there anyway.
+    for (const col of c) {
+      const n = await count(`select count(*) n from "${t}" where typeof("${col.name}") = 'text' and "${col.name}" in (${names.map(() => '?').join(', ')})`, names);
       if (n > 0) out.push(`${t}.${col.name}: ${n} row(s) hold a column name`);
     }
   }
@@ -124,6 +127,17 @@ describe('data loaded at 0000 survives every later migration', () => {
     expect(bad).toEqual([]);
     expect(sqlite.pragma('foreign_key_check')).toEqual([]);
     for (const t of tables) expect((sqlite.prepare(`select count(*) n from "${t}"`).get() as { n: number }).n, t).toBe(before[t]);
+  });
+
+  test('the generic check sees a column-name string in an INTEGER column (rev-c nit regression)', async () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec("create table t (a integer, dead_at integer); insert into t values (1, 'dead_at')");
+    const bad = await columnNameValues(
+      ['t'],
+      async (t) => sqlite.prepare('select name, type from pragma_table_info(?)').all(t) as { name: string; type: string }[],
+      async (q, names) => (sqlite.prepare(q).get(...names) as { n: number }).n,
+    );
+    expect(bad).toEqual(['t.dead_at: 1 row(s) hold a column name']);
   });
 
   test('workerd D1: the same, where an unknown "identifier" would silently become a string', async () => {
