@@ -35,6 +35,7 @@ describe('the deployed configuration', () => {
         ['/api/health', {}],
         ['/api/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }],
         ['/api/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }],
+        ['/api/rum', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: '{}' }],
       ] as const) {
         const res = await app.request(path, init, { ...vars } as unknown as Env);
         expect(res.status, path).toBe(500);
@@ -69,7 +70,7 @@ describe('the deployed configuration', () => {
       const c = read(env);
       expect(c.d1_databases.map((d: { binding: string }) => d.binding), String(env)).toEqual(['DB']);
       expect(c.queues.producers?.map((q: { binding: string }) => q.binding), String(env)).toEqual(['ORDERS']);
-      expect(c.ratelimits.map((r: { name: string }) => r.name).sort(), String(env)).toEqual(['ORDER_RL_IP', 'ORDER_RL_PHONE']);
+      expect(c.ratelimits.map((r: { name: string }) => r.name).sort(), String(env)).toEqual(['ORDER_RL_IP', 'ORDER_RL_PHONE', 'RUM_RL_IP']);
     }
   });
 });

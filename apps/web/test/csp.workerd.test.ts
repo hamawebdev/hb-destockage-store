@@ -62,6 +62,7 @@ beforeAll(async () => {
     ratelimits: [
       { name: 'ORDER_RL_PHONE', namespace_id: '1001', simple: { limit: 5, period: 60 } },
       { name: 'ORDER_RL_IP', namespace_id: '1002', simple: { limit: 30, period: 60 } },
+      { name: 'RUM_RL_IP', namespace_id: '1003', simple: { limit: 60, period: 60 } },
     ],
     vars: { ENV: 'test', SITE_HOSTS: 'localhost', MIN_FILL_MS: '2500', MIN_REVIEW_MS: '1500', RUM_SAMPLE: '1' },
   };

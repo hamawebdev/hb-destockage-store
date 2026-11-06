@@ -16,6 +16,8 @@ export interface Env {
   readonly ORDER_RL_PHONE: RateLimit;
   /** Secondary order rate limit, keyed on the IP (/64 for IPv6). Over limit ⇒ flag only. */
   readonly ORDER_RL_IP: RateLimit;
+  /** RUM flood guard, keyed on the IP (/64): over the limit a beacon is dropped (still 204). */
+  readonly RUM_RL_IP: RateLimit;
 
   readonly ENV: string;
   /** Comma-separated hostnames accepted in a Turnstile verdict. */

@@ -10,6 +10,7 @@ import { ConfigError, readConfig, type Env } from './env.ts';
 import { apiError, apiHeaders, log } from './http.ts';
 import { registerOrder } from './routes/order.ts';
 import { registerQuote } from './routes/quote.ts';
+import { registerRum } from './routes/rum.ts';
 
 export const app = new Hono<{ Bindings: Env }>();
 
@@ -49,6 +50,9 @@ registerQuote(app);
 
 // --- /api/order + the order confirmation page (WEB-3) ------------------------------------------
 registerOrder(app);
+
+// --- /api/rum (WEB-5) ---------------------------------------------------------------------------
+registerRum(app);
 
 // --- Fallbacks ----------------------------------------------------------------------------------
 app.notFound((c) => {
