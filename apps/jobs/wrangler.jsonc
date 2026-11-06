@@ -7,7 +7,8 @@
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
   // 02:00 UTC = 03:00 Algiers: daily backup. 09:00 UTC: backup health check (JOBS-1).
-  "triggers": { "crons": ["0 2 * * *", "0 9 * * *"] },
+  // 02:30 UTC: RUM rollup + 90-day purge (JOBS-5).
+  "triggers": { "crons": ["0 2 * * *", "0 9 * * *", "30 2 * * *"] },
   "d1_databases": [
     // Shared D1, repo convention (packages/db/wrangler.jsonc): local placeholder id, local state
     // under ../../.wrangler/hb-local (`--persist-to`). The client sets the real id at deploy.

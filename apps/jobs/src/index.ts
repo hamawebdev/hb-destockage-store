@@ -2,7 +2,8 @@
 // - queue: `order.created` notifications (JOBS-2)
 // - scheduled: daily D1 -> R2 backup (JOBS-1), RUM rollup (JOBS-5)
 import { backupHealthCheck, backupJob } from './backup/job.ts';
-import { CRON_BACKUP_HEALTH, CRON_DAILY_BACKUP, ORDER_NOTIFICATIONS_QUEUE, type Env } from './env.ts';
+import { CRON_BACKUP_HEALTH, CRON_DAILY_BACKUP, CRON_RUM_ROLLUP, ORDER_NOTIFICATIONS_QUEUE, type Env } from './env.ts';
+import { rumJob } from './rum/rollup.ts';
 import { handleOrderNotifications } from './notify/consumer.ts';
 import { D1DeliveryStore } from './notify/deliveries.ts';
 import type { EmailMessageFactory } from './notify/email.ts';
@@ -38,6 +39,10 @@ export default {
       case CRON_BACKUP_HEALTH: {
         const alert = await staffAlert(env);
         await backupHealthCheck(env, alert ? { alert } : {});
+        return;
+      }
+      case CRON_RUM_ROLLUP: {
+        await rumJob(env.DB, controller.scheduledTime);
         return;
       }
       default:
