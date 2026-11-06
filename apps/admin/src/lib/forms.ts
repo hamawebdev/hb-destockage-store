@@ -102,18 +102,31 @@ export const vOptionalInt = (min: number, max: number) =>
   );
 
 /**
- * Whole-dinar amount → digit string, or null. Integer DZD only (review ADMIN-1 r1 F2, lead's
- * class rule): plain digits ("14600"), or groups of exactly three separated by ONE kind of
- * thousands separator: space, NBSP, narrow NBSP, thin space, "." or the Arabic thousands
- * separator "٬" ("14 600", "14.600", "١٤٬٦٠٠"). Never decimals: any comma, Arabic decimal
- * separator "٫", apostrophe, or a final group that is not three digits ("1500.00", "600,00",
- * "1.50", "1,500", "14 60") is rejected, never rescaled. Eastern-Arabic digits are accepted.
+ * Whole-dinar amount → digit string, or null (= field error `form.moneyInteger`). Prices are
+ * integer DZD; a value is never rescaled (review ADMIN-1 r1 F2; lead spec 2026-11-05):
+ * - plain digits: "14600";
+ * - thousands grouping with ONE kind of separator (space, NBSP, narrow NBSP, thin space, "." or
+ *   Arabic "٬"), every group after the first exactly three digits: "14 600", "14.600",
+ *   "1.000.000", "١٤.٦٠٠";
+ * - the single decimal exception: a trailing ",00" or ".00" (zero centimes) after a valid
+ *   integer part, using a different character than the grouping separator: "600,00" → 600,
+ *   "1500.00" → 1500, "14.600,00" → 14600;
+ * - everything else with a dot or comma is rejected: "1.5", "1,5", "14.60", "1500.50", "1,500",
+ *   "14.600.00", "0.5".
+ * Eastern-Arabic and Persian digits are accepted.
  */
 export function normaliseDzd(input: string): string | null {
-  const s = toAsciiDigits(input).trim();
+  let s = toAsciiDigits(input).trim();
+  let centSep: string | undefined;
+  const cents = /^(.*\d)([.,])00$/.exec(s);
+  if (cents) {
+    s = cents[1]!;
+    centSep = cents[2]!;
+  }
   if (/^\d+$/.test(s)) return s;
   const m = /^\d{1,3}([ \u00A0\u202F\u2009.\u066C])\d{3}(?:\1\d{3})*$/.exec(s);
-  return m ? s.split(m[1]!).join('') : null;
+  if (!m || m[1] === centSep) return null;
+  return s.split(m[1]!).join('');
 }
 
 /** Integer DZD ≥ 0 (accepted spellings: see normaliseDzd). */

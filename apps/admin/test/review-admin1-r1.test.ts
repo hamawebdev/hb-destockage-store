@@ -5,7 +5,7 @@
 // plus the r2 nit (vOptionalMoneyDzd).
 import type { Hono } from 'hono';
 import * as v from 'valibot';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { createApp } from '../src/app.ts';
 import type { AppEnv } from '../src/env.ts';
 import { requirePerm } from '../src/auth/require-role.ts';
@@ -25,6 +25,10 @@ import media from '../src/routes/media/index.tsx';
 import publish from '../src/routes/publish/index.tsx';
 import auditRoutes from '../src/audit/routes.tsx';
 import { form, harness, postAs, testIdentify, tokenFor, USERS, type Harness } from './helpers.ts';
+
+// Real D1 (workerd) requests take seconds on the loaded shared machine: explicit budgets instead
+// of vitest's 5 s default, so the admin gate is not red at random (lead, 2026-11-06).
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 beforeAll(async () => {
@@ -117,6 +121,12 @@ describe('F2: money input is integer DZD only', () => {
     ['Eastern-Arabic digits', '١٤٦٠٠', 14600],
     ['Persian digits', '۱۶۵۰۰', 16500],
     ['Arabic thousands separator', '١٤٬٦٠٠', 14600],
+    ['Eastern-Arabic digits with dot grouping', '١٤.٦٠٠', 14600],
+    ['dot grouping 1.500', '1.500', 1500],
+    ['zero centimes with comma', '600,00', 600],
+    ['zero centimes with dot', '1500.00', 1500],
+    ['grouped + zero centimes', '14.600,00', 14600],
+    ['space-grouped + zero centimes', '14 600.00', 14600],
   ];
   for (const [name, input, out] of accepted) {
     test(`accepts ${name}: ${JSON.stringify(input)} → ${out}`, () => {
@@ -124,8 +134,12 @@ describe('F2: money input is integer DZD only', () => {
     });
   }
   const rejected: [string, string][] = [
-    ['dot decimals', '1500.00'],
-    ['comma decimals', '600,00'],
+    ['one decimal (would read as 15)', '1.5'],
+    ['two-digit tail', '14.60'],
+    ['non-zero centimes', '1500.50'],
+    ['non-zero centimes, comma', '600,50'],
+    ['one zero centime', '1500.0'],
+    ['grouping and centimes with the same separator', '14.600.00'],
     ['single-digit decimal', '1500.5'],
     ['comma decimal', '1,5'],
     ['leading decimal', '0.5'],
@@ -149,6 +163,21 @@ describe('F2: money input is integer DZD only', () => {
       expect(normaliseDzd(input) === null || input === '').toBe(true);
     });
   }
+  test('lead spec 2026-11-05: every listed case', () => {
+    const parse = (x: string) => {
+      const r = v.safeParse(vMoneyDzd(), x);
+      return r.success ? r.output : 'error';
+    };
+    expect(parse('1.5')).toBe('error');
+    expect(parse('1,5')).toBe('error');
+    expect(parse('1.500')).toBe(1500);
+    expect(parse('600,00')).toBe(600);
+    expect(parse('14.600')).toBe(14600);
+    expect(parse('14 600')).toBe(14600);
+    expect(parse('1.000.000')).toBe(1000000);
+    expect(parse('14.60')).toBe('error');
+    expect(parse('١٤.٦٠٠')).toBe(14600);
+  });
   test('the error explains the rule in both languages (form.moneyInteger)', async () => {
     const app = createApp({ identify: testIdentify });
     let fr = '';
@@ -160,8 +189,8 @@ describe('F2: money input is integer DZD only', () => {
       else ar = msg;
       return c.text(msg);
     });
-    await app.request('/t/money?p=1500.00', { headers: { 'x-test-user': USERS.owner } }, h.env);
-    await app.request('/t/money?p=600%2C00', { headers: { 'x-test-user': USERS.ownerAr } }, h.env);
+    await app.request('/t/money?p=1.5', { headers: { 'x-test-user': USERS.owner } }, h.env);
+    await app.request('/t/money?p=1%2C5', { headers: { 'x-test-user': USERS.ownerAr } }, h.env);
     expect(fr).toBe(translator('fr')('form.moneyInteger'));
     expect(fr).toContain('sans centimes');
     expect(ar).toBe(translator('ar')('form.moneyInteger'));
@@ -182,7 +211,8 @@ describe('F2: money input is integer DZD only', () => {
     expect(v.parse(S, { compare: '' })).toEqual({ compare: null });
     expect(v.parse(S, { compare: '  ' })).toEqual({ compare: null });
     expect(v.parse(S, { compare: '16.500' })).toEqual({ compare: 16500 });
-    const bad = v.safeParse(S, { compare: '1500.00' });
+    expect(v.parse(S, { compare: '600,00' })).toEqual({ compare: 600 });
+    const bad = v.safeParse(S, { compare: '1.5' });
     expect(bad.success).toBe(false);
     expect(bad.issues?.[0]?.message).toBe('form.moneyInteger');
   });
