@@ -15,7 +15,8 @@ const SRC = new URL('../src/', import.meta.url);
 const INVISIBLE = /[\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cs}\p{Mn}\p{Me}]|(?! )\p{Zs}|(?![\t\n\r])\p{Cc}/u;
 
 test('every src file is free of literal invisible characters', () => {
-  const files = readdirSync(SRC).filter((f) => f.endsWith('.ts'));
+  // Recursive, and every source-like file type (review nit: future subfolders, .mjs/.js/.json).
+  const files = (readdirSync(SRC, { recursive: true }) as string[]).filter((f) => /\.(?:ts|mts|mjs|js|json)$/.test(f));
   expect(files.length).toBeGreaterThan(10);
   const hits: string[] = [];
   for (const f of files) {
