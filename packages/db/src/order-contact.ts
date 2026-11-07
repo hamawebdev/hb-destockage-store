@@ -6,7 +6,8 @@
 //   - logs an order_events note (`contact_edit`, which fields changed: names only, no values);
 //   - every statement is guarded by `orders.id = :id AND version = :v`, the version bump last.
 import { and, eq, sql } from 'drizzle-orm';
-import { buildQuote, NAME_MAX_LENGTH, NAME_MIN_LENGTH, normalizePhone, type AdminRole, type FeeProvider, type OrderStatus } from '@hb/shared';
+import { buildQuote, normalizePhone, type AdminRole, type FeeProvider, type OrderStatus } from '@hb/shared';
+import { normalizeName } from '@hb/shared/name';
 import { communes, customers, orderEvents, orderItems, orders, variants } from './schema.ts';
 import { guardedInsertSelect, orderGuard, type OrderBatchItem } from './orders.ts';
 import type { Db } from './index.ts';
@@ -31,24 +32,13 @@ export type UpdateOrderContactResult =
         | 'forbidden'
         | 'not_editable'
         | 'phone_invalid'
+        | 'name_required'
         | 'name_invalid'
         | 'commune_invalid'
         | 'area_unavailable'
         | 'order_total_out_of_range'
         | 'nothing_to_change';
     };
-
-/**
- * The order name rule of @hb/shared NameSchema (NFC, invisible/control characters removed, spaces
- * collapsed, at least one letter, NAME_MIN_LENGTH..NAME_MAX_LENGTH), mirrored here because @hb/db
- * does not depend on valibot. null = invalid (DB-6 r1 nit: '   ' was stored as '').
- */
-export function normalizeOrderName(raw: string): string | null {
-  const s = raw.normalize('NFC').replace(/[\p{Cc}\p{Cf}]/gu, '').replace(/\s+/gu, ' ').trim();
-  if (!/\p{L}/u.test(s)) return null;
-  const len = [...s].length;
-  return len >= NAME_MIN_LENGTH && len <= NAME_MAX_LENGTH ? s : null;
-}
 
 /**
  * Who may edit contact data, and until when (lead decision, AORD-0 §0.4): the owner until the
@@ -109,9 +99,11 @@ export async function updateOrderContact(
   const phoneChanged = phoneE164 !== cur.phoneE164;
   let name = cur.name;
   if (patch.name !== undefined) {
-    const n = normalizeOrderName(patch.name);
-    if (n === null) return { ok: false, code: 'name_invalid' };
-    name = n;
+    // The one order-name rule (@hb/shared normalizeName, SHARED-7): the same as the storefront's
+    // NameSchema, so an edited order dedups and displays exactly like a new one (DB-6 r2).
+    const n = normalizeName(patch.name);
+    if (!n.ok) return { ok: false, code: n.code };
+    name = n.value;
   }
   // A blank address is no address.
   const address = patch.address === undefined ? undefined : patch.address === null || patch.address.trim() === '' ? null : patch.address.trim();

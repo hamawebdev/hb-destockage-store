@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 // workerd D1 per test: generous timeout on a loaded shared machine.
 vi.setConfig({ testTimeout: 300_000, hookTimeout: 300_000 });
-import { checkFeeProviderConformance, computeTotals, type FeeProvider } from '@hb/shared';
+import { checkFeeProviderConformance, computeTotals, parseOrderInput, type FeeProvider } from '@hb/shared';
 import type { AnyD1Database } from 'drizzle-orm/d1';
 import { createAdminTableFeeProvider } from '../src/fees.ts';
 import { updateOrderContact } from '../src/order-contact.ts';
@@ -168,11 +168,40 @@ describe('updateOrderContact', () => {
 
   test('a blank or too-short name is refused (name_invalid); a blank address is stored as NULL (DB-6 r1)', async () => {
     const id = await order();
-    for (const bad of ['   ', 'A', '١٢٣', '\u200f\u200f']) {
-      expect(await updateOrderContact(db, id, { name: bad }, provider, owner, 0), JSON.stringify(bad)).toEqual({ ok: false, code: 'name_invalid' });
+    // Codes come from @hb/shared normalizeName (blank → name_required, letter-less/too short → name_invalid).
+    for (const [bad, code] of [['   ', 'name_required'], ['\u200f\u200f', 'name_required'], ['A', 'name_invalid'], ['١٢٣', 'name_invalid']] as const) {
+      expect(await updateOrderContact(db, id, { name: bad }, provider, owner, 0), JSON.stringify(bad)).toEqual({ ok: false, code });
     }
     expect(await updateOrderContact(db, id, { name: '  Amine   Benali ', address: '   ' }, provider, owner, 0)).toMatchObject({ ok: true });
     expect(await d1.prepare('select name, address from orders').first()).toEqual({ name: 'Amine Benali', address: null });
+  });
+
+  // DB-6 r2 (rev-c Important, confirmed by rev-d): the admin edit and the storefront apply ONE name
+  // rule. rev-d's 11 inputs (artifacts/DB-6/confirm-r2-name-rev-d.md) give identical results.
+  const REV_D_INPUTS = [
+    'Amine\tBenali',
+    'Amine\nBenali',
+    'Amine\r\nBenali',
+    'می\u200cخواهم علي',
+    'عل\u200dي أمين',
+    'Ami\u00adne Benali',
+    'Amine \ue000Benali',
+    'Amine\ud800 Benali',
+    'Amine\u0007 Benali',
+    'Amine Benali',
+    '\u200fAmine Benali',
+  ];
+  test.each(REV_D_INPUTS.map((s) => [JSON.stringify(s), s]))('name %s: admin edit result = storefront result', async (_label, input) => {
+    const store = parseOrderInput({
+      lang: 'fr', items: [{ variantId: 100, qty: 1 }], name: input, phone: '0560417403', wilayaCode: 16, communeId: 1601,
+      idempotencyKey: '3F2504E0-4F89-41D3-9A0C-0305E82C3301', expectedTotalDzd: 1, fillMs: 9000,
+    });
+    const storefront = store.ok ? { ok: true, name: store.value.name } : { ok: false, code: store.errors.find((e) => e.field === 'name')?.code };
+    const id = await order();
+    const r = await updateOrderContact(db, id, { name: input }, provider, owner, 0);
+    const stored = (await d1.prepare('select name from orders where id = ?').bind(id).first<{ name: string }>())!.name;
+    const admin = r.ok ? { ok: true, name: stored } : r.code === 'nothing_to_change' ? { ok: true, name: stored } : { ok: false, code: r.code };
+    expect(admin).toEqual(storefront);
   });
 
   test('a buildQuote refusal other than the ceiling is thrown, not reported as area_unavailable (DB-6 r1)', async () => {
