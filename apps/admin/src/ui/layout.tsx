@@ -111,7 +111,10 @@ export function Layout(props: PageProps & { ui: UiContext; flash: string | undef
             <>
               <a class="skip-link" href="#main">{ui.t('app.skip')}</a>
               <TopBar ui={ui} />
-              <details class="nav-disclosure" open>
+              {/* Closed in the HTML: on phones the menu does not push the page down (main starts
+                  under the top bar). From 768 px the nav is always shown (admin.css
+                  ::details-content; admin.js opens it as a fallback). */}
+              <details class="nav-disclosure">
                 <summary class="nav-disclosure__summary">{ui.t('nav.menu')}</summary>
                 <Nav ui={ui} />
               </details>
@@ -151,13 +154,36 @@ export function uiContextOf(c: Context<AppEnv>): UiContext {
   };
 }
 
+/** Ids that occur more than once in an HTML document (kit guard, dev/test only). */
+export function duplicateIds(html: string): string[] {
+  const seen = new Set<string>();
+  const dup = new Set<string>();
+  for (const m of html.matchAll(/\sid="([^"]+)"/g)) {
+    const id = m[1]!;
+    if (seen.has(id)) dup.add(id);
+    seen.add(id);
+  }
+  return [...dup];
+}
+
+export class DuplicateIdError extends Error {
+  override name = 'DuplicateIdError';
+}
+
 /** Installs `c.render` for the request. */
 export function setLayoutRenderer(c: Context<AppEnv>): void {
-  c.setRenderer((content, props) =>
-    c.html(
+  c.setRenderer(async (content, props) => {
+    const page = (
       <Layout {...props} ui={uiContextOf(c)} flash={c.req.query('m')}>
         {content}
-      </Layout>,
-    ),
-  );
+      </Layout>
+    );
+    if (c.env.ENV === 'production') return c.html(page);
+    // Development and tests: a page with duplicate ids (e.g. a form repeated per row without
+    // idSuffix) breaks label/for and aria links. Fail loudly so it never ships.
+    const html = (await page.toString()).toString();
+    const dups = duplicateIds(html);
+    if (dups.length > 0) throw new DuplicateIdError(`duplicate id(s) on ${c.req.path}: ${dups.slice(0, 5).join(', ')} (use idSuffix)`);
+    return c.html(html);
+  });
 }

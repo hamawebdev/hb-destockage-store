@@ -4,3 +4,30 @@
 .main { padding: 0; }
 a { color: inherit; text-decoration: none; }
 .table-wrap { overflow: visible; border: 0; }
+
+/* Shipping slips (AORD-5, admin-orders): one slip per page, A6 by default, A5 on request.
+   Loaded with media=all on c.render(..., { variant: 'print' }), so the @media screen block is the
+   on-screen preview of the same page. Logical properties only; works in both directions. */
+/* Explicit sizes: "A6" is not a CSS page-size keyword (Chrome falls back to US Letter). */
+@page slip-a6 { size: 105mm 148mm; margin: 5mm; }
+@page slip-a5 { size: 148mm 210mm; margin: 7mm; }
+.slips { margin: 0; }
+.slip { page: slip-a6; break-after: page; break-inside: avoid; font-size: 8.5pt; line-height: 1.35; color: #000; }
+.slip--a5 { page: slip-a5; font-size: 10pt; }
+.slip:last-child { break-after: auto; }
+.slip__head { display: flex; justify-content: space-between; gap: 2mm; border-block-end: 0.4mm solid #000; padding-block-end: 1mm; margin-block-end: 1.5mm; }
+.slip__ref, .slip__phone { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700; font-size: 1.25em; white-space: nowrap; unicode-bidi: isolate; direction: ltr; }
+.slip__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; }
+.slip__col { min-inline-size: 0; overflow-wrap: anywhere; }
+.slip__label { font-size: 0.8em; color: #333; display: block; }
+.slip__items { inline-size: 100%; border-collapse: collapse; font-size: 0.9em; margin-block: 1.5mm; }
+.slip__items th, .slip__items td { border-block-end: 0.2mm solid #999; padding-block: 0.5mm; text-align: start; }
+.slip__amount { border: 0.5mm solid #000; padding: 1.5mm; font-size: 1.4em; font-weight: 700; text-align: center; margin-block-start: 1.5mm; }
+.slip__foot { font-size: 0.8em; margin-block-start: 1mm; }
+@media screen {
+  .slip { inline-size: 105mm; min-block-size: 148mm; border: 1px dashed #999; padding: 5mm; margin-block-end: 6mm; background: #fff; }
+  .slip--a5 { inline-size: 148mm; min-block-size: 210mm; }
+}
+@media print {
+  .slip { inline-size: auto; min-block-size: 0; border: 0; padding: 0; margin: 0; }
+}

@@ -136,7 +136,10 @@ describe('formatting', () => {
     expect(formatMoney('fr', 14600)).toMatch(/14\s?600/);
     expect(formatMoney('ar', 14600)).not.toMatch(/[٠-٩]/);
     expect(formatMoney('ar', 14600)).toMatch(/14\D?600/);
-    expect(formatDateTime('fr', Date.UTC(2026, 10, 4, 23, 30))).toContain('05/11/2026');
+    // Delegates to @hb/shared: medium date, 24-hour clock, Africa/Algiers.
+    const fr = formatDateTime('fr', Date.UTC(2026, 10, 4, 23, 30));
+    expect(fr).toMatch(/5 nov\.? 2026/);
+    expect(fr).toContain('00:30');
   });
 });
 
@@ -166,5 +169,21 @@ describe('pagination, nav, flash, redirects', () => {
     expect(() => withFlash('//evil', 'saved')).toThrow();
     expect(safeReturnPath('/orders?x=1')).toBe('/orders?x=1');
     expect(safeReturnPath('//evil')).toBe('/');
+  });
+});
+
+describe('UI kit markup (admin-catalog / lead requests 2026-11-06)', () => {
+  test('Code never wraps; input size hints; table data-label', async () => {
+    const { Code } = await import('../src/ui/format.tsx');
+    const { MoneyInput, NumberInput, SkuInput } = await import('../src/ui/form.tsx');
+    expect(String(Code({ children: 'HB-7K2Q9' }))).toBe('<bdi dir="ltr" class="code">HB-7K2Q9</bdi>');
+    const html = String(
+      await Promise.resolve(
+        [MoneyInput({ name: 'p', label: 'Prix' }), NumberInput({ name: 'q', label: 'Qté' }), SkuInput({ name: 's', label: 'SKU' })].join(''),
+      ),
+    );
+    expect(html).toContain('class="input input--money"');
+    expect(html).toContain('class="input input--qty"');
+    expect(html).toContain('class="input input--sku"');
   });
 });

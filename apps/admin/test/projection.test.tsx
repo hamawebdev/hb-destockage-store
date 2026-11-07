@@ -1,12 +1,12 @@
 /** @jsxImportSource hono/jsx */
 // customers.sensitive: field-level projection enforced at SELECT time (lead decision 2026-11-05).
 import { eq } from 'drizzle-orm';
-import { createDb, customers, orders } from '@hb/db';
+import { communes, createDb, customers, orders } from '@hb/db';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { createApp } from '../src/app.ts';
 import { PERMISSIONS } from '../src/auth/permissions.ts';
 import { requirePerm } from '../src/auth/require-role.ts';
-import { CUSTOMER_SENSITIVE, ORDER_SENSITIVE, customerColumns, orderColumns, projectCustomer, projectOrder, canSeeCustomerHistory } from '../src/lib/projection.ts';
+import { CUSTOMER_DELIVERY_KEYS, CUSTOMER_SENSITIVE, ORDER_DELIVERY_KEYS, ORDER_SENSITIVE, customerColumns, orderColumns, projectCustomer, projectOrder, canSeeCustomerHistory } from '../src/lib/projection.ts';
 import { harness, testIdentify, USERS, type Harness } from './helpers.ts';
 
 // Real D1 (workerd) requests take seconds on the loaded shared machine: explicit budgets instead
@@ -93,13 +93,93 @@ describe('a page built on the helper cannot leak (raw HTML search)', () => {
   });
 });
 
-describe('row strippers (defence in depth)', () => {
-  test('projectCustomer / projectOrder', () => {
-    const cust = Object.fromEntries([...CUSTOMER_SENSITIVE, 'name', 'phoneE164'].map((k) => [k, 1]));
-    expect(Object.keys(projectCustomer({ role: 'logistics' }, cust)).sort()).toEqual(['name', 'phoneE164']);
-    expect(Object.keys(projectCustomer({ role: 'owner' }, cust))).toHaveLength(CUSTOMER_SENSITIVE.length + 2);
-    const ord = Object.fromEntries([...ORDER_SENSITIVE, 'ref', 'totalDzd'].map((k) => [k, 1]));
-    expect(Object.keys(projectOrder({ role: 'logistics' }, ord)).sort()).toEqual(['ref', 'totalDzd']);
-    expect(Object.keys(projectOrder({ role: 'confirmer' }, ord))).toHaveLength(ORDER_SENSITIVE.length + 2);
+describe('row projection is an allow-list (review 18f8a4b F1)', () => {
+  test('known delivery keys survive; sensitive AND unknown keys are dropped, whatever the alias', () => {
+    const row = {
+      name: 'Amina',
+      phoneE164: '+213560417403',
+      ref: 'HB-7K2Q9',
+      totalDzd: 15000,
+      // aliases a join could produce:
+      customerBlocked: 1,
+      customerNotes: SECRET_NOTE,
+      orderCount: 4,
+      ip_hash: 'abc',
+      customerFlags: '["fraud"]',
+      somethingNew: 'x',
+    };
+    expect(Object.keys(projectOrder({ role: 'logistics' }, row)).sort()).toEqual(['name', 'phoneE164', 'ref', 'totalDzd']);
+    expect(Object.keys(projectCustomer({ role: 'logistics' }, row)).sort()).toEqual(['name', 'phoneE164']);
+    expect(projectOrder({ role: 'confirmer' }, row)).toEqual(row);
+    // Every table delivery key passes; no sensitive table key does.
+    const ord = Object.fromEntries([...ORDER_SENSITIVE, ...ORDER_DELIVERY_KEYS].map((k) => [k, 1]));
+    expect(Object.keys(projectOrder({ role: 'logistics' }, ord)).sort()).toEqual([...ORDER_DELIVERY_KEYS].sort());
+    const cust = Object.fromEntries([...CUSTOMER_SENSITIVE, ...CUSTOMER_DELIVERY_KEYS].map((k) => [k, 1]));
+    expect(Object.keys(projectCustomer({ role: 'logistics' }, cust)).sort()).toEqual([...CUSTOMER_DELIVERY_KEYS].sort());
+  });
+  test('aliases must be declared safe explicitly; sensitive-looking names cannot be', () => {
+    const row = { ref: 'HB-1', communeNameFr: 'Alger Centre', customerNotes: 'x' };
+    expect(projectOrder({ role: 'logistics' }, row, { safe: ['communeNameFr'] })).toEqual({ ref: 'HB-1', communeNameFr: 'Alger Centre' });
+    for (const bad of ['customerNotes', 'notes', 'riskScore', 'ip_hash', 'orderCount', 'customerBlocked', 'flags', 'callAttempts', 'historyJson']) {
+      expect(() => projectOrder({ role: 'logistics' }, row, { safe: [bad] }), bad).toThrow();
+    }
+  });
+});
+
+describe('a JOIN with aliased sensitive columns, rendered as logistics, leaks nothing', () => {
+  beforeAll(async () => {
+    await h.db.batch([
+      h.db.prepare("insert or ignore into wilayas (code, name_fr, name_ar) values (16, 'Alger', 'الجزائر')"),
+      h.db.prepare("insert or ignore into communes (id, wilaya_code, name_fr, name_ar) values (1601, 16, 'Alger Centre', 'الجزائر الوسطى')"),
+    ]);
+    await h.db
+      .prepare(
+        "insert into orders (ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, subtotal_dzd, fee_dzd, total_dzd, fee_source, flags, risk_score, ip_hash) values ('HB-JN7Q1', 'idem-join-1', ?, 'Amina', '+213560417403', 16, 1601, 'ar', 14600, 400, 15000, 'table', '[\"ORDERFLAG-dup\"]', 87, 'IPHASH-deadbeef')",
+      )
+      .bind(customerId)
+      .run();
+  });
+  function app() {
+    const a = createApp({ identify: testIdentify });
+    a.get('/t/order-joined/:ref', requirePerm('orders.view'), async (c) => {
+      // The kind of detail query a builder writes: order + customer + commune, with aliases.
+      const row = await c.var.db
+        .select({
+          ...orderColumns(c.var.user),
+          customerBlocked: customers.blocked,
+          customerNotes: customers.notes,
+          customerOrderCount: customers.orderCount,
+          customerFlags: customers.flags,
+          communeNameFr: communes.nameFr,
+        })
+        .from(orders)
+        .innerJoin(customers, eq(customers.id, orders.customerId))
+        .innerJoin(communes, eq(communes.id, orders.communeId))
+        .where(eq(orders.ref, c.req.param('ref')))
+        .get();
+      const shown = projectOrder(c.var.user, row ?? {}, { safe: ['communeNameFr'] });
+      return c.render(
+        <dl class="details">
+          {Object.entries(shown).map(([k, v]) => (
+            <>
+              <dt>{k}</dt>
+              <dd>{JSON.stringify(v)}</dd>
+            </>
+          ))}
+        </dl>,
+        { title: 'order' },
+      );
+    });
+    return a;
+  }
+  const LEAKS = [SECRET_NOTE, 'FLAG-fraud-suspect', 'ORDERFLAG-dup', 'IPHASH-deadbeef', 'idem-join-1', 'customerBlocked', 'customerNotes', 'customerOrderCount', 'customerFlags', 'riskScore', 'ipHash'];
+  test('logistics: delivery data and the declared-safe commune only', async () => {
+    const html = await (await app().request('/t/order-joined/HB-JN7Q1', { headers: { 'x-test-user': USERS.logistics } }, h.env)).text();
+    for (const ok of ['HB-JN7Q1', 'Amina', '+213560417403', 'Alger Centre', '15000']) expect(html, ok).toContain(ok);
+    for (const leak of LEAKS) expect(html, leak).not.toContain(leak);
+  });
+  test('confirmer sees them all', async () => {
+    const html = await (await app().request('/t/order-joined/HB-JN7Q1', { headers: { 'x-test-user': USERS.confirmer } }, h.env)).text();
+    for (const v of [SECRET_NOTE, 'ORDERFLAG-dup', 'IPHASH-deadbeef', 'customerBlocked']) expect(html, v).toContain(v);
   });
 });
