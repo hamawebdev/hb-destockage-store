@@ -4,6 +4,9 @@
 //   GET  /                    list, filters, search, keyset pagination        (AORD-1)
 //   GET  /queue               call queue: my claimed order, or "take next"    (AORD-3)
 //   POST /queue/next          claim the next order to call (AORD-2 claimOrder)
+//   GET  /shipping            ready to ship + out for delivery                (AORD-5)
+//   POST /shipping/ship       bulk "mark shipped" (≤ 50), one DB-4 change + audit row per order
+//   POST /shipping/slips      printable bilingual slips (≤ 50, confirmed/shipped), one audit row (refs)
 //   GET  /:ref                detail, timeline, action forms                  (AORD-2)
 //   POST /:ref/call           log a call attempt + outcome                    (AORD-2)
 //   POST /:ref/transition     manual transitions (cancel, ship, deliver, return)
@@ -23,10 +26,11 @@ import { rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import type { AppEnv } from '../../env.ts';
 import { parseForm, readForm, type FormSchema } from '../../lib/forms.ts';
+import { isOrderRef } from '@hb/shared';
 import { canSeeSensitive } from '../../lib/projection.ts';
 import { createRouter } from '../../lib/router.ts';
 import { withFlash } from '../../ui/flash.tsx';
-import { audit, noAudit } from '../../audit/audit.ts';
+import { audit, noAudit, withAudit } from '../../audit/audit.ts';
 import { claimOrder, releaseOrder } from './claims.ts';
 import { myClaim, queueCandidates, queueCounts } from './queue.ts';
 import { QueueCallPage, QueueEmptyPage } from './queue-page.tsx';
@@ -54,6 +58,8 @@ import {
   type PlanResult,
 } from './workflow.ts';
 import { orderGuard, orderWriter } from './writer.ts';
+import { MAX_BATCH, fetchSlips, shippingCounts, shippingQuery } from './shipping-data.ts';
+import { ShippingPage, SlipsPage, type ShipResult } from './shipping-page.tsx';
 
 const r = createRouter({ roles: rolesFor('orders.view') });
 
@@ -106,6 +112,93 @@ r.post('/queue/next', requirePerm('orders.queue'), async (c) => {
   noAudit(c, 'queue/next: no free order to claim, nothing written');
   // Nothing due at all → the normal empty page (200); work waiting but held by colleagues → 409.
   return renderQueue(c, { afterNext: true });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Shipping hand-off (AORD-5). Plan: artifacts/AORD-5/plan.md (approved: slips only, no CSV).
+
+async function renderShipping(c: Context<AppEnv>, status: 200 | 422 = 200, extra: { error?: string; results?: ShipResult[] } = {}) {
+  const [ready, out, counts] = await Promise.all([shippingQuery(c.var.db, 'confirmed'), shippingQuery(c.var.db, 'shipped'), shippingCounts(c.var.db)]);
+  c.status(status);
+  return c.render(<ShippingPage lang={c.var.lang} ready={ready} out={out} counts={counts} {...extra} />, { title: m(c.var.lang)('ship.title') });
+}
+
+r.get('/shipping', requirePerm('orders.shipping'), (c) => renderShipping(c));
+
+/** The ticked refs (repeated `ref` fields): valid refs only, de-duplicated, in form order. */
+async function pickedRefs(c: Context<AppEnv>) {
+  const body = await c.req.parseBody({ all: true });
+  const raw = body['ref'];
+  const list = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).filter((x): x is string => typeof x === 'string');
+  const str = (k: string) => {
+    const val = body[k];
+    return typeof val === 'string' ? val : '';
+  };
+  return { refs: [...new Set(list.filter((x) => isOrderRef(x)))], str };
+}
+
+r.post('/shipping/ship', requirePerm('orders.shipping'), async (c) => {
+  const tm = m(c.var.lang);
+  const { refs, str } = await pickedRefs(c);
+  const courierName = str('courierName').trim();
+  const refuse = (key: 'ship.err.none' | 'ship.err.tooMany' | 'err.courierRequired' | 'form.tooLong') => {
+    noAudit(c, 'bulk ship refused before any write');
+    return renderShipping(c, 422, { error: key === 'form.tooLong' ? c.var.t('form.tooLong', { max: 80 }) : tm(key) });
+  };
+  if (refs.length === 0) return refuse('ship.err.none');
+  if (refs.length > MAX_BATCH) return refuse('ship.err.tooMany');
+  if (courierName === '') return refuse('err.courierRequired');
+  if ([...courierName].length > 80) return refuse('form.tooLong');
+
+  const now = Date.now();
+  const results: ShipResult[] = [];
+  for (const ref of refs) {
+    const order = await fetchOrderByRef(c.var.db, ref, canSeeSensitive(c.var.user));
+    if (!order) {
+      results.push({ ref, outcome: 'notFound' });
+      continue;
+    }
+    if (order.status !== 'confirmed') {
+      results.push({ ref, outcome: 'notConfirmed' });
+      continue;
+    }
+    const tracking = str(`tracking_${ref}`).trim().slice(0, 80);
+    const version = Number(str(`version_${ref}`));
+    if (!Number.isSafeInteger(version) || version !== order.version) {
+      results.push({ ref, outcome: 'conflict' });
+      continue;
+    }
+    const p = planTransition(
+      stateOf(order),
+      { version, to: 'shipped', reason: '', courierName, courierTracking: tracking === '' ? null : tracking, note: null, return: 'shipping' },
+      { role: c.var.user.role },
+    );
+    if (!p.ok) {
+      results.push({ ref, outcome: p.status === 403 ? 'forbidden' : 'notConfirmed' });
+      continue;
+    }
+    const res = await orderWriter.applyChange(c, order.id, p.plan, now);
+    results.push({
+      ref,
+      outcome: res.ok ? 'shipped' : res.code === 'version_conflict' ? 'conflict' : res.code === 'forbidden' ? 'forbidden' : res.code === 'not_found' ? 'notFound' : 'notConfirmed',
+    });
+  }
+  if (!results.some((r) => r.outcome === 'shipped')) noAudit(c, 'bulk ship: no order changed, nothing written');
+  return renderShipping(c, 200, { results });
+});
+
+r.post('/shipping/slips', requirePerm('orders.shipping'), async (c) => {
+  const tm = m(c.var.lang);
+  const { refs, str } = await pickedRefs(c);
+  if (refs.length === 0 || refs.length > MAX_BATCH) {
+    noAudit(c, 'slips refused before any read');
+    return renderShipping(c, 422, { error: tm(refs.length === 0 ? 'ship.err.none' : 'ship.err.tooMany') });
+  }
+  const size = str('size') === 'a5' ? 'a5' : 'a6';
+  const { slips, refused } = await fetchSlips(c.var.db, refs);
+  // One row per print request: which orders were printed, never what was printed.
+  await withAudit(c, { action: 'order.slips', entity: 'orders', entityId: null, before: null, after: { refs: slips.map((s) => s.ref), count: slips.length, refused, size } });
+  return c.render(<SlipsPage lang={c.var.lang} slips={slips} refused={refused} size={size} />, { title: tm('slip.title'), variant: 'print' });
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -196,7 +289,8 @@ async function mutate<S extends FormSchema>(
 
   const res = await orderWriter.applyChange(c, order.id, p.plan, now);
   if (res.ok) {
-    const back = (f.data as { return?: string }).return === 'queue' ? '/orders/queue' : `/orders/${order.ref}`;
+    const ret = (f.data as { return?: string }).return;
+    const back = ret === 'queue' ? '/orders/queue' : ret === 'shipping' ? '/orders/shipping' : `/orders/${order.ref}`;
     return c.redirect(withFlash(back, 'saved'), 303);
   }
   switch (res.code) {

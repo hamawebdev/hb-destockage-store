@@ -274,6 +274,8 @@ export const TransitionForm = v.object({
   courierName: vOptionalText(80),
   courierTracking: vOptionalText(80),
   note: vOptionalText(1000),
+  /** Where to go after success: the order (default) or the shipping screen (AORD-5). */
+  return: v.optional(v.picklist(['detail', 'shipping']), 'detail'),
 });
 export type TransitionInput = v.InferOutput<typeof TransitionForm>;
 
