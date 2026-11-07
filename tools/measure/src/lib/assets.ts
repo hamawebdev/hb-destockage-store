@@ -98,13 +98,30 @@ export function evalMedia(cond: string, vw: number): boolean | null {
  */
 export function evalLength(len: string, vw: number): number | null {
   type V = { v: number; len: boolean };
-  const toks = len.trim().match(/\d*\.?\d+(?:e[+-]?\d+)?(?:px|vw|em|rem)?|[a-z-]+\(|[()+\-*/,]/gi);
-  if (!toks || toks.join('') !== len.replace(/\s+/g, '')) return null; // something we do not know
+  // Tokens keep whitespace (' '): in CSS a binary + or - needs whitespace on both sides, and a
+  // sign belongs to a number only after the start, whitespace, '(', ',', '*' or '/'. So
+  // `calc(100vw-44px)` and `calc(100vw -44px)` are invalid (Chrome ignores them): null.
+  const src = len.trim();
+  const toks: string[] = [];
+  for (let k = 0; k < src.length;) {
+    const rest = src.slice(k);
+    const ws = /^\s+/.exec(rest);
+    if (ws) { toks.push(' '); k += ws[0].length; continue; }
+    const prev = toks[toks.length - 1];
+    const signOk = prev === undefined || prev === ' ' || prev === ',' || prev === '*' || prev === '/' || prev.endsWith('(');
+    const num = (signOk ? /^[+-]?(\d*\.?\d+(?:e[+-]?\d+)?)(px|vw|em|rem)?/i : /^(\d*\.?\d+(?:e[+-]?\d+)?)(px|vw|em|rem)?/i).exec(rest);
+    if (num && /\d/.test(num[0])) { toks.push(num[0]); k += num[0].length; continue; }
+    const fnTok = /^[a-z-]+\(/i.exec(rest);
+    if (fnTok) { toks.push(fnTok[0]); k += fnTok[0].length; continue; }
+    if ('()+-*/,'.includes(rest[0]!)) { toks.push(rest[0]!); k += 1; continue; }
+    return null; // something we do not know
+  }
   let i = 0;
-  const peek = (): string | undefined => toks[i];
+  const skipWs = (): void => { while (toks[i] === ' ') i++; };
+  const peek = (): string | undefined => { skipWs(); return toks[i]; };
   const fail = (): never => { throw new Error('css'); };
   const unit = (t: string): V => {
-    const m = /^(\d*\.?\d+(?:e[+-]?\d+)?)(px|vw|em|rem)?$/i.exec(t);
+    const m = /^([+-]?\d*\.?\d+(?:e[+-]?\d+)?)(px|vw|em|rem)?$/i.exec(t);
     if (!m) return fail();
     const n = Number(m[1]);
     const u = (m[2] ?? '').toLowerCase();
@@ -114,14 +131,15 @@ export function evalLength(len: string, vw: number): number | null {
   const args = (): V[] => {
     const out = [expr()];
     while (peek() === ',') { i++; out.push(expr()); }
-    if (toks[i++] !== ')') fail();
+    if (peek() !== ')') fail();
+    i++;
     return out;
   };
   const factor = (): V => {
-    const t = toks[i++];
+    const t = peek();
+    i++;
     if (t === undefined) return fail();
-    if (t === '-') { const f = factor(); return { v: -f.v, len: f.len }; }
-    if (t === '(' || /^calc\($/i.test(t)) { const e = expr(); if (toks[i++] !== ')') fail(); return e; }
+    if (t === '(' || /^calc\($/i.test(t)) { const e = expr(); if (peek() !== ')') fail(); i++; return e; }
     const fn = /^(min|max|clamp)\($/i.exec(t)?.[1]?.toLowerCase();
     if (fn) {
       const a = args();
@@ -144,6 +162,8 @@ export function evalLength(len: string, vw: number): number | null {
   const expr = (): V => {
     let l = term();
     while (peek() === '+' || peek() === '-') {
+      // CSS: whitespace on both sides of a binary + or -
+      if (toks[i - 1] !== ' ' || toks[i + 1] !== ' ') fail();
       const op = toks[i++];
       const r = term();
       if (l.len !== r.len) fail();
@@ -153,7 +173,7 @@ export function evalLength(len: string, vw: number): number | null {
   };
   try {
     const r = expr();
-    return i === toks.length && r.len ? r.v : null;
+    return peek() === undefined && r.len ? r.v : null;
   } catch {
     return null;
   }

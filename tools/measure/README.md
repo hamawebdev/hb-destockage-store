@@ -385,7 +385,15 @@ checkout (WEB order route)]`. Once it runs, a 403/404/409/422 from any step fail
 node tools/measure/src/timings/cli.ts                       # fresh seeded D1 + web Worker (as e2e), 30 runs after 3 warm-up
 node tools/measure/src/timings/cli.ts --runs 50 --no-api    # pages only
 node tools/measure/src/timings/cli.ts --base-url http://127.0.0.1:4210 --persist .wrangler/hb-local   # a running server and its D1
+node tools/measure/src/timings/cli.ts --base-url https://hb-x.<acct>.workers.dev --allow-write-host hb-x.<acct>.workers.dev --variant 12 --wilaya 16 --commune 1601   # a temporary deploy
 ```
+
+**The API series writes real orders** (stock, staff notifications), so it runs only against the
+Worker the harness started, a loopback host (`127.0.0.1`, `::1`, `localhost`), or a
+`*.workers.dev` host named exactly by `--allow-write-host` (our `wrangler deploy --temporary`
+measurements; that host also needs `--variant/--wilaya/--commune` from its own D1). Any other host
+(the live site): the API series is refused with the reason in `timings.txt`, and the pages are
+still timed with GET only.
 
 For the closing report: **TTFB** (ms to the response headers, as the client sees them) of every
 registry target, and the latency of **POST /api/quote** and **POST /api/order**, each as p50 / p90

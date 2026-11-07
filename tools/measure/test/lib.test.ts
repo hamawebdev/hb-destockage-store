@@ -58,7 +58,10 @@ describe('srcset / sizes', () => {
     expect(evalLength('calc(min(100vw, 600px) - 2rem)', 1440)).toBe(568);
     expect(evalLength('max(calc(50vw - 16px), 160px)', 300)).toBe(160);
     // not understood → null (conservative: the largest candidate)
-    for (const bad of ['calc(100vw * 2px)', 'calc(100vw / 0)', 'calc(100vw + 2)', 'calc(100vw - 44px', '50', 'calc(100vh)', 'attr(x)', 'calc((100vw - 44px) / 2) junk']) {
+    expect(evalLength('calc( 100vw  -  44px )', 412)).toBe(368);
+    expect(evalLength('calc(-44px + 100vw)', 412)).toBe(368);
+    // rev-a MEAS-1 r3 nit: CSS needs whitespace around a binary + / -; Chrome ignores these
+    for (const bad of ['calc(100vw-44px)', 'calc(100vw -44px)', 'calc(100vw- 44px)', 'calc(100vw+44px)', 'calc(100vw * 2px)', 'calc(100vw / 0)', 'calc(100vw + 2)', 'calc(100vw - 44px', '50', 'calc(100vh)', 'attr(x)', 'calc((100vw - 44px) / 2) junk']) {
       expect(evalLength(bad, 412), bad).toBeNull();
     }
   });

@@ -13,6 +13,13 @@
  * quote 200; order 201): a wrong
  * status is a failure (exit 1), never a fast sample. Exit 2 = setup error.
  * Output (--out, default <main checkout>/artifacts/timings-run): timings.json, timings.txt.
+ *
+ * WRITES: the order series creates real orders (stock, staff notifications). It runs only against
+ * the Worker the harness started, a loopback host (127.0.0.1, ::1, localhost), or a `*.workers.dev`
+ * host named exactly by `--allow-write-host` (our `wrangler deploy --temporary` measurements).
+ * Anything else, e.g. the live site: the API series is refused with the reason, pages are still
+ * timed (GET only). A non-loopback host also needs --variant/--wilaya/--commune (the local D1 says
+ * nothing about it).
  */
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -30,11 +37,30 @@ const OPTIONS = {
   'base-url': { type: 'string' }, persist: { type: 'string' }, dist: { type: 'string' },
   runs: { type: 'string' }, warmup: { type: 'string' }, out: { type: 'string' },
   variant: { type: 'string' }, wilaya: { type: 'string' }, commune: { type: 'string' },
-  'no-api': { type: 'boolean' }, help: { type: 'boolean' },
+  'no-api': { type: 'boolean' }, 'allow-write-host': { type: 'string' }, help: { type: 'boolean' },
 } as const;
 const USAGE = `usage: node tools/measure/src/timings/cli.ts [--base-url URL --persist DIR] [--dist DIR] [--runs 30] [--warmup 3] [--out DIR]
-  [--variant ID --wilaya CODE --commune ID] [--no-api]
+  [--variant ID --wilaya CODE --commune ID] [--no-api] [--allow-write-host <name>.workers.dev]
+  POST /api/quote and /api/order run only against the harness Worker, a loopback host, or the
+  *.workers.dev host named by --allow-write-host (wrangler deploy --temporary); otherwise pages only
   without --base-url: seeds a fresh local D1 and boots the web Worker (as npm run e2e does)`;
+
+const LOOPBACK = new Set(['127.0.0.1', '::1', '[::1]', 'localhost']);
+
+/** May the quote/order series (which WRITE orders) run against `base`? */
+export function apiWriteAllowed(base: string, opts: { harness: boolean; allowWriteHost?: string | undefined }): { ok: true } | { ok: false; reason: string } {
+  if (opts.harness) return { ok: true };
+  let host: string;
+  try { host = new URL(base).hostname.toLowerCase(); } catch { return { ok: false, reason: `not a URL: ${base}` }; }
+  if (LOOPBACK.has(host)) return { ok: true };
+  const allow = opts.allowWriteHost?.trim().toLowerCase();
+  if (allow !== undefined && allow !== '') {
+    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*\.workers\.dev$/.test(allow)) return { ok: false, reason: `--allow-write-host accepts only a *.workers.dev host (wrangler deploy --temporary), not "${allow}"` };
+    if (allow === host) return { ok: true };
+    return { ok: false, reason: `--allow-write-host is "${allow}" but the base URL's host is "${host}"` };
+  }
+  return { ok: false, reason: `"${host}" is not loopback: POST /api/quote and /api/order would create real orders there (a *.workers.dev test deploy may be allowed with --allow-write-host ${host.endsWith('.workers.dev') ? host : '<name>.workers.dev'})` };
+}
 
 /** Nearest-rank percentile (p in 0..100) of numbers. */
 export function percentile(xs: readonly number[], p: number): number {
@@ -94,6 +120,7 @@ export function report(all: Series[], meta: Record<string, unknown>): { json: st
     : `${pad(s.name, 30)} ${pad(s.kind, 6)} FAIL: no successful run`;
   const txt = [
     `timings (LOCAL wrangler dev, sequential): ${meta['base']}, ${meta['runs']} runs after ${meta['warmup']} warm-up, load ${meta['loadavg']}`,
+    ...(meta['api'] !== undefined && meta['api'] !== 'run' ? [`API series (POST /api/quote, /api/order): ${String(meta['api'])}`] : []),
     ...rows.map(line),
     ...rows.flatMap((s) => groupFailures(s.failures).map((f) => `  ${s.name}: ${f}`)),
     ok ? 'TIMINGS OK' : 'TIMINGS FAILED: some requests did not answer their expected status',
@@ -134,7 +161,18 @@ export async function main(argv: string[]): Promise<number> {
       all.push(await series(t.id, 'ttfb', url, expect, runs, warmup, () => timeOne(base + url)));
       console.log(`  ${t.id} ${url}: ${JSON.stringify(stats(all.at(-1)!.samples))}`);
     }
-    if (!a['no-api']) {
+    const gate = apiWriteAllowed(base, { harness: stop !== null, allowWriteHost: a['allow-write-host'] });
+    let apiNote = a['no-api'] ? 'not run (--no-api)' : 'run';
+    if (!a['no-api'] && !gate.ok) {
+      apiNote = `REFUSED: ${gate.reason}`;
+      console.error(`timings: API series refused (pages only): ${gate.reason}`);
+    }
+    const remote = stop === null && !LOOPBACK.has(new URL(base).hostname.toLowerCase());
+    if (!a['no-api'] && gate.ok && remote && !(a.variant && a.wilaya && a.commune)) {
+      console.error('timings: a non-loopback host needs --variant, --wilaya and --commune (ids of THAT deployment, not the local D1)');
+      return 2;
+    }
+    if (!a['no-api'] && gate.ok) {
       const pick = pickIds(h, { variant: a.variant, wilaya: a.wilaya, commune: a.commune }, runs + warmup);
       const json = (body: unknown): RequestInit => ({ method: 'POST', headers: { 'content-type': 'application/json', origin: base! }, body: JSON.stringify(body) });
       const quoteBody = { items: [{ variantId: pick.variant, qty: 1 }], wilayaCode: pick.wilaya, communeId: pick.commune };
@@ -148,7 +186,7 @@ export async function main(argv: string[]): Promise<number> {
         idempotencyKey: randomUUID(), expectedTotalDzd: total, fillMs: 10_000,
       }))));
     }
-    const meta = { generatedAt: new Date().toISOString(), base, dist, runs, warmup, loadavg: loadavg().map((x) => x.toFixed(2)).join(' '), node: process.version, mode: stop ? 'harness (fresh seeded D1, wrangler dev)' : 'external server' };
+    const meta = { generatedAt: new Date().toISOString(), base, dist, runs, warmup, loadavg: loadavg().map((x) => x.toFixed(2)).join(' '), node: process.version, mode: stop ? 'harness (fresh seeded D1, wrangler dev)' : 'external server', api: apiNote };
     const r = report(all, meta);
     writeFileSync(path.join(out, 'timings.json'), r.json);
     writeFileSync(path.join(out, 'timings.txt'), r.txt);
