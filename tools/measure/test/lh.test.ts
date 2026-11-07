@@ -184,7 +184,20 @@ describe('summarize', () => {
 const temps: string[] = [];
 afterAll(() => { for (const d of temps) rmSync(d, { recursive: true, force: true }); });
 const tmp = (): string => { const d = mkdtempSync(path.join(tmpdir(), 'hb-lh-')); temps.push(d); return d; };
-const page = (lang: string, tpl?: string): string => `<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"${tpl ? ` data-tpl="${tpl}"` : ''}><head></head><body></body></html>`;
+const page = (lang: string, tpl?: string, kind?: string): string => `<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"${tpl ? ` data-tpl="${tpl}"` : ''}${kind ? ` data-tpl-kind="${kind}"` : ''}><head></head><body></body></html>`;
+
+/** The site with kinds declared (MEAS-5): products a=simple, b=variable, k=pack; categories x=top (+ page 2), y=sub. */
+function kindSite(dir: string): void {
+  site(dir);
+  for (const l of ['ar', 'fr']) {
+    put(dir, `${l}/p/a/index.html`, page(l, 'product', 'simple'));
+    put(dir, `${l}/p/b/index.html`, page(l, 'product', 'variable'));
+    put(dir, `${l}/p/k/index.html`, page(l, 'product', 'pack'));
+    put(dir, `${l}/c/x/index.html`, page(l, 'category', 'top'));
+    put(dir, `${l}/c/x/2/index.html`, page(l, 'category', 'top'));
+    put(dir, `${l}/c/y/index.html`, page(l, 'category', 'sub'));
+  }
+}
 
 function site(dir: string, omit: string[] = []): void {
   const files: Record<string, string> = {};
@@ -240,6 +253,38 @@ describe('template registry', () => {
     site(d);
     put(d, 'ar/p/a/index.html', page('ar', 'content'));
     expect(discover(d).errors.join()).toMatch(/data-tpl="content" but the URL scheme says product/);
+  });
+  it('data-tpl-kind: one target per (template, kind, language) (MEAS-5)', () => {
+    const d = tmp();
+    kindSite(d);
+    const r = discover(d);
+    expect(r.errors).toEqual([]);
+    const ar = r.targets.filter((t) => t.lang === 'ar').map((t) => [t.id, t.url, t.kind]);
+    expect(ar.filter(([id]) => /^(product|category)-/.test(String(id)))).toEqual([
+      ['category-sub-ar', '/ar/c/y/', 'sub'], ['category-top-ar', '/ar/c/x/', 'top'],
+      ['product-pack-ar', '/ar/p/k/', 'pack'], ['product-simple-ar', '/ar/p/a/', 'simple'], ['product-variable-ar', '/ar/p/b/', 'variable'],
+    ]);
+    expect(r.targets.find((t) => t.id === 'home-ar')?.kind).toBeUndefined();
+    expect(r.skipped.find((s) => s.url === '/ar/c/x/2/')?.reason).toBe('same template and kind as /ar/c/x/');
+  });
+  it('without data-tpl-kind: one target per template, noted in skipped', () => {
+    const d = tmp();
+    site(d);
+    const r = discover(d);
+    expect(r.targets.some((t) => t.kind)).toBe(false);
+    expect(r.skipped.filter((s) => s.url.startsWith('(')).map((s) => s.url)).toEqual(['(category)', '(product)']);
+  });
+  it('kinds: a page without one, a kind in one language only, a bad value, a kind on another template are errors', () => {
+    const d = tmp();
+    kindSite(d);
+    put(d, 'fr/p/b/index.html', page('fr', 'product'));            // no kind while others have one
+    put(d, 'ar/p/k/index.html', page('ar', 'product', 'bundle'));  // not a product kind
+    put(d, 'fr/search/index.html', page('fr', 'search', 'top'));   // search takes no kind
+    const e = discover(d).errors.join('\n');
+    expect(e).toMatch(/\/fr\/p\/b\/: no <html data-tpl-kind> while other product pages declare one/);
+    expect(e).toMatch(/\/ar\/p\/k\/: data-tpl-kind="bundle" is not a product kind \(simple, variable, pack\)/);
+    expect(e).toMatch(/\/fr\/search\/: data-tpl-kind="top" on a search page/);
+    expect(e).toMatch(/product kind "variable" has pages in the other language but none in \/fr\//);
   });
   it('explicit URL lists', () => {
     expect(targetsFromUrls(['/ar/', 'http://h/fr/p/x/']).map((t) => [t.id, t.url])).toEqual([['01-home-ar', '/ar/'], ['02-product-fr', '/fr/p/x/']]);

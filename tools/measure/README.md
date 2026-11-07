@@ -10,6 +10,7 @@ it fails when it should (`test/`).
 | `npm run lh` | Lighthouse 13.6.0, median of 5, every template in `/ar/` and `/fr/` | MEAS-2 |
 | `npm run shots` / `npm run axe` | Screenshots 360/768/1440 × ar/fr, axe WCAG 2.2 AA, keyboard pass | MEAS-3 |
 | `npm run e2e` | End-to-end specs in `tests/e2e/` (Playwright + vitest) | MEAS-4 |
+| `node tools/measure/src/timings/cli.ts` | Local TTFB per template, `/api/quote` and `/api/order` latency, p50/p90 | MEAS-5 |
 
 Everything runs on Node 24 directly from TypeScript sources (`node file.ts`, no build step).
 Tests: `npm test -w tools/measure` (vitest). Typecheck: `npm run typecheck -w tools/measure`.
@@ -212,7 +213,14 @@ npm run lh -- --serve static --port 4114      # server choice / port (measure bl
   language **fails the run** (never silently skipped). The page measured for a template is its
   **heaviest** HTML (worst case), ties → shortest URL. Pages not measured are listed in the
   summary with the reason. The not-found template is measured at its file URL
-  (`/{lang}/404.html`, HTTP 200): Lighthouse refuses to score a document answered with 404. MEAS-5 adds product kinds (simple/variable/pack) and sub-categories.
+  (`/{lang}/404.html`, HTTP 200): Lighthouse refuses to score a document answered with 404.
+  **Variants (MEAS-5):** the layout writes `<html data-tpl-kind>` (contract with shell and
+  pagedata): product → `simple` | `variable` | `pack`, category → `top` | `sub`. When a build
+  declares kinds, each (template, kind) is its own target in both languages (`product-pack-ar`,
+  `category-sub-fr`, shots in `product/ar-pack-360.png`). It fails the run when a page of that
+  template has no kind, a kind is missing in one language, a value is not a kind of its
+  template, or a kind is on another template. A build without the attribute keeps one target per
+  template (noted in the summary's skipped list). The registry serves lh, shots, axe and timings.
 - **Machine load (lead's rule, 2026-11-05):** before every run the CLI waits (up to
   `--quiet-wait`, default 900 s, within a total budget `--quiet-wait-total`, default 1800 s per
   invocation, so the gate's wall time stays bounded) for the 1-minute load average to drop to
@@ -370,6 +378,24 @@ checkout (WEB order route)]`. Once it runs, a 403/404/409/422 from any step fail
 | `nojs.spec.ts` | per language, JavaScript disabled: the form posts to the Worker's review page, which shows fee and total; confirm (after the 1.5 s minimum review time) → 303 to the confirmation page and the order in D1 |
 | `geo.spec.ts` | per language: the wilaya picker lists 69 wilayas (codes 1–69); `/geo/communes/<lang>/<code>.json` totals 1,541 distinct communes; the seeded D1 holds 69 wilayas and 1,541 communes |
 | `admin-auth.spec.ts` | each test proves its success path first (a real dev login → 303 + cookie served the dashboard). Then every admin route (admin-core's mounts from `app.ts` + admin-orders' route table, GET and POST) answers 401/403 with no credentials, a garbage Access JWT, or a forged dev cookie (real payload, wrong signature); an inactive dev user is refused where the owner, same request, is let in; the dev login answers a loopback Host and refuses another; every dev role is served the dashboard |
+
+## Timings (MEAS-5)
+
+```
+node tools/measure/src/timings/cli.ts                       # fresh seeded D1 + web Worker (as e2e), 30 runs after 3 warm-up
+node tools/measure/src/timings/cli.ts --runs 50 --no-api    # pages only
+node tools/measure/src/timings/cli.ts --base-url http://127.0.0.1:4210 --persist .wrangler/hb-local   # a running server and its D1
+```
+
+For the closing report: **TTFB** (ms to the response headers, as the client sees them) of every
+registry target, and the latency of **POST /api/quote** and **POST /api/order**, each as p50 / p90
+/ min / max over N sequential runs after warm-up runs that are not counted. Orders use a fresh
+phone and idempotency key per run (the phone rate limit never trips) and the active variant with
+the most stock (the run refuses when stock < orders to place); ids come from the D1, or
+`--variant/--wilaya/--commune`. Every counted request must answer its expected status (page 200,
+quote 200, order 201; not-found is timed on a missing URL, 404): a wrong status is a failure, never a sample (exit 1). Output:
+`timings.json` and `timings.txt` in `<main checkout>/artifacts/timings-run` (`--out`). These are
+**local** numbers (wrangler dev on this machine), for comparing builds, not production latency.
 
 ### Adding or changing a rule
 

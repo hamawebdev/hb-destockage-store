@@ -16,7 +16,7 @@ import { TARGET_OPTIONS, TARGET_USAGE, resolveTargets, serverFor } from '../lib/
 const USAGE = `usage: npm run shots -- [options]\n${TARGET_USAGE}\n  (default --out <main checkout>/artifacts/shots-run; files under <out>/shots/)`;
 export const SHOTS_PORT = 4114;
 
-interface Shot { template: string; id: string; lang: string; url: string; width: number; file: string; full: string; status: number; error?: string }
+interface Shot { template: string; kind?: string; id: string; lang: string; url: string; width: number; file: string; full: string; status: number; error?: string }
 
 export async function main(argv: string[]): Promise<number> {
   let a;
@@ -38,10 +38,11 @@ export async function main(argv: string[]): Promise<number> {
         const ctx = await newContext(browser, width);
         const { page, status, error } = await loadStable(ctx, server.baseUrl + t.url);
         // content pages share a template: keep each one's own file name
-        const stem = t.template === 'content' ? `${t.lang}-${t.id.replace(/^content-(ar|fr)-/, '')}` : t.lang;
+        // and variants (data-tpl-kind) too: product/ar-variable-360.png
+        const stem = t.template === 'content' ? `${t.lang}-${t.id.replace(/^content-(ar|fr)-/, '')}` : t.kind ? `${t.lang}-${t.kind}` : t.lang;
         const rel = path.join(t.template, `${stem}-${width}.png`);
         const relFull = path.join(t.template, `${stem}-${width}-full.png`);
-        const s: Shot = { template: t.template, id: t.id, lang: t.lang, url: t.url, width, file: rel, full: relFull, status, ...(error ? { error } : {}) };
+        const s: Shot = { template: t.template, ...(t.kind ? { kind: t.kind } : {}), id: t.id, lang: t.lang, url: t.url, width, file: rel, full: relFull, status, ...(error ? { error } : {}) };
         if (!error && status !== t.expectStatus) s.error = `HTTP ${status} (expected ${t.expectStatus})`;
         if (!error) {
           mkdirSync(path.join(dir, t.template), { recursive: true });
@@ -72,7 +73,7 @@ const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', 
 export function contactSheet(shots: Shot[], base: string): string {
   const rows = new Map<string, Shot[]>();
   for (const s of shots) {
-    const key = s.template === 'content' ? s.id.replace(/-(ar|fr)-/, '-') : s.template;
+    const key = s.template === 'content' ? s.id.replace(/-(ar|fr)-/, '-') : s.kind ? `${s.template}-${s.kind}` : s.template;
     rows.set(key, [...(rows.get(key) ?? []), s]);
   }
   const cell = (s: Shot | undefined): string => !s ? '<td></td>' : s.error

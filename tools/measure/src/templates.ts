@@ -6,7 +6,12 @@
  * by the CAT-1 URL scheme (packages/catalog/src/routes.ts). A page that fits neither is an
  * error: a new template must never be silently left out of the Lighthouse/axe/screenshot runs.
  *
- * MEAS-5 refines this (product simple/variable/pack, sub-category) from the catalogue snapshot.
+ * Variants (MEAS-5, contract agreed with shell and pagedata): the layout writes
+ * `<html data-tpl-kind>` next to `data-tpl`: product → simple | variable | pack, category →
+ * top | sub (a sub-category). When a build declares kinds for a template, every page of that
+ * template must declare one, and each (template, kind) gets its own target in both languages
+ * (e.g. `product-pack-ar`), so a variable product's pickers or a pack are measured too. A build
+ * without the attribute keeps one target per template (with a note in `skipped`).
  */
 import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -14,6 +19,8 @@ import { walk } from './lib/paths.ts';
 
 export const TEMPLATES = ['home', 'category', 'product', 'search', 'content', 'order-confirmed', 'not-found'] as const;
 export type Template = (typeof TEMPLATES)[number];
+/** Allowed `data-tpl-kind` values per template (others take none). */
+export const KINDS: Partial<Record<Template, readonly string[]>> = { product: ['simple', 'variable', 'pack'], category: ['top', 'sub'] };
 export type Lang = 'ar' | 'fr';
 
 export interface PageInfo {
@@ -24,6 +31,8 @@ export interface PageInfo {
   template: Template | null;
   /** how the template was decided */
   source: 'data-tpl' | 'url' | 'none';
+  /** `<html data-tpl-kind>`, e.g. `variable`, `sub`; null when absent */
+  kind: string | null;
   /** HTML file size in bytes (the heaviest page of a template is the one measured) */
   bytes: number;
 }
@@ -32,6 +41,8 @@ export interface TemplateTarget {
   /** stable id used in file names, e.g. `product-ar`, `content-ar-tawsil` */
   id: string;
   template: Template;
+  /** the variant (`data-tpl-kind`) this target stands for, when the build declares kinds */
+  kind?: string;
   lang: Lang;
   url: string;
   /** HTTP status the page is expected to return when requested by this URL */
@@ -92,7 +103,26 @@ export function discover(dist: string): Registry {
     if (lang && !template && !tpl) errors.push(`${url}: cannot tell its template (no <html data-tpl>, URL outside the CAT-1 scheme)`);
     const urlTpl = templateFromUrl(url);
     if (tpl && urlTpl && template && urlTpl !== template) errors.push(`${url}: data-tpl="${tpl}" but the URL scheme says ${urlTpl}`);
-    pages.push({ url, file: rel, lang, template, source, bytes: statSync(path.join(dist, rel)).size });
+    const kind = /\bdata-tpl-kind\s*=\s*["']?([\w-]+)/i.exec(htmlTag)?.[1] ?? null;
+    if (kind !== null && template) {
+      const allowed = KINDS[template];
+      if (!allowed) errors.push(`${url}: data-tpl-kind="${kind}" on a ${template} page (only ${Object.keys(KINDS).join(', ')} take a kind)`);
+      else if (!allowed.includes(kind)) errors.push(`${url}: data-tpl-kind="${kind}" is not a ${template} kind (${allowed.join(', ')})`);
+    }
+    pages.push({ url, file: rel, lang, template, source, kind, bytes: statSync(path.join(dist, rel)).size });
+  }
+
+  // templates whose pages declare kinds: all of their pages must, in both languages
+  const kinded = new Map<Template, string[]>();
+  for (const t of TEMPLATES) {
+    const of = pages.filter((p) => p.template === t && p.lang);
+    const withKind = of.filter((p) => p.kind !== null);
+    if (!withKind.length) {
+      if (KINDS[t] && of.length) skipped.push({ url: `(${t})`, reason: `no <html data-tpl-kind> in this build: one ${t} target per language, variants not told apart` });
+      continue;
+    }
+    for (const p of of) if (p.kind === null) errors.push(`${p.url}: no <html data-tpl-kind> while other ${t} pages declare one`);
+    kinded.set(t, [...new Set(withKind.map((p) => p.kind!))].sort());
   }
 
   const targets: TemplateTarget[] = [];
@@ -102,16 +132,22 @@ export function discover(dist: string): Registry {
     for (const t of TEMPLATES) {
       // heaviest HTML first (worst case for the budget; rev-c MEAS-2 r1 nit 3), then the shortest
       // URL (page 1 before /c/x/2/), then path order: deterministic
-      const of = mine.filter((p) => p.template === t).sort((x, y) => y.bytes - x.bytes || x.url.length - y.url.length || x.url.localeCompare(y.url));
-      if (!of.length) { errors.push(`template ${t} has no page in /${lang}/`); continue; }
-      // content: every content page is its own target (they differ in length and blocks);
-      // other templates: the first page in path order (deterministic)
-      const chosen = t === 'content' ? of : of.slice(0, 1);
-      for (const p of chosen) {
-        const slug = t === 'content' ? `-${p.url.split('/')[2]}` : '';
-        targets.push({ id: `${t}-${lang}${slug}`, template: t, lang, url: p.url, expectStatus: 200 });
+      const all = mine.filter((p) => p.template === t).sort((x, y) => y.bytes - x.bytes || x.url.length - y.url.length || x.url.localeCompare(y.url));
+      if (!all.length) { errors.push(`template ${t} has no page in /${lang}/`); continue; }
+      const groups: Array<[string | undefined, PageInfo[]]> = kinded.has(t)
+        ? kinded.get(t)!.map((k) => [k, all.filter((p) => p.kind === k)])
+        : [[undefined, all]];
+      for (const [kind, of] of groups) {
+        if (!of.length) { errors.push(`${t} kind "${kind}" has pages in the other language but none in /${lang}/`); continue; }
+        // content: every content page is its own target (they differ in length and blocks);
+        // other templates: the first page in that order
+        const chosen = t === 'content' ? of : of.slice(0, 1);
+        for (const p of chosen) {
+          const slug = t === 'content' ? `-${p.url.split('/')[2]}` : '';
+          targets.push({ id: kind ? `${t}-${kind}-${lang}` : `${t}-${lang}${slug}`, template: t, ...(kind ? { kind } : {}), lang, url: p.url, expectStatus: 200 });
+        }
+        for (const p of of) if (!chosen.includes(p)) skipped.push({ url: p.url, reason: `same template${kind ? ` and kind` : ''} as ${chosen[0]?.url}` });
       }
-      for (const p of of) if (!chosen.includes(p)) skipped.push({ url: p.url, reason: `same template as ${chosen[0]?.url}` });
     }
   }
   for (const p of pages) if (!p.lang) skipped.push({ url: p.url, reason: 'outside /ar/ and /fr/' });
