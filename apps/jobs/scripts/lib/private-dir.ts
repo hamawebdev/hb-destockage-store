@@ -4,7 +4,7 @@
 import { existsSync, realpathSync } from 'node:fs';
 import { chmod, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, resolve, sep } from 'node:path';
 
 export class InsideGitWorktreeError extends Error {
   override readonly name = 'InsideGitWorktreeError';
@@ -40,6 +40,17 @@ export function assertOutsideGitWorktree(path: string, what: string): void {
         `use a directory outside any repository (default: a private folder under ${tmpdir()}).`,
     );
   }
+}
+
+/**
+ * `base/key` only if it stays inside `base` (JOBS-3 review nit): a key that is absolute or climbs
+ * out with `..` (images.r2_key has no CHECK) returns null, before anything is read or written.
+ */
+export function containedPath(base: string, key: string): string | null {
+  if (key === '' || key.includes('\0') || isAbsolute(key) || /^[A-Za-z]:/.test(key)) return null;
+  const root = resolve(base);
+  const p = resolve(root, key);
+  return p.startsWith(root + sep) ? p : null;
 }
 
 /** A fresh owner-only (0700) directory outside any git worktree. */

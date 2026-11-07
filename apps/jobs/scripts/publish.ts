@@ -31,9 +31,11 @@ import { runPublishQueue, StageError, type PublishStages, type SnapshotResult } 
 import { budgetWithMode } from '../src/publish/budget-stage.ts';
 import { enqueueRun } from '../src/publish/runs.ts';
 import { budgetVerdict, buildFingerprint, LAST_GOOD_FILE } from './lib/fingerprint.ts';
+import { containedPath } from './lib/private-dir.ts';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-export const DEPLOY_COMMAND = 'npx wrangler deploy -c apps/web/wrangler.jsonc';
+// The repo's pinned wrangler, as in RESTORE.md (JOBS-3 review nit), never a global npx.
+export const DEPLOY_COMMAND = './node_modules/.bin/wrangler deploy -c apps/web/wrangler.jsonc';
 
 const { values: args } = parseArgs({
   options: {
@@ -223,13 +225,16 @@ async function copyOriginals(snapshotFile: string, dir: string, log: (l: string)
   walk(JSON.parse(await readFile(snapshotFile, 'utf8')));
   let missing = 0;
   for (const key of keys) {
-    const dest = join(dir, key);
+    // Refuse keys that would escape the temp dir or data/photos, before any read or write.
+    const dest = containedPath(dir, key);
+    const seeded = containedPath(join(REPO, 'data/photos'), key);
+    if (!dest || !seeded) throw new StageError('originals', 'image key outside the originals directory refused (absolute or ".." path)');
     await mkdir(dirname(dest), { recursive: true });
     const obj = await proxy.env.MEDIA.get(key);
     if (obj) {
       await writeFile(dest, new Uint8Array(await obj.arrayBuffer()));
-    } else if (existsSync(join(REPO, 'data/photos', key))) {
-      await copyFile(join(REPO, 'data/photos', key), dest);
+    } else if (existsSync(seeded)) {
+      await copyFile(seeded, dest);
     } else {
       missing++;
     }
