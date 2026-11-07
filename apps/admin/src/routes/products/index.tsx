@@ -50,6 +50,8 @@ import {
 import { m } from './messages.ts';
 import { loadPackLines, loadPickable, mountPackRoutes, PackSection } from './pack.tsx';
 import { mountStockRoutes } from './stock.tsx';
+import { bindChoices, loadImages } from '../media/data.ts';
+import { PhotosSection } from '../media/views.tsx';
 import {
   CreateSchema,
   DetailsSchema,
@@ -153,6 +155,7 @@ async function renderEdit(c: Ctx, agg: ProductAggregate, o: EditOverrides = {}) 
   const cats = await loadCategories(c);
   const p = agg.product;
   const [packLines, pickable] = p.kind === 'pack' ? await Promise.all([loadPackLines(c, p.id), loadPickable(c)]) : [[], []];
+  const [photos, choices] = await Promise.all([loadImages(c, { kind: 'product', id: p.id }), bindChoices(c, p.id)]);
   return c.render(
     <>
       <DetailsForm
@@ -172,6 +175,7 @@ async function renderEdit(c: Ctx, agg: ProductAggregate, o: EditOverrides = {}) 
         />
       ) : null}
       <VariantGrid agg={agg} values={o.grid?.values ?? gridValuesOf(agg)} errors={o.grid?.errors} />
+      <PhotosSection owner={{ kind: 'product', id: p.id }} images={photos} choices={choices} />
       <StatusSection agg={agg} issues={o.issues} />
     </>,
     { title: `${tm(c)('edit')}${c.var.lang === 'ar' ? ': ' : ' : '}${nameOf(c, p)}`, breadcrumbs: crumbs(c) },

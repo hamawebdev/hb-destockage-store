@@ -31,6 +31,8 @@ import {
   updateCategory,
 } from './data.ts';
 import { m } from './messages.ts';
+import { loadImages } from '../media/data.ts';
+import { PhotosSection } from '../media/views.tsx';
 import { orderTree, parentChoices } from './tree.ts';
 import { CategoryFormSchema, finishCategory, type CategoryErrorKey } from './validate.ts';
 import { brokenUrls, CategoryActions, CategoryForm, CategoryList, CategoryReadonly, DeletePage } from './views.tsx';
@@ -90,9 +92,11 @@ async function renderEdit(
   const counts = await productCounts(c);
   const parent = category.parentId === null ? undefined : all.find((k) => k.id === category.parentId);
   const tm = m(c.var.lang);
+  const photos = await loadImages(c, { kind: 'category', id: category.id });
   return c.render(
     <>
       <CategoryForm action={`/categories/${category.id}`} values={values} errors={errors} parents={parentChoices(all, category.id)} slugWarning={slugWarning} />
+      <PhotosSection owner={{ kind: 'category', id: category.id }} images={photos} />
       <CategoryActions
         category={category}
         activeProductsHidden={activeProductsInSubtree(all, counts, category.id)}
