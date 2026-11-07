@@ -14,7 +14,7 @@ const props = Astro.props as PropsByTemplate['product'];
 const deferred = props.images.length > 1 || props.related.length > 0 || props.packItems.length > 0;
 const scripts = pickerMode(props) !== 'none' || deferred ? [variantScript()] : [];
 ---
-<Base layout={props.layout} lcp={props.images[0]?.lcp === true} scripts={scripts}>
+<Base layout={props.layout} lcp={props.images[0]?.lcp === true} kind={props.product.kind} scripts={scripts}>
   <Fragment slot="head"><script type="application/ld+json" is:inline set:html={serializeJsonLd(productJsonLd(props))} /></Fragment>
   <ProductView {...props} />
 </Base>
