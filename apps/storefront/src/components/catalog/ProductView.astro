@@ -27,7 +27,7 @@ import ProductGrid from './ProductGrid.astro';
 import Stock from './Stock.astro';
 import VariantPicker from './VariantPicker.astro';
 import { latinLang, showDevMarkers, t } from './lib/i18n.ts';
-import { defaultVariant, pickerMode, variantBlocks } from './lib/variants.ts';
+import { CSS_POSITIONS, defaultVariant, pickerMode, variantBlocks } from './lib/variants.ts';
 
 type Props = ProductProps;
 const p = Astro.props;
@@ -36,6 +36,10 @@ const { lang, strings } = layout;
 const mode = pickerMode({ options, variants });
 const def = defaultVariant(variants);
 const blocks = mode === 'none' ? [def] : variantBlocks({ options, variants });
+// Single option with more values than the constant CSS covers: a neutral "from" block that the
+// no-JS CSS shows when a value beyond CSS_POSITIONS is chosen (never another variant's price).
+const lowest = variants.reduce<(typeof variants)[number] | undefined>((a, v) => (v.available && (!a || v.price.amountDzd < a.price.amountDzd) ? v : a), undefined) ?? def;
+const anyPrice = mode === 'single' && blocks.length > CSS_POSITIONS && lowest ? { ...lowest.price, from: true, compareAtDzd: null, compareAtLabel: null, discountPercent: null } : null;
 const ph = showDevMarkers() && (product.placeholder || product.translationPlaceholder);
 const hasForm = Astro.slots.has('order');
 const dev = import.meta.env.DEV;
@@ -71,6 +75,7 @@ const dev = import.meta.env.DEV;
           ),
         )}
         {mode === 'multi' && <div class="cat-vp cat-vp-none"><p class="cat-vp-none-t">{t(strings, 'product.option.unavailableCombo')}</p></div>}
+        {anyPrice && <div class="cat-vp cat-vp-any"><Price price={anyPrice} strings={strings} size="page" /></div>}
       </div>
 
       <VariantPicker options={options} variants={variants} strings={strings} />
@@ -96,7 +101,7 @@ const dev = import.meta.env.DEV;
         <h2 id="cat-rel-h" class="cat-sec-h">{t(strings, 'product.related.title')}</h2>
         <a class="cat-more" href={category.href}>{t(strings, 'product.category.more', { category: category.name })}<span class="cat-chev cat-chev--end" aria-hidden="true"></span></a>
       </div>
-      <ProductGrid cards={related} lang={lang} strings={strings} level={3} />
+      <ProductGrid cards={related} lang={lang} strings={strings} level={3} defer />
     </section>
   )}
 
@@ -105,6 +110,7 @@ const dev = import.meta.env.DEV;
       <div class="cat-vps cat-buybar-price">
         {blocks.map((v) => <span class:list={['cat-vp', { 'cat-vp-d': v === def }]} data-k={v?.key}>{v?.price.label}</span>)}
         {mode === 'multi' && <span class="cat-vp cat-vp-none"></span>}
+        {anyPrice && <span class="cat-vp cat-vp-any">{anyPrice.label}</span>}
       </div>
       <a class="cat-btn cat-buybar-cta" href="#order">{t(strings, 'product.orderCta')}</a>
     </div>

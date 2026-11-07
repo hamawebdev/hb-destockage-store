@@ -7,6 +7,7 @@
 import './card.css';
 import type { Lang, ProductCard as Card, StringTable } from '@hb/catalog';
 import Picture from '../Picture.astro';
+import DeferredImg from './DeferredImg.astro';
 import Price from './Price.astro';
 import Stock from './Stock.astro';
 import { latinLang, showDevMarkers, t } from './lib/i18n.ts';
@@ -18,8 +19,10 @@ interface Props {
   strings: StringTable;
   /** Heading level of the card title: 2 directly under the page h1, 3 under a section h2. */
   level?: 2 | 3;
+  /** Below-the-fold block on a page whose JS promotes deferred images (product page related grid, BUG-18). */
+  defer?: boolean;
 }
-const { card, lang, strings, level = 2 } = Astro.props;
+const { card, lang, strings, level = 2, defer = false } = Astro.props;
 const H = `h${level}` as 'h2' | 'h3';
 const out = card.stock.state === 'out_of_stock';
 const dev = showDevMarkers();
@@ -27,7 +30,11 @@ const dev = showDevMarkers();
 <article class:list={['cat-card', { 'cat-card--out': out }]}>
   <div class="cat-card-media">
     {card.image ? (
-      <Picture image={{ ...card.image, alt: '' }} class="cat-card-img" />
+      defer && !card.image.lcp ? (
+        <DeferredImg image={{ ...card.image, alt: '' }} class="cat-card-img" />
+      ) : (
+        <Picture image={{ ...card.image, alt: '' }} class="cat-card-img" />
+      )
     ) : (
       <span class="cat-card-noimg">{dev && t(strings, 'dev.photoPlaceholder')}</span>
     )}
@@ -54,6 +61,7 @@ const dev = showDevMarkers();
 <style is:global>
   .cat-card{position:relative;display:flex;flex-direction:column;gap:var(--space-3);min-inline-size:0}
   .cat-card-media{position:relative;aspect-ratio:1;overflow:hidden;border-radius:var(--radius-lg);background:var(--color-surface-alt)}
+  .cat-card-media img[hidden]{display:none}
   .cat-card-img,.cat-card-media img{display:block;inline-size:100%;block-size:100%;object-fit:contain;transition:transform var(--dur-slow) var(--ease-standard)}
   .cat-card:hover .cat-card-media img{transform:scale(1.03)}
   .cat-card--out .cat-card-media img{opacity:.55}

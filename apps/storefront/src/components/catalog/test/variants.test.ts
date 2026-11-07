@@ -69,8 +69,8 @@ describe('constant positional CSS', () => {
     expect(css.match(/\.cat-curs>:nth-child\(\d+\)/g)).toHaveLength(CSS_POSITIONS);
     expect(css).toContain(`.cat-vps>:nth-child(${CSS_POSITIONS})`);
   });
-  test('no JS: the default price hides only when a covered value (1–8) replaces it, so a price is always visible', () => {
-    expect(css).toContain(`.cat-pdp:has([data-mode=single] .cat-val:nth-child(-n+${CSS_POSITIONS})>:checked:not([checked])) .cat-vp-d{display:none}`);
-    expect(css).not.toMatch(/\[data-mode=single\] \.cat-val-in:checked\) \.cat-vp-d/);
+  test('no JS: changing the value hides the default price; beyond the covered values a neutral block shows', () => {
+    expect(css).toContain('.cat-pdp:has([data-mode=single] .cat-val-in:checked:not([checked])) .cat-vp-d{display:none}');
+    expect(css).toContain(`.cat-pdp:has([data-mode=single] .cat-val:nth-child(n+${CSS_POSITIONS + 1})>:checked:not([checked])) .cat-vp-any{display:block}`);
   });
 });

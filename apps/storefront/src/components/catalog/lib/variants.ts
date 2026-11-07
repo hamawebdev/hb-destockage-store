@@ -80,7 +80,7 @@ export function variantBlocks({ options, variants }: PickerInput): readonly (Var
 
 /**
  * How many values per option the template's positional CSS covers (VariantPicker.astro; a test
- * keeps them in sync). Without JS, choosing a value beyond it keeps the default's price visible (a
- * price is always shown; the review step has the exact one); variant.js covers every value.
+ * keeps them in sync). Without JS, choosing a value beyond it shows a neutral "from <lowest>" block
+ * (ProductView .cat-vp-any), never another variant's price; variant.js covers every value.
  */
 export const CSS_POSITIONS = 8;

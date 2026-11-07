@@ -1,24 +1,33 @@
-// Product page enhancement (pages). Loaded after LCP by shell's loader; plain JS, no imports.
-// 1. Variant picker: resolve the chosen combination to a variant (`.cat-vps > [data-k]`),
-//    switch every price/stock block and "selected value" label, mark values that cannot be
-//    combined with the other options (multi), fill the hidden variantId (multi) and tell the
-//    order form: `hb:variant` {variantId, priceDzd, maxQty, available} on #order-form, at init
-//    and on every change (contract with orderform).
-// 2. Gallery: thumbnails scroll the track only (not the page), aria-current follows the slide,
-//    and a variant with its own photo brings it into view.
+// Product page enhancement (pages). Plain JS after load via shell's loader; contract and comments:
+// lib/variants.ts (picker, hb:variant), Gallery.astro and DeferredImg.astro (images deferred past LCP).
 const pdp = document.querySelector('.cat-pdp');
 const picker = pdp && pdp.querySelector('.cat-picker');
 const track = pdp && pdp.querySelector('.cat-gal-track');
 const thumbs = pdp ? [...pdp.querySelectorAll('.cat-gal-thumbs a')] : [];
 
+const later = track ? [...track.querySelectorAll('img[data-srcset]')] : [];
+const promote = (img) => {
+  if (!img.dataset.srcset) return;
+  img.srcset = img.dataset.srcset;
+  img.src = img.dataset.src;
+  delete img.dataset.srcset;
+  img.hidden = false;
+};
+const wake = (all) => (all ? later : later.slice(0, 1)).forEach(promote);
 const show = (i, smooth) => {
+  wake(true);
   const slide = track && track.children[i];
   if (!slide) return;
   track.scrollTo({ left: slide.offsetLeft - track.children[0].offsetLeft, behavior: smooth ? 'smooth' : 'instant' });
   thumbs.forEach((a, j) => (j === i ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
 };
 
+(window.requestIdleCallback || setTimeout)(() => {
+  for (const img of document.querySelectorAll('img[data-srcset]')) if (!track || !track.contains(img)) promote(img);
+  wake(false);
+});
 if (track) {
+  for (const ev of ['pointerdown', 'scroll', 'focusin']) track.addEventListener(ev, () => wake(true), { once: true, passive: true });
   thumbs.forEach((a, i) =>
     a.addEventListener('click', (e) => {
       e.preventDefault();
@@ -65,7 +74,6 @@ if (picker) {
         const na = !(b && b.dataset.a === '1');
         const label = r.parentElement;
         label.toggleAttribute('data-na', na);
-        // Not colour (or the strike) alone: the radio's name says it too, for screen readers.
         let note = label.querySelector('.cat-na-t');
         if (na && !note && !r.disabled) {
           note = document.createElement('span');

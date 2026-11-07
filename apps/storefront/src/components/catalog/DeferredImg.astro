@@ -1,0 +1,22 @@
+---
+/**
+ * An image that must not be requested before LCP (BUG-18). Chrome's lazy-load distance on slow
+ * connections reaches far below the fold and into horizontal scrollers, so loading="lazy" alone
+ * still fetches it during the LCP window. Ships as a hidden <img> with data-src/data-srcset (no
+ * request) that variant.js promotes after load, plus a <noscript> copy through shell's Picture so
+ * it is still shown without JS. Never use it for the LCP image.
+ */
+import type { ImageProps } from '@hb/catalog';
+import Picture from '../Picture.astro';
+
+interface Props {
+  image: ImageProps;
+  sizes?: string;
+  class?: string;
+}
+const { image, sizes, class: cls } = Astro.props;
+if (image.lcp) throw new Error('DeferredImg: the LCP image must be rendered with Picture');
+const s = sizes ?? image.sizes;
+---
+<img class={cls} data-src={image.src} data-srcset={image.srcset} sizes={s} width={image.width} height={image.height} alt={image.alt} loading="lazy" decoding="async" hidden />
+<noscript><Picture image={image} sizes={s} {...(cls ? { class: cls } : {})} /></noscript>

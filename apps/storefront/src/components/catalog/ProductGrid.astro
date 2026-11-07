@@ -11,11 +11,13 @@ interface Props {
   strings: StringTable;
   level?: 2 | 3;
   class?: string;
+  /** Defer the card images past LCP (product page related grid; variant.js promotes them). */
+  defer?: boolean;
 }
-const { cards, lang, strings, level = 2, class: cls } = Astro.props;
+const { cards, lang, strings, level = 2, class: cls, defer = false } = Astro.props;
 ---
 <ul class:list={['cat-grid', cls]} role="list">
-  {cards.map((card) => <li><ProductCard card={card} lang={lang} strings={strings} level={level} /></li>)}
+  {cards.map((card) => <li><ProductCard card={card} lang={lang} strings={strings} level={level} defer={defer} /></li>)}
 </ul>
 
 <style is:global>

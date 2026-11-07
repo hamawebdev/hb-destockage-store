@@ -69,6 +69,34 @@ describe.each(['ar', 'fr'] as const)('product page (%s)', (lang) => {
     expect(html).toMatch(/<a href="#photo-1"[^>]*>\s*<img[^>]*sizes="72px"[^>]*loading="lazy"/);
   });
 
+  it('BUG-18: slides 2+ carry no src/srcset outside <noscript> (no request before LCP); each has a <noscript> copy', async () => {
+    const p = product(lang, APRON);
+    const html = await render(p);
+    const track = tag(html, /<div class="cat-gal-track"[\s\S]*?<\/div>/);
+    const slides = track.split('<figure').slice(1);
+    expect(slides).toHaveLength(p.images.length);
+    expect(slides[0]).toContain('fetchpriority="high"');
+    for (const [i, sl] of slides.slice(1).entries()) {
+      const outside = sl.replace(/<noscript>[\s\S]*?<\/noscript>/g, '');
+      expect(outside, `slide ${i + 2}`).not.toMatch(/\s(src|srcset)="/);
+      expect(outside).toContain(`data-srcset="${p.images[i + 1]!.srcset}"`);
+      expect(outside).toMatch(/<img[^>]*hidden/);
+      expect(sl).toMatch(/<noscript>\s*<img[^>]*srcset=/);
+    }
+  });
+
+  it('BUG-18: related cards and pack thumbnails are deferred too; the only requestable image outside <noscript> is the LCP one (+ ≥1024 thumbnails)', async () => {
+    for (const p of [product(lang, PACK), product(lang, APRON)]) {
+      const html = await render(p);
+      const outside = html.replace(/<noscript>[\s\S]*?<\/noscript>/g, '').replace(/<nav class="cat-gal-thumbs"[\s\S]*?<\/nav>/, '');
+      const live = outside.match(/<img\b[^>]*\ssrcset="[^"]*"[^>]*>/g) ?? [];
+      expect(live, p.product.name).toHaveLength(1);
+      expect(live[0]).toContain('fetchpriority="high"');
+      const rel = tag(html, /<section class="cat-sec cat-rel"[\s\S]*?<\/section>/);
+      expect(rel.match(/<noscript>\s*<img/g)?.length).toBe(p.related.filter((r) => r.image).length);
+    }
+  });
+
   it('pack: contents listed with quantities; an item without its own page is not a link', async () => {
     const p = product(lang, PACK);
     const html = await render(p);
@@ -130,6 +158,10 @@ describe('single option with 9+ values (no JS)', () => {
     expect(html.match(/<div class="cat-vp[^"]*"[^>]*data-k="/g)).toHaveLength(10);
     expect(tag(html, /<div class="cat-vp cat-vp-d"[^>]*>/)).toContain('data-v="9009"');
     expect(tag(html, /<input[^>]*id="ov-909"[^>]*>/)).toMatch(/name="variantId" value="9009"[^>]*checked/);
+    // The neutral "from" block comes after every positional block, so the :nth-child rules never reach it.
+    const box = tag(html, /<div class="cat-vps"[\s\S]*?<div class="cat-picker"/);
+    expect(box.lastIndexOf('cat-vp-any')).toBeGreaterThan(box.lastIndexOf('data-k="909"'));
+    expect(box).toMatch(/cat-vp-any[\s\S]*?1000 DA/);
     // PAGES_RENDER_OUT=<dir>: keep the markup for the no-JS browser check (artifacts/PAGES-5).
     const out = process.env['PAGES_RENDER_OUT'];
     if (out) writeFileSync(`${out}/ten-sizes-default-10.html`, html);
