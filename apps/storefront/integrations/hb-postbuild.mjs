@@ -7,12 +7,13 @@
 // ?v=<hash> URLs are computed from the source so cache-busting is unaffected). One sheet for both languages (lead decision on SHELL-1 r1 F2): /fr/ pages carry the
 // Arabic @font-face text but must never preload the font.
 // Owner: shell. Plan: artifacts/SHELL-0/plan.md §2.3.
+import { readFileSync, readdirSync } from 'node:fs';
 import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync, constants } from 'node:zlib';
 import { minify } from 'vite';
-import { checkPage, classesIn, knownClasses, mergeStyles, pruneCustomProperties, sha256, trimUnusedRules } from './postbuild-core.mjs';
+import { checkCatalogAssets, checkPage, classesIn, knownClasses, mergeStyles, pruneCustomProperties, sha256, trimUnusedRules } from './postbuild-core.mjs';
 
 async function* walk(dir) {
   for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -25,7 +26,7 @@ async function* walk(dir) {
 const br = (s) => brotliCompressSync(Buffer.from(s), { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
 
 /**
- * @param {{ allowedInlineScripts: readonly string[], routes?: () => readonly { path: string, template: string }[], extraGroups?: readonly { pattern: RegExp, template: string }[], copy?: readonly { from: string, to: string }[] }} opts
+ * @param {{ allowedInlineScripts: readonly string[], routes?: () => readonly { path: string, template: string }[] | Promise<readonly { path: string, template: string }[]>, extraGroups?: readonly { pattern: RegExp, template: string }[], copy?: readonly { from: string, to: string }[], siteOrigin?: string }} opts
  *   allowedInlineScripts: exact bodies of the constant inline scripts (src/lib/inline-scripts.mjs).
  *   routes: every route-map entry; each must have produced a file, and all pages of one template
  *   must carry byte-identical inline CSS (apps/web's CSP groups style hashes per template route
@@ -78,6 +79,24 @@ export default function hbPostbuild(opts) {
           }
         } catch (e) {
           if (/** @type {NodeJS.ErrnoException} */ (e).code !== 'ENOENT') throw e;
+        }
+
+        if (opts.siteOrigin) {
+          const read = (/** @type {string} */ rel) => {
+            try {
+              return readFileSync(join(root, rel), 'utf8');
+            } catch {
+              return null;
+            }
+          };
+          const list = (/** @type {string} */ dir) => {
+            try {
+              return readdirSync(join(root, dir));
+            } catch {
+              return [];
+            }
+          };
+          errors.push(...checkCatalogAssets(read, list, opts.siteOrigin));
         }
 
         const rows = [];
@@ -133,7 +152,7 @@ export default function hbPostbuild(opts) {
         const byTemplate = new Map();
         if (opts.routes) {
           const rowByPage = new Map(rows.map((r) => ['/' + r.page, r]));
-          for (const { path, template } of opts.routes()) {
+          for (const { path, template } of await opts.routes()) {
             const want = path.endsWith('.html') ? path : `${path}index.html`;
             const row = rowByPage.get(want);
             if (!row) {

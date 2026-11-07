@@ -6,6 +6,8 @@
  * - `lcp`: set it when the page renders <Picture image={layout.lcpImage}> above the fold; only then
  *   is the LCP image preloaded (imagesrcset/imagesizes identical to the <img>). hb-postbuild fails
  *   the build on an image preload that matches no <img>/<source> srcset on the page.
+ * - `kind`: template variant for measure's registry (MEAS-5) → <html data-tpl-kind>. Product:
+ *   simple|variable|pack (product.kind); category: top|sub. Any other value or template fails the build.
  * - `scripts`: same-origin /js/*.js modules (optional ?v=<hash>), imported after `load` (or on first
  *   focusin/pointerdown) by the constant inline LOADER. Components may also carry their own data-js.
  * - default slot: rendered inside <main id="main">.
@@ -26,9 +28,16 @@ interface Props {
   layout: LayoutProps;
   /** The page renders layout.lcpImage with <Picture>: preload it. */
   lcp?: boolean;
+  /** Template variant (MEAS-5): product simple|variable|pack, category top|sub. */
+  kind?: string;
   scripts?: readonly string[];
 }
-const { layout: l, lcp = false, scripts = [] } = Astro.props;
+const { layout: l, lcp = false, kind, scripts = [] } = Astro.props;
+
+const KINDS: Readonly<Record<string, readonly string[]>> = { product: ['simple', 'variable', 'pack'], category: ['top', 'sub'] };
+if (kind !== undefined && !(KINDS[l.template] ?? []).includes(kind)) {
+  throw new Error(`Base: kind "${kind}" is not valid for template "${l.template}" (allowed: ${(KINDS[l.template] ?? []).join('|') || 'none'})`);
+}
 
 for (const s of scripts) {
   if (!/^\/js\/[\w.-]+\.js(\?v=[\w-]+)?$/.test(s)) throw new Error(`Base: script "${s}" must be a same-origin /js/*.js path`);
@@ -42,7 +51,7 @@ const og = l.ogImage ?? { url: `/og-default-${l.lang}.jpg`, width: 1200, height:
 const locale = (lang: string) => (lang === 'ar' ? 'ar_DZ' : 'fr_DZ');
 ---
 <!doctype html>
-<html lang={l.lang} dir={l.dir} data-tpl={l.template}>
+<html lang={l.lang} dir={l.dir} data-tpl={l.template} data-tpl-kind={kind}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />

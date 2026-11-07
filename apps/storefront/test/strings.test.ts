@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'vitest';
-import { groupPhone, t } from '../src/lib/strings.ts';
+import { PLACEHOLDER_RE, groupPhone, placeholderParts, t } from '../src/lib/strings.ts';
 
 const table = { 'a.plain': 'Bonjour', 'a.count': '{count} produits', 'a.ph': 'Horaires [PLACEHOLDER]' };
 
@@ -19,3 +19,24 @@ describe('t()', () => {
 });
 
 test('groupPhone groups a national mobile number', () => expect(groupPhone('0560417403')).toBe('0560 41 74 03'));
+
+describe('placeholder markers', () => {
+  test('both forms are detected', () => {
+    for (const v of ['x [PLACEHOLDER]', '[PLACEHOLDER: note]', 'a [PLACEHOLDER : texte] b']) expect(PLACEHOLDER_RE.test(v), v).toBe(true);
+    expect(PLACEHOLDER_RE.test('placeholder text')).toBe(false);
+  });
+  test('placeholderParts splits text and markers, keeping notes', () => {
+    expect(placeholderParts('Horaires 9 h [PLACEHOLDER]')).toEqual([{ text: 'Horaires 9 h' }, { note: null }]);
+    expect(placeholderParts('Délai [PLACEHOLDER : à confirmer] puis fin')).toEqual([{ text: 'Délai' }, { note: 'à confirmer' }, { text: 'puis fin' }]);
+    expect(placeholderParts('عادةً [PLACEHOLDER: المدة في انتظار تأكيد HB Destockage]')).toEqual([{ text: 'عادةً' }, { note: 'المدة في انتظار تأكيد HB Destockage' }]);
+    expect(placeholderParts('no marker')).toEqual([{ text: 'no marker' }]);
+  });
+  test('strict mode refuses the noted form too', () => {
+    process.env['HB_STRICT_COPY'] = '1';
+    try {
+      expect(() => t({ k: 'x [PLACEHOLDER: y]' }, 'k')).toThrow(/placeholder/);
+    } finally {
+      delete process.env['HB_STRICT_COPY'];
+    }
+  });
+});

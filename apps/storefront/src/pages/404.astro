@@ -1,9 +1,11 @@
 ---
-// Root /404.html: unknown paths outside /ar/ and /fr/. Arabic (primary) with the language switch to /fr/. Owner: shell.
+// Root /404.html: unknown paths outside /ar/ and /fr/ (Workers static assets 404-page). Arabic,
+// the primary language, with the language switch to /fr/. Owner: shell.
 import Base from '../layouts/Base.astro';
+import NotFoundView from '../components/notfound/NotFoundView.astro';
 import { pageProps } from '../lib/catalog.ts';
 const props = pageProps('not-found', 'ar');
 ---
 <Base layout={props.layout}>
-  <div class="container"><h1>404</h1></div>
+  <NotFoundView props={props} />
 </Base>

@@ -291,3 +291,37 @@ export function runtimeClassesIn(js) {
   for (const m of js.matchAll(/class=\\?["']([^"'\\]*)/g)) take(`'${m[1] ?? ''}'`);
   return out;
 }
+
+/**
+ * The catalogue pre-build's outputs must be in dist (lead: a plain build with HB_SNAPSHOT and
+ * HB_SITE_ORIGIN produces the search index and geo assets). Pure over a file reader.
+ * @param {(rel: string) => string | null} read dist-relative path -> contents, or null when missing
+ * @param {(dir: string) => string[]} list dist-relative dir -> file names ([] when missing)
+ * @param {string} origin the site origin (no trailing slash)
+ * @returns {string[]} problems (empty = ok)
+ */
+export function checkCatalogAssets(read, list, origin) {
+  const errors = [];
+  for (const lang of ['ar', 'fr']) {
+    const rel = `search/${lang}.json`;
+    const raw = read(rel);
+    if (raw === null) errors.push(`${rel} missing (catalogue pre-build output)`);
+    else {
+      try {
+        const idx = JSON.parse(raw);
+        if (idx?.lang !== lang || !Array.isArray(idx?.entries) || idx.entries.length === 0) errors.push(`${rel}: not a non-empty ${lang} search index`);
+      } catch (e) {
+        errors.push(`${rel}: invalid JSON (${/** @type {Error} */ (e).message})`);
+      }
+    }
+    const communes = list(`geo/communes/${lang}`).filter((f) => f.endsWith('.json'));
+    if (communes.length !== 69) errors.push(`geo/communes/${lang}: ${communes.length} wilaya files, expected 69`);
+  }
+  const sitemap = read('sitemap.xml');
+  if (sitemap === null) errors.push('sitemap.xml missing');
+  else if (!sitemap.includes(`<loc>${origin}/`)) errors.push(`sitemap.xml does not use the site origin ${origin}`);
+  const robots = read('robots.txt');
+  if (robots === null) errors.push('robots.txt missing');
+  else if (!robots.includes(`${origin}/sitemap.xml`)) errors.push(`robots.txt does not point at ${origin}/sitemap.xml`);
+  return errors;
+}

@@ -4,34 +4,52 @@
  * Dev builds: the text without its "[PLACEHOLDER]" marker, plus a visible dev pill
  * (dev.placeholder) and data-placeholder on the wrapper, so QA and screenshots show it.
  * Production (HB_STRICT_COPY=1): t() refuses the placeholder and the build fails, as on content pages.
- * Use it for every chrome string sourced from a fact the client must confirm (QA-2 BUG-11). Owner: shell.
+ * Use it for every chrome string sourced from a fact the client must confirm (QA-2 BUG-11), and for
+ * content-page text (`text` instead of `k`). Owner: shell.
  */
 import type { StringTable } from '@hb/catalog';
-import { t } from '../lib/strings.ts';
+import { PLACEHOLDER_RE, placeholderParts, t } from '../lib/strings.ts';
 
 interface Props {
   strings: StringTable;
-  k: string;
+  /** A brand/copy key… */
+  k?: string;
+  /** …or literal text (content-page blocks). */
+  text?: string;
   class?: string;
 }
-const { strings, k, class: cls } = Astro.props;
-const raw = t(strings, k);
-const placeholder = raw.includes('[PLACEHOLDER]');
-const text = raw.replace(/\s*\[PLACEHOLDER\]\s*/g, ' ').trim();
+const { strings, k, text: literal, class: cls } = Astro.props;
+if ((k === undefined) === (literal === undefined)) throw new Error('Copy: pass exactly one of `k` or `text`');
+const raw = k !== undefined ? t(strings, k) : (literal as string);
+if (literal !== undefined && process.env['HB_STRICT_COPY'] === '1' && PLACEHOLDER_RE.test(raw)) {
+  throw new Error(`content text is a placeholder: "${raw.slice(0, 60)}"`);
+}
+const parts = placeholderParts(raw);
+const placeholder = parts.some((x) => 'note' in x);
+const pill = placeholder ? t(strings, 'dev.placeholder') : '';
 ---
-<span class={cls} data-placeholder={placeholder ? k : undefined}>{text}{placeholder && <> <span class="dev-ph">{t(strings, 'dev.placeholder')}</span></>}</span>
+<span class={cls} data-placeholder={placeholder ? (k ?? 'text') : undefined}>{
+  parts.map((x, i) =>
+    'text' in x ? (
+      x.text
+    ) : (
+      <>{i > 0 && ' '}<bdi class="dev-ph">{pill}{x.note && `: ${x.note}`}</bdi>{i < parts.length - 1 && ' '}</>
+    ),
+  )
+}</span>
 
 <style is:global>
   @layer components {
     .dev-ph {
-      display: inline-block;
+      display: inline;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
       padding-inline: var(--space-2);
       border-radius: var(--radius-pill);
       background: var(--color-warning-surface);
       color: var(--color-warning);
       font-size: var(--fs-caption);
       font-weight: var(--fw-emphasis);
-      white-space: nowrap;
     }
   }
 </style>

@@ -7,10 +7,26 @@
  */
 import type { StringTable } from '@hb/catalog';
 
+/** `[PLACEHOLDER]` or `[PLACEHOLDER: note]` / `[PLACEHOLDER : note]` (brand/copy and data/content). */
+export const PLACEHOLDER_RE = /\[PLACEHOLDER\b/;
+
+/** Split a text into plain parts and placeholder markers (with their optional note). */
+export function placeholderParts(text: string): ({ text: string } | { note: string | null })[] {
+  const out: ({ text: string } | { note: string | null })[] = [];
+  let last = 0;
+  for (const m of text.matchAll(/\s*\[PLACEHOLDER\s*(?::\s*([^\]]*?))?\s*\]\s*/g)) {
+    if (m.index > last) out.push({ text: text.slice(last, m.index) });
+    out.push({ note: m[1] ? m[1] : null });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push({ text: text.slice(last) });
+  return out;
+}
+
 export function t(strings: StringTable, key: string, vars?: Readonly<Record<string, string | number>>): string {
   const v = strings[key];
   if (v === undefined) throw new Error(`missing UI string "${key}"`);
-  if (process.env['HB_STRICT_COPY'] === '1' && v.includes('[PLACEHOLDER]')) throw new Error(`UI string "${key}" is a placeholder`);
+  if (process.env['HB_STRICT_COPY'] === '1' && PLACEHOLDER_RE.test(v)) throw new Error(`UI string "${key}" is a placeholder`);
   if (vars === undefined) return v;
   return v.replace(/\{(\w+)\}/g, (_, name: string) => {
     const x = vars[name];
