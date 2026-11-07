@@ -18,6 +18,7 @@ import { WILAYA_CODE_MAX, WILAYA_CODE_MIN } from './ids.ts';
 import { LANGS, type Lang } from './lang.ts';
 import { MAX_ORDER_LINES, MAX_QTY_PER_LINE, type Dzd } from './money.ts';
 import type { OrderStatus } from './order-state.ts';
+import { normalizeName } from './name.ts';
 import { normalizePhone, toAsciiDigits, type PhoneE164 } from './phone.ts';
 
 // ---------------------------------------------------------------------------------------------
@@ -144,8 +145,7 @@ export interface OrderFieldError {
 /** Name of the honeypot input. Hidden from humans; any non-empty value flags the order. */
 export const HONEYPOT_FIELD = 'website';
 
-export const NAME_MIN_LENGTH = 2;
-export const NAME_MAX_LENGTH = 80;
+export { NAME_MAX_LENGTH, NAME_MIN_LENGTH } from './name.ts';
 /** Upper bound for `fillMs` (24 h); larger or malformed values count as missing. */
 export const MAX_FILL_MS = 86_400_000;
 
@@ -162,27 +162,19 @@ function intField(code: OrderErrorCode, min: number, max: number) {
   );
 }
 
-// Bidi marks, embeddings, overrides, isolates, zero-width space, word joiner and BOM: invisible,
-// never part of a name. ZWNJ/ZWJ (U+200C/U+200D) are kept: they shape Arabic-script text.
-const INVISIBLE_RE = /[\u200B\u200E\u200F\u061C\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g;
-// Anything still left that is a control, surrogate, private-use or other format character.
-const FORBIDDEN_IN_NAME_RE = /[\p{Cc}\p{Cs}\p{Co}]|(?![\u200C\u200D])\p{Cf}/u;
-
 export const LangSchema = /* @__PURE__ */ v.picklist(LANGS, 'lang_invalid');
 
-/**
- * NFC, invisible marks removed, whitespace collapsed; 2–80 characters with at least one letter;
- * no remaining control/format characters except ZWNJ/ZWJ.
- */
+/** The order-name rule of `normalizeName` (name.ts), as a Valibot schema; output is the normalised name. */
 export const NameSchema = /* @__PURE__ */ v.pipe(
   v.string('name_required'),
-  v.normalize('NFC'),
-  v.transform((s) => s.replace(INVISIBLE_RE, '').replace(/\s+/gu, ' ').trim()),
-  v.nonEmpty('name_required'),
-  v.check((s) => !FORBIDDEN_IN_NAME_RE.test(s), 'name_invalid'),
-  v.regex(/\p{L}/u, 'name_invalid'),
-  v.minLength(NAME_MIN_LENGTH, 'name_invalid'),
-  v.maxLength(NAME_MAX_LENGTH, 'name_invalid'),
+  v.rawTransform(({ dataset, addIssue, NEVER }) => {
+    const r = normalizeName(dataset.value);
+    if (!r.ok) {
+      addIssue({ message: r.code });
+      return NEVER;
+    }
+    return r.value;
+  }),
 );
 
 /** Validates and normalises an Algerian mobile; output `{ e164, national }`. */

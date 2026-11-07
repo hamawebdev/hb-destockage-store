@@ -3,6 +3,7 @@
 export * from './lang.ts';
 export * from './ids.ts';
 export * from './phone.ts';
+export * from './name.ts';
 export * from './money.ts';
 export * from './fees.ts';
 export * from './order-state.ts';
