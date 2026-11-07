@@ -228,6 +228,33 @@ describe('store settings', () => {
     }
     expect(await n()).toBe(before);
   });
+  test('only allowlisted keys are written: jobs-owned, unknown and __proto__ fields are ignored', async () => {
+    const backupBefore = await h.db.prepare("select value, updated_at from settings where key = 'jobs.backup_status'").first<{ value: string; updated_at: number }>();
+    expect(backupBefore).not.toBeNull();
+    const lastAuditId = (await h.db.prepare('select coalesce(max(id), 0) as id from audit_log').first<{ id: number }>())!.id;
+    const res = await postAs(h, USERS.owner, '/settings', {
+      ...valid,
+      whatsapp: '0779942022',
+      callRetryMinutes: '50', // one real change, so the write path runs
+      'jobs.backup_status': JSON.stringify({ lastSuccess: { at: new Date().toISOString() } }),
+      'jobs.notify_invalid': '{"count":0}',
+      'jobs.runtime_budget': '{"ms":1}',
+      unknownKey: 'x',
+      ['__proto__']: 'polluted', // computed key: a real own property, so it is sent as a form field
+      'constructor.prototype.polluted': '1',
+    });
+    expect(res.status).toBe(303);
+    // jobs-owned rows untouched
+    const backupAfter = await h.db.prepare("select value, updated_at from settings where key = 'jobs.backup_status'").first<{ value: string; updated_at: number }>();
+    expect(backupAfter).toEqual(backupBefore);
+    for (const k of ['jobs.notify_invalid', 'jobs.runtime_budget', 'unknownKey', '__proto__', 'constructor.prototype.polluted']) {
+      expect(await h.db.prepare('select key from settings where key = ?').bind(k).first(), k).toBeNull();
+    }
+    // exactly one audit row, for the real change
+    const rows = (await h.db.prepare('select entity_id from audit_log where id > ? order by id').bind(lastAuditId).all<{ entity_id: string }>()).results;
+    expect(rows.map((r) => r.entity_id)).toEqual(['callRetryMinutes']);
+    expect(({} as Record<string, unknown>)['polluted']).toBeUndefined();
+  });
   test('the form shows stored values (WhatsApp as +E.164) and the publish note', async () => {
     const html = await (await h.as(USERS.owner, '/settings')).text();
     expect(html).toContain('value="+213779942022"');
