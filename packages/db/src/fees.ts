@@ -23,6 +23,12 @@ const UNAVAILABLE: FeeQuote = { available: false, feeDzd: null, source: ADMIN_TA
 export interface AdminTableFeeProviderOptions {
   /** Serve fees marked `placeholder` (seeded, invented). Local development only. Default false. */
   readonly allowPlaceholderFees?: boolean;
+  /**
+   * Read attempts on a D1 error (default 2: one retry) and the pause between them (default 25 ms,
+   * kept short: /api/order waits on it). If every attempt fails the quote REJECTS (server_error),
+   * never "no delivery" (DB-6 r1: transient D1 read failures; D1 docs recommend retrying reads).
+   */
+  readonly retry?: { readonly attempts?: number; readonly backoffMs?: number };
   /** Optional bounded cache. Omitted = no cache (the default and what /api/order must use). */
   readonly cache?: { readonly ttlMs: number; readonly maxEntries?: number; readonly now?: () => number };
 }
@@ -34,7 +40,21 @@ export function createAdminTableFeeProvider(db: Db, opts: AdminTableFeeProviderO
   const maxEntries = Math.min(Math.max(1, cache?.maxEntries ?? 69), 69);
   const clock = cache?.now ?? Date.now;
 
+  const attempts = Math.min(Math.max(1, Math.trunc(opts.retry?.attempts ?? 2)), 3);
+  const backoffMs = Math.min(Math.max(0, opts.retry?.backoffMs ?? 25), 100);
+
   async function read(wilayaCode: number): Promise<FeeQuote> {
+    for (let i = 1; ; i++) {
+      try {
+        return await readOnce(wilayaCode);
+      } catch (err) {
+        if (i >= attempts) throw err;
+        if (backoffMs > 0) await new Promise((r) => setTimeout(r, backoffMs * i));
+      }
+    }
+  }
+
+  async function readOnce(wilayaCode: number): Promise<FeeQuote> {
     const row = await db
       .select({ feeDzd: deliveryFees.feeDzd, available: deliveryFees.available, placeholder: deliveryFees.placeholder })
       .from(deliveryFees)

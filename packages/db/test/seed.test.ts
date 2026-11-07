@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from 'vitest';
 import type Database from 'better-sqlite3';
-import { buildSeedStatements, categoriesInTreeOrder, referencedImageKeys, type SeedInput, type SeedProduct } from '../src/seed/build.ts';
+import { blockedVariantDeletionsQuery, buildSeedStatements, categoriesInTreeOrder, referencedImageKeys, type SeedInput, type SeedProduct } from '../src/seed/build.ts';
 import { DEV_ADMIN_USERS } from '../src/seed/dev-users.ts';
 import { databaseIdFromWranglerJsonc, LOCAL_DATABASE_ID, seedRefusals } from '../src/seed/guard.ts';
 import { loadSeedInput } from '../src/seed/load.ts';
@@ -89,7 +89,7 @@ describe('DB-3 seed statements', () => {
     const { sqlite } = freshDb();
     run(sqlite, fixture);
     expect(sqlite.pragma('foreign_key_check')).toEqual([]);
-    expect(counts(sqlite)).toMatchObject({ wilayas: 2, communes: 2, delivery_fees: 2, admin_users: 5, categories: 2, products: 2, variants: 3, variant_option_values: 2, pack_items: 2, images: 4, content_pages: 1, settings: 7 });
+    expect(counts(sqlite)).toMatchObject({ wilayas: 2, communes: 2, delivery_fees: 2, admin_users: 5, categories: 2, products: 2, variants: 3, variant_option_values: 2, pack_items: 2, images: 4, content_pages: 1, settings: 8 }); // 7 data keys + seed.owned
   });
 
   test('re-running is idempotent (same counts, same rows)', () => {
@@ -141,6 +141,172 @@ describe('DB-3 seed statements', () => {
     expect(sqlite.prepare('select variant_id, option_value_id from images where id = 2012').get()).toEqual({ variant_id: null, option_value_id: 201102 });
   });
 
+  // DB-3 r3: a re-run converges the catalogue to data/ exactly.
+  const ids = (sqlite: Database.Database, sql: string) => (sqlite.prepare(sql).all() as { id: number }[]).map((r) => r.id);
+  const changedFixture = (): SeedInput => ({
+    ...fixture,
+    categories: fixture.categories.map((c) => (c.id === 2 ? { ...c, image: null } : c)), // category image dropped
+    products: [
+      { ...pack, packItems: [pack.packItems[0]!] }, // one pack item dropped
+      {
+        ...shirt,
+        images: [shirt.images[1]!], // image 2011 dropped
+        // variant 20102 renamed to 20109 with the SAME sku: the old row must go before the new one is written
+        variants: shirt.variants.map((v) => (v.id === 20102 ? { ...v, id: 20109 } : v)),
+      },
+    ],
+  });
+
+  test('re-running with changed data converges the DB to data/ (drop image, rename variant id, drop pack item)', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    run(sqlite, changedFixture());
+    expect(ids(sqlite, 'select id from images order by id')).toEqual([1011, 2012]);
+    expect(ids(sqlite, 'select id from variants where product_id = 201 order by id')).toEqual([20101, 20109]);
+    expect(sqlite.prepare('select sku from variants where id = 20109').get()).toEqual({ sku: 'TS-B' });
+    expect(sqlite.prepare('select variant_id from pack_items').all()).toEqual([{ variant_id: 20101 }]);
+    expect(sqlite.prepare('select option_value_id from variant_option_values where variant_id = 20109').all()).toEqual([{ option_value_id: 201102 }]);
+    expect(sqlite.pragma('foreign_key_check')).toEqual([]);
+    // And back again: converges to the original.
+    run(sqlite, fixture);
+    expect(ids(sqlite, 'select id from images order by id')).toEqual([1011, 2011, 2012, 9001]);
+    expect(ids(sqlite, 'select id from variants where product_id = 201 order by id')).toEqual([20101, 20102]);
+  });
+
+  test('a dropped option value and option are deleted too', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    const noBlue: SeedProduct = {
+      ...shirt,
+      options: [{ ...shirt.options[0]!, values: [shirt.options[0]!.values[0]!] }],
+      variants: [shirt.variants[0]!],
+      images: [shirt.images[0]!],
+    };
+    const packOfRed: SeedProduct = { ...pack, packItems: [{ variantId: 20101, qty: 1 }] };
+    run(sqlite, { ...fixture, products: [packOfRed, noBlue] });
+    expect(ids(sqlite, 'select id from option_values order by id')).toEqual([201101]);
+    const noOptions: SeedProduct = { ...noBlue, kind: 'simple', options: [], variants: [{ ...shirt.variants[0]!, optionValueIds: [] }] };
+    run(sqlite, { ...fixture, products: [packOfRed, noOptions] });
+    expect(ids(sqlite, 'select id from product_options')).toEqual([]);
+  });
+
+  test('a variant to delete that an order line references: reported by the pre-check, and the batch would abort', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    sqlite.exec(`insert into customers (id, phone_e164, name) values (1, '+213560417403', 'A');
+      insert into orders (id, ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, subtotal_dzd, fee_dzd, total_dzd, fee_source)
+      values (1, 'HB-7K2Q9', 'k', 1, 'A', '+213560417403', 16, 1601, 'ar', 1500, 400, 1900, 'table');
+      insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd) values (1, 20102, 201, 'T', 'ق', 'TS-B', 1500, 1, 1500);`);
+    const blocked = blockedVariantDeletionsQuery(changedFixture()).flatMap((q) => sqlite.prepare(q.sql).all(...q.params));
+    expect(blocked).toEqual([{ id: 20102, sku: 'TS-B', order_lines: 1, other_packs: 0 }]);
+    expect(() => run(sqlite, changedFixture())).toThrow(/FOREIGN KEY/);
+    expect(ids(sqlite, 'select id from variants where product_id = 201 order by id')).toEqual([20101, 20102]); // rolled back
+    expect((sqlite.prepare('select count(*) n from orders').get() as { n: number }).n).toBe(1);
+  });
+
+  test('a variant to delete that a pack outside data/ references is reported', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    sqlite.exec(`insert into products (id, kind, category_id, slug_fr, slug_ar, name_fr, name_ar) values (999, 'pack', 21, 'admin-pack', 'admin-pack-ar', 'P', 'ب');
+      insert into pack_items (pack_product_id, variant_id, qty) values (999, 20102, 1);`);
+    const blocked = blockedVariantDeletionsQuery(changedFixture()).flatMap((q) => sqlite.prepare(q.sql).all(...q.params));
+    expect(blocked).toEqual([{ id: 20102, sku: 'TS-B', order_lines: 0, other_packs: 1 }]);
+    expect(blockedVariantDeletionsQuery(fixture).flatMap((q) => sqlite.prepare(q.sql).all(...q.params))).toEqual([]);
+  });
+
+  test('printed_prices_dzd comes from the photo manifest by key; photos absent from it print none (DB-8)', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, { ...fixture, printedPrices: { 'shared/1.jpg': [14600, 13600] } });
+    // One key backs two image rows (1011 on the pack, 2011 on the shirt): both get it.
+    expect(sqlite.prepare('select id, printed_prices_dzd p from images order by id').all()).toEqual([
+      { id: 1011, p: '[14600,13600]' },
+      { id: 2011, p: '[14600,13600]' },
+      { id: 2012, p: '[]' },
+      { id: 9001, p: '[]' },
+    ]);
+  });
+
+  // DB-3 r4 (rev-b r3 F1): products and categories that left data/ never stay live.
+  const owned = (sqlite: Database.Database) => JSON.parse((sqlite.prepare("select value from settings where key = 'seed.owned'").get() as { value: string }).value);
+
+  test('the seed records what it owns', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    expect(owned(sqlite)).toEqual({ products: [101, 201], categories: [2, 21] });
+  });
+
+  test('a seed-owned product removed from data/ and referenced by nothing is deleted with its children', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    const packOfNothing: SeedProduct = { ...pack, packItems: [] };
+    run(sqlite, { ...fixture, products: [packOfNothing] }); // shirt 201 removed
+    expect(ids(sqlite, 'select id from products order by id')).toEqual([101]);
+    for (const t of ['variants', 'images', 'product_options', 'option_values', 'variant_option_values']) {
+      const n = (sqlite.prepare(`select count(*) n from ${t} where ${t === 'option_values' ? 'option_id in (select id from product_options where product_id = 201)' : t === 'variant_option_values' ? 'variant_id in (20101, 20102)' : 'product_id = 201'}`).get() as { n: number }).n;
+      expect(n, t).toBe(0);
+    }
+    expect(owned(sqlite).products).toEqual([101]);
+  });
+
+  test('a removed product that an order references is archived (not live) and kept; still seed-owned', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    sqlite.exec(`insert into customers (id, phone_e164, name) values (1, '+213560417403', 'A');
+      insert into orders (id, ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, subtotal_dzd, fee_dzd, total_dzd, fee_source)
+      values (1, 'HB-7K2Q9', 'k', 1, 'A', '+213560417403', 16, 1601, 'ar', 1500, 400, 1900, 'table');
+      insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd) values (1, 20101, 201, 'T', 'ق', 'TS-R', 1500, 1, 1500);`);
+    run(sqlite, { ...fixture, products: [{ ...pack, packItems: [] }] });
+    expect(sqlite.prepare('select status from products where id = 201').get()).toEqual({ status: 'archived' });
+    expect(ids(sqlite, 'select id from variants where product_id = 201 order by id')).toEqual([20101, 20102]);
+    expect(owned(sqlite).products).toEqual([101, 201]);
+    // Back in data/: the seed takes it over again with the data's status.
+    run(sqlite, fixture);
+    expect(sqlite.prepare('select status from products where id = 201').get()).toEqual({ status: 'active' });
+  });
+
+  test('a removed product whose variant a remaining pack lists is archived, not deleted', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture); // pack 101 lists 20101 and 20102
+    run(sqlite, { ...fixture, products: [pack] });
+    expect(sqlite.prepare('select status from products where id = 201').get()).toEqual({ status: 'archived' });
+    expect(sqlite.pragma('foreign_key_check')).toEqual([]);
+  });
+
+  test('admin-created rows (not seed-owned) are never touched', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    sqlite.exec(`insert into categories (id, slug_fr, slug_ar, name_fr, name_ar) values (900, 'admin-cat', 'admin-cat-ar', 'A', 'ب');
+      insert into products (id, category_id, slug_fr, slug_ar, name_fr, name_ar, status) values (950, 900, 'admin-p', 'admin-p-ar', 'P', 'ب', 'active');
+      insert into variants (id, product_id, sku, price_dzd) values (95001, 950, 'ADMIN-1', 100);`);
+    run(sqlite, fixture);
+    expect(sqlite.prepare('select status from products where id = 950').get()).toEqual({ status: 'active' });
+    expect(sqlite.prepare('select active from categories where id = 900').get()).toEqual({ active: 1 });
+    expect(owned(sqlite)).toEqual({ products: [101, 201], categories: [2, 21] });
+  });
+
+  test('removed categories: deleted when empty (children first, image included), inactive while something needs them', () => {
+    const { sqlite } = freshDb();
+    run(sqlite, fixture);
+    // Move both products to a new category 3; drop categories 2 (has image) and its child 21.
+    const cat3 = { id: 3, parentId: null, slug: L('maison', 'bayt'), name: L('Maison', 'بيت'), description: null, sort: 0, active: true, placeholder: true };
+    run(sqlite, { ...fixture, categories: [cat3], products: [{ ...pack, categoryId: 3 }, { ...shirt, categoryId: 3 }] });
+    expect(ids(sqlite, 'select id from categories order by id')).toEqual([3]);
+    expect(ids(sqlite, 'select id from images where category_id is not null')).toEqual([]);
+    // An archived product keeps its (removed) category alive but inactive.
+    run(sqlite, fixture);
+    sqlite.exec(`insert into customers (id, phone_e164, name) values (1, '+213560417403', 'A');
+      insert into orders (id, ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, subtotal_dzd, fee_dzd, total_dzd, fee_source)
+      values (1, 'HB-7K2Q9', 'k', 1, 'A', '+213560417403', 16, 1601, 'ar', 1500, 400, 1900, 'table');
+      insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd) values (1, 20101, 201, 'T', 'ق', 'TS-R', 1500, 1, 1500);`);
+    run(sqlite, { ...fixture, categories: [cat3], products: [{ ...pack, categoryId: 3, packItems: [] }] });
+    expect(sqlite.prepare('select status, category_id from products where id = 201').get()).toEqual({ status: 'archived', category_id: 21 });
+    expect(sqlite.prepare('select id, active from categories order by id').all()).toEqual([
+      { id: 2, active: 0 },
+      { id: 3, active: 1 },
+      { id: 21, active: 0 },
+    ]);
+  });
+
   test('categories are written parents first; a cycle or unknown parent throws', () => {
     expect(categoriesInTreeOrder(fixture.categories).map((c) => c.id)).toEqual([2, 21]);
     expect(() => categoriesInTreeOrder([{ ...fixture.categories[0]!, parentId: 999 }])).toThrow(/unknown parent/);
@@ -161,6 +327,10 @@ describe('DB-3 seed refuses anything but the local D1 (lead ruling)', () => {
   const local = { argv: [], env: {}, databaseId: LOCAL_DATABASE_ID };
   test('local development target is accepted', () => {
     expect(seedRefusals(local)).toEqual([]);
+    // The repo's own config, and a commented-out remote flag, are fine.
+    const own = readFileSync(fileURLToPath(new URL('../wrangler.jsonc', import.meta.url)), 'utf8');
+    expect(seedRefusals({ ...local, configText: own })).toEqual([]);
+    expect(seedRefusals({ ...local, configText: '{ "r2_buckets": [{ "binding": "MEDIA" // "remote": true\n }] }' })).toEqual([]);
     expect(seedRefusals({ ...local, env: { ENV: 'development' } })).toEqual([]);
   });
   test.each([
@@ -172,8 +342,19 @@ describe('DB-3 seed refuses anything but the local D1 (lead ruling)', () => {
     ['ENV=staging', { ...local, env: { ENV: 'staging' } }],
     ['NODE_ENV=production', { ...local, env: { NODE_ENV: 'production' } }],
     ['CLOUDFLARE_ENV=production', { ...local, env: { CLOUDFLARE_ENV: 'production' } }],
+    // DB-3 r1 (rev-b): remote bindings and environments
+    ['--env staging', { ...local, argv: ['--env', 'staging'] }],
+    ['--env=production', { ...local, argv: ['--env=production'] }],
+    ['-e production', { ...local, argv: ['-e', 'production'] }],
+    ['an R2 binding marked remote', { ...local, configText: '{ "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "hb-media", "remote": true }] }' }],
+    ['a D1 binding marked remote', { ...local, configText: `{ "d1_databases": [{ "binding": "DB", "database_id": "${LOCAL_DATABASE_ID}", "remote" : true }] }` }],
   ])('refuses %s', (_n, target) => {
     expect(seedRefusals(target).length).toBeGreaterThan(0);
+  });
+  test('the CLI disables remote bindings in getPlatformProxy', () => {
+    const cli = readFileSync(fileURLToPath(new URL('../src/seed/cli.ts', import.meta.url)), 'utf8');
+    expect(cli).toMatch(/await getPlatformProxy<.*remoteBindings: false/);
+    expect(cli.match(/getPlatformProxy</g)).toHaveLength(1);
   });
   test("packages/db/wrangler.jsonc uses the local placeholder database_id", () => {
     const text = readFileSync(fileURLToPath(new URL('../wrangler.jsonc', import.meta.url)), 'utf8');
@@ -197,6 +378,10 @@ describe.skipIf(!hasData)('DB-3 real data/ loads into a fresh DB, twice', () => 
     expect(first.products).toBe(input.products.length);
     expect(first.content_pages).toBe(input.contentPages.length);
     expect(sqlite.pragma('foreign_key_check')).toEqual([]);
+    // DB-8: every image's printed prices equal the manifest's for its key ([] when not listed).
+    for (const r of sqlite.prepare('select r2_key k, printed_prices_dzd p from images').all() as { k: string; p: string }[]) {
+      expect(JSON.parse(r.p), r.k).toEqual(input.printedPrices?.[r.k] ?? []);
+    }
     run(sqlite, input);
     expect(counts(sqlite)).toEqual(first);
   }, 60_000);

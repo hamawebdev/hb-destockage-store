@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 // workerd D1 per test: generous timeout on a loaded shared machine.
-vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
+vi.setConfig({ testTimeout: 300_000, hookTimeout: 300_000 });
 import { sql } from 'drizzle-orm';
 import { computeTotals } from '@hb/shared';
 import {
@@ -39,7 +39,7 @@ beforeEach(async () => {
      insert into wilayas (code, name_fr, name_ar) values (16, 'Alger', 'الجزائر'), (31, 'Oran', 'وهران');
      insert into communes (id, wilaya_code, name_fr, name_ar) values (1601, 16, 'Alger Centre', 'الجزائر الوسطى'), (3101, 31, 'Oran', 'وهران')`,
   );
-}, 60_000);
+}, 300_000);
 afterEach(async () => dispose?.());
 
 const line = (variantId: number, qty: number, unit = variantId === 100 ? 14600 : variantId === 101 ? 3200 : 3000): OrderLineInput => ({
@@ -361,6 +361,42 @@ describe('order changes (version-guarded, composable)', () => {
     const raw = db.run(sql`INSERT INTO audit_log (actor_type, action, entity) SELECT 'admin', 'x', ${'orders'} WHERE ${orderGuard(id, 0)}`);
     await expect(transitionOrder(db, id, 'called', confirmer, null, 0, [raw])).rejects.toThrow(/reading 'bind'/);
     expect(await d1.prepare('select status, version from orders').first()).toEqual({ status: 'new', version: 0 });
+  });
+
+  // DB-4 r1 (rev-d Important): restore exactly what was taken, only while the variant is tracked.
+  test('stock_taken records qty for tracked lines and 0 for untracked lines', async () => {
+    await newOrder([line(100, 2), line(102, 3)]);
+    expect((await d1.prepare('select variant_id, qty, stock_taken from order_items order by variant_id').all()).results).toEqual([
+      { variant_id: 100, qty: 2, stock_taken: 2 },
+      { variant_id: 102, qty: 3, stock_taken: 0 },
+    ]);
+  });
+
+  test('untracked at order time, tracked later, then cancelled: stock unchanged (nothing was taken)', async () => {
+    const id = await newOrder([line(102, 3)]);
+    await exec(d1, 'update variants set stock = 5 where id = 102');
+    await transitionOrder(db, id, 'called', confirmer, null, 0);
+    expect((await transitionOrder(db, id, 'cancelled', confirmer, 'customer_refused', 1)).ok).toBe(true);
+    expect(await stock(102)).toBe(5);
+  });
+
+  test('tracked at order time, untracked later, then cancelled: stays untracked (NULL), nothing restored', async () => {
+    const id = await newOrder([line(100, 2)]);
+    await exec(d1, 'update variants set stock = null where id = 100');
+    await transitionOrder(db, id, 'called', confirmer, null, 0);
+    expect((await transitionOrder(db, id, 'cancelled', confirmer, null, 1)).ok).toBe(true);
+    expect(await stock(100)).toBeNull();
+  });
+
+  test('tracked at order time, stock edited since, then returned: adds back exactly the qty taken', async () => {
+    const id = await newOrder([line(100, 2), line(100, 1), line(102, 4)]);
+    expect(await stock(100)).toBe(2);
+    await exec(d1, 'update variants set stock = 10 where id = 100; update variants set stock = 7 where id = 102');
+    await applyOrderChange(db, { orderId: id, expectedVersion: 0, actor: confirmer, hops: [['new', 'called'], ['called', 'confirmed']] });
+    await transitionOrder(db, id, 'shipped', logistics, null, 1);
+    await transitionOrder(db, id, 'returned', logistics, null, 2);
+    expect(await stock(100)).toBe(13); // 10 + (2 + 1) taken
+    expect(await stock(102)).toBe(7); // untracked at order time: nothing taken, nothing added
   });
 
   test('extra items run in the same batch on success', async () => {

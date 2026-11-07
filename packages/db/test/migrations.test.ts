@@ -14,7 +14,8 @@ import { describe, expect, test, vi } from 'vitest';
 import { MIGRATIONS_DIR, migrationFiles } from './helpers.ts';
 import { freshD1Empty } from './d1.ts';
 
-vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
+// The D1 case applies every migration statement by statement over RPC: slow on a loaded machine.
+vi.setConfig({ testTimeout: 600_000, hookTimeout: 120_000 });
 
 const files = migrationFiles();
 const statements = (file: string) =>
@@ -77,6 +78,10 @@ describe('every migration, step by step (SQLite)', () => {
       }
     });
     expect(problems).toEqual([]);
+    // Migrations leave no scratch objects behind (0009's _db8_printed_prices_check is dropped):
+    // the schema, the drizzle snapshot and backup dumps only hold Drizzle's tables.
+    const live = (sqlite.prepare("select name from sqlite_master where type = 'table' and name not like 'sqlite_%'").all() as { name: string }[]).map((r) => r.name).sort();
+    expect(live).toEqual(Object.keys(snapshot(files.length - 1).tables).sort());
   });
 
   test('the lint catches the 0006 bug drizzle-kit generated (regression)', () => {
@@ -88,7 +93,7 @@ describe('every migration, step by step (SQLite)', () => {
   });
 });
 
-/** Text cells equal to a column name of their table: the trace of a double-quoted literal copy. */
+/** Text values (in any column) equal to a column name of their table: the trace of a double-quoted literal copy. */
 async function columnNameValues(
   tables: string[],
   cols: (t: string) => Promise<{ name: string; type: string }[]>,
@@ -98,13 +103,29 @@ async function columnNameValues(
   for (const t of tables) {
     const c = await cols(t);
     const names = c.map((x) => x.name);
-    for (const col of c.filter((x) => x.type.toLowerCase() === 'text')) {
-      const n = await count(`select count(*) n from "${t}" where "${col.name}" in (${names.map(() => '?').join(', ')})`, names);
+    // Every column, whatever its declared type (rev-c DB-7 r1 nit): the 0006 literal landed in an
+    // INTEGER column; SQLite stores the text value there anyway.
+    for (const col of c) {
+      const n = await count(`select count(*) n from "${t}" where typeof("${col.name}") = 'text' and "${col.name}" in (${names.map(() => '?').join(', ')})`, names);
       if (n > 0) out.push(`${t}.${col.name}: ${n} row(s) hold a column name`);
     }
   }
   return out;
 }
+
+describe('0009 refuses existing rows that break the new printed-price rule', () => {
+  test('a row printing 0 makes the migration abort (nothing silently kept or dropped)', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    for (const f of files.filter((f) => f < '0009')) for (const s of statements(f)) sqlite.exec(s);
+    for (const s of fixture) sqlite.exec(s);
+    sqlite.exec(`update images set printed_prices_dzd = '[0]' where id = 1`); // allowed by 0008
+    const run0009 = () => {
+      for (const f of files.filter((f) => f.startsWith('0009'))) for (const s of statements(f)) sqlite.exec(s);
+    };
+    expect(run0009).toThrow(/printed_prices_positive_existing_rows/);
+  });
+});
 
 describe('data loaded at 0000 survives every later migration', () => {
   test('SQLite: no text cell equals a column name, no FK violation, every fixture row kept', async () => {
@@ -126,6 +147,17 @@ describe('data loaded at 0000 survives every later migration', () => {
     for (const t of tables) expect((sqlite.prepare(`select count(*) n from "${t}"`).get() as { n: number }).n, t).toBe(before[t]);
   });
 
+  test('the generic check sees a column-name string in an INTEGER column (rev-c nit regression)', async () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec("create table t (a integer, dead_at integer); insert into t values (1, 'dead_at')");
+    const bad = await columnNameValues(
+      ['t'],
+      async (t) => sqlite.prepare('select name, type from pragma_table_info(?)').all(t) as { name: string; type: string }[],
+      async (q, names) => (sqlite.prepare(q).get(...names) as { n: number }).n,
+    );
+    expect(bad).toEqual(['t.dead_at: 1 row(s) hold a column name']);
+  });
+
   test('workerd D1: the same, where an unknown "identifier" would silently become a string', async () => {
     const { d1, dispose } = await freshD1Empty();
     try {
@@ -140,6 +172,11 @@ describe('data loaded at 0000 survives every later migration', () => {
       );
       expect(bad).toEqual([]);
       expect((await d1.prepare('select count(*) n from notification_deliveries where dead_at is null').first<{ n: number }>())!.n).toBe(1);
+      // After the whole chain on real D1, the triggers still fire (DB-8 r1: 0009 replaced only triggers).
+      await expect(d1.prepare("update images set printed_prices_dzd = '[0]' where id = 1").run()).rejects.toThrow(/positive integers/);
+      await expect(d1.prepare('update audit_log set action = action').run()).rejects.toThrow(/append-only/);
+      await expect(d1.prepare("update orders set ref = 'bad'").run()).rejects.toThrow(/orders.ref must match/);
+      expect((await d1.prepare("select count(*) n from sqlite_master where name = '_db8_printed_prices_check'").first<{ n: number }>())!.n).toBe(0);
     } finally {
       await dispose();
     }

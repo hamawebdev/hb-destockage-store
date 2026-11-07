@@ -184,6 +184,9 @@ function createOrderItems(db: Db, input: CreateOrderInput, ref: string, now: num
         unitPriceDzd: l.unitPriceDzd,
         qty: l.qty,
         lineTotalDzd: l.lineTotalDzd,
+        // Evaluated in the same batch BEFORE the decrements below: qty if the variant is tracked now
+        // (its decrement will apply or abort the batch), 0 if untracked (nothing is taken).
+        stockTaken: sql`CASE WHEN (SELECT ${variants.stock} FROM ${variants} WHERE ${variants.id} = ${l.variantId}) IS NOT NULL THEN ${l.qty} ELSE 0 END`,
       }),
     );
   }
@@ -300,6 +303,10 @@ export async function findRecentDuplicate(db: Db, q: DuplicateQuery): Promise<{ 
 /**
  * Marks an existing order as hit by a duplicate submit: adds flag `duplicate` once, bumps version,
  * and logs a `note` event (actor customer) describing the second attempt (no PII beyond its own).
+ * The version bump is deliberately NOT version-guarded: the customer's resubmit wins, so an admin
+ * who has the order open gets `version_conflict` on save and must reload. The admin can tell why
+ * from the latest event (`note`, outcome `duplicate_submit`, actor `customer`) — show it as
+ * "updated by the customer" (DB-4 r1 nit).
  */
 export async function markDuplicate(db: Db, orderId: number, attempt: string, now = Date.now()): Promise<void> {
   await db.batch([
@@ -442,11 +449,14 @@ export function buildOrderChange(
       db
         .update(variants)
         .set({
-          stock: sql`${variants.stock} + (SELECT SUM(oi.qty) FROM order_items oi WHERE oi.order_id = ${id} AND oi.variant_id = ${variants.id})`,
+          stock: sql`${variants.stock} + (SELECT SUM(oi.stock_taken) FROM order_items oi WHERE oi.order_id = ${id} AND oi.variant_id = ${variants.id})`,
           updatedAt: now,
         })
+        // Restore exactly what createOrder took (order_items.stock_taken), and only to a variant that
+        // is still tracked: untracked at order time → nothing taken → nothing restored; tracked then,
+        // untracked now → stays NULL (DB-4 r1).
         .where(
-          sql`${variants.id} IN (SELECT variant_id FROM order_items WHERE order_id = ${id}) AND ${variants.stock} IS NOT NULL
+          sql`${variants.id} IN (SELECT variant_id FROM order_items WHERE order_id = ${id} AND stock_taken > 0) AND ${variants.stock} IS NOT NULL
             AND EXISTS (SELECT 1 FROM orders WHERE id = ${id} AND version = ${v} AND stock_restored_at IS NULL)`,
         ),
     );

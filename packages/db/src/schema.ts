@@ -308,6 +308,12 @@ export const images = sqliteTable(
     position: integer('position').notNull().default(0),
     placeholder: bool('placeholder', false),
     createdAt: createdAt(),
+    /**
+     * Prices (integer DZD) printed on the photo, [] = none (DB-8). The admin refuses to activate a
+     * product whose photo prints a price none of its variants has (BUG-14). Guarded by triggers
+     * (0008): a JSON array of non-negative integers.
+     */
+    printedPricesDzd: text('printed_prices_dzd', { mode: 'json' }).$type<number[]>().notNull().default(sql`'[]'`),
   },
   (t) => [
     index('images_r2_key_idx').on(t.r2Key),
@@ -521,6 +527,11 @@ export const orderItems = sqliteTable(
     unitPriceDzd: integer('unit_price_dzd').notNull(),
     qty: integer('qty').notNull(),
     lineTotalDzd: integer('line_total_dzd').notNull(),
+    /**
+     * Units actually taken from `variants.stock` when the order was created: `qty` if the variant was
+     * tracked then, 0 if untracked (NULL stock). A cancel/return restores exactly this (DB-4 r1).
+     */
+    stockTaken: integer('stock_taken').notNull().default(0),
   },
   (t) => [
     index('order_items_order_idx').on(t.orderId),

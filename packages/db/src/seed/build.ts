@@ -127,7 +127,15 @@ export interface SeedInput {
   readonly settings: Readonly<Record<string, unknown>>;
   /** Dev only. Production gets admin users from the owner, never from a migration or seed. */
   readonly adminUsers: readonly SeedAdminUser[];
+  /**
+   * Prices printed on each real photo, by image key (data/photos/manifest.json, seed BUG-14). A key
+   * absent here (a generated placeholder photo) prints none: [].
+   */
+  readonly printedPrices?: Readonly<Record<string, readonly number[]>>;
 }
+
+/** settings key where the seed records the product/category ids it owns (DB-3 r4). */
+export const SEED_OWNED_KEY = 'seed.owned';
 
 export interface Statement {
   readonly sql: string;
@@ -162,7 +170,7 @@ export function categoriesInTreeOrder(categories: readonly SeedCategory[]): Seed
   return [...categories].sort((a, z) => depths.get(a.id)! - depths.get(z.id)! || a.id - z.id);
 }
 
-function imageRow(img: SeedImage, owner: { productId: number } | { categoryId: number }) {
+function imageRow(img: SeedImage, owner: { productId: number } | { categoryId: number }, printed: Readonly<Record<string, readonly number[]>>) {
   return upsert('images', ['id'], {
     id: img.id,
     product_id: 'productId' in owner ? owner.productId : null,
@@ -176,11 +184,20 @@ function imageRow(img: SeedImage, owner: { productId: number } | { categoryId: n
     alt_ar: img.alt.ar,
     position: img.position,
     placeholder: b(img.placeholder),
+    printed_prices_dzd: json(printed[img.key] ?? []),
   });
 }
 
-/** All statements, in foreign-key order. Run them in order (any batch size). */
+/** All statements, in foreign-key order: reference data, then the catalogue. */
 export function buildSeedStatements(input: SeedInput): Statement[] {
+  return [...buildReferenceStatements(input), ...buildCatalogueStatements(input)];
+}
+
+/**
+ * Reference data: wilayas, communes, fees, dev admin users. Plain idempotent upserts, safe to run in
+ * any number of batches (1,541 communes make one D1 batch too large for the local proxy's RPC).
+ */
+export function buildReferenceStatements(input: SeedInput): Statement[] {
   const out: Statement[] = [];
 
   for (const w of input.wilayas) {
@@ -197,6 +214,15 @@ export function buildSeedStatements(input: SeedInput): Statement[] {
   for (const u of input.adminUsers) {
     out.push(upsert('admin_users', ['email'], { email: u.email.toLowerCase(), name: u.name, role: u.role, active: b(u.active) }));
   }
+  return out;
+}
+
+/**
+ * The catalogue (categories, products and their children, content pages, settings), converging to
+ * data/. Run as ONE batch: it deletes rows that left data/ and must apply completely or not at all.
+ */
+export function buildCatalogueStatements(input: SeedInput): Statement[] {
+  const out: Statement[] = [];
 
   for (const c of categoriesInTreeOrder(input.categories)) {
     out.push(
@@ -238,6 +264,82 @@ export function buildSeedStatements(input: SeedInput): Statement[] {
         translation_placeholder: json(p.translationPlaceholder ?? []),
       }),
     );
+  }
+
+  // Convergence (DB-3 r3): a re-run makes every seeded product's child rows equal data/. Rows of a
+  // seeded product that are no longer in data/ are deleted BEFORE the upserts (this also frees a SKU
+  // when a variant id is renamed). Pack contents of every seeded pack go first, so a dropped variant
+  // is no longer referenced by them. A variant still referenced by an order line (or by a pack that
+  // is not in data/) is protected by its FK (RESTRICT): the batch aborts. The CLI refuses earlier
+  // with a report (blockedVariantDeletions). Orders, customers, events and audit are never touched.
+  for (const p of input.products) out.push({ sql: 'DELETE FROM "pack_items" WHERE "pack_product_id" = ?', params: [p.id] });
+  for (const p of input.products) {
+    out.push(notIn('DELETE FROM "images" WHERE "product_id" = ?', [p.id], 'id', p.images.map((i) => i.id)));
+    out.push(notIn('DELETE FROM "variants" WHERE "product_id" = ?', [p.id], 'id', p.variants.map((v) => v.id)));
+    out.push(
+      notIn(
+        'DELETE FROM "option_values" WHERE "option_id" IN (SELECT "id" FROM "product_options" WHERE "product_id" = ?)',
+        [p.id],
+        'id',
+        p.options.flatMap((o) => o.values.map((v) => v.id)),
+      ),
+    );
+    out.push(notIn('DELETE FROM "product_options" WHERE "product_id" = ?', [p.id], 'id', p.options.map((o) => o.id)));
+  }
+  for (const c of input.categories) {
+    out.push(notIn('DELETE FROM "images" WHERE "category_id" = ?', [c.id], 'id', c.image ? [c.image.id] : []));
+  }
+
+  // DB-3 r4 (rev-b r3 F1): products and categories that left data/ never stay live.
+  // Seed-owned = listed in settings `seed.owned` ({products: id[], categories: id[]}), which every run
+  // rewrites at the end of this batch. Admin-created rows are never in it, so they are never touched.
+  // A seed-owned row no longer in data/:
+  //  - referenced (an order line on the product or one of its variants, or a remaining pack item)
+  //    ⇒ kept for history but `archived` (category: active = 0), and stays seed-owned;
+  //  - otherwise ⇒ deleted with its children.
+  {
+    const curProducts = JSON.stringify(input.products.map((p) => p.id));
+    const curCategories = JSON.stringify(input.categories.map((c) => c.id));
+    const owned = (k: 'products' | 'categories') =>
+      `(SELECT value FROM json_each(COALESCE((SELECT json_extract("value", '$.${k}') FROM "settings" WHERE "key" = '${SEED_OWNED_KEY}'), '[]')))`;
+    const goneP = (col: string) => `${col} IN ${owned('products')} AND ${col} NOT IN (SELECT value FROM json_each(?))`;
+    const goneC = (col: string) => `${col} IN ${owned('categories')} AND ${col} NOT IN (SELECT value FROM json_each(?))`;
+    const orderRef = (p: string) =>
+      `(EXISTS (SELECT 1 FROM "order_items" oi WHERE oi."product_id" = ${p} OR oi."variant_id" IN (SELECT "id" FROM "variants" WHERE "product_id" = ${p})))`;
+    // Pack references: remaining pack items, and the items that data/ packs list (they were deleted
+    // above and are re-inserted at the end of this batch).
+    const dataPackVariants = JSON.stringify(input.products.flatMap((p) => p.packItems.map((it) => it.variantId)));
+    const packRef = (p: string) =>
+      `(EXISTS (SELECT 1 FROM "pack_items" pi WHERE pi."variant_id" IN (SELECT "id" FROM "variants" WHERE "product_id" = ${p})) ` +
+      `OR EXISTS (SELECT 1 FROM "variants" v WHERE v."product_id" = ${p} AND v."id" IN (SELECT value FROM json_each(?))))`;
+    // Contents of removed packs that no order references go first (deleted with the pack).
+    out.push({ sql: `DELETE FROM "pack_items" WHERE "pack_product_id" IN (SELECT p."id" FROM "products" p WHERE ${goneP('p."id"')} AND NOT ${orderRef('p."id"')})`, params: [curProducts] });
+    out.push({
+      sql: `UPDATE "products" SET "status" = 'archived' WHERE ${goneP('"products"."id"')} AND "status" <> 'archived' AND (${orderRef('"products"."id"')} OR ${packRef('"products"."id"')})`,
+      params: [curProducts, dataPackVariants],
+    });
+    const deletable = `SELECT p."id" FROM "products" p WHERE ${goneP('p."id"')} AND NOT ${orderRef('p."id"')} AND NOT ${packRef('p."id"')}`;
+    for (const sql of [
+      `DELETE FROM "images" WHERE "product_id" IN (${deletable})`,
+      `DELETE FROM "variants" WHERE "product_id" IN (${deletable})`,
+      `DELETE FROM "product_options" WHERE "product_id" IN (${deletable})`,
+      `DELETE FROM "products" WHERE "id" IN (${deletable})`,
+    ]) {
+      out.push({ sql, params: [curProducts, dataPackVariants] });
+    }
+    out.push({
+      sql: `UPDATE "categories" SET "active" = 0 WHERE ${goneC('"categories"."id"')} AND "active" = 1 AND (EXISTS (SELECT 1 FROM "products" p WHERE p."category_id" = "categories"."id") OR EXISTS (SELECT 1 FROM "categories" c2 WHERE c2."parent_id" = "categories"."id"))`,
+      params: [curCategories],
+    });
+    // Deepest first: a parent becomes deletable only once its children are gone (max depth 4).
+    const emptyCategory = `SELECT c."id" FROM "categories" c WHERE ${goneC('c."id"')} AND NOT EXISTS (SELECT 1 FROM "products" p WHERE p."category_id" = c."id") AND NOT EXISTS (SELECT 1 FROM "categories" c2 WHERE c2."parent_id" = c."id")`;
+    for (let depth = 0; depth < 4; depth++) {
+      out.push({ sql: `DELETE FROM "images" WHERE "category_id" IN (${emptyCategory})`, params: [curCategories] });
+      out.push({ sql: `DELETE FROM "categories" WHERE "id" IN (${emptyCategory})`, params: [curCategories] });
+    }
+  }
+
+  for (const p of input.products) {
     for (const o of p.options) {
       out.push(upsert('product_options', ['id'], { id: o.id, product_id: p.id, kind: o.type, name_fr: o.name.fr, name_ar: o.name.ar, position: o.position }));
       for (const v of o.values) {
@@ -272,14 +374,13 @@ export function buildSeedStatements(input: SeedInput): Statement[] {
 
   // Pack contents and images after every variant exists (a pack may list a later product's variant).
   for (const p of input.products) {
-    out.push({ sql: 'DELETE FROM "pack_items" WHERE "pack_product_id" = ?', params: [p.id] });
     p.packItems.forEach((it, i) => {
       out.push({ sql: 'INSERT INTO "pack_items" ("pack_product_id", "variant_id", "qty", "position") VALUES (?, ?, ?, ?)', params: [p.id, it.variantId, it.qty, i] });
     });
-    for (const img of p.images) out.push(imageRow(img, { productId: p.id }));
+    for (const img of p.images) out.push(imageRow(img, { productId: p.id }, input.printedPrices ?? {}));
   }
   for (const c of input.categories) {
-    if (c.image) out.push(imageRow(c.image, { categoryId: c.id }));
+    if (c.image) out.push(imageRow(c.image, { categoryId: c.id }, input.printedPrices ?? {}));
   }
 
   for (const cp of input.contentPages) {
@@ -306,7 +407,46 @@ export function buildSeedStatements(input: SeedInput): Statement[] {
   for (const [key, value] of Object.entries(input.settings)) {
     out.push(upsert('settings', ['key'], { key, value: json(value ?? null) }));
   }
+
+  // Last: record what the seed owns now (data/ ids plus seed-owned rows kept as archived/inactive).
+  {
+    const prev = (k: 'products' | 'categories') =>
+      `(SELECT value FROM json_each(COALESCE((SELECT json_extract("value", '$.${k}') FROM "settings" WHERE "key" = '${SEED_OWNED_KEY}'), '[]')))`;
+    out.push({
+      sql:
+        `INSERT INTO "settings" ("key", "value") VALUES ('${SEED_OWNED_KEY}', json_object(` +
+        `'products', (SELECT json_group_array("id") FROM (SELECT "id" FROM "products" WHERE "id" IN (SELECT value FROM json_each(?)) OR "id" IN ${prev('products')} ORDER BY "id")), ` +
+        `'categories', (SELECT json_group_array("id") FROM (SELECT "id" FROM "categories" WHERE "id" IN (SELECT value FROM json_each(?)) OR "id" IN ${prev('categories')} ORDER BY "id")))) ` +
+        `ON CONFLICT ("key") DO UPDATE SET "value" = excluded."value"`,
+      params: [JSON.stringify(input.products.map((p) => p.id)), JSON.stringify(input.categories.map((c) => c.id))],
+    });
+  }
   return out;
+}
+
+/**
+ * `<base> AND "<col>" NOT IN (keep)`. The keep-list travels as ONE JSON parameter (json_each), so the
+ * statement stays under D1's 100-bound-parameter limit however large the catalogue grows.
+ */
+function notIn(base: string, params: readonly number[], col: string, keep: readonly number[]): Statement {
+  return { sql: `${base} AND "${col}" NOT IN (SELECT value FROM json_each(?))`, params: [...params, JSON.stringify(keep)] };
+}
+
+/**
+ * Read-only check run BEFORE seeding: variants the seed would delete (dropped from data/) that an
+ * order line or a pack outside data/ still references. Non-empty ⇒ the seed must refuse.
+ */
+export function blockedVariantDeletionsQuery(input: Pick<SeedInput, 'products'>): Statement[] {
+  const packs = JSON.stringify(input.products.map((p) => p.id));
+  return input.products.map((p) => ({
+    sql:
+      `SELECT v."id" AS id, v."sku" AS sku, ` +
+      `(SELECT count(*) FROM "order_items" oi WHERE oi."variant_id" = v."id") AS order_lines, ` +
+      `(SELECT count(*) FROM "pack_items" pi WHERE pi."variant_id" = v."id" AND pi."pack_product_id" NOT IN (SELECT value FROM json_each(?))) AS other_packs ` +
+      `FROM "variants" v WHERE v."product_id" = ? AND v."id" NOT IN (SELECT value FROM json_each(?)) ` +
+      `AND (order_lines > 0 OR other_packs > 0)`,
+    params: [packs, p.id, JSON.stringify(p.variants.map((v) => v.id))],
+  }));
 }
 
 /** Distinct R2 keys referenced by image rows (what the seed uploads to local R2). */

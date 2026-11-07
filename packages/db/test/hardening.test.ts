@@ -350,6 +350,37 @@ describe('DB-7 notification_deliveries dead status', () => {
   });
 });
 
+describe('DB-4 r1 order_items.stock_taken', () => {
+  const ins = (qty: number, taken: string) =>
+    `insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd, stock_taken) values (1, 100, 10, 'a', 'b', 'S1', 1000, ${qty}, ${1000 * qty}, ${taken})`;
+  test('defaults to 0; must be an integer between 0 and qty (insert and update)', () => {
+    const { sqlite } = withOrder();
+    sqlite.prepare("insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd) values (1, 100, 10, 'a', 'b', 'S1', 1000, 2, 2000)").run();
+    expect(sqlite.prepare('select stock_taken from order_items').get()).toEqual({ stock_taken: 0 });
+    expect(sqlite.prepare(ins(2, '2')).run().changes).toBe(1);
+    for (const bad of ['3', '-1', '1.5', "'x'"]) expect(() => sqlite.prepare(ins(2, bad)).run(), bad).toThrow(/stock_taken must be/);
+    expect(() => sqlite.prepare('update order_items set qty = 1 where stock_taken = 2').run()).toThrow(/stock_taken must be/);
+  });
+});
+
+describe('DB-8 images.printed_prices_dzd', () => {
+  const img = (v: string) =>
+    `insert into images (product_id, r2_key, width, height, alt_fr, alt_ar, printed_prices_dzd) values (10, 'p/1.jpg', 1, 1, 'a', 'b', ${v})`;
+  test('defaults to [] and accepts arrays of non-negative integers (several prices per photo)', () => {
+    const { sqlite } = withOrder();
+    sqlite.prepare("insert into images (product_id, r2_key, width, height, alt_fr, alt_ar) values (10, 'p/0.jpg', 1, 1, 'a', 'b')").run();
+    expect(sqlite.prepare('select printed_prices_dzd p from images').get()).toEqual({ p: '[]' });
+    for (const ok of ["'[]'", "'[14600]'", "'[13600,14600]'"]) expect(sqlite.prepare(img(ok)).run().changes, ok).toBe(1);
+  });
+  // DB-8 r1 (rev-c): a printed price is a real price, so 0 is refused too (seed's manifest rule).
+  test.each(["'{}'", "'[1.5]'", "'[-1]'", "'[0]'", "'[14600,0]'", `'["14600"]'`, "'14600'", "'[null]'", "'not json'"])('refuses %s (insert and update)', (bad) => {
+    const { sqlite } = withOrder();
+    expect(() => sqlite.prepare(img(bad)).run()).toThrow(/printed_prices_dzd must be a JSON array of positive integers|malformed JSON/);
+    sqlite.prepare(img("'[]'")).run();
+    expect(() => sqlite.prepare(`update images set printed_prices_dzd = ${bad}`).run()).toThrow(/printed_prices_dzd must be a JSON array of positive integers|malformed JSON/);
+  });
+});
+
 describe('DB-2 triggers exist with the expected names', () => {
   test('append-only and geography triggers', () => {
     const { sqlite } = freshDb();
@@ -372,6 +403,10 @@ describe('DB-2 triggers exist with the expected names', () => {
       'customers_flags_array_upd',
       'orders_fee_source_fmt_ins',
       'orders_fee_source_fmt_upd',
+      'order_items_stock_taken_ins',
+      'order_items_stock_taken_upd',
+      'images_printed_prices_ins',
+      'images_printed_prices_upd',
       'images_variant_or_option_value_ins',
       'images_variant_or_option_value_upd',
     ].sort());
