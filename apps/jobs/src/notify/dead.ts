@@ -5,9 +5,11 @@
 //   'dead' (dead_at = now; last_error kept). If nothing could be marked but the order has no row
 //   at all, or a configured channel has no 'sent' row (its claim kept failing), a ('*', 'dead')
 //   row naming the missing channels is inserted when the order exists (review r1 nit 2).
-// - anything else (the consumer's data-free {type:'invalid'} envelope, or garbage) bumps
-//   settings['jobs.notify_invalid'] = {count, lastAt}. No payload is stored.
-// Idempotent: marking is conditional on status = 'sending'; the counter is a signal only.
+// - anything else (the consumer's data-free {type:'invalid'} envelope, garbage, or an order id
+//   that does not exist) bumps settings['jobs.notify_invalid'] = {count, lastAt}: the admin's
+//   producer-bug signal. No payload is stored.
+// Idempotent (review r2): redelivering the same message N times leaves exactly the state of one
+// delivery, and never bumps the counter for an existing order.
 import { backoffSeconds } from './consumer.ts';
 import { parseOrderCreated } from './message.ts';
 import { log } from '../log.ts';
@@ -29,30 +31,38 @@ export async function handleDeadLetters(batch: MessageBatch<unknown>, deps: Dead
       const order = parseOrderCreated(msg.body);
       if (order) {
         const at = now();
+        // Unknown order = a producer bug: decided by an explicit lookup, never by changes() = 0
+        // (review r2: a redelivery hits ON CONFLICT and changes nothing for a known order too).
+        const known = await deps.db.prepare('SELECT 1 AS x FROM orders WHERE id = ?1').bind(order.orderId).first<{ x: number }>();
+        if (!known) {
+          await bumpInvalid(deps.db, at);
+          log('notify.dead_letter_unknown_order', { messageId: msg.id });
+          msg.ack();
+          continue;
+        }
         const marked = await deps.db
           .prepare(`UPDATE notification_deliveries SET status = 'dead', dead_at = ?2, lease_until = NULL WHERE order_id = ?1 AND status = 'sending'`)
           .bind(order.orderId, at)
           .run();
         let changes = marked.meta.changes ?? 0;
         if (changes === 0) {
-          // No unsent row. Visible failure unless every expected channel was sent.
+          // Idempotent: a redelivery of the same dead letter leaves exactly the state of one.
+          // Rows that exist are already 'sent' or 'dead' (recorded); a '*' row means the failure
+          // is already visible. Only configured channels with NO row at all are missing.
           const existing = (
-            await deps.db.prepare('SELECT channel, status FROM notification_deliveries WHERE order_id = ?1').bind(order.orderId).all<{ channel: string; status: string }>()
-          ).results;
-          const sent = new Set(existing.filter((r) => r.status === 'sent').map((r) => r.channel));
-          const missing = (deps.channels ?? []).filter((c) => !sent.has(c));
-          if (existing.length === 0 || missing.length > 0) {
-            const label = missing.length > 0 ? `no delivery recorded for ${missing.join(', ')}` : 'no delivery recorded';
+            await deps.db.prepare('SELECT channel FROM notification_deliveries WHERE order_id = ?1').bind(order.orderId).all<{ channel: string }>()
+          ).results.map((r) => r.channel);
+          const missing = (deps.channels ?? []).filter((c) => !existing.includes(c));
+          if (!existing.includes('*') && (existing.length === 0 || missing.length > 0)) {
+            const label = missing.length > 0 && existing.length > 0 ? `no delivery recorded for ${missing.join(', ')}` : 'no delivery recorded';
             const ins = await deps.db
               .prepare(
                 `INSERT INTO notification_deliveries (order_id, channel, status, attempts, dead_at, last_error)
-                 SELECT ?1, '*', 'dead', 0, ?2, ?3 WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?1)
-                 ON CONFLICT (order_id, channel) DO NOTHING`,
+                 VALUES (?1, '*', 'dead', 0, ?2, ?3) ON CONFLICT (order_id, channel) DO NOTHING`,
               )
               .bind(order.orderId, at, label)
               .run();
             changes = ins.meta.changes ?? 0;
-            if (changes === 0) await bumpInvalid(deps.db, at); // unknown order: a producer bug
           }
         }
         log('notify.dead_letter', { ref: order.ref, markedDead: changes });

@@ -145,3 +145,49 @@ describe('review r1 nits', { timeout: 60_000 }, () => {
     expect((await rows(4)).map((r) => r['status'])).toEqual(['sent', 'sent']);
   });
 });
+
+describe('review r2: idempotent redelivery (rev-c, confirmed by rev-d)', { timeout: 120_000 }, () => {
+  const CH = ['telegram', 'email'];
+  const invalid = () => p.env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(INVALID_COUNTER_KEY).first<{ value: string }>();
+  const deliver = (orderId: number, times: number, channels = CH) =>
+    (async () => {
+      for (let i = 1; i <= times; i++) await handleDeadLetters(fakeBatch([fakeMessage(body(orderId), i)], DLQ), { db: p.env.DB, now: () => NOW + i, channels });
+    })();
+
+  test('no ledger rows, redelivered ×3 → exactly one (\'*\', dead) row; the producer-bug counter untouched', async () => {
+    await deliver(2, 3);
+    expect(await rows(2)).toEqual([{ channel: '*', status: 'dead', dead_at: NOW + 1, last_error: 'no delivery recorded' }]);
+    expect(await invalid()).toBeNull();
+  });
+
+  test('a channel already marked dead, redelivered ×3 → no extra \'*\' row, counter untouched', async () => {
+    const store = new D1DeliveryStore(p.env.DB);
+    await store.claim(3, 'telegram', 1, 60_000);
+    await store.claim(3, 'email', 1, 60_000);
+    await store.markSent(3, 'email', 2);
+    await deliver(3, 3);
+    expect(await rows(3)).toEqual([
+      { channel: 'email', status: 'sent', dead_at: null, last_error: null },
+      { channel: 'telegram', status: 'dead', dead_at: NOW + 1, last_error: null },
+    ]);
+    expect(await invalid()).toBeNull();
+  });
+
+  test('partial ledger, redelivered ×2 → one \'*\' row naming the missing channel; counter untouched', async () => {
+    const store = new D1DeliveryStore(p.env.DB);
+    await store.claim(4, 'telegram', 1, 60_000);
+    await store.markSent(4, 'telegram', 2);
+    await deliver(4, 2);
+    expect(await rows(4)).toEqual([
+      { channel: '*', status: 'dead', dead_at: NOW + 1, last_error: 'no delivery recorded for email' },
+      { channel: 'telegram', status: 'sent', dead_at: null, last_error: null },
+    ]);
+    expect(await invalid()).toBeNull();
+  });
+
+  test('a genuinely unknown order bumps the counter once per message, and stores nothing', async () => {
+    await deliver(424242, 2);
+    expect(JSON.parse((await invalid())!.value)).toEqual({ count: 2, lastAt: NOW + 2 });
+    expect(await rows(424242)).toEqual([]);
+  });
+});
