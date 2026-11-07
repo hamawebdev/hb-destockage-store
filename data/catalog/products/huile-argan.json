@@ -1,0 +1,72 @@
+{
+  "id": 215,
+  "kind": "simple",
+  "categoryId": 42,
+  "status": "active",
+  "sort": 20,
+  "slug": {
+    "ar": "zayt-al-argan",
+    "fr": "huile-argan"
+  },
+  "name": {
+    "ar": "زيت الأرغان 100 مل",
+    "fr": "Huile d’argan 100 ml"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "زيت أرغان نقي للشعر والبشرة.",
+    "fr": "Huile d’argan pure pour cheveux et peau."
+  },
+  "description": {
+    "ar": "معصور على البارد.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Pressée à froid.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 21501,
+      "sku": "PH-ARG-100",
+      "priceDzd": 2500,
+      "compareAtDzd": null,
+      "stock": 4,
+      "weightG": 150,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2151,
+      "variantId": null,
+      "key": "huile-argan/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: قارورة زيت الأرغان",
+        "fr": "Image provisoire : flacon d’huile d’argan"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2152,
+      "variantId": null,
+      "key": "huile-argan/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة زيت الأرغان",
+        "fr": "Image provisoire : étui de l’huile d’argan"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

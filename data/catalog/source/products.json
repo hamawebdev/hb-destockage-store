@@ -1,0 +1,314 @@
+{
+  "source": "https://hbdestockagedz.com/",
+  "fetched_on": "2026-11-04",
+  "currency": "DZD",
+  "products": [
+    {
+      "wc_id": 4465,
+      "type": "simple",
+      "slug": "pack",
+      "url": "https://hbdestockagedz.com/produit/pack/",
+      "name": "Pack",
+      "name_lang": "fr",
+      "price_dzd": 14600,
+      "regular_price_dzd": 18900,
+      "sale_price_dzd": 14600,
+      "short_description_text": "",
+      "description_text": "🚿 Transformez votre salle de bain avec nos packs sanitaires à prix exceptionnels ! 🔥\n✨ PACK A – 14 600 DA\nColonne de douche Piano avec afficheur digital et LED\nLavabo\nToilette\n✨ PACK B – 13 600 DA\nColonne de douche\nLavabo\nToilette\n🚚 Livraison disponible dans 69 wilayas ! 📦 Frais de livraison : seulement 600 DA.\n💥 Qualité, élégance et confort au meilleur prix",
+      "description_html": "<p>🚿 Transformez votre salle de bain avec nos packs sanitaires à prix exceptionnels ! 🔥</p>\n<p>✨ PACK A – 14 600 DA</p>\n<ul>\n<li>Colonne de douche Piano avec afficheur digital et LED</li>\n<li>Lavabo</li>\n<li>Toilette</li>\n</ul>\n<p>✨ PACK B – 13 600 DA</p>\n<ul>\n<li>Colonne de douche</li>\n<li>Lavabo</li>\n<li>Toilette</li>\n</ul>\n<p>🚚 Livraison disponible dans 69 wilayas ! 📦 Frais de livraison : seulement 600 DA.</p>\n<p>💥 Qualité, élégance et confort au meilleur prix</p>\n<figure id=\"attachment_4466\" aria-describedby=\"caption-attachment-4466\" style=\"width: 188px\" class=\"wp-caption alignnone\"><img class=\"size-medium wp-image-4466\" src=\"https://hbdestockagedz.com/wp-content/uploads/2026/11/8944D590-457D-4B4D-B703-1B942A809EEF-188x300.jpeg\" alt=\"\" width=\"188\" height=\"300\" /><figcaption id=\"caption-attachment-4466\" class=\"wp-caption-text\">Screenshot</figcaption></figure>",
+      "categories": [
+        "Non classé (term id 15: id from raw/wp-v2-product.json product_cat, name from raw/wc-store-categories.json; the Store API product list returns no categories)"
+      ],
+      "variants": [],
+      "attributes": [],
+      "sku": "",
+      "in_stock": true,
+      "stock_remaining": null,
+      "images": [
+        {
+          "wp_media_id": 4466,
+          "src": "https://hbdestockagedz.com/wp-content/uploads/2026/11/8944D590-457D-4B4D-B703-1B942A809EEF.jpeg",
+          "alt": "",
+          "name": "Screenshot"
+        }
+      ],
+      "images_note": "Store API lists the same image twice for this product (duplicate removed).",
+      "fetched_at_api": "2026-11-04T17:37:17Z",
+      "fetched_at_html": "2026-11-04T17:39:25Z"
+    },
+    {
+      "wc_id": 4440,
+      "type": "simple",
+      "slug": "pack-a-et-b",
+      "url": "https://hbdestockagedz.com/produit/pack-a-et-b/",
+      "name": "Pack A et B",
+      "name_lang": "fr",
+      "price_dzd": 14600,
+      "regular_price_dzd": 17900,
+      "sale_price_dzd": 14600,
+      "short_description_text": "",
+      "description_text": "promotion\npack A : prix 14600 DA\ncolonne de douche piano grand modele avec led et afficheur + lavabo + toilette\npack B : prix 13600 DA\ncolonne de douche piano petit modele + lavabo + toilette\n— la livraison disponible pour 600 DA",
+      "description_html": "<p>promotion</p>\n<p>pack A : prix 14600 DA</p>\n<p>colonne de douche piano grand modele avec led et afficheur + lavabo + toilette</p>\n<p>pack B : prix 13600 DA</p>\n<p>colonne de douche piano petit modele + lavabo + toilette</p>\n<p>— la livraison disponible pour 600 DA</p>\n<p><img class=\"alignnone size-medium wp-image-4441\" src=\"https://hbdestockagedz.com/wp-content/uploads/2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090-229x300.jpeg\" alt=\"\" width=\"229\" height=\"300\" /></p>",
+      "categories": [
+        "Non classé (term id 15: id from raw/wp-v2-product.json product_cat, name from raw/wc-store-categories.json; the Store API product list returns no categories)"
+      ],
+      "variants": [],
+      "attributes": [],
+      "sku": "",
+      "in_stock": true,
+      "stock_remaining": null,
+      "images": [
+        {
+          "wp_media_id": 4441,
+          "src": "https://hbdestockagedz.com/wp-content/uploads/2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg",
+          "alt": "",
+          "name": "D08C7705-0DBA-48A8-A5C9-3B5751653090"
+        }
+      ],
+      "images_note": null,
+      "fetched_at_api": "2026-11-04T17:37:17Z",
+      "fetched_at_html": "2026-11-04T17:39:27Z"
+    },
+    {
+      "wc_id": 4435,
+      "type": "simple",
+      "slug": "sans-titre",
+      "url": "https://hbdestockagedz.com/produit/sans-titre/",
+      "name": "Promotion",
+      "name_lang": "fr",
+      "price_dzd": 14600,
+      "regular_price_dzd": 17900,
+      "sale_price_dzd": 14600,
+      "short_description_text": "",
+      "description_text": "Promotion\nun pack de 3 pieces qualité super\ncolonne de douche piano led avec afficheur\nmitigeur lavabo\nrobinet toilette\nle prix : 14600 da\nla livraison 🚚 69 wilaya pour 600 da",
+      "description_html": "<p>Promotion</p>\n<p>un pack de 3 pieces qualité super</p>\n<p>colonne de douche piano led avec afficheur</p>\n<p>mitigeur lavabo</p>\n<p>robinet toilette</p>\n<p>le prix : 14600 da</p>\n<p>la livraison 🚚 69 wilaya pour 600 da<br />\n<img class=\"alignnone size-medium wp-image-4436\" src=\"https://hbdestockagedz.com/wp-content/uploads/2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9-300x294.jpeg\" alt=\"Pack 14600 da\" width=\"300\" height=\"294\" /></p>",
+      "categories": [
+        "Non classé (term id 15: id from raw/wp-v2-product.json product_cat, name from raw/wc-store-categories.json; the Store API product list returns no categories)"
+      ],
+      "variants": [],
+      "attributes": [],
+      "sku": "",
+      "in_stock": true,
+      "stock_remaining": null,
+      "images": [
+        {
+          "wp_media_id": 4436,
+          "src": "https://hbdestockagedz.com/wp-content/uploads/2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg",
+          "alt": "Pack 14600 da",
+          "name": "2F699BF1-1D14-48EC-BE43-89E3D6D608A9"
+        }
+      ],
+      "images_note": null,
+      "fetched_at_api": "2026-11-04T17:37:17Z",
+      "fetched_at_html": "2026-11-04T17:39:29Z"
+    },
+    {
+      "wc_id": 4271,
+      "type": "simple",
+      "slug": "pack-3-en-1",
+      "url": "https://hbdestockagedz.com/produit/pack-3-en-1/",
+      "name": "Pack 3 en 1",
+      "name_lang": "fr",
+      "price_dzd": 14600,
+      "regular_price_dzd": 17900,
+      "sale_price_dzd": 14600,
+      "short_description_text": "4600446",
+      "description_text": "Pack 3 en 1 – Élégance et confort pour votre salle de bain 🚿\n✨ Le pack comprend :\n🚿 Colonne de douche Piano\nAfficheur digital de température\nÉclairage LED d’ambiance\nDesign moderne et élégant\n🚰 Mitigeur de lavabo haut de gamme\nDesign raffiné et moderne\nFlexible et fixations inclus\n🚽 Robinet pour toilette\nDouchette extensible et pratique\nIdéal pour plus de confort et d’hygiène\n🚚 Frais de livraison : 600 DA",
+      "description_html": "<p class=\"x12ofw9d\"><strong>Pack 3 en 1 – Élégance et confort pour votre salle de bain 🚿</strong></p>\n<p class=\"x12ofw9d\">✨ <strong>Le pack comprend :</strong></p>\n<ol class=\"x12ofw9d\" start=\"1\">\n<li>🚿 <strong>Colonne de douche Piano</strong>\n<ul class=\"x12ofw9d\">\n<li>Afficheur digital de température</li>\n<li>Éclairage LED d’ambiance</li>\n<li>Design moderne et élégant</li>\n</ul>\n</li>\n<li>🚰 <strong>Mitigeur de lavabo haut de gamme</strong>\n<ul class=\"x12ofw9d\">\n<li>Design raffiné et moderne</li>\n<li>Flexible et fixations inclus</li>\n</ul>\n</li>\n<li>🚽 <strong>Robinet pour toilette</strong>\n<ul class=\"x12ofw9d\">\n<li>Douchette extensible et pratique</li>\n<li>Idéal pour plus de confort et d’hygiène</li>\n</ul>\n</li>\n</ol>\n<p class=\"x12ofw9d\">🚚 <strong>Frais de livraison : 600 DA</strong></p>\n<figure id=\"attachment_4272\" aria-describedby=\"caption-attachment-4272\" style=\"width: 244px\" class=\"wp-caption alignnone\"><img class=\"size-medium wp-image-4272\" src=\"https://hbdestockagedz.com/wp-content/uploads/2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2-244x300.jpeg\" alt=\"Pack 3 en 1 \" width=\"244\" height=\"300\" /><figcaption id=\"caption-attachment-4272\" class=\"wp-caption-text\">Screenshot</figcaption></figure>",
+      "categories": [
+        "Non classé (term id 15: id from raw/wp-v2-product.json product_cat, name from raw/wc-store-categories.json; the Store API product list returns no categories)"
+      ],
+      "variants": [],
+      "attributes": [],
+      "sku": "",
+      "in_stock": true,
+      "stock_remaining": null,
+      "images": [
+        {
+          "wp_media_id": 4272,
+          "src": "https://hbdestockagedz.com/wp-content/uploads/2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg",
+          "alt": "Pack 3 en 1",
+          "name": "Screenshot"
+        }
+      ],
+      "images_note": "Store API lists the same image twice for this product (duplicate removed).",
+      "fetched_at_api": "2026-11-04T17:37:17Z",
+      "fetched_at_html": "2026-11-04T17:39:32Z"
+    },
+    {
+      "wc_id": 20,
+      "type": "simple",
+      "slug": "nouvelle-pack-luxury-4en1-douche-prix-16500-da-livraison-60-alf",
+      "url": "https://hbdestockagedz.com/produit/nouvelle-pack-luxury-4en1-douche-prix-16500-da-livraison-60-alf/",
+      "name": "nouvelle pack luxury 4en1 douche — prix 16500 DA — livraison 60 alf",
+      "name_lang": "fr",
+      "price_dzd": 16500,
+      "regular_price_dzd": 19900,
+      "sale_price_dzd": 16500,
+      "short_description_text": "",
+      "description_text": "pack luxe 4en1\n– colonne de douche Piano aluminium avec afficheur et led\n– robinet pour toilette\n– mitigeur cuisine\n– mitigeur lavabo\nprix 16500 DA —–avec livraison 60 alf",
+      "description_html": "<h2><strong>pack luxe 4en1</strong></h2>\n<h2><strong>&#8211; colonne de douche Piano aluminium avec afficheur et led</strong></h2>\n<h2><strong>&#8211; robinet pour toilette</strong></h2>\n<h2><strong>&#8211; mitigeur cuisine</strong></h2>\n<h2><strong>&#8211; mitigeur lavabo</strong></h2>\n<h2><strong>prix 16500 DA &#8212;&#8211;avec livraison 60 alf</strong></h2>\n<p><img class=\"size-medium wp-image-33\" src=\"https://hbdestockagedz.com/wp-content/uploads/2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A-251x300.jpeg\" alt=\"Promotion 16500 DA\" width=\"251\" height=\"300\" /></p>\n<p>&nbsp;</p>\n<h1></h1>",
+      "categories": [
+        "Non classé (term id 15: id from raw/wp-v2-product.json product_cat, name from raw/wc-store-categories.json; the Store API product list returns no categories)"
+      ],
+      "variants": [],
+      "attributes": [],
+      "sku": "",
+      "in_stock": true,
+      "stock_remaining": null,
+      "images": [
+        {
+          "wp_media_id": 147,
+          "src": "https://hbdestockagedz.com/wp-content/uploads/2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg",
+          "alt": "",
+          "name": "Screenshot"
+        }
+      ],
+      "images_note": null,
+      "fetched_at_api": "2026-11-04T17:37:17Z",
+      "fetched_at_html": "2026-11-04T17:39:34Z"
+    }
+  ],
+  "media": [
+    {
+      "wp_media_id": 4466,
+      "attached_to_wc_id": 4465,
+      "uploaded": "2026-11-02T18:05:08",
+      "title": "Screenshot",
+      "alt": "",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/11/8944D590-457D-4B4D-B703-1B942A809EEF.jpeg",
+      "width": 1243,
+      "height": 1980,
+      "bytes": 353772,
+      "md5": "b0e9d8028bd874fab81ccd621b27085e",
+      "fetched_at": "2026-11-04T17:40:33Z",
+      "note": "Attached to 4465. Instagram screenshot (EXIF software=Instagram): collage of product renders, price \"14600 da\" burned in."
+    },
+    {
+      "wp_media_id": 4441,
+      "attached_to_wc_id": 4440,
+      "uploaded": "2026-10-30T13:09:24",
+      "title": "D08C7705-0DBA-48A8-A5C9-3B5751653090",
+      "alt": "",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg",
+      "width": 1237,
+      "height": 1624,
+      "bytes": 235422,
+      "md5": "0d383312bea134d14a6bc1f3acfafe3d",
+      "fetched_at": "2026-11-04T17:40:35Z",
+      "note": "Attached to 4440. Instagram screenshot: collage of product renders, price \"14600 da\" burned in."
+    },
+    {
+      "wp_media_id": 4436,
+      "attached_to_wc_id": 4435,
+      "uploaded": "2026-10-30T08:35:39",
+      "title": "2F699BF1-1D14-48EC-BE43-89E3D6D608A9",
+      "alt": "Pack 14600 da",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg",
+      "width": 1320,
+      "height": 1293,
+      "bytes": 205271,
+      "md5": "983d4bd3ffd67ea35201893f6647695e",
+      "fetched_at": "2026-11-04T17:40:37Z",
+      "note": "Attached to 4435. Instagram screenshot: collage of product renders, price \"14600 da\" burned in."
+    },
+    {
+      "wp_media_id": 4272,
+      "attached_to_wc_id": 4271,
+      "uploaded": "2026-10-23T11:07:16",
+      "title": "Screenshot",
+      "alt": "Pack 3 en 1",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg",
+      "width": 1320,
+      "height": 1620,
+      "bytes": 219333,
+      "md5": "5be5659954a44ba654c33f5eb5eca243",
+      "fetched_at": "2026-11-04T17:40:39Z",
+      "note": "Attached to 4271. Instagram screenshot (EXIF description=Screenshot): collage of product renders, price \"14600 Da\" burned in."
+    },
+    {
+      "wp_media_id": 498,
+      "attached_to_wc_id": null,
+      "uploaded": "2026-08-09T15:46:27",
+      "title": "IMG_7689",
+      "alt": "",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7689.jpeg",
+      "width": 3716,
+      "height": 2287,
+      "bytes": 1619180,
+      "md5": "15a0d0d1464aae6401819c392d8576cb",
+      "fetched_at": "2026-11-04T17:40:45Z",
+      "note": "Orphan upload. Client's own photograph (iPhone EXIF): the two shower-column control panels."
+    },
+    {
+      "wp_media_id": 497,
+      "attached_to_wc_id": null,
+      "uploaded": "2026-08-09T15:44:44",
+      "title": "IMG_7696",
+      "alt": "",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7696.jpeg",
+      "width": 3190,
+      "height": 3511,
+      "bytes": 2217078,
+      "md5": "e9888b98c2caf85a4e12dbf26b5e3149",
+      "fetched_at": "2026-11-04T17:40:48Z",
+      "note": "Orphan upload. Client's own photograph (iPhone EXIF): Pack B and Pack A side by side with paper price signs 13600 / 14600 DA."
+    },
+    {
+      "wp_media_id": 410,
+      "attached_to_wc_id": null,
+      "uploaded": "2026-08-07T15:53:15",
+      "title": "Screenshot",
+      "alt": "",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/08/DEFDDED5-446C-4E9E-A05A-0B0A55C4CF3A.jpeg",
+      "width": 1241,
+      "height": 1840,
+      "bytes": 293381,
+      "md5": "44a86ff1674b25c2a91a336809b329ef",
+      "fetched_at": "2026-11-04T17:40:50Z",
+      "note": "Orphan upload. Instagram screenshot: collage of product renders, price \"14500 Da\" burned in (no current product has this price)."
+    },
+    {
+      "wp_media_id": 409,
+      "attached_to_wc_id": null,
+      "uploaded": "2026-08-07T15:52:39",
+      "title": "96856807-1630-4929-A89D-4BF7180D23D2",
+      "alt": "Pack nova 14500 DA",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/08/96856807-1630-4929-A89D-4BF7180D23D2.jpeg",
+      "width": 1320,
+      "height": 1268,
+      "bytes": 205187,
+      "md5": "5146646a2d80cf846bdcb404d6c070df",
+      "fetched_at": "2026-11-04T17:40:52Z",
+      "note": "Orphan upload, alt \"Pack nova 14500 DA\". Instagram screenshot: collage of product renders, price \"14500 Da\" burned in (no current product has this price)."
+    },
+    {
+      "wp_media_id": 150,
+      "attached_to_wc_id": null,
+      "uploaded": "2026-08-02T12:34:38",
+      "title": "0A57AC22-93A3-40EF-BAE4-CB9D03CD520E",
+      "alt": "",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/08/0A57AC22-93A3-40EF-BAE4-CB9D03CD520E.jpeg",
+      "width": 1320,
+      "height": 1701,
+      "bytes": 491333,
+      "md5": "c9ddaed833373d082d1ec4584f3b4643",
+      "fetched_at": "2026-11-04T17:40:54Z",
+      "note": "Orphan upload. Client's own photograph (iPhone EXIF, shared via Instagram): Pack B with price label \"13600 Da\"."
+    },
+    {
+      "wp_media_id": 147,
+      "attached_to_wc_id": 20,
+      "uploaded": "2026-08-02T11:51:43",
+      "title": "Screenshot",
+      "alt": "",
+      "largest_url": "https://hbdestockagedz.com/wp-content/uploads/2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg",
+      "width": 1284,
+      "height": 1533,
+      "bytes": 272295,
+      "md5": "ff77219164924cf54c1149968565f69a",
+      "fetched_at": "2026-11-04T17:40:42Z",
+      "note": "Attached to 20. Instagram screenshot (EXIF description=Screenshot): collage of product renders, price \"16500 Da\" burned in."
+    }
+  ]
+}

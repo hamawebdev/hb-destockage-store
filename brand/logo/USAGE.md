@@ -12,7 +12,8 @@ or mirror it in RTL: the logo is a Latin brand name and reads left-to-right on `
 | `wordmark.svg` | **HB** (Inter Bold) · blue dot · **DESTOCKAGE** (Inter Regular, tracked +0.06 em) | Default on white / `surface-alt` |
 | `wordmark-inverse.svg` | Same, `#f5f5f7` letters, `#2997ff` dot | On `surface-inverse` (#1d1d1f) or dark photos |
 | `wordmark-mono.svg` | Everything `currentColor` | One-colour print, stamps, embossing, fax |
-| `wordmark-header.svg` | Letters `currentColor`, dot `var(--color-accent, #0071e3)`, `aria-hidden` | **Inline** in the storefront header (≤ 2 KB brotli, checked by test). The surrounding `<a href="/ar/">` carries `aria-label="HB Destockage"` (string `a11y.homeLink`). |
+| `wordmark-header-static.svg` | Integer-precision paths, literal `#1d1d1f` letters and `#0071e3` dot | **Storefront header (current use)**, as a same-origin, content-hashed, cached `<img alt="HB Destockage">` inside the home link: fetched once instead of adding ~1.3 KiB brotli to every HTML page (SHELL-2 measurement). ≤ 2 KB brotli, checked by test. |
+| `wordmark-header.svg` | Same paths; letters `currentColor`, dot `var(--color-accent, #0071e3)`, `aria-hidden` | Inline alternative, only where the mark must follow the text colour. In an `<img>` `currentColor` turns black (#000), so never use this file as an image. The surrounding `<a>` carries the label (`chrome.homeLink`). |
 | `monogram.svg` | **HB** in a #1d1d1f rounded tile (radius 22 %), blue "tag eyelet" dot top-right | Favicon, app icon, avatar (WhatsApp, Facebook), social images |
 | `monogram-inverse.svg` | White tile, dark letters | On dark backgrounds |
 | `monogram-accent.svg` | Blue tile, white letters + eyelet | Promotional stickers; never next to the blue order button |

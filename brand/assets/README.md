@@ -1,8 +1,9 @@
 # Brand assets (generated)
 
 Built by `node brand/scripts/build-assets.mjs` from `brand/logo/*.svg`, `brand/tokens.json` and
-`brand/copy/strings.*.json` (sharp 0.35.5; Inter downloaded and sha256-checked, Noto Sans Arabic 400
-from `NOTO_ARABIC_TTF`, default `/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf`). Output is
+`brand/copy/strings.*.json` (sharp 0.35.5; Inter and Noto Sans Arabic v2.013 Regular — the same release as
+`packages/ui-tokens/fonts/subset.json` — are downloaded and sha256-checked, or passed as `INTER_TTF` /
+`NOTO_ARABIC_TTF`, which must match the pinned hashes). With the same sharp build, output is
 byte-for-byte deterministic. Do not edit these files by hand.
 
 | File | Size | Use |

@@ -7,8 +7,9 @@
 // private fontconfig file, so the system's other fonts can't change the output.
 // Fonts (SIL OFL 1.1):
 //   INTER_TTF        Inter variable  https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf
-//   NOTO_ARABIC_TTF  Noto Sans Arabic Regular (400 only — brand rule: one Arabic weight)
-//                    https://github.com/google/fonts/tree/main/ofl/notosansarabic (Debian: fonts-noto-core)
+//   NOTO_ARABIC_TTF  Noto Sans Arabic Regular v2.013 (400 only — brand rule: one Arabic weight), from
+//                    the notofonts release zip pinned below (zip + member sha256); needs `unzip`.
+// Both are downloaded and verified when the env vars are not set; a mismatch stops the build.
 // The logo itself is outlined paths (brand/logo), never set in a font.
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, copyFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,9 +23,38 @@ const OUT = join(brand, "assets");
 const INTER_URL = "https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf";
 const INTER_SHA256 = "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"; // same file as build-logo.py
 let INTER = process.env.INTER_TTF ?? null;
-const NOTO_AR = process.env.NOTO_ARABIC_TTF ?? "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf";
+// Same pinned release as packages/ui-tokens/fonts/subset.json (TOKENS-2), so the social images use
+// exactly the storefront's Arabic face.
+const NOTO_ZIP_URL = "https://github.com/notofonts/arabic/releases/download/NotoSansArabic-v2.013/NotoSansArabic-v2.013.zip";
+const NOTO_ZIP_SHA256 = "1301aceaea84c501cf2e6dcfb3182e2328c8eae5725817fcb239672bda7154f1";
+const NOTO_MEMBER = "NotoSansArabic/unhinted/ttf/NotoSansArabic-Regular.ttf";
+const NOTO_SHA256 = "bd86ca02f087d7f3c3788ba458fb6b73744c7639ed276b8d870dba6def6c40d0";
+let NOTO_AR = process.env.NOTO_ARABIC_TTF ?? null;
 
 // --- private fontconfig: must be set before sharp/libvips initialises fontconfig ----------------
+const sha256 = async (buf) => (await import("node:crypto")).createHash("sha256").update(buf).digest("hex");
+
+async function fetchNoto() {
+  if (NOTO_AR) {
+    const d = await sha256(readFileSync(NOTO_AR));
+    if (d !== NOTO_SHA256) throw new Error(`NOTO_ARABIC_TTF sha256 ${d} != pinned v2.013 ${NOTO_SHA256}`);
+    return;
+  }
+  const res = await fetch(NOTO_ZIP_URL);
+  if (!res.ok) throw new Error(`Noto Sans Arabic download failed: ${res.status}`);
+  const zip = Buffer.from(await res.arrayBuffer());
+  const zd = await sha256(zip);
+  if (zd !== NOTO_ZIP_SHA256) throw new Error(`Noto zip sha256 ${zd} != pinned ${NOTO_ZIP_SHA256}`);
+  const dir = mkdtempSync(join(tmpdir(), "hb-noto-"));
+  writeFileSync(join(dir, "noto.zip"), zip);
+  const { execFileSync } = await import("node:child_process");
+  const ttf = execFileSync("unzip", ["-p", join(dir, "noto.zip"), NOTO_MEMBER], { maxBuffer: 64 * 1024 * 1024 });
+  const td = await sha256(ttf);
+  if (td !== NOTO_SHA256) throw new Error(`Noto member sha256 ${td} != pinned ${NOTO_SHA256}`);
+  NOTO_AR = join(dir, "NotoSansArabic-Regular.ttf");
+  writeFileSync(NOTO_AR, ttf);
+}
+
 async function fetchInter() {
   if (INTER) return;
   const res = await fetch(INTER_URL);
@@ -179,6 +209,7 @@ export async function renderCategoryOg(sharp, { lang, title }) {
 
 async function main() {
   await fetchInter();
+  await fetchNoto();
   setupFonts();
   const { default: sharp } = await import("sharp");
   mkdirSync(OUT, { recursive: true });

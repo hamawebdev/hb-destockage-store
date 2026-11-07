@@ -1,0 +1,23 @@
+---
+/**
+ * Inline icon from @hb/ui-tokens/icons (24 grid, stroke currentColor), decorative by default
+ * (aria-hidden); give the surrounding control its accessible name. Directional icons keep their
+ * data-mirror attribute and flip in RTL (tokens' base.css). Owner: shell.
+ */
+const files = import.meta.glob<string>('../../../../packages/ui-tokens/icons/*.svg', { query: '?raw', import: 'default', eager: true });
+
+interface Props {
+  name: string;
+  /** Extra classes, e.g. "icon-sm" / "icon-lg". */
+  class?: string;
+}
+const { name, class: extra } = Astro.props;
+const raw = files[`../../../../packages/ui-tokens/icons/${name}.svg`];
+if (!raw) throw new Error(`Icon: unknown icon "${name}"`);
+if (!/^[\w-]*( [\w-]+)*$/.test(extra ?? '')) throw new Error(`Icon: bad class "${extra}"`);
+const svg = raw
+  .trim()
+  .replace(' xmlns="http://www.w3.org/2000/svg"', '')
+  .replace('<svg', `<svg class="icon${extra ? ` ${extra}` : ''}" aria-hidden="true" focusable="false"`);
+---
+<Fragment set:html={svg} />

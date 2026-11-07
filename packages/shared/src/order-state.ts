@@ -59,6 +59,10 @@ export const TRANSITIONS: readonly Transition[] = [
 
 export const TERMINAL_STATUSES: readonly OrderStatus[] = ['cancelled', 'delivered', 'returned'];
 
+export function isTerminalStatus(status: OrderStatus): boolean {
+  return TERMINAL_STATUSES.includes(status);
+}
+
 export function isOrderStatus(value: unknown): value is OrderStatus {
   return typeof value === 'string' && (ORDER_STATUSES as readonly string[]).includes(value);
 }
@@ -162,8 +166,11 @@ export function resolveCallOutcome(input: CallOutcomeInput): CallOutcomeResoluti
   switch (outcome) {
     case 'no_answer':
     case 'busy': {
-      const max = Math.max(1, Math.trunc(input.maxUnanswered));
-      const streak = Math.max(0, Math.trunc(input.unansweredStreak)) + 1;
+      // A non-finite setting falls back to the default; values below 1 mean 1.
+      const max = Number.isFinite(input.maxUnanswered)
+        ? Math.max(1, Math.trunc(input.maxUnanswered))
+        : DEFAULT_MAX_UNANSWERED;
+      const streak = (Number.isFinite(input.unansweredStreak) ? Math.max(0, Math.trunc(input.unansweredStreak)) : 0) + 1;
       if (status === 'unreachable' || streak >= max) {
         to('unreachable');
         nextCall = 'unreachable_retry';

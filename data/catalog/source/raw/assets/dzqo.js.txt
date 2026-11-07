@@ -1,0 +1,225 @@
+(() => {
+  'use strict';
+
+  const money = (value) => `${new Intl.NumberFormat('ar-DZ', { maximumFractionDigits: 0 }).format(Number(value || 0))} ${DZQO.currency}`;
+  const whatsappIcon = `<svg class="dzqo-wa-svg" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93a7.898 7.898 0 0 0-2.327-5.607zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.495.654.666-2.433-.156-.25a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.591-6.591 6.591zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-1.17-.578-1.94-1.034-2.715-2.369-.205-.353.205-.328.59-1.092.065-.133.033-.247-.016-.346-.05-.099-.445-1.072-.61-1.47-.16-.385-.323-.33-.445-.337-.114-.008-.247-.008-.38-.008a.729.729 0 0 0-.528.247c-.182.197-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.472.205.84.327 1.129.418.475.152.906.13 1.248.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>`;
+  let lastFocused = null;
+  let currentNonce = DZQO.nonce || '';
+
+  const submitOrderRequest = async (formData) => {
+    // The public order endpoint no longer depends on a cached WordPress session nonce.
+    // Keep the field only for backward compatibility with older cached pages.
+    formData.set('nonce', currentNonce || DZQO.nonce || '');
+    const response = await fetch(DZQO.ajaxUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      body: formData,
+    });
+    const json = await response.json().catch(() => ({ success: false, data: { message: DZQO.i18n.error } }));
+    if (!response.ok || !json.success) throw new Error(json.data?.message || DZQO.i18n.error);
+    return json;
+  };
+
+  const closeAll = (except = null) => document.querySelectorAll('.dzqo-form-wrap').forEach((wrap) => {
+    if (wrap !== except) { wrap.hidden = true; wrap.closest('.dzqo-card')?.classList.remove('is-open'); }
+  });
+
+  const variationState = (form) => {
+    const container = form.querySelector('.dzqo-variations');
+    const basePrice = Number(form.dataset.basePrice || 0);
+    if (!container) return { id: 0, price: basePrice, attrs: {} };
+    let variations = [];
+    try { variations = JSON.parse(container.dataset.variations || '[]'); } catch (_) {}
+    const attrs = {};
+    let complete = true;
+    container.querySelectorAll('.dzqo-variation-select').forEach((select) => {
+      if (!select.value) complete = false;
+      attrs[select.dataset.attribute] = select.value;
+    });
+    if (!complete) return { id: 0, price: 0, attrs };
+    const match = variations.find((variation) => Object.entries(attrs).every(([key, value]) => {
+      const expected = variation.attributes[key] ?? '';
+      return expected === '' || expected === value;
+    }));
+    return match ? { id: match.variation_id, price: Number(match.display_price), attrs } : { id: 0, price: 0, attrs };
+  };
+
+  const refreshSummary = (form) => {
+    if (!form) return;
+    const variation = variationState(form);
+    const qty = Math.max(1, Number(form.querySelector('.dzqo-quantity')?.value || 1));
+    const type = form.querySelector('.dzqo-delivery:checked')?.value || (DZQO.useSingleShippingFee ? 'single' : 'home');
+    const shipping = Number(
+      DZQO.useSingleShippingFee
+        ? DZQO.singleShippingFee
+        : (type === 'office' ? DZQO.officeFee : DZQO.homeFee)
+    );
+    const subtotal = variation.price * qty;
+    form.querySelector('[name="variation_id"]').value = variation.id;
+    form.querySelector('[name="variation_attributes"]').value = JSON.stringify(variation.attrs);
+    const subtotalEl = form.querySelector('.dzqo-subtotal');
+    const shippingEl = form.querySelector('.dzqo-shipping');
+    const totalEl = form.querySelector('.dzqo-total');
+    if (subtotalEl) subtotalEl.textContent = variation.price ? money(subtotal) : DZQO.i18n.chooseOptions;
+    if (shippingEl) shippingEl.textContent = money(shipping);
+    if (totalEl) totalEl.textContent = variation.price ? money(subtotal + shipping) : '—';
+  };
+
+  const ensureSuccessModal = () => {
+    let modal = document.querySelector('.dzqo-success-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.className = 'dzqo-success-modal';
+    modal.hidden = true;
+    modal.innerHTML = `
+      <div class="dzqo-success-backdrop" data-dzqo-modal-close></div>
+      <section class="dzqo-success-dialog" role="dialog" aria-modal="true" aria-labelledby="dzqo-success-title" dir="rtl">
+        <button type="button" class="dzqo-modal-x" data-dzqo-modal-close aria-label="${DZQO.i18n.close}">×</button>
+        <div class="dzqo-success-icon" aria-hidden="true"><span>✓</span></div>
+        <p class="dzqo-success-kicker">تم استلام الطلب</p>
+        <h2 id="dzqo-success-title">${DZQO.i18n.successTitle}</h2>
+        <p class="dzqo-success-copy">${DZQO.i18n.successText}</p>
+        <div class="dzqo-success-details">
+          <div><span>${DZQO.i18n.product}</span><strong data-dzqo-success-product></strong></div>
+          <div><span>${DZQO.i18n.orderNumber}</span><strong data-dzqo-success-order></strong></div>
+          ${DZQO.showShippingPrices ? `<div data-dzqo-success-total-row><span>${DZQO.i18n.total}</span><strong data-dzqo-success-total></strong></div>` : `<div class="dzqo-success-shipping-hidden"><span>التوصيل</span><strong>${DZQO.i18n.shippingHidden}</strong></div>`}
+        </div>
+        <div class="dzqo-success-actions">
+          <a class="dzqo-success-whatsapp" data-dzqo-success-whatsapp target="_blank" rel="noopener" hidden>${whatsappIcon}<span>${DZQO.i18n.whatsapp}</span></a>
+          <button type="button" class="dzqo-success-close" data-dzqo-modal-close>${DZQO.i18n.close}</button>
+        </div>
+      </section>`;
+    document.body.append(modal);
+    return modal;
+  };
+
+  const showSuccessModal = (data, productName) => {
+    const modal = ensureSuccessModal();
+    modal.querySelector('[data-dzqo-success-product]').textContent = productName || data.product_name || '—';
+    modal.querySelector('[data-dzqo-success-order]').textContent = data.order_id || '—';
+    const totalEl = modal.querySelector('[data-dzqo-success-total]');
+    if (totalEl) totalEl.textContent = data.total || '—';
+    const whatsapp = modal.querySelector('[data-dzqo-success-whatsapp]');
+    if (data.whatsapp_url) { whatsapp.href = data.whatsapp_url; whatsapp.hidden = false; }
+    else { whatsapp.hidden = true; whatsapp.removeAttribute('href'); }
+    lastFocused = document.activeElement;
+    modal.hidden = false;
+    document.body.classList.add('dzqo-modal-open');
+    requestAnimationFrame(() => { modal.classList.add('is-visible'); (whatsapp.hidden ? modal.querySelector('.dzqo-success-close') : whatsapp)?.focus(); });
+  };
+
+  const hideSuccessModal = () => {
+    const modal = document.querySelector('.dzqo-success-modal');
+    if (!modal || modal.hidden) return;
+    modal.classList.remove('is-visible');
+    document.body.classList.remove('dzqo-modal-open');
+    window.setTimeout(() => { modal.hidden = true; if (lastFocused instanceof HTMLElement) lastFocused.focus({ preventScroll: true }); }, 220);
+  };
+
+  const trackPurchase = (data) => {
+    if (!DZQO.metaPixelEnabled || typeof window.fbq !== 'function') return;
+    const params = {
+      value: Number(data.value || 0), currency: data.currency || DZQO.currencyCode,
+      content_ids: [String(data.product_id || '')], content_name: data.product_name || '', content_type: 'product',
+      contents: [{ id: String(data.product_id || ''), quantity: Number(data.quantity || 1) }],
+    };
+    window.fbq('track', 'Purchase', params, { eventID: data.event_id || `dzqo-${Date.now()}` });
+  };
+
+  const initializeVisibleForms = () => {
+    document.querySelectorAll('.dzqo-order-form.is-always-visible').forEach(refreshSummary);
+    ensureSuccessModal();
+  };
+
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-dzqo-modal-close]')) { hideSuccessModal(); return; }
+
+    const confirmOrder = event.target.closest('[data-dz-confirm-order]');
+    if (confirmOrder) {
+      event.preventDefault();
+      const formId = confirmOrder.getAttribute('form');
+      const form = formId ? document.getElementById(formId) : document.querySelector('#dz-product-order-form .dzqo-order-form');
+      const zone = document.querySelector('#dz-product-order-form') || form;
+      if (!form) return;
+
+      if (!form.checkValidity()) {
+        zone?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.setTimeout(() => {
+          const invalid = form.querySelector(':invalid');
+          invalid?.focus({ preventScroll: true });
+          form.reportValidity();
+        }, 480);
+        return;
+      }
+
+      form.requestSubmit(form.querySelector('.dzqo-submit') || undefined);
+      return;
+    }
+
+    const stickyOrder = event.target.closest('[data-dz-scroll-order]');
+    if (stickyOrder) {
+      event.preventDefault();
+      const target = document.querySelector('#dz-product-order-form');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.setTimeout(() => target.querySelector('.dzqo-order-form input:not([type="hidden"])')?.focus({ preventScroll: true }), 650);
+      }
+      return;
+    }
+    const open = event.target.closest('.dzqo-open-form');
+    if (open) {
+      const card = open.closest('.dzqo-card'); const wrap = card?.querySelector('.dzqo-form-wrap'); if (!wrap) return;
+      const willOpen = wrap.hidden; closeAll(willOpen ? wrap : null); wrap.hidden = !willOpen; card.classList.toggle('is-open', willOpen);
+      if (willOpen) { refreshSummary(wrap.querySelector('form')); window.setTimeout(() => wrap.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80); }
+      return;
+    }
+    if (event.target.closest('.dzqo-close')) closeAll();
+  });
+
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') hideSuccessModal(); });
+  document.addEventListener('change', (event) => { const form = event.target.closest('.dzqo-order-form'); if (form && event.target.matches('.dzqo-variation-select,.dzqo-delivery,.dzqo-quantity')) refreshSummary(form); });
+  document.addEventListener('input', (event) => { const form = event.target.closest('.dzqo-order-form'); if (form && event.target.matches('.dzqo-quantity')) refreshSummary(form); });
+
+  document.addEventListener('submit', async (event) => {
+    const form = event.target.closest('.dzqo-order-form'); if (!form) return; event.preventDefault();
+    if (form.dataset.submitting === '1') return;
+    if (form.querySelector('.dzqo-variations') && !Number(form.querySelector('[name="variation_id"]').value)) {
+      const msg = form.querySelector('.dzqo-message'); msg.className = 'dzqo-message is-error'; msg.textContent = DZQO.i18n.chooseVariation; return;
+    }
+    if (!form.checkValidity()) {
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      window.setTimeout(() => form.reportValidity(), 350);
+      return;
+    }
+    const submit = form.querySelector('.dzqo-submit'); const message = form.querySelector('.dzqo-message');
+    const linkedButtons = Array.from(document.querySelectorAll('[data-dz-confirm-order]')).filter((button) => button.getAttribute('form') === form.id);
+    const oldText = submit.querySelector('span')?.textContent || submit.textContent;
+    form.dataset.submitting = '1';
+    submit.disabled = true;
+    linkedButtons.forEach((button) => { button.disabled = true; button.classList.add('is-submitting'); });
+    if (submit.querySelector('span')) submit.querySelector('span').textContent = DZQO.i18n.sending; else submit.textContent = DZQO.i18n.sending;
+    message.textContent = ''; message.className = 'dzqo-message';
+    const data = new FormData(form);
+    try {
+      const json = await submitOrderRequest(data);
+      const productName = form.dataset.productName || ''; trackPurchase(json.data);
+      form.reset(); form.querySelector('[name="variation_id"]').value = '0'; form.querySelector('[name="variation_attributes"]').value = '{}'; refreshSummary(form);
+      message.textContent = 'تم تسجيل الطلب بنجاح.'; message.className = 'dzqo-message is-success sr-only-success'; showSuccessModal(json.data, productName);
+    } catch (error) { message.classList.add('is-error'); message.textContent = error.message || DZQO.i18n.error; message.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    finally {
+      form.dataset.submitting = '0';
+      submit.disabled = false;
+      linkedButtons.forEach((button) => { button.disabled = false; button.classList.remove('is-submitting'); });
+      if (submit.querySelector('span')) submit.querySelector('span').textContent = oldText; else submit.textContent = oldText;
+    }
+  });
+
+  const applyFilters = (catalogue) => {
+    if (!catalogue) return; const search = (catalogue.querySelector('.dzqo-search')?.value || '').toLowerCase().trim(); const category = catalogue.querySelector('.dzqo-category-filter')?.value || '';
+    catalogue.querySelectorAll('.dzqo-grid .dzqo-card').forEach((card) => { const byName = !search || (card.dataset.name || '').toLowerCase().includes(search); const byCat = !category || (` ${card.dataset.categories || ''} `).includes(` ${category} `); card.hidden = !(byName && byCat); });
+  };
+  document.addEventListener('input', (event) => { if (event.target.matches('.dzqo-search')) applyFilters(event.target.closest('.dzqo-catalogue')); });
+  document.addEventListener('change', (event) => { if (event.target.matches('.dzqo-category-filter')) applyFilters(event.target.closest('.dzqo-catalogue')); });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeVisibleForms, { once: true }); else initializeVisibleForms();
+})();

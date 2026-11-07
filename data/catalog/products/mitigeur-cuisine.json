@@ -1,0 +1,44 @@
+{
+  "id": 114,
+  "kind": "simple",
+  "categoryId": 12,
+  "status": "draft",
+  "sort": 40,
+  "slug": {
+    "ar": "khallat-al-matbakh",
+    "fr": "mitigeur-cuisine"
+  },
+  "name": {
+    "ar": "خلّاط المطبخ",
+    "fr": "Mitigeur de cuisine"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "خلّاط مطبخ أسود بعنق مرتفع.",
+    "fr": "Mitigeur de cuisine noir à bec haut."
+  },
+  "description": {
+    "ar": "خلّاط للمطبخ ضمن الطقم الفاخر 4 في 1.\n\n[PLACEHOLDER] السعر المنفرد غير محدّد.",
+    "fr": "Mitigeur de cuisine du pack luxe 4 en 1.\n\n[PLACEHOLDER] Prix à l’unité non fixé."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 11401,
+      "sku": "HB-MIT-CUIS",
+      "priceDzd": 3500,
+      "compareAtDzd": null,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": []
+}

@@ -1,0 +1,239 @@
+{
+  "about": "Where each real seed product comes from. Not part of CatalogSnapshot; read by people and by the seed validator only. Reverting the de-duplication = one seed product per wcProducts row, using its name/price/compareAt and photo.",
+  "source": "https://hbdestockagedz.com/",
+  "fetchedAt": "2026-11-04",
+  "rawDump": "data/catalog/source/",
+  "decision": "De-duplicated 5 WooCommerce products into 3 packs (lead, 2026-11-04); pending client confirmation.",
+  "wcProducts": [
+    {
+      "wcId": 4465,
+      "url": "https://hbdestockagedz.com/produit/pack/",
+      "name": "Pack",
+      "priceDzd": 14600,
+      "compareAtDzd": 18900,
+      "seedProductIds": [
+        101,
+        102
+      ],
+      "mapping": "Ordered at 14 600 = Pack A (101). Its description also lists Pack B 13 600 (102). Photo kept on 101."
+    },
+    {
+      "wcId": 4440,
+      "url": "https://hbdestockagedz.com/produit/pack-a-et-b/",
+      "name": "Pack A et B",
+      "priceDzd": 14600,
+      "compareAtDzd": 17900,
+      "seedProductIds": [
+        101,
+        102
+      ],
+      "mapping": "Ordered at 14 600 = Pack A (101); description lists Pack B 13 600 (102). Photo kept on 101."
+    },
+    {
+      "wcId": 4435,
+      "url": "https://hbdestockagedz.com/produit/sans-titre/",
+      "name": "Promotion",
+      "priceDzd": 14600,
+      "compareAtDzd": 17900,
+      "seedProductIds": [
+        101
+      ],
+      "mapping": "Same three pieces as Pack A. Photo kept on 101."
+    },
+    {
+      "wcId": 4271,
+      "url": "https://hbdestockagedz.com/produit/pack-3-en-1/",
+      "name": "Pack 3 en 1",
+      "priceDzd": 14600,
+      "compareAtDzd": 17900,
+      "seedProductIds": [
+        101
+      ],
+      "mapping": "Same three pieces as Pack A; its French description is the one used for 101."
+    },
+    {
+      "wcId": 20,
+      "url": "https://hbdestockagedz.com/produit/nouvelle-pack-luxury-4en1-douche-prix-16500-da-livraison-60-alf/",
+      "name": "nouvelle pack luxury 4en1 douche — prix 16500 DA — livraison 60 alf",
+      "priceDzd": 16500,
+      "compareAtDzd": 19900,
+      "seedProductIds": [
+        103
+      ],
+      "mapping": "1:1."
+    }
+  ],
+  "products": [
+    {
+      "productId": 101,
+      "needsClientConfirmation": false,
+      "urls": [
+        "https://hbdestockagedz.com/produit/pack-3-en-1/",
+        "https://hbdestockagedz.com/produit/sans-titre/",
+        "https://hbdestockagedz.com/produit/pack-a-et-b/",
+        "https://hbdestockagedz.com/produit/pack/"
+      ],
+      "fetchedAt": "2026-11-04",
+      "note": "Merges WC 4271 \"Pack 3 en 1\" (French description used), 4435 \"Promotion\", 4440 \"Pack A et B\" (pack A) and 4465 \"Pack\" (pack A): same three pieces, all 14 600 DA. Compare-at 17 900 (4271/4435/4440; 4465 says 18 900). Delivery text dropped: fees now come from /api/quote."
+    },
+    {
+      "productId": 102,
+      "needsClientConfirmation": true,
+      "urls": [
+        "https://hbdestockagedz.com/produit/pack-a-et-b/",
+        "https://hbdestockagedz.com/produit/pack/"
+      ],
+      "fetchedAt": "2026-11-04",
+      "note": "Pack B exists only in the description text of WC 4440 and 4465 (\"pack B : prix 13600 DA, colonne de douche piano petit modele + lavabo + toilette\"); it could not be ordered separately on the old site. No compare-at price was published for it."
+    },
+    {
+      "productId": 103,
+      "needsClientConfirmation": false,
+      "urls": [
+        "https://hbdestockagedz.com/produit/nouvelle-pack-luxury-4en1-douche-prix-16500-da-livraison-60-alf/"
+      ],
+      "fetchedAt": "2026-11-04",
+      "note": "WC 20. Title \"nouvelle pack luxury 4en1 douche — prix 16500 DA — livraison 60 alf\" shortened; \"60 alf\" = 600 DA delivery, dropped (fees come from /api/quote)."
+    },
+    {
+      "productId": 111,
+      "needsClientConfirmation": false,
+      "urls": [
+        "https://hbdestockagedz.com/produit/pack-a-et-b/",
+        "https://hbdestockagedz.com/produit/nouvelle-pack-luxury-4en1-douche-prix-16500-da-livraison-60-alf/"
+      ],
+      "fetchedAt": "2026-11-04",
+      "note": "Component named in the pack descriptions (\"grand modele avec led et afficheur\" / \"petit modele\"). Prices are placeholders."
+    },
+    {
+      "productId": 112,
+      "needsClientConfirmation": false,
+      "urls": [
+        "https://hbdestockagedz.com/produit/pack-3-en-1/"
+      ],
+      "fetchedAt": "2026-11-04",
+      "note": "Component of the packs (\"Mitigeur de lavabo haut de gamme\"). Price is a placeholder."
+    },
+    {
+      "productId": 113,
+      "needsClientConfirmation": false,
+      "urls": [
+        "https://hbdestockagedz.com/produit/pack-3-en-1/"
+      ],
+      "fetchedAt": "2026-11-04",
+      "note": "Component of the packs (\"Robinet pour toilette\"). Price is a placeholder."
+    },
+    {
+      "productId": 114,
+      "needsClientConfirmation": false,
+      "urls": [
+        "https://hbdestockagedz.com/produit/nouvelle-pack-luxury-4en1-douche-prix-16500-da-livraison-60-alf/"
+      ],
+      "fetchedAt": "2026-11-04",
+      "note": "Component of the 4-in-1 pack (\"mitigeur cuisine\"). Price is a placeholder."
+    }
+  ],
+  "imagesNote": "source: client_own = the client's own photograph (iPhone EXIF); supplier_render = Instagram screenshot of a collage of product renders, rights to be confirmed by the client. burnedInPrice = price printed in the image (stale if the price changes). Unreferenced files: data/photos/_unreferenced/ (see data/photos/README.md).",
+  "images": [
+    {
+      "imageId": 1111,
+      "productId": 111,
+      "key": "colonne-de-douche-piano/1.jpg",
+      "wpMediaId": 498,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7689.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": null
+    },
+    {
+      "imageId": 1011,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/1.jpg",
+      "wpMediaId": 497,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7696.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": "13600 / 14600 (paper signs)"
+    },
+    {
+      "imageId": 1012,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/2.jpg",
+      "wpMediaId": 4272,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/10/C6A7EC96-5A13-4AA8-97C6-CFE39D163F4B-2.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "14600"
+    },
+    {
+      "imageId": 1013,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/3.jpg",
+      "wpMediaId": 4436,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/10/2F699BF1-1D14-48EC-BE43-89E3D6D608A9.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "14600"
+    },
+    {
+      "imageId": 1014,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/4.jpg",
+      "wpMediaId": 4441,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/10/D08C7705-0DBA-48A8-A5C9-3B5751653090.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "14600"
+    },
+    {
+      "imageId": 1015,
+      "productId": 101,
+      "key": "pack-a-3-en-1-colonne-piano-led/5.jpg",
+      "wpMediaId": 4466,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/11/8944D590-457D-4B4D-B703-1B942A809EEF.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "14600"
+    },
+    {
+      "imageId": 1021,
+      "productId": 102,
+      "key": "pack-b-3-en-1-colonne-piano/1.jpg",
+      "wpMediaId": 150,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/0A57AC22-93A3-40EF-BAE4-CB9D03CD520E.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": "13600"
+    },
+    {
+      "imageId": 1022,
+      "productId": 102,
+      "key": "pack-a-3-en-1-colonne-piano-led/1.jpg",
+      "wpMediaId": 497,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7696.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": "13600 / 14600 (paper signs)"
+    },
+    {
+      "imageId": 1023,
+      "productId": 102,
+      "key": "colonne-de-douche-piano/1.jpg",
+      "wpMediaId": 498,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/08/IMG_7689.jpeg",
+      "source": "client_own",
+      "needsClientConfirmation": false,
+      "burnedInPrice": null
+    },
+    {
+      "imageId": 1031,
+      "productId": 103,
+      "key": "pack-luxe-4-en-1/1.jpg",
+      "wpMediaId": 147,
+      "sourceUrl": "https://hbdestockagedz.com/wp-content/uploads/2026/07/47FCD068-3A54-4913-B2D3-A6E8C623B27A.jpeg",
+      "source": "supplier_render",
+      "needsClientConfirmation": true,
+      "burnedInPrice": "16500"
+    }
+  ]
+}

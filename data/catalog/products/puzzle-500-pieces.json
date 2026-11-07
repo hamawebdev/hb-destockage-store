@@ -1,0 +1,72 @@
+{
+  "id": 218,
+  "kind": "simple",
+  "categoryId": 51,
+  "status": "active",
+  "sort": 20,
+  "slug": {
+    "ar": "uhjiya-500",
+    "fr": "puzzle-500-pieces"
+  },
+  "name": {
+    "ar": "أحجية 500 قطعة",
+    "fr": "Puzzle 500 pièces"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "أحجية بمنظر طبيعي، من 10 سنوات.",
+    "fr": "Puzzle paysage, dès 10 ans."
+  },
+  "description": {
+    "ar": "المقاس بعد التركيب 49 × 36 سم.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Format assemblé 49 × 36 cm.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 21801,
+      "sku": "PH-PZL-500",
+      "priceDzd": 1300,
+      "compareAtDzd": null,
+      "stock": 12,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2181,
+      "variantId": null,
+      "key": "puzzle-500-pieces/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: قطعة أحجية",
+        "fr": "Image provisoire : pièce de puzzle"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2182,
+      "variantId": null,
+      "key": "puzzle-500-pieces/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة الأحجية",
+        "fr": "Image provisoire : boîte du puzzle"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

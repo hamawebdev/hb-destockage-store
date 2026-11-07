@@ -1,3 +1,6 @@
-// Absolute origin for canonical/hreflang/og/sitemap. No trailing slash.
-// [PLACEHOLDER] default until the client confirms the production domain; set HB_SITE_ORIGIN in the publish build.
-export const SITE_ORIGIN = (process.env.HB_SITE_ORIGIN ?? 'https://hbdestockagedz.com').replace(/\/+$/, '');
+// The single absolute origin (no trailing slash) for canonical/hreflang/og and pagedata's
+// sitemap/robots: @hb/catalog's siteOriginFromEnv (HB_SITE_ORIGIN; unset only with
+// HB_SNAPSHOT=fixture → https://hbdestockage.example). One implementation for both layers.
+import { siteOriginFromEnv } from '@hb/catalog/sources';
+
+export const SITE_ORIGIN = siteOriginFromEnv(process.env);

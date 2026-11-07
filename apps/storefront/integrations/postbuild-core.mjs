@@ -161,3 +161,167 @@ export function orphanImagePreload(html) {
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Unused-rule trim (lead-approved follow-up to SHELL-3, with safeguards).
+// A rule is dropped only when EVERY selector in its list is "plain" (classes, type selectors,
+// combinators, simple pseudo-classes/elements; no attribute selector, no :has/:dir/:lang/:is/
+// :where/:not) AND names at least one class that occurs on no page of the template and nowhere in
+// the client JS (dist/js text, substring match, so classes built in JS by concatenation survive).
+// Everything else is kept. Pure function; the pixel-diff proof is scripts/css-trim-proof.mjs.
+// ---------------------------------------------------------------------------------------------
+
+const KEEP_PSEUDO = /:(?:has|dir|lang|is|where|not)\(/;
+const RECURSE_AT = /^@(?:media|supports|layer|container|starting-style|scope)\b/i;
+
+/** Split `a,b:is(c,d),e` on top-level commas. @param {string} s */
+function splitTop(s) {
+  const out = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of s) {
+    if (ch === '(' || ch === '[') depth++;
+    else if (ch === ')' || ch === ']') depth--;
+    if (ch === ',' && depth === 0) {
+      out.push(cur);
+      cur = '';
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out.map((x) => x.trim()).filter(Boolean);
+}
+
+/**
+ * @param {string} selectorList
+ * @param {(cls: string) => boolean} known
+ * @returns {boolean} true when the rule may match and must be kept
+ */
+export function selectorMayMatch(selectorList, known) {
+  for (const sel of splitTop(selectorList)) {
+    if (sel.includes('[') || KEEP_PSEUDO.test(sel)) return true; // state attributes / functional pseudos: keep
+    const classes = [...sel.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map((m) => m[1] ?? '');
+    if (classes.length === 0) return true; // type / universal / pseudo-element selectors: keep
+    if (classes.every((c) => known(c))) return true;
+  }
+  return false;
+}
+
+/** Index of the `}` closing the block whose `{` is at `open`, honouring strings. */
+function closeOf(css, open) {
+  let depth = 0;
+  let quote = '';
+  for (let i = open; i < css.length; i++) {
+    const ch = css[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === '{') depth++;
+    else if (ch === '}' && --depth === 0) return i;
+  }
+  return css.length - 1;
+}
+
+/**
+ * Drop style rules no page of the template can match (see header comment).
+ * @param {string} css minified CSS
+ * @param {(cls: string) => boolean} known class is used by the template or the client JS
+ * @returns {string}
+ */
+export function trimUnusedRules(css, known) {
+  let out = '';
+  let i = 0;
+  while (i < css.length) {
+    const open = css.indexOf('{', i);
+    const semi = css.indexOf(';', i);
+    // Statement at-rule (`@layer a,b;`, `@import …;`) before the next block.
+    if (css[i] === '@' && semi !== -1 && (open === -1 || semi < open)) {
+      out += css.slice(i, semi + 1);
+      i = semi + 1;
+      continue;
+    }
+    if (open === -1) {
+      out += css.slice(i);
+      break;
+    }
+    const prelude = css.slice(i, open).trim();
+    const close = closeOf(css, open);
+    const body = css.slice(open + 1, close);
+    if (prelude.startsWith('@')) {
+      if (RECURSE_AT.test(prelude)) {
+        const inner = trimUnusedRules(body, known);
+        if (inner.trim() !== '') out += `${prelude}{${inner}}`;
+      } else out += `${prelude}{${body}}`; // @font-face, @keyframes, @property, @view-transition…
+    } else if (selectorMayMatch(prelude, known)) {
+      out += `${prelude}{${body}}`;
+    }
+    i = close + 1;
+  }
+  return out;
+}
+
+/** Every class token in the page's class attributes. @param {string} html */
+export function classesIn(html) {
+  const set = new Set();
+  for (const m of html.matchAll(/\sclass="([^"]*)"/g)) for (const c of (m[1] ?? '').split(/\s+/)) if (c) set.add(c);
+  return set;
+}
+
+/**
+ * The trim's "is this class possibly used?" predicate: on a page of the template, or anywhere in the
+ * client JS text (substring, so concatenated names survive).
+ * @param {Set<string>} used @param {string} jsText @returns {(cls: string) => boolean}
+ */
+export const knownClasses = (used, jsText) => (cls) => used.has(cls) || jsText.includes(cls);
+
+/**
+ * Class names client JS adds or tests at runtime: quoted tokens inside classList.add/remove/toggle/
+ * replace/contains(…), className = '…' and class="…" in template strings.
+ * @param {string} js @returns {Set<string>}
+ */
+export function runtimeClassesIn(js) {
+  const out = new Set();
+  const take = (s) => {
+    for (const q of s.matchAll(/["'`]([^"'`]*)["'`]/g)) for (const c of (q[1] ?? '').split(/\s+/)) if (/^-?[_a-zA-Z][\w-]*$/.test(c)) out.add(c);
+  };
+  for (const m of js.matchAll(/classList\.(?:add|remove|toggle|replace|contains)\(([^)]*)\)/g)) take(m[1] ?? '');
+  for (const m of js.matchAll(/className\s*=\s*([^;\n]*)/g)) take(m[1] ?? '');
+  for (const m of js.matchAll(/class=\\?["']([^"'\\]*)/g)) take(`'${m[1] ?? ''}'`);
+  return out;
+}
+
+/**
+ * The catalogue pre-build's outputs must be in dist (lead: a plain build with HB_SNAPSHOT and
+ * HB_SITE_ORIGIN produces the search index and geo assets). Pure over a file reader.
+ * @param {(rel: string) => string | null} read dist-relative path -> contents, or null when missing
+ * @param {(dir: string) => string[]} list dist-relative dir -> file names ([] when missing)
+ * @param {string} origin the site origin (no trailing slash)
+ * @returns {string[]} problems (empty = ok)
+ */
+export function checkCatalogAssets(read, list, origin) {
+  const errors = [];
+  for (const lang of ['ar', 'fr']) {
+    const rel = `search/${lang}.json`;
+    const raw = read(rel);
+    if (raw === null) errors.push(`${rel} missing (catalogue pre-build output)`);
+    else {
+      try {
+        const idx = JSON.parse(raw);
+        if (idx?.lang !== lang || !Array.isArray(idx?.entries) || idx.entries.length === 0) errors.push(`${rel}: not a non-empty ${lang} search index`);
+      } catch (e) {
+        errors.push(`${rel}: invalid JSON (${/** @type {Error} */ (e).message})`);
+      }
+    }
+    const communes = list(`geo/communes/${lang}`).filter((f) => f.endsWith('.json'));
+    if (communes.length !== 69) errors.push(`geo/communes/${lang}: ${communes.length} wilaya files, expected 69`);
+  }
+  const sitemap = read('sitemap.xml');
+  if (sitemap === null) errors.push('sitemap.xml missing');
+  else if (!sitemap.includes(`<loc>${origin}/`)) errors.push(`sitemap.xml does not use the site origin ${origin}`);
+  const robots = read('robots.txt');
+  if (robots === null) errors.push('robots.txt missing');
+  else if (!robots.includes(`${origin}/sitemap.xml`)) errors.push(`robots.txt does not point at ${origin}/sitemap.xml`);
+  return errors;
+}

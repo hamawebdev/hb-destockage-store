@@ -107,3 +107,32 @@ describe('orphanImagePreload', () => {
   test('a different srcset does not count', () => expect(orphanImagePreload(`${pre}<img srcset="/b-360.avif 360w">`)).toBe('/a-360.avif 360w'));
   test('font preloads are ignored', () => expect(orphanImagePreload('<link rel="preload" as="font" href="/f.woff2">')).toBeNull());
 });
+
+describe('trimUnusedRules (guarded)', async () => {
+  const { trimUnusedRules, selectorMayMatch, classesIn } = await import('../integrations/postbuild-core.mjs');
+  const known = (c: string) => ['used', 'a', 'b', 'js-added'].includes(c);
+  test('drops a plain rule whose class is unused, keeps used ones', () => {
+    expect(trimUnusedRules('.used{c:1}.gone{c:2}', known)).toBe('.used{c:1}');
+  });
+  test('keeps a rule if ANY selector in the list may match', () => {
+    expect(trimUnusedRules('.gone,.used{c:1}', known)).toBe('.gone,.used{c:1}');
+  });
+  test('keeps attribute/state selectors and :has/:dir/:lang/:is/:where/:not', () => {
+    for (const sel of ['.gone[open]', '.gone[aria-current]', '.gone:has(.x)', '.gone:dir(rtl)', ':lang(ar) .gone', ':is(.gone)', ':where(.gone)', '.used:not(.gone)']) {
+      expect(selectorMayMatch(sel, known), sel).toBe(true);
+    }
+  });
+  test('keeps type, universal and pseudo-element-only selectors', () => {
+    expect(trimUnusedRules('p{c:1}*{c:2}::view-transition-group(root){c:3}', known)).toBe('p{c:1}*{c:2}::view-transition-group(root){c:3}');
+  });
+  test('recurses into @layer/@media/@supports/@starting-style and drops them when empty', () => {
+    expect(trimUnusedRules('@layer x{.gone{c:1}.used{c:2}}@media (min-width:1px){.gone{c:3}}@starting-style{.gone{c:4}}', known)).toBe('@layer x{.used{c:2}}');
+  });
+  test('never touches @font-face, @keyframes or statement at-rules', () => {
+    const css = '@layer a,b;@font-face{font-family:F;src:url(x)}@keyframes k{0%{opacity:0}}';
+    expect(trimUnusedRules(css, known)).toBe(css);
+  });
+  test('a class referenced only by client JS is known through the caller', () => expect(trimUnusedRules('.js-added{c:1}', known)).toBe('.js-added{c:1}'));
+  test('strings with braces are not split', () => expect(trimUnusedRules('.used::after{content:"}{"}', known)).toBe('.used::after{content:"}{"}'));
+  test('classesIn reads class attributes', () => expect([...classesIn('<a class="x  y"><b class="z">')]).toEqual(['x', 'y', 'z']));
+});

@@ -24,11 +24,12 @@ Upstream fields used: `id`, `commune_name` (AR), `commune_name_fr`, `wilaya_code
 ## jo/ — Journal officiel evidence
 
 `jo/official-lists.json` holds the commune lists of the 38 wilayas whose composition is printed in
-Law 26-06 (2026) or Law 19-12 (2019), each mapped to an upstream row id. See `jo/README.md`.
+Law 26-06 (2026) or Law 19-12 (2019); `jo/law-84-09-1984.json` holds the 1984 lists of the other 31
+(plus Ordinance 97-14). Every commune is mapped to an upstream row id. See `jo/README.md`.
 
 ## corrections.json
 
-Every change applied on top of upstream: 50 commune moves (to match the JO), 20 commune name fixes,
+Every change applied on top of upstream: 50 commune moves (to match the JO), 24 commune name fixes (20 GEO-1, 4 GEO-6),
 13 wilaya name fixes, plus mechanical rules (hyphens, whitespace). Reasoning and sources:
 `artifacts/GEO-1/decision.md` and `DECISIONS.md`.
 
