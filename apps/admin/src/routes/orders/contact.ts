@@ -7,7 +7,7 @@
 import * as v from 'valibot';
 import { asc, eq } from 'drizzle-orm';
 import { CONTACT_EDIT_STATUSES, communes, createAdminTableFeeProvider, orderItems, variants, type Db } from '@hb/db';
-import { buildQuote, normalizePhone, type AdminRole, type FeeProvider, type OrderStatus } from '@hb/shared';
+import { buildQuote, normalizeName, normalizePhone, type AdminRole, type FeeProvider, type OrderStatus } from '@hb/shared';
 import { vInt, vOptionalText, vText } from '../../lib/forms.ts';
 import type { RuntimeEnv } from '../../env.ts';
 
@@ -23,7 +23,8 @@ export function feeProviderFor(db: Db, env: RuntimeEnv): FeeProvider {
 
 export const ContactForm = v.object({
   version: vInt(0, Number.MAX_SAFE_INTEGER),
-  name: vText(120),
+  /** Validated with @hb/shared normalizeName (SHARED-7, the storefront's rule) in previewContact. */
+  name: v.pipe(v.optional(v.string(), ''), v.maxLength(500)),
   phone: vText(32),
   wilaya: vInt(1, 69),
   commune: vInt(1, Number.MAX_SAFE_INTEGER),
@@ -53,11 +54,15 @@ export type ContactErrKey =
   | 'contact.err.nothing'
   | 'contact.err.priceChanged'
   | 'contact.err.notEditable'
-  | 'contact.err.totalTooHigh';
+  | 'contact.err.totalTooHigh'
+  | 'contact.err.nameRequired'
+  | 'contact.err.nameInvalid';
 
 export type ContactPreview =
   | {
       ok: true;
+      /** The name as it will be stored (normalizeName). */
+      name: string;
       phoneE164: string;
       areaChanged: boolean;
       feeDzd: number;
@@ -66,7 +71,7 @@ export type ContactPreview =
       /** Field names that change (for the review table and the audit row). */
       changed: readonly ('name' | 'phone' | 'address' | 'area' | 'fee')[];
     }
-  | { ok: false; errors: Partial<Record<'phone' | 'commune' | 'wilaya' | '_form', ContactErrKey>> };
+  | { ok: false; errors: Partial<Record<'name' | 'phone' | 'commune' | 'wilaya' | '_form', ContactErrKey>> };
 
 /** Communes of one wilaya, for the select (ordered by name in the UI language). */
 export function communesOf(db: Db, wilaya: number, lang: 'fr' | 'ar') {
@@ -88,6 +93,8 @@ export async function previewContact(
   input: ContactInput,
   fees: FeeProvider,
 ): Promise<ContactPreview> {
+  const name = normalizeName(input.name);
+  if (!name.ok) return { ok: false, errors: { name: name.code === 'name_required' ? 'contact.err.nameRequired' : 'contact.err.nameInvalid' } };
   const phone = normalizePhone(input.phone);
   if (!phone.ok) return { ok: false, errors: { phone: 'contact.err.phone' } };
 
@@ -115,21 +122,21 @@ export async function previewContact(
     feeSource = q.feeSource;
   }
   const changed = [
-    input.name !== cur.name ? 'name' : null,
+    name.value !== cur.name ? 'name' : null,
     phone.e164 !== cur.phoneE164 ? 'phone' : null,
     input.address !== cur.address ? 'address' : null,
     areaChanged ? 'area' : null,
     areaChanged && (feeDzd !== cur.feeDzd || feeSource !== cur.feeSource) ? 'fee' : null,
   ].filter((x): x is 'name' | 'phone' | 'address' | 'area' | 'fee' => x !== null);
   if (changed.length === 0) return { ok: false, errors: { _form: 'contact.err.nothing' } };
-  return { ok: true, phoneE164: phone.e164, areaChanged, feeDzd, totalDzd: cur.subtotalDzd + feeDzd, feeSource, changed };
+  return { ok: true, name: name.value, phoneE164: phone.e164, areaChanged, feeDzd, totalDzd: cur.subtotalDzd + feeDzd, feeSource, changed };
 }
 
 /** Audit before/after: only the fields that change, old and new values (Law 25-11 operations log). */
 export function contactAudit(cur: ContactCurrent, input: ContactInput, p: Extract<ContactPreview, { ok: true }>) {
   const before: Record<string, unknown> = {};
   const after: Record<string, unknown> = {};
-  if (p.changed.includes('name')) [before['name'], after['name']] = [cur.name, input.name];
+  if (p.changed.includes('name')) [before['name'], after['name']] = [cur.name, p.name];
   if (p.changed.includes('phone')) [before['phoneE164'], after['phoneE164']] = [cur.phoneE164, p.phoneE164];
   if (p.changed.includes('address')) [before['address'], after['address']] = [cur.address, input.address];
   if (p.areaChanged) {

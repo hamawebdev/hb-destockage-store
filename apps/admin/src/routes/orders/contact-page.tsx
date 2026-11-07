@@ -83,7 +83,7 @@ export function ContactReviewPage(props: {
   const { order, input, preview, lang } = props;
   const place = (w: string, c: string) => `${w} / ${c}`;
   const rows: [string, Child, Child][] = [];
-  if (preview.changed.includes('name')) rows.push([tm('contact.name'), <Bdi ltr={false}>{order.name}</Bdi>, <Bdi ltr={false}>{input.name}</Bdi>]);
+  if (preview.changed.includes('name')) rows.push([tm('contact.name'), <Bdi ltr={false}>{order.name}</Bdi>, <Bdi ltr={false}>{preview.name}</Bdi>]);
   if (preview.changed.includes('phone'))
     rows.push([tm('contact.phone'), <Bdi>{formatPhoneDisplay(order.phoneE164)}</Bdi>, <Bdi>{formatPhoneDisplay(preview.phoneE164)}</Bdi>]);
   if (preview.changed.includes('address')) rows.push([tm('detail.address'), order.address ?? '—', input.address ?? '—']);

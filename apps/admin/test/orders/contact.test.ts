@@ -258,3 +258,34 @@ describe('DB-6 follow-up (168fd1f): role rule and total ceiling', () => {
     expect(await audits(o.id)).toHaveLength(0);
   });
 });
+
+describe('name (DB-6 r2 / SHARED-7 normalizeName)', () => {
+  test.each([
+    ['   ', 'Indiquez le nom du client'],
+    ['\u200f\u2066\u2069', 'Indiquez le nom du client'],
+    ['12345', 'Nom invalide'],
+    ['A', 'Nom invalide'],
+    ['Ami\u0007na', 'Nom invalide'],
+    ['x'.repeat(81), 'Nom invalide'],
+  ])('name %j → 422 "%s" at review and at save, nothing written', async (name, message) => {
+    const o = await newOrder();
+    const phone = (await row(o.id)).phoneE164;
+    for (const step of ['review', 'save']) {
+      const res = await submit(USERS.confirmer, o.ref, values({ phone, over: { name, previewTotal: String(SUBTOTAL + 600), step } }));
+      expect(res.status, step).toBe(422);
+      const html = await res.text();
+      expect(html).toContain(message);
+      expect(html).toMatch(/field--invalid[^]*?name="name"|name="name"[^>]*aria-invalid="true"/);
+    }
+    expect((await row(o.id)).version).toBe(0);
+    expect(await audits(o.id)).toHaveLength(0);
+  });
+  test('a messy name is stored and audited in its normalised form', async () => {
+    const o = await newOrder();
+    const phone = (await row(o.id)).phoneE164;
+    const res = await submit(USERS.confirmer, o.ref, values({ phone, over: { name: '  Amina\u200f   Benali\t ', previewTotal: String(SUBTOTAL + 600), step: 'save' } }));
+    expect(res.status).toBe(303);
+    expect((await row(o.id)).name).toBe('Amina Benali');
+    expect((await audits(o.id))[0]!.after).toEqual({ name: 'Amina Benali' });
+  });
+});

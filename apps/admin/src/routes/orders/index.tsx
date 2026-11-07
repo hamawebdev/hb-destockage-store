@@ -456,7 +456,7 @@ r.post(`/${REF}/contact`, requirePerm('orders.edit'), async (c) => {
   const res = await updateOrderContact(
     c.var.db,
     order.id,
-    { name: input.name, phone: input.phone, address: input.address, wilayaCode: input.wilaya, communeId: input.commune },
+    { name: preview.name, phone: input.phone, address: input.address, wilayaCode: input.wilaya, communeId: input.commune },
     fees,
     { userId: c.var.user.id, role: c.var.user.role },
     input.version,
@@ -481,6 +481,15 @@ r.post(`/${REF}/contact`, requirePerm('orders.edit'), async (c) => {
       return renderContactEdit(c, order, f.values, 422, contactErrors(c, { _form: 'contact.err.totalTooHigh' }));
     case 'nothing_to_change':
       return renderContactEdit(c, order, f.values, 422, contactErrors(c, { _form: 'contact.err.nothing' }));
+    case 'name_required':
+      return renderContactEdit(c, order, f.values, 422, contactErrors(c, { name: 'contact.err.nameRequired' }));
+    case 'name_invalid':
+      return renderContactEdit(c, order, f.values, 422, contactErrors(c, { name: 'contact.err.nameInvalid' }));
+    default: {
+      // Exhaustive: a new DB-6 result code fails typecheck here instead of falling through.
+      const unhandled: never = res.code;
+      throw new Error(`updateOrderContact: unhandled result code ${String(unhandled)}`);
+    }
   }
 });
 
