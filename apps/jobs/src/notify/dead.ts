@@ -2,8 +2,9 @@
 // Makes failed notifications visible to the admin (ADMIN-5 dashboard tile):
 // - an `order.created` message (moved here by Cloudflare after max_retries, or forwarded by the
 //   consumer after a permanent provider error) marks that order's channels still 'sending' as
-//   'dead' (dead_at = now; last_error kept). If the order has no ledger row at all (the ledger was
-//   failing), a ('*', 'dead') row is inserted when the order exists.
+//   'dead' (dead_at = now; last_error kept). If nothing could be marked but the order has no row
+//   at all, or a configured channel has no 'sent' row (its claim kept failing), a ('*', 'dead')
+//   row naming the missing channels is inserted when the order exists (review r1 nit 2).
 // - anything else (the consumer's data-free {type:'invalid'} envelope, or garbage) bumps
 //   settings['jobs.notify_invalid'] = {count, lastAt}. No payload is stored.
 // Idempotent: marking is conditional on status = 'sending'; the counter is a signal only.
@@ -15,6 +16,8 @@ export const INVALID_COUNTER_KEY = 'jobs.notify_invalid';
 
 export interface DeadLetterDeps {
   db: D1Database;
+  /** Channels of the enabled providers (e.g. ['telegram', 'email']); [] = no channel expected. */
+  channels?: readonly string[];
   now?: () => number;
   random?: () => number;
 }
@@ -32,16 +35,21 @@ export async function handleDeadLetters(batch: MessageBatch<unknown>, deps: Dead
           .run();
         let changes = marked.meta.changes ?? 0;
         if (changes === 0) {
-          // No unsent channel: either every channel was sent (nothing to do) or no row exists at all.
-          const any = await deps.db.prepare('SELECT count(*) AS n FROM notification_deliveries WHERE order_id = ?1').bind(order.orderId).first<{ n: number }>();
-          if ((any?.n ?? 0) === 0) {
+          // No unsent row. Visible failure unless every expected channel was sent.
+          const existing = (
+            await deps.db.prepare('SELECT channel, status FROM notification_deliveries WHERE order_id = ?1').bind(order.orderId).all<{ channel: string; status: string }>()
+          ).results;
+          const sent = new Set(existing.filter((r) => r.status === 'sent').map((r) => r.channel));
+          const missing = (deps.channels ?? []).filter((c) => !sent.has(c));
+          if (existing.length === 0 || missing.length > 0) {
+            const label = missing.length > 0 ? `no delivery recorded for ${missing.join(', ')}` : 'no delivery recorded';
             const ins = await deps.db
               .prepare(
                 `INSERT INTO notification_deliveries (order_id, channel, status, attempts, dead_at, last_error)
-                 SELECT ?1, '*', 'dead', 0, ?2, 'no delivery recorded' WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?1)
+                 SELECT ?1, '*', 'dead', 0, ?2, ?3 WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?1)
                  ON CONFLICT (order_id, channel) DO NOTHING`,
               )
-              .bind(order.orderId, at)
+              .bind(order.orderId, at, label)
               .run();
             changes = ins.meta.changes ?? 0;
             if (changes === 0) await bumpInvalid(deps.db, at); // unknown order: a producer bug

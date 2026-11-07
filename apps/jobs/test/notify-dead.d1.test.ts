@@ -113,3 +113,35 @@ describe('dead is terminal for the main consumer', { timeout: 60_000 }, () => {
     expect(await rows(3)).toEqual([{ channel: '*', status: 'dead', dead_at: expect.any(Number), last_error: 'no delivery recorded' }]);
   });
 });
+
+describe('review r1 nits', { timeout: 60_000 }, () => {
+  test('markSent after a dead mark: status sent and dead_at cleared together', async () => {
+    const store = new D1DeliveryStore(p.env.DB);
+    await store.claim(1, 'telegram', 1, 60_000);
+    await handleDeadLetters(fakeBatch([fakeMessage(body(1))], DLQ), { db: p.env.DB, now: () => NOW });
+    expect(await rows(1)).toEqual([{ channel: 'telegram', status: 'dead', dead_at: NOW, last_error: null }]);
+    await store.markSent(1, 'telegram', NOW + 1); // the slow send did complete
+    expect(await rows(1)).toEqual([{ channel: 'telegram', status: 'sent', dead_at: null, last_error: null }]);
+  });
+
+  test('partial ledger: telegram sent, email never recorded → a visible (\'*\', dead) row naming email', async () => {
+    const store = new D1DeliveryStore(p.env.DB);
+    await store.claim(3, 'telegram', 1, 60_000);
+    await store.markSent(3, 'telegram', 2);
+    await handleDeadLetters(fakeBatch([fakeMessage(body(3))], DLQ), { db: p.env.DB, now: () => NOW, channels: ['telegram', 'email'] });
+    expect(await rows(3)).toEqual([
+      { channel: '*', status: 'dead', dead_at: NOW, last_error: 'no delivery recorded for email' },
+      { channel: 'telegram', status: 'sent', dead_at: null, last_error: null },
+    ]);
+  });
+
+  test('every configured channel sent → still nothing marked', async () => {
+    const store = new D1DeliveryStore(p.env.DB);
+    for (const c of ['telegram', 'email']) {
+      await store.claim(4, c, 1, 60_000);
+      await store.markSent(4, c, 2);
+    }
+    await handleDeadLetters(fakeBatch([fakeMessage(body(4))], DLQ), { db: p.env.DB, now: () => NOW, channels: ['telegram', 'email'] });
+    expect((await rows(4)).map((r) => r['status'])).toEqual(['sent', 'sent']);
+  });
+});

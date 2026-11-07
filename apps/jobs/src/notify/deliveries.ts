@@ -53,7 +53,9 @@ export class D1DeliveryStore implements DeliveryStore {
   async markSent(orderId: number, channel: string, now: number): Promise<void> {
     await this.db
       .prepare(
-        `UPDATE notification_deliveries SET status = 'sent', sent_at = ?3, lease_until = NULL, last_error = NULL
+        // The send did happen, so 'sent' wins even over a concurrent dead-letter mark; dead_at is
+        // cleared with it so status and dead_at stay paired (JOBS-6 review nit 1).
+        `UPDATE notification_deliveries SET status = 'sent', sent_at = ?3, lease_until = NULL, last_error = NULL, dead_at = NULL
          WHERE order_id = ?1 AND channel = ?2`,
       )
       .bind(orderId, channel, now)

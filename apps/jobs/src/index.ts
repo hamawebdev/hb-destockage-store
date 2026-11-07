@@ -52,17 +52,17 @@ export default {
   },
 
   async queue(batch: MessageBatch<unknown>, env: Env, _ctx: ExecutionContext): Promise<void> {
-    if (batch.queue === ORDER_NOTIFICATIONS_DLQ) {
-      await handleDeadLetters(batch, { db: env.DB });
-      return;
-    }
-    if (batch.queue !== ORDER_NOTIFICATIONS_QUEUE) {
+    if (batch.queue !== ORDER_NOTIFICATIONS_QUEUE && batch.queue !== ORDER_NOTIFICATIONS_DLQ) {
       log('queue.unknown', { queue: batch.queue, messages: batch.messages.length });
       batch.retryAll({ delaySeconds: 3600 });
       return;
     }
     const makeEmailMessage = await emailFactory(env);
     const providers = buildProviders(env, makeEmailMessage ? { makeEmailMessage } : {});
+    if (batch.queue === ORDER_NOTIFICATIONS_DLQ) {
+      await handleDeadLetters(batch, { db: env.DB, channels: providers.map((p) => p.channel) });
+      return;
+    }
     await handleOrderNotifications(batch, {
       providers,
       store: providers.length ? new D1DeliveryStore(env.DB) : null,
