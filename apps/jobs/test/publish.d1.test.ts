@@ -62,6 +62,12 @@ describe('publish queue', { timeout: 30_000 }, () => {
     expect(String(db['log_tail'])).toContain('BUDGET OK: 30 pages');
   });
 
+  test('JOBS-7: the budget mode is recorded in timings_json (budgetStaticOnly 1 = static pass only)', async () => {
+    const id = (await enqueueRun(p.env.DB))!;
+    await runPublishQueue(p.env.DB, stages({ budget: async () => ({ ok: true, summary: 'BUDGET OK', staticOnly: true }) }), { deployCommand: DEPLOY, now });
+    expect(JSON.parse(String((await row(id))!['timings_json']))).toMatchObject({ budgetStaticOnly: 1 });
+  });
+
   test('budget failure: status failed, error "budget", budget_ok 0, no deploy line', async () => {
     const id = (await enqueueRun(p.env.DB))!;
     await runPublishQueue(p.env.DB, stages({ budget: async () => ({ ok: false, summary: 'BUDGET FAILED: 2 violations (html-br: 2)' }) }), { deployCommand: DEPLOY, now });

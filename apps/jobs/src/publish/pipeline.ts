@@ -13,6 +13,8 @@ export interface SnapshotResult {
 export interface BudgetResult {
   ok: boolean;
   summary: string;
+  /** JOBS-7: true when only the static pass ran (content-only change); recorded in timings_json. */
+  staticOnly?: boolean;
 }
 
 export interface PublishStages {
@@ -91,6 +93,7 @@ async function runOne(db: D1Database, id: number, stages: PublishStages, opts: P
     if (sub) Object.assign(timings, sub);
     budget = await timed('budget', 'budgetMs', () => stages.budget(snapshot!, log));
     log(`budget: ${budget.ok ? 'PASS' : 'FAIL'}: ${budget.summary}`);
+    if (budget.staticOnly !== undefined) timings['budgetStaticOnly'] = budget.staticOnly ? 1 : 0;
     if (!budget.ok) error = 'budget';
   } catch (err) {
     error = `${stage}: ${oneLine(err instanceof Error ? err.message : String(err), 240)}`;

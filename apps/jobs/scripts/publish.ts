@@ -15,20 +15,22 @@
 //   catalog   pagedata's pre-build (CAT-4/5, packages/catalog/src/bin/catalog.ts): AVIF variants +
 //             image manifest (content-hash cache), search indexes, per-wilaya commune JSON.
 //   astro     npm run build -w @hb/storefront, HB_SNAPSHOT=<snapshot>.
-//   budget    npm run budget.
+//   budget    npm run budget: static-only for content-only changes, full otherwise (JOBS-7, D-003).
 // Then records status, timings_json, budget_ok, error and log_tail on the run and prints the
 // deploy command it would run. Heavy: run it under /tmp/hb-locks/heavy.sh on the shared machine.
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { getPlatformProxy } from 'wrangler';
 import { runPublishQueue, StageError, type PublishStages, type SnapshotResult } from '../src/publish/pipeline.ts';
+import { budgetWithMode } from '../src/publish/budget-stage.ts';
 import { enqueueRun } from '../src/publish/runs.ts';
+import { budgetVerdict, buildFingerprint, LAST_GOOD_FILE } from './lib/fingerprint.ts';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 export const DEPLOY_COMMAND = 'npx wrangler deploy -c apps/web/wrangler.jsonc';
@@ -167,18 +169,38 @@ const stages: PublishStages = {
   },
 
   async budget(snapshot, log) {
-    // measure's contract: exit 0 = pass, 1 = violations, 2 = usage/internal error; verdict = last
-    // line of <out>/budget.txt ("BUDGET OK: …" / "BUDGET FAILED: …").
+    // JOBS-7 (D-003): static-only for content-only changes, full for any image or template/code
+    // change, decided from this build's fingerprint vs the last good build's. Both BLOCKING.
+    // measure's contract: exit 0 pass, 1 violations, 2 usage/internal error; verdict = last line
+    // of <out>/budget.txt.
     const out = join(dirname(snapshot.file), 'budget');
-    let ok = true;
-    try {
-      await run('budget', 'npm', ['run', 'budget', '--', '--out', out], {}, log);
-    } catch (err) {
-      if (!(err instanceof CommandError && err.exitCode === 1)) throw err; // 2 = usage/internal error
-      ok = false;
-    }
-    const verdict = existsSync(join(out, 'budget.txt')) ? lastLine(await readFile(join(out, 'budget.txt'), 'utf8')) : '(no budget.txt)';
-    return { ok, summary: verdict };
+    const runId = Number(dirname(snapshot.file).split('/').at(-1));
+    return budgetWithMode(
+      {
+        readLastGood: async () => (existsSync(LAST_GOOD_FILE) ? readFile(LAST_GOOD_FILE, 'utf8') : null),
+        writeLastGood: async (text) => {
+          await mkdir(dirname(LAST_GOOD_FILE), { recursive: true });
+          const tmp = `${LAST_GOOD_FILE}.${process.pid}.tmp`;
+          await writeFile(tmp, text);
+          await rename(tmp, LAST_GOOD_FILE); // atomic: a crash never leaves a half-written file
+        },
+        fingerprint: async () => buildFingerprint(REPO, join(REPO, 'apps/storefront/.catalog/image-manifest.json')),
+        runBudget: async (staticOnly) => {
+          let exitCode: number | null = 0;
+          try {
+            await run('budget', 'npm', ['run', 'budget', '--', '--out', out, ...(staticOnly ? ['--static-only'] : [])], {}, log);
+          } catch (err) {
+            if (!(err instanceof CommandError)) throw err;
+            exitCode = err.exitCode;
+          }
+          const verdict = existsSync(join(out, 'budget.txt')) ? budgetVerdict(await readFile(join(out, 'budget.txt'), 'utf8')) : '(no budget.txt)';
+          return { exitCode, verdict };
+        },
+      },
+      log,
+      runId,
+      Date.now,
+    );
   },
 };
 
