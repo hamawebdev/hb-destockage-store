@@ -30,7 +30,7 @@ const i18n = JSON.stringify({
   ...(dev ? { 'dev.placeholder': t(strings, 'dev.placeholder') } : {}),
 });
 ---
-<div class="cat-page cat-search" data-index={indexUrl} data-lang={lang} data-min={minQueryLength} data-q={queryParam} data-i18n={i18n}>
+<div class="container cat-page cat-search" data-index={indexUrl} data-lang={lang} data-min={minQueryLength} data-q={queryParam} data-i18n={i18n}>
   <h1 class="cat-title cat-search-title">{t(strings, 'search.title')}</h1>
   <form class="cat-sform" role="search" method="get" action={layout.path}>
     <label class="cat-sr" for="cat-q">{t(strings, 'search.label')}</label>

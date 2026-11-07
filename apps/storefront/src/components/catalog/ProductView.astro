@@ -44,7 +44,7 @@ const ph = showDevMarkers() && (product.placeholder || product.translationPlaceh
 const hasForm = Astro.slots.has('order');
 const dev = import.meta.env.DEV;
 ---
-<div class="cat-pdp" data-mode={mode}>
+<div class="container cat-pdp" data-mode={mode}>
   <div class="cat-pdp-crumbs"><Breadcrumbs items={breadcrumbs} strings={strings} /></div>
 
   <div class="cat-pdp-top">
@@ -118,7 +118,7 @@ const dev = import.meta.env.DEV;
 </div>
 
 <style is:global>
-  .cat-pdp{inline-size:min(100% - 2 * var(--gutter), var(--container-max));margin-inline:auto;padding-block:var(--space-2) var(--section-block);timeline-scope:--cat-order}
+  .cat-pdp{padding-block:var(--space-2) var(--section-block);timeline-scope:--cat-order}
   .cat-pdp-crumbs{margin-block-end:var(--space-3)}
   .cat-pdp-top{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-6)}
   @media (min-width:1024px){
