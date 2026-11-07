@@ -5,8 +5,7 @@ import type { Image } from '@hb/db';
 import { useUi } from '../../ui/context.ts';
 import { StatusBadge } from '../../ui/badge.tsx';
 import { Bdi } from '../../ui/format.tsx';
-import { ErrorSummary, Form, FormActions, LocalizedField, Submit, type FieldErrors } from '../../ui/form.tsx';
-import { CardField } from '../products/lib/card-field.tsx';
+import { Checkbox, ErrorSummary, Form, FormActions, LocalizedField, Select, Submit, type FieldErrors } from '../../ui/form.tsx';
 import { fieldMessages } from '../products/lib/field-messages.ts';
 import type { BindChoices, Owner } from './data.ts';
 import { RECOMMENDED_WIDTH } from './data.ts';
@@ -43,25 +42,22 @@ export function PhotosSection(props: { owner: Owner; images: readonly Image[]; c
       {props.images.length === 0 ? <p class="empty">{tm('empty')}</p> : null}
       <ol class="photo-list">
         {props.images.map((img, i) => {
+          const groupLabel = tm('photoN', { n: i + 1 });
           const values: Record<string, string> = { alt_fr: img.altFr, alt_ar: img.altAr };
           const bind = img.variantId !== null ? `v:${img.variantId}` : img.optionValueId !== null ? `o:${img.optionValueId}` : '';
           return (
-            <li>
+            <li role="group" aria-label={groupLabel}>
               <Thumb img={img} alt={lang === 'ar' ? img.altAr : img.altFr} />
               <p class="muted">
                 {tm('size', { width: img.width, height: img.height })} · <Bdi ltr>{img.r2Key}</Bdi>
                 {img.placeholder ? <> <StatusBadge tone="warning" label={tf('common.placeholder')} /></> : null}
               </p>
               {img.width < RECOMMENDED_WIDTH ? <p class="field__hint"><strong>⚠ </strong>{tm('warn.small')}</p> : null}
-              {/* One card per photo: ids carry the image id (CardField), so labels never point into another card. */}
+              {/* One card per photo: every id carries the image id (kit idSuffix). */}
               <Form action={`/media/${img.id}`}>
-                <CardField name="alt_fr" idKey={img.id} label={`${tm('alt')} (${t('common.fr')})`} value={values['alt_fr']} maxlength={200} required dir="ltr" lang="fr" />
-                <CardField name="alt_ar" idKey={img.id} label={`${tm('alt')} (${t('common.ar')})`} value={values['alt_ar']} maxlength={200} required dir="rtl" lang="ar" />
-                {bindOptions ? <CardField name="bind" idKey={img.id} label={tm('bind')} value={bind} options={bindOptions} /> : null}
-                <div class="field field--check">
-                  <input type="checkbox" class="check" id={`f-placeholder-${img.id}`} name="placeholder" value="1" checked={img.placeholder} />
-                  <label for={`f-placeholder-${img.id}`}>{tf('common.placeholder')}</label>
-                </div>
+                <LocalizedField name="alt" idSuffix={img.id} label={tm('alt')} values={values} maxlength={200} required />
+                {bindOptions ? <Select name="bind" idSuffix={img.id} label={tm('bind')} value={bind} options={bindOptions} /> : null}
+                <Checkbox name="placeholder" idSuffix={img.id} label={tf('common.placeholder')} checked={img.placeholder} />
                 <Submit variant="secondary">{t('common.save')}</Submit>
               </Form>
               <div class="form-actions">
@@ -101,11 +97,8 @@ export function PhotosSection(props: { owner: Owner; images: readonly Image[]; c
           />
         </div>
         <LocalizedField name="alt" label={tm('alt')} values={{}} maxlength={200} required />
-        {/* The details form on the same page already has a `placeholder` checkbox (kit id f-placeholder). */}
-        <div class="field field--check">
-          <input type="checkbox" class="check" id="f-placeholder-upload" name="placeholder" value="1" />
-          <label for="f-placeholder-upload">{tf('common.placeholder')}</label>
-        </div>
+        {/* The details form on the same page already has a `placeholder` checkbox: suffix this one. */}
+        <Checkbox name="placeholder" idSuffix="upload" label={tf('common.placeholder')} />
         <FormActions>
           <Submit>{tm('upload.button')}</Submit>
         </FormActions>

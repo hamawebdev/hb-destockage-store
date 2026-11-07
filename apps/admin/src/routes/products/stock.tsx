@@ -28,7 +28,6 @@ import { fieldMessages } from './lib/field-messages.ts';
 import { guard, isGuardAbort } from './lib/guard.ts';
 import { cleanText } from './lib/text.ts';
 import { m } from './messages.ts';
-import { CardField } from './lib/card-field.tsx';
 
 type Ctx = Context<AppEnv>;
 
@@ -178,8 +177,8 @@ function StockPage(props: {
         // One card per variant (not a table): at 360 px every control stays on screen.
         <ol class="stock-list" aria-label={tm('stock.caption')}>
           {props.rows.map((r) => (
-            <li class="panel">
-              <h3>
+            <li class="panel" role="group" aria-labelledby={`card-${r.variantId}`}>
+              <h3 id={`card-${r.variantId}`}>
                 <a href={`/products/${r.productId}`}>{label(r, lang)}</a>
                 {r.status !== 'active' ? <> ({tm(`status.${r.status}` as 'status.draft')})</> : null}
               </h3>
@@ -193,7 +192,7 @@ function StockPage(props: {
                     <input type="hidden" name="variant_id" value={String(r.variantId)} />
                     <input type="hidden" name="was" value={String(r.stock)} />
                     <input type="hidden" name="back" value={props.back} />
-                    <CardField name="stock" idKey={r.variantId} label={tm('stock.set')} value={String(r.stock)} inputmode="numeric" dir="ltr" maxlength={8} />
+                    <NumberInput name="stock" idSuffix={r.variantId} label={tm('stock.set')} value={String(r.stock)} />
                     <FormActions>
                       <Submit variant="secondary">{tm('stock.setButton')}</Submit>
                     </FormActions>
@@ -201,9 +200,9 @@ function StockPage(props: {
                   <Form action="/products/stock/adjust">
                     <input type="hidden" name="variant_id" value={String(r.variantId)} />
                     <input type="hidden" name="back" value={props.back} />
-                    <CardField name="delta" idKey={r.variantId} label={tm('stock.delta')} hint={tm('stock.deltaHint')} inputmode="numeric" dir="ltr" maxlength={8} />
-                    <CardField name="reason" idKey={r.variantId} label={tm('stock.reason')} options={ADJUST_REASONS.map((x) => ({ value: x, label: tm(`stock.reason.${x}`) }))} />
-                    <CardField name="note" idKey={r.variantId} label={tm('stock.note')} maxlength={200} />
+                    <NumberInput name="delta" idSuffix={r.variantId} label={tm('stock.delta')} hint={tm('stock.deltaHint')} />
+                    <Select name="reason" idSuffix={r.variantId} label={tm('stock.reason')} options={ADJUST_REASONS.map((x) => ({ value: x, label: tm(`stock.reason.${x}`) }))} />
+                    <TextInput name="note" idSuffix={r.variantId} label={tm('stock.note')} maxlength={200} />
                     <FormActions>
                       <Submit variant="secondary">{tm('stock.adjustButton')}</Submit>
                     </FormActions>

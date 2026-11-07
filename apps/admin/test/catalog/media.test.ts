@@ -179,7 +179,7 @@ describe('serve, edit, reorder, delete', () => {
         const html = await (await get(user, path)).text();
         const photos = html.slice(html.indexOf('id="sec-photos"'));
         expect(idAndLabelProblems(html), path).toEqual([]);
-        expect(idAndLabelProblems(photos.slice(0, photos.indexOf('</ol>')), /<li>[\s\S]*?<\/li>/), path).toEqual([]);
+        expect(idAndLabelProblems(photos.slice(0, photos.indexOf('</ol>')), /<li role="group"[^>]*>[\s\S]*?<\/li>/), path).toEqual([]);
       }
     }
   });

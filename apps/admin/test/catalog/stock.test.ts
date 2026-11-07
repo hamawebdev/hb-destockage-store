@@ -253,8 +253,13 @@ describe('accessibility of repeated cards (rev-f a7c5393 F1)', () => {
     await h.db.prepare("insert into variants (product_id, sku, price_dzd, stock) values (?, 'HB-2', 1, 4), (?, 'HB-3', 1, 6)").bind(pid, pid).run();
     for (const user of [USERS.logistics, USERS.ownerAr]) {
       const html = await (await h.as(user, '/products/stock')).text();
-      expect(html.match(/<li class="panel">/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
-      expect(idAndLabelProblems(html, /<li class="panel">[\s\S]*?<\/li>/)).toEqual([]);
+      expect(html.match(/<li class="panel"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+      expect(idAndLabelProblems(html, /<li class="panel"[^>]*>[\s\S]*?<\/li>/)).toEqual([]);
+      // Each card is a group named by its own heading (rev-f nit: no identical anonymous controls).
+      for (const m of html.matchAll(/<li class="panel" role="group" aria-labelledby="([^"]+)">([\s\S]*?)<\/li>/g)) {
+        expect(m[2]).toContain(`<h3 id="${m[1]}">`);
+      }
+      expect(html.match(/role="group" aria-labelledby="card-/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
     }
   });
 
