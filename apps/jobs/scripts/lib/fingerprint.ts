@@ -8,15 +8,25 @@ import type { BuildFingerprint } from '../../src/publish/budget-mode.ts';
 
 /**
  * Every path whose change can alter the built pages, their headers, or the budget verdict itself
- * (lead ruling: storefront, web's static serving/headers/CSP, catalogue builders, tokens, shared
- * formatters, brand copy and assets, measure's budget config/thresholds, the dependency set).
+ * (lead ruling + JOBS-7 review r1: storefront, web's static serving/headers/CSP, catalogue builders,
+ * tokens, shared formatters, db's snapshot mapping, the publish pipeline itself, brand copy and
+ * assets, measure's budget config/thresholds, the dependency set).
  */
 export const TEMPLATE_PATHS = [
   'apps/storefront',
   'apps/web',
   'packages/catalog/src',
+  'packages/catalog/package.json',
   'packages/ui-tokens',
   'packages/shared/src',
+  'packages/shared/package.json',
+  // D1 → snapshot mapping (exportCatalogSnapshot) shapes what the pages show (JOBS-7 review r1).
+  'packages/db/src',
+  'packages/db/package.json',
+  // The publish pipeline itself: how the build is invoked and how the budget is run.
+  'apps/jobs/scripts/publish.ts',
+  'apps/jobs/scripts/lib',
+  'apps/jobs/src/publish',
   'brand',
   'tools/measure',
   'package.json',

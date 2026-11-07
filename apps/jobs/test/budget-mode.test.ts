@@ -90,6 +90,42 @@ describe('budgetWithMode', () => {
     await budgetWithMode(x, () => {}, 1, () => 5);
     expect(x.staticFlags).toEqual([false]);
   });
+  test('review r1: a full pass on a DIRTY tree is never recorded as last good', async () => {
+    const x = io(good(), 0);
+    x.fingerprint = async () => ({ ...fp, template: h('e'), dirty: true });
+    const log = vi.fn();
+    const r = await budgetWithMode(x, log, 9, () => 5);
+    expect(x.staticFlags).toEqual([false]); // dirty → full
+    expect(r.ok).toBe(true);
+    expect(x.written).toEqual([]);
+    expect(log.mock.calls.map((c) => c[0]).join('\n')).toContain('last good build NOT updated');
+  });
+
+  test('review r1 sequence: dirty full pass at commit H, edits reverted, clean H → still FULL (H gets its own runtime pass)', async () => {
+    let stored: string | null = good(); // last clean build: template b…
+    const H = h('e');
+    const mk = (dirty: boolean): BudgetIo & { staticFlags: boolean[] } => {
+      const staticFlags: boolean[] = [];
+      return {
+        staticFlags,
+        readLastGood: async () => stored,
+        writeLastGood: async (t) => void (stored = t),
+        fingerprint: async () => ({ images: h('a'), template: H, dirty }),
+        runBudget: async (s) => (staticFlags.push(s), { exitCode: 0, verdict: 'BUDGET OK' }),
+      };
+    };
+    const dirtyRun = mk(true);
+    await budgetWithMode(dirtyRun, () => {}, 10, () => 6);
+    expect(dirtyRun.staticFlags).toEqual([false]);
+    const cleanRun = mk(false);
+    await budgetWithMode(cleanRun, () => {}, 11, () => 7);
+    expect(cleanRun.staticFlags).toEqual([false]); // full, not static: template e ≠ recorded b
+    expect(JSON.parse(stored!)).toMatchObject({ template: H, staticOnlyStreak: 0, runId: 11 });
+    const third = mk(false);
+    await budgetWithMode(third, () => {}, 12, () => 8);
+    expect(third.staticFlags).toEqual([true]); // only now, after H's own full pass
+  });
+
   test('the budget tool itself failing (exit 2) is a stage error, not a pass', async () => {
     await expect(budgetWithMode(io(good(), 2, 'usage'), () => {}, 1, () => 5)).rejects.toBeInstanceOf(BudgetToolError);
   });

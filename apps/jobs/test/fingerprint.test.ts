@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { budgetVerdict, buildFingerprint, stableStringify } from '../scripts/lib/fingerprint.ts';
+import { budgetVerdict, buildFingerprint, stableStringify, TEMPLATE_PATHS } from '../scripts/lib/fingerprint.ts';
 
 let repo: string;
 const PATHS = ['apps/storefront', 'tools/measure'];
@@ -26,6 +26,14 @@ beforeEach(() => {
   git('commit', '-qm', 'init');
 });
 afterEach(() => rmSync(repo, { recursive: true, force: true }));
+
+describe('TEMPLATE_PATHS (review r1 nit)', () => {
+  test('cover the snapshot mapping, the publish pipeline and the package manifests', () => {
+    for (const p of ['packages/db/src', 'apps/jobs/scripts/publish.ts', 'apps/jobs/src/publish', 'packages/catalog/package.json', 'packages/shared/package.json', 'apps/web', 'tools/measure']) {
+      expect(TEMPLATE_PATHS).toContain(p);
+    }
+  });
+});
 
 describe('budgetVerdict', () => {
   test('takes the BUDGET line, not the --static-only footnote (found in the e2e run)', () => {

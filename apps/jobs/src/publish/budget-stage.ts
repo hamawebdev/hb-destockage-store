@@ -29,6 +29,14 @@ export async function budgetWithMode(io: BudgetIo, log: (l: string) => void, run
   const r = await io.runBudget(d.mode === 'static');
   if (r.exitCode !== 0 && r.exitCode !== 1) throw new BudgetToolError(`budget exited ${r.exitCode}: ${r.verdict}`);
   const ok = r.exitCode === 0;
-  if (ok) await io.writeLastGood(`${JSON.stringify(nextLastGood(last, fp, d.mode, runId, now()), null, 2)}\n`);
+  if (ok && fp.dirty) {
+    // Review r1: a pass on a dirty tree validated the committed files PLUS uncommitted edits;
+    // recording it under the committed template hash would let a later clean build of that
+    // commit skip its runtime pass. The baseline stays the last clean build, so the clean build
+    // compares against it (and runs full when its template differs).
+    log('last good build NOT updated: uncommitted changes in template/code paths');
+  } else if (ok) {
+    await io.writeLastGood(`${JSON.stringify(nextLastGood(last, fp, d.mode, runId, now()), null, 2)}\n`);
+  }
   return { ok, summary: r.verdict, staticOnly: d.mode === 'static' };
 }

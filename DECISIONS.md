@@ -88,3 +88,8 @@ Rules:
   2. Measure on the real build machine. Not available to the team; to be done by the client's
      operator.
 - Status: active
+- Amended (JOBS-7 review r1, 2026-11-07): the fingerprint also covers packages/db/src and the
+  package.json files of packages/db, packages/catalog and packages/shared (the D1 → snapshot
+  mapping and dependency manifests), plus the publish pipeline itself (apps/jobs/scripts/publish.ts,
+  apps/jobs/scripts/lib, apps/jobs/src/publish). A pass on a dirty tree is never recorded as last
+  good, so a later clean build of that commit still gets its own full (runtime) pass.
