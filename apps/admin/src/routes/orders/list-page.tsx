@@ -221,6 +221,7 @@ export function OrdersListPage(props: {
       <Filters tm={tm} lang={props.lang} parsed={parsed} page={page} q={props.q} sensitive={props.sensitive} />
       <Notices tm={tm} lang={props.lang} parsed={parsed} />
       <Table
+        stack
         caption={tm('list.caption')}
         columns={columns(tm, props.lang, props.sensitive)}
         rows={page.rows}

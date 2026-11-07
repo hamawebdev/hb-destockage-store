@@ -391,6 +391,7 @@ export function OrderDetailPage(props: DetailProps) {
 
       <Section title={tm('detail.items')} id="items">
         <Table
+          stack
           caption={tm('detail.items')}
           rows={props.items}
           rowKey={(i) => i.id}

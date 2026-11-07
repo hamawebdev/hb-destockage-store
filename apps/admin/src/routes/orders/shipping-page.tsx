@@ -48,6 +48,7 @@ export function ShippingPage(props: {
         ) : (
           <Form action="/orders/shipping/ship">
             <Table
+              stack
               caption={tm('ship.readyCaption')}
               rows={props.ready}
               rowKey={(r) => r.id}
@@ -123,6 +124,7 @@ export function ShippingPage(props: {
       <section aria-labelledby="ship-out">
         <h2 id="ship-out">{tm('ship.out', { count: props.counts.shipped })}</h2>
         <Table
+          stack
           caption={tm('ship.outCaption')}
           rows={props.out}
           rowKey={(r) => r.id}

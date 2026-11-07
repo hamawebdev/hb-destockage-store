@@ -102,7 +102,7 @@ export function CustomersListPage(props: {
           {t('filter.invalid', { fields: props.invalid.map((k) => t(`filter.invalid.${k}`)).join(', ') })}
         </p>
       ) : null}
-      <Table caption={t('list.caption')} columns={cols} rows={props.rows} rowKey={(r) => r.id} empty={t('list.empty')} />
+      <Table stack caption={t('list.caption')} columns={cols} rows={props.rows} rowKey={(r) => r.id} empty={t('list.empty')} />
       <CursorPagination next={props.next} baseUrl={props.url} isFirst={props.filter.after === null} />
     </>
   );
@@ -239,6 +239,7 @@ export function CustomerDetailPage(props: {
 
           <Section title={t('detail.orders')} id="orders">
             <Table
+              stack
               caption={t('detail.orders')}
               rows={props.history}
               rowKey={(o) => o.id}

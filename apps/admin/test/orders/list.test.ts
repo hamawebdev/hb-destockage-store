@@ -217,6 +217,12 @@ describe('rendering', () => {
     expect(html).not.toMatch(/\sstyle=/);
     expect(html).not.toMatch(/\son[a-z]+=/);
   });
+  test('stacks into label/value cards below 600 px (admin-core .tbl-stack), every cell labelled', async () => {
+    const html = (await page(USERS.owner, 'status=any')).html;
+    expect(html).toContain('class="table tbl-stack"');
+    expect(rowOf(html, N.n1)).toContain('data-label="Réf."');
+    expect(rowOf(html, N.n1)).toContain('data-label="Total"');
+  });
   test('the filter form is a GET form (no CSRF token needed, nothing mutates)', async () => {
     const html = (await page(USERS.owner)).html;
     expect(html).toMatch(/<form action="\/orders" method="get"/);

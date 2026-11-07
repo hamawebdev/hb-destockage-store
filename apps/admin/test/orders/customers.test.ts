@@ -203,6 +203,10 @@ describe('notes', () => {
 });
 
 describe('rendering', () => {
+  test('list and order history stack below 600 px (admin-core .tbl-stack)', async () => {
+    expect((await page(USERS.owner, '/customers')).html).toContain('class="table tbl-stack"');
+    expect((await page(USERS.owner, `/customers/${mohamed}`)).html).toContain('class="table tbl-stack"');
+  });
   test('Arabic: rtl, Arabic labels, phone LTR-isolated; unique ids; no inline script/style', async () => {
     const { html } = await page(USERS.ownerAr, `/customers/${mohamed}`);
     expect(html).toMatch(/<html[^>]*dir="rtl"/);
