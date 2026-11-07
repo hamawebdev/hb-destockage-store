@@ -64,6 +64,13 @@
       "when": 1793969990919,
       "tag": "0008_printed_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794049244022,
+      "tag": "0009_printed_prices_positive",
+      "breakpoints": true
     }
   ]
 }

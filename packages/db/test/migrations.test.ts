@@ -78,6 +78,10 @@ describe('every migration, step by step (SQLite)', () => {
       }
     });
     expect(problems).toEqual([]);
+    // Migrations leave no scratch objects behind (0009's _db8_printed_prices_check is dropped):
+    // the schema, the drizzle snapshot and backup dumps only hold Drizzle's tables.
+    const live = (sqlite.prepare("select name from sqlite_master where type = 'table' and name not like 'sqlite_%'").all() as { name: string }[]).map((r) => r.name).sort();
+    expect(live).toEqual(Object.keys(snapshot(files.length - 1).tables).sort());
   });
 
   test('the lint catches the 0006 bug drizzle-kit generated (regression)', () => {
@@ -108,6 +112,20 @@ async function columnNameValues(
   }
   return out;
 }
+
+describe('0009 refuses existing rows that break the new printed-price rule', () => {
+  test('a row printing 0 makes the migration abort (nothing silently kept or dropped)', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    for (const f of files.filter((f) => f < '0009')) for (const s of statements(f)) sqlite.exec(s);
+    for (const s of fixture) sqlite.exec(s);
+    sqlite.exec(`update images set printed_prices_dzd = '[0]' where id = 1`); // allowed by 0008
+    const run0009 = () => {
+      for (const f of files.filter((f) => f.startsWith('0009'))) for (const s of statements(f)) sqlite.exec(s);
+    };
+    expect(run0009).toThrow(/printed_prices_positive_existing_rows/);
+  });
+});
 
 describe('data loaded at 0000 survives every later migration', () => {
   test('SQLite: no text cell equals a column name, no FK violation, every fixture row kept', async () => {
@@ -154,6 +172,11 @@ describe('data loaded at 0000 survives every later migration', () => {
       );
       expect(bad).toEqual([]);
       expect((await d1.prepare('select count(*) n from notification_deliveries where dead_at is null').first<{ n: number }>())!.n).toBe(1);
+      // After the whole chain on real D1, the triggers still fire (DB-8 r1: 0009 replaced only triggers).
+      await expect(d1.prepare("update images set printed_prices_dzd = '[0]' where id = 1").run()).rejects.toThrow(/positive integers/);
+      await expect(d1.prepare('update audit_log set action = action').run()).rejects.toThrow(/append-only/);
+      await expect(d1.prepare("update orders set ref = 'bad'").run()).rejects.toThrow(/orders.ref must match/);
+      expect((await d1.prepare("select count(*) n from sqlite_master where name = '_db8_printed_prices_check'").first<{ n: number }>())!.n).toBe(0);
     } finally {
       await dispose();
     }
