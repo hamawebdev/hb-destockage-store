@@ -8,7 +8,8 @@ import { Checkbox, ErrorSummary, Form, FormActions, Submit, TextInput, Textarea 
 import { Bdi, DateTime, Money } from '../../ui/format.tsx';
 import { CursorPagination } from '../../ui/pagination.tsx';
 import { Table, type Column } from '../../ui/table.tsx';
-import { orderStatusLabel, orderStatusTone } from '../orders/messages.ts';
+import { flagLabel } from '../orders/list-page.tsx';
+import { m, orderStatusLabel, orderStatusTone } from '../orders/messages.ts';
 import type { CustomersFilter, CustomerInvalid, HistoryRow } from './data.ts';
 import { BLOCK_REASON_MAX, BLOCK_REASON_MIN, NOTES_MAX, cm, type CustomersMessages } from './messages.ts';
 
@@ -26,6 +27,16 @@ export interface CustomerRow {
   blocked?: boolean;
   notes?: string | null;
   lastOrderAt?: number | null;
+}
+
+/**
+ * Customer flag → label in the UI language: customer flags first (frequent_returns…), then the
+ * order-flag labels; an unknown code is shown as itself rather than hidden.
+ */
+export function customerFlagLabel(lang: Lang, flag: string): string {
+  const key = `flag.${flag}`;
+  const own = cm(lang)(key as Parameters<CustomersMessages>[0]);
+  return own !== key ? own : flagLabel(m(lang), flag);
 }
 
 const flagList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((f): f is string => typeof f === 'string') : []);
@@ -61,7 +72,7 @@ export function CustomersListPage(props: {
             {r.blocked ? <StatusBadge tone="danger" label={t('blocked')} /> : null}{' '}
             {flagList(r.flags).map((f) => (
               <>
-                <StatusBadge tone="warning" label={f} />{' '}
+                <StatusBadge tone="warning" label={customerFlagLabel(props.lang, f)} />{' '}
               </>
             ))}
           </>
@@ -155,7 +166,7 @@ export function CustomerDetailPage(props: {
               {props.lastBlock.reason ? (
                 <>
                   {' · '}
-                  <span dir="auto">{t('detail.reason', { reason: props.lastBlock.reason })}</span>
+                  {t('detail.reason')} <bdi>{props.lastBlock.reason}</bdi>
                 </>
               ) : null}
             </p>
@@ -182,7 +193,7 @@ export function CustomerDetailPage(props: {
             ) : (
               <ul>
                 {flagList(c.flags).map((f) => (
-                  <li><code dir="ltr">{f}</code></li>
+                  <li>{customerFlagLabel(props.lang, f)}</li>
                 ))}
               </ul>
             )}

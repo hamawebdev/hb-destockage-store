@@ -84,6 +84,18 @@ describe('logistics: name, phone, created date — nothing else (raw HTML)', () 
     expect(html).toContain('filtres d’alerte (réservés à la confirmation)');
     await db().update(customers).set({ blocked: false }).where(eq(customers.id, mohamed));
   });
+  test('customer flags show FR/AR labels; an unknown code stays visible as itself', async () => {
+    await db().update(customers).set({ flags: ['frequent_returns', 'honeypot', FLAG] }).where(eq(customers.id, plain));
+    const fr = (await page(USERS.confirmer, `/customers/${plain}`)).html;
+    expect(fr).toContain('Retours fréquents');
+    expect(fr).toContain('Piège anti-robot rempli');
+    expect(fr).toContain(FLAG);
+    expect(fr).not.toContain('>frequent_returns<');
+    const ar = (await page(USERS.ownerAr, `/customers/${plain}`)).html;
+    expect(ar).toContain('مرتجعات متكررة');
+    expect((await page(USERS.confirmer, '/customers')).html).toContain('Retours fréquents');
+    await db().update(customers).set({ flags: [] }).where(eq(customers.id, plain));
+  });
   test('the same markers are shown to a confirmer', async () => {
     await db().update(customers).set({ blocked: true }).where(eq(customers.id, mohamed));
     const { html } = await page(USERS.confirmer, `/customers/${mohamed}`);
@@ -142,7 +154,7 @@ describe('block / unblock', () => {
     expect(a[0]!.after).toEqual({ blocked: true, reason: 'Refuse tous les colis' });
     const { html } = await page(USERS.owner, `/customers/${plain}`);
     expect(html).toContain('Bloqué par <bdi>Confirmer</bdi>, le');
-    expect(html).toContain('Motif : Refuse tous les colis');
+    expect(html).toContain('Motif : <bdi>Refuse tous les colis</bdi>');
     expect(html).toContain('action="/customers/' + plain + '/unblock"');
   });
   test('blocking again → 409, no second audit row', async () => {
@@ -194,6 +206,7 @@ describe('rendering', () => {
   test('Arabic: rtl, Arabic labels, phone LTR-isolated; unique ids; no inline script/style', async () => {
     const { html } = await page(USERS.ownerAr, `/customers/${mohamed}`);
     expect(html).toMatch(/<html[^>]*dir="rtl"/);
+    expect(html).toMatch(/السبب: <bdi>[^<]+<\/bdi>/);
     expect(html).toContain('ملاحظات داخلية');
     expect(html).toContain('<bdi dir="ltr">06 61 00 00 71</bdi>');
     for (const path of ['/customers', `/customers/${mohamed}`]) {
