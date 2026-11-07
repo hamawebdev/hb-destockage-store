@@ -58,6 +58,35 @@ CREATE TABLE "w" (code integer primary key, "x;y" text);
     const out = splitSqlStatements(schemaFirst(`PRAGMA x;\nCREATE TABLE a (i);\nINSERT INTO a VALUES(1);\nCREATE TABLE b (j);\nINSERT INTO b VALUES(2);\nCREATE INDEX ia ON a(i);`));
     expect(out).toEqual(['PRAGMA x', 'CREATE TABLE a (i)', 'CREATE TABLE b (j)', 'INSERT INTO a VALUES(1)', 'INSERT INTO b VALUES(2)', 'CREATE INDEX ia ON a(i)']);
   });
+  test('triggers, views and indexes go after the data, so no trigger fires during a restore (DB-5 r1)', () => {
+    const dump = `PRAGMA defer_foreign_keys=TRUE;
+CREATE TABLE a (i);
+CREATE TRIGGER ta AFTER INSERT ON a BEGIN INSERT INTO log VALUES (NEW.i); END;
+CREATE VIEW va AS SELECT i FROM a;
+CREATE UNIQUE INDEX ia ON a(i);
+INSERT INTO a VALUES(1);
+CREATE TABLE log (i);
+INSERT INTO log VALUES(9);`;
+    expect(splitSqlStatements(schemaFirst(dump)).map((s) => s.split(' ').slice(0, 3).join(' '))).toEqual([
+      'PRAGMA defer_foreign_keys=TRUE',
+      'CREATE TABLE a',
+      'CREATE TABLE log',
+      'INSERT INTO a',
+      'INSERT INTO log',
+      'CREATE UNIQUE INDEX',
+      'CREATE VIEW va',
+      'CREATE TRIGGER ta',
+    ]);
+  });
+  test('a dump file or work dir inside a git worktree is refused (customer data stays out of the repo)', async () => {
+    const inRepo = fileURLToPath(new URL('./fixtures/data-at-0000.sql', import.meta.url));
+    const manifest = { schemaVersion: null, schemaSha256: '', tables: [] };
+    await expect(verifyRestoreFromDump({ dumpFile: inRepo, manifest })).rejects.toThrow(/inside the git worktree/);
+    const outside = join(process.env.TMPDIR ?? tmpdir(), 'hb-db5-guard.sql');
+    writeFileSync(outside, '');
+    await expect(verifyRestoreFromDump({ dumpFile: outside, manifest, workDir: fileURLToPath(new URL('.', import.meta.url)) })).rejects.toThrow(/workDir .* inside the git worktree/);
+    rmSync(outside, { force: true });
+  });
 });
 
 describe('verifyRestore on workerd D1', () => {

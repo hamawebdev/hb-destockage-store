@@ -3,7 +3,7 @@
 // `restore:verify` (JOBS-1 §5) and its tests. The import goes through `wrangler d1 execute --file`
 // (it splits trigger bodies correctly); the check through `verifyRestore` on workerd's D1.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +28,22 @@ function wranglerBin(): string {
   return 'wrangler';
 }
 
+/**
+ * Refuses a path inside a git worktree (DB-5 r1, rev-a): a dump holds customer data and must never
+ * land where `git add` could pick it up. Walks up from the path (or its nearest existing parent).
+ */
+export function assertOutsideGitWorktree(path: string, what: string): void {
+  let dir = resolve(path);
+  while (!existsSync(dir)) dir = dirname(dir);
+  dir = realpathSync(dir);
+  for (;;) {
+    if (existsSync(join(dir, '.git'))) throw new Error(`verifyRestoreFromDump: ${what} ${path} is inside the git worktree ${dir}; use a scratch dir under $TMPDIR`);
+    const up = dirname(dir);
+    if (up === dir) return;
+    dir = up;
+  }
+}
+
 export interface VerifyFromDumpOptions {
   /** Path to the dump (`.sql` or `.sql.gz`). */
   readonly dumpFile: string;
@@ -37,8 +53,24 @@ export interface VerifyFromDumpOptions {
   readonly keep?: boolean;
 }
 
+/**
+ * Restores `dumpFile` into a fresh local D1 and verifies it against `manifest`.
+ * Resolves `{ ok, mismatches }` when the restore ran. THROWS when the restore could not run (bad
+ * path, import error, wrangler failure): a throw means NOT verified, never "verified with
+ * differences"; the error carries wrangler's output, so log it only where customer data may go.
+ */
 export async function verifyRestoreFromDump(opts: VerifyFromDumpOptions): Promise<{ ok: boolean; mismatches: RestoreMismatch[]; workDir: string }> {
+  assertOutsideGitWorktree(opts.dumpFile, 'dumpFile');
+  if (opts.workDir !== undefined) assertOutsideGitWorktree(opts.workDir, 'workDir');
   const workDir = opts.workDir ?? mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), 'hb-restore-'));
+  const owned = opts.workDir === undefined && !opts.keep;
+  // Interrupted (Ctrl-C, kill): remove the scratch copy of the dump before exiting.
+  const onSignal = (sig: NodeJS.Signals) => {
+    if (owned) rmSync(workDir, { recursive: true, force: true });
+    process.kill(process.pid, sig);
+  };
+  process.once('SIGINT', onSignal);
+  process.once('SIGTERM', onSignal);
   try {
     const sqlFile = join(workDir, 'restore.sql');
     const raw = readFileSync(opts.dumpFile);
@@ -68,6 +100,8 @@ export async function verifyRestoreFromDump(opts: VerifyFromDumpOptions): Promis
       await proxy.dispose();
     }
   } finally {
-    if (!opts.keep && opts.workDir === undefined) rmSync(workDir, { recursive: true, force: true });
+    process.off('SIGINT', onSignal);
+    process.off('SIGTERM', onSignal);
+    if (owned) rmSync(workDir, { recursive: true, force: true });
   }
 }
