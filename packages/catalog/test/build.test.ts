@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { formatPrice } from '@hb/shared/format';
-import { BuildError, buildAllPages, buildCategoryProps, buildContentProps, buildHomeProps, buildNotFoundProps, buildOrderConfirmationProps, buildProductProps, buildSearchProps, createBuildContext, paragraphs } from '../src/build.ts';
+import { assertPropsUrls, BuildError, buildAllPages, buildCategoryProps, buildContentProps, buildHomeProps, buildNotFoundProps, buildOrderConfirmationProps, buildProductProps, buildSearchProps, createBuildContext, paragraphs } from '../src/build.ts';
 import { fixtureContext, FIXTURE_SITE_URL } from '../src/fixtures/props.ts';
 import stringsAr from '../src/fixtures/strings.ar.json' with { type: 'json' };
 import stringsFr from '../src/fixtures/strings.fr.json' with { type: 'json' };
@@ -115,8 +115,14 @@ describe('product', () => {
       ['Taille', [['M', true], ['L', true]]],
       ['Couleur', [['Rouge', true], ['Bleu', true]]],
     ]);
-    expect(p.variants.find((v) => v.sku === 'TAB-M-BLU')!.imageIndex).toBe(1);
-    expect(p.variants[0]!.imageIndex).toBeNull();
+    // Gallery: general, then colour-value (Bleu), then variant (L/Bleu).
+    expect(p.images.map((i) => [i.variantId, i.optionValueId])).toEqual([[null, null], [null, 304], [1014, null]]);
+    expect(p.variants.map((v) => [v.sku, v.imageIndex, v.imageIndexes])).toEqual([
+      ['TAB-M-RGE', null, [0]],
+      ['TAB-M-BLU', 1, [1, 0]],
+      ['TAB-L-BLU', 2, [2, 1, 0]],
+    ]);
+    expect(p.options[1]!.values.map((x) => [x.label, x.imageIndexes])).toEqual([['Rouge', []], ['Bleu', [1]]]);
     expect(p.price.amountDzd).toBe(1900);
     expect(p.price.from).toBe(false);
     expect(p.price.discountPercent).toBe(21);
@@ -212,4 +218,146 @@ describe('failures', () => {
 test('paragraphs', () => {
   expect(paragraphs('a\n\n  b \n\n\n\nc\n')).toEqual(['a', 'b', 'c']);
   expect(paragraphs('')).toEqual([]);
+});
+
+describe('URL allow-list on built props', () => {
+  test('every URL in every fixture page passes', () => {
+    for (const { page } of buildAllPages(ctx)) expect(() => assertPropsUrls(page.props, FIXTURE_SITE_URL)).not.toThrow();
+  });
+  test.each([
+    [{ href: '//evil.example/' }],
+    [{ layout: { canonicalUrl: 'https://evil.example/ar/' } }],
+    [{ alternates: [{ hreflang: 'ar', href: 'https://hbdestockage.example//evil.example/' }] }],
+    [{ image: { src: '/img/x-360.avif', srcset: '/img/x-360.avif 360w, //evil.example/x.avif 720w' } }],
+    [{ items: [{ url: 'javascript:alert(1)' }] }],
+  ])('rejects %j', (props) => {
+    expect(() => assertPropsUrls(props, FIXTURE_SITE_URL)).toThrow(/props/);
+  });
+  test('manifest URLs are checked at context creation', () => {
+    const images = stubImageManifest(fixtureSnapshot);
+    const bad = { ...images, 'fixture/poele.jpg': { ...images['fixture/poele.jpg']!, og: { url: '//evil.example/og.jpg', bytes: 0 } } };
+    expect(() => createBuildContext(fixtureSnapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: bad })).toThrow(/og image/);
+  });
+});
+
+describe('CAT-3 r1: only sellable variants drive what is shown', () => {
+  type MutableSnap = { products: { id: number; variants: { id: number; isDefault: boolean; stock: number | null; priceDzd: number; compareAtDzd: number | null }[]; images: { placeholder: boolean }[] }[]; categories: { image?: unknown }[] };
+  const variant = (s: MutableSnap, id: number) => s.products.find((p) => p.id === 101)!.variants.find((v) => v.id === id)!;
+  const ctxFor = (s: MutableSnap) =>
+    createBuildContext(s as unknown as typeof fixtureSnapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: stubImageManifest(s as unknown as typeof fixtureSnapshot) });
+
+  test('F1: an out-of-stock default is not preselected while another variant is available', () => {
+    const s = structuredClone(fixtureSnapshot) as unknown as MutableSnap;
+    variant(s, 1011).isDefault = false;
+    variant(s, 1012).isDefault = true; // M/Bleu, stock 0
+    for (const lang of LANGS) {
+      const p = buildProductProps(ctxFor(s), lang, 101);
+      expect(p.orderForm.defaultVariantId).toBe(1011);
+      expect(p.variants.find((v) => v.isDefault)!.id).toBe(1011);
+      expect(p.stock.state).toBe('in_stock');
+      expect(p.price.amountDzd).toBe(1900);
+    }
+  });
+
+  test('F1: when nothing is available the admin default stays and the form is not orderable', () => {
+    const s = structuredClone(fixtureSnapshot) as unknown as MutableSnap;
+    for (const id of [1011, 1014]) variant(s, id).stock = 0;
+    const p = buildProductProps(ctxFor(s), 'fr', 101);
+    expect(p.orderForm.defaultVariantId).toBe(1011);
+    expect(p.stock.state).toBe('out_of_stock');
+    expect(p.orderForm.orderable).toBe(false);
+  });
+
+  test('F2: card from-price, discount and swatches ignore variants that cannot be bought', () => {
+    const s = structuredClone(fixtureSnapshot) as unknown as MutableSnap;
+    Object.assign(variant(s, 1012), { priceDzd: 1500, compareAtDzd: 2400 }); // cheapest, but stock 0
+    const card = buildCategoryProps(ctxFor(s), 'fr', 1).products.find((c) => c.id === 101)!;
+    expect(card.price).toMatchObject({ amountDzd: 1900, from: true, discountPercent: 21 });
+    const home = buildHomeProps(ctxFor(s), 'fr').featured.find((c) => c.id === 101)!;
+    expect(home.price.amountDzd).toBe(1900);
+    // Bleu is still sellable through L/Bleu; Rouge through M/Rouge.
+    expect(card.swatches.map((x) => x.label)).toEqual(['Rouge', 'Bleu']);
+    variant(s, 1014).stock = 0; // now no blue variant can be bought
+    expect(buildCategoryProps(ctxFor(s), 'fr', 1).products.find((c) => c.id === 101)!.swatches.map((x) => x.label)).toEqual(['Rouge']);
+  });
+
+  test('F3: placeholder photos raise hasPlaceholders on every template', () => {
+    const s = structuredClone(fixtureSnapshot) as unknown as MutableSnap & { products: { placeholder: boolean; translationPlaceholder: string[] }[]; categories: { placeholder: boolean; translationPlaceholder: string[] }[]; contentPages: { placeholder: boolean }[] };
+    for (const p of s.products) Object.assign(p, { placeholder: false, translationPlaceholder: [] });
+    for (const c of s.categories) Object.assign(c, { placeholder: false, translationPlaceholder: [] });
+    for (const p of s.products) for (const i of p.images) i.placeholder = false;
+    const clean = ctxFor(s);
+    expect(buildHomeProps(clean, 'fr').layout.hasPlaceholders).toBe(false);
+    expect(buildCategoryProps(clean, 'fr', 1).layout.hasPlaceholders).toBe(false);
+    s.products.find((p) => p.id === 104)!.images[0]!.placeholder = true; // a card photo only
+    const dirty = ctxFor(s);
+    expect(buildHomeProps(dirty, 'fr').layout.hasPlaceholders).toBe(true);
+    expect(buildCategoryProps(dirty, 'fr', 1).layout.hasPlaceholders).toBe(true);
+    expect(buildSearchProps(dirty, 'fr').layout.hasPlaceholders).toBe(true);
+    expect(buildNotFoundProps(dirty, 'fr').layout.hasPlaceholders).toBe(false); // its links show 106's photo
+    s.products.find((p) => p.id === 106)!.images[0]!.placeholder = true; // the Cuisine link photo
+    expect(buildNotFoundProps(ctxFor(s), 'fr').layout.hasPlaceholders).toBe(true);
+  });
+});
+
+describe('HB_STRICT_COPY', () => {
+  const withPlaceholder = { ar: strings.ar, fr: { ...strings.fr, 'meta.home.title': 'Accueil [PLACEHOLDER]' } };
+  const make = (strictCopy?: boolean) =>
+    createBuildContext(fixtureSnapshot, {
+      siteUrl: FIXTURE_SITE_URL,
+      strings: withPlaceholder,
+      images: stubImageManifest(fixtureSnapshot),
+      ...(strictCopy === undefined ? {} : { strictCopy }),
+    });
+  test('placeholder copy is allowed by default and in dev', () => {
+    expect(buildHomeProps(make(false), 'fr').layout.title).toContain('[PLACEHOLDER]');
+  });
+  test('strictCopy fails the build on a placeholder string', () => {
+    expect(() => buildHomeProps(make(true), 'fr')).toThrow(/meta\.home\.title.*placeholder/);
+  });
+  test('defaults to HB_STRICT_COPY=1 from the environment', () => {
+    const prev = process.env['HB_STRICT_COPY'];
+    process.env['HB_STRICT_COPY'] = '1';
+    try {
+      expect(make().strictCopy).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env['HB_STRICT_COPY'];
+      else process.env['HB_STRICT_COPY'] = prev;
+    }
+    expect(make().strictCopy).toBe(prev === '1');
+  });
+});
+
+describe('home hero (lead ruling: no implicit hero)', () => {
+  const ctxWith = (hero: number | null) => {
+    const s = structuredClone(fixtureSnapshot) as unknown as { settings: { homeHeroProductId: number | null } };
+    s.settings.homeHeroProductId = hero;
+    return createBuildContext(s as unknown as typeof fixtureSnapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: stubImageManifest(fixtureSnapshot) });
+  };
+  test.each([null, 107])('hero id %s ⇒ type-led hero: no image, no product, no LCP, no og:image', (hero) => {
+    const h = buildHomeProps(ctxWith(hero), 'ar');
+    expect(h.hero).toEqual({ image: null, product: null });
+    expect(h.layout.lcpImage).toBeNull();
+    expect(h.layout.ogImage).toBeNull();
+    expect(h.featured.length).toBe(3); // featured products are unaffected
+  });
+  test('an explicit published hero is used', () => {
+    expect(buildHomeProps(ctxWith(104), 'fr').hero.product?.id).toBe(104);
+  });
+});
+
+test('SLOT_SIZES describe the rendered slot width (lead: never under-resolve)', async () => {
+  const { SLOT_SIZES } = await import('../src/build.ts');
+  const { IMAGE_WIDTHS } = await import('../src/types.ts');
+  // Browser choice: the smallest candidate ≥ slot width × DPR (else the largest).
+  const pick = (cssPx: number, dpr: number): number => IMAGE_WIDTHS.find((w) => w >= cssPx * dpr) ?? 1200;
+  // Phones: the gallery is the container, 100vw minus a 1rem gutter on each side.
+  expect(SLOT_SIZES.gallery.endsWith('calc(100vw - 2rem)')).toBe(true);
+  expect(pick(360 - 32, 2.625)).toBe(960); // 360 px phone at DPR 2.625 still gets 960 w
+  expect(pick(412 - 32, 1.75)).toBe(720); // Lighthouse's 412 px × 1.75 slot really is 380 px
+  // Cards: 2 columns below 768 px (gutters 2 × 1rem + 12 px gap).
+  expect(SLOT_SIZES.card.endsWith('calc((100vw - 44px) / 2)')).toBe(true);
+  const p = buildProductProps(ctx, 'fr', 101);
+  expect(p.images[0]!.sizes).toBe(SLOT_SIZES.gallery);
+  expect(p.layout.lcpImage!.sizes).toBe(SLOT_SIZES.gallery);
 });

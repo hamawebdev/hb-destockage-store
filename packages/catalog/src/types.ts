@@ -55,14 +55,16 @@ export interface CatalogSnapshot {
   readonly products: readonly SnapshotProduct[];
   readonly contentPages: readonly SnapshotContentPage[];
   readonly settings: SnapshotSettings;
-  /** All 69 wilayas (code 1–69). Communes are not here: geo assets come from `data/geo` (CAT-5). */
+  /** All 69 wilayas (code 1–69); `validateSnapshot` requires all 69 unless `requireAllWilayas: false`
+   *  (fixtures, partial dev builds). Communes are not here: geo assets come from `data/geo` (CAT-5). */
   readonly wilayas: readonly SnapshotWilaya[];
 }
 
 export interface SnapshotMeta {
   readonly version: typeof SNAPSHOT_VERSION;
-  /** `seed` = built from `data/`; `d1` = exported by the publish pipeline. */
-  readonly source: 'seed' | 'd1';
+  /** `seed` = built from `data/`; `d1` = exported by the publish pipeline; `fixture` = the invented
+   *  test catalogue (never a production build). */
+  readonly source: 'seed' | 'd1' | 'fixture';
   /** Epoch ms. */
   readonly generatedAt: number;
   /** `publish_runs.id` when `source === 'd1'`, else null. */
@@ -82,7 +84,7 @@ export interface SnapshotCategory {
   readonly placeholder: boolean;
   /** Languages whose text (name, description, slug) is our translation, not the client's. `[]` when none. */
   readonly translationPlaceholder: readonly Lang[];
-  /** Category's own image (DB-1 `images.category_id`; `variantId` null). Absent/null ⇒ builders use
+  /** Category's own image (DB-1 `images.category_id`; no binding). Absent/null ⇒ builders use
    *  the first product image in the category's subtree. */
   readonly image?: SnapshotImage | null;
 }
@@ -170,8 +172,13 @@ export interface SnapshotPackItem {
 /** DB-1 `images`. */
 export interface SnapshotImage {
   readonly id: Id;
-  /** Null = product-level image; else the variant it illustrates. */
+  /**
+   * Binding. Both null = general (whole product). `variantId` = one variant. `optionValueId` = every
+   * variant with that option value (e.g. colour = red on a size × colour product). At most one of
+   * the two is set. `optionValueId` is optional in data (absent = null).
+   */
   readonly variantId: Id | null;
+  readonly optionValueId?: Id | null;
   /**
    * The original's key: its path relative to `data/photos/`. `db`'s seed uploads `data/photos/*`
    * to R2 under the same keys, so a `d1` snapshot's key is also the R2 object key.
@@ -225,9 +232,17 @@ export interface SnapshotSettings {
   /** E.164 without `+`, e.g. `213779942022` (used in `https://wa.me/<this>`). */
   readonly whatsapp: string;
   readonly contactEmail: string | null;
-  /** Product ids featured on the home page, in order. Empty ⇒ builder picks by `sort`. */
+  /**
+   * Product ids featured on the home page, in order. Ids must exist (validator); ids of products
+   * that are not published (draft/archived, inactive category) are skipped by the builders, so
+   * archiving a featured product never fails a publish. None published ⇒ first products by `sort`.
+   */
   readonly homeFeaturedProductIds: readonly Id[];
-  /** Product whose main image is the home hero (LCP). Null ⇒ first featured product. */
+  /**
+   * Product whose main image is the home hero (LCP). Null or unpublished ⇒ no hero product and no
+   * hero image: the home page uses a type-led hero (no fallback to a featured product, whose photo
+   * may carry burned-in prices). Only set it for photography fit to be a hero.
+   */
   readonly homeHeroProductId: Id | null;
   /** Public Turnstile site key; null ⇒ the form does not load Turnstile (orders are flagged). */
   readonly turnstileSiteKey: string | null;
@@ -303,7 +318,8 @@ export interface SrcsetCandidate {
   readonly url: string;
   readonly width: number;
   readonly height: number;
-  /** Encoded size. Every candidate with width ≤ 960 is ≤ 25,000 bytes (CAT-4 enforces). */
+  /** Encoded size. Every candidate with width ≤ 960 is ≤ 20,000 bytes (pipeline target, BUG-12;
+   *  the spec budget is 25,000). */
   readonly bytes: number;
 }
 
@@ -311,7 +327,8 @@ export const IMAGE_WIDTHS: readonly number[] = [360, 480, 720, 960, 1200];
 
 /**
  * CAT-4 output, CAT-3 input: the encoded files for each original, keyed by `SnapshotImage.key`.
- * JSON-serialisable (`dist/image-manifest.json`). Builders combine an entry with the image's alt,
+ * JSON-serialisable; the CLI writes it where `--manifest` says (convention:
+ * `apps/storefront/.catalog/image-manifest.json`). Builders combine an entry with the image's alt,
  * the slot's `sizes` and the LCP flag into `ImageProps`.
  */
 export type ImageManifest = Readonly<Record<string, ImageManifestEntry>>;
@@ -320,7 +337,13 @@ export interface ImageManifestEntry {
   readonly key: string;
   /** Content hash of the original (hex), the file-name stem. */
   readonly hash: string;
-  /** Ascending width. Never wider than the original. */
+  /** Intrinsic size of the original (after orientation). */
+  readonly original: { readonly width: number; readonly height: number };
+  /**
+   * Ascending width, never upscaled: every `IMAGE_WIDTHS` step ≤ the original's width, plus one
+   * candidate at the original width when it falls between steps or below 360 (lead's ruling on
+   * CAT-4 r1 Nit 1).
+   */
   readonly candidates: readonly SrcsetCandidate[];
   /** 1200×630 JPEG for `og:image`; null when not generated. */
   readonly og: { readonly url: string; readonly bytes: number } | null;
@@ -330,7 +353,18 @@ export interface ImageManifestEntry {
 
 /** Where an image is shown; decides `sizes`. Templates may override `sizes` for other uses. */
 export type ImageSlot = 'hero' | 'gallery' | 'card' | 'thumb';
+/**
+ * Spec budget (CLAUDE.md "≤ 25 KB": decimal kilobytes, 25,000 B, the same number measure's budget
+ * checks independently): the hard limit. A candidate ≤ 960 w that cannot reach the 20 kB target at
+ * the quality floor is accepted up to this size with an IMAGE_OVER_TARGET warning; above it the
+ * build fails.
+ */
 export const IMAGE_MAX_BYTES_UP_TO_960 = 25_000;
+/**
+ * Pipeline target (BUG-12): every candidate ≤ 960 w ≤ 20,000 B, leaving critical-path headroom on
+ * product pages (font + LCP AVIF + wordmark + HTML ≤ 45 KiB).
+ */
+export const IMAGE_TARGET_BYTES_UP_TO_960 = 20_000;
 
 export interface ImageProps {
   /** Fallback `src`: the 720 w candidate (or the largest below it). */
@@ -423,7 +457,8 @@ export interface PriceProps {
   readonly compareAtLabel: string | null;
   /** Whole percent saved, null without `compareAt`. */
   readonly discountPercent: number | null;
-  /** Cards: true when active variants have different prices and `amountDzd` is the lowest ("from …").
+  /** Cards: true when the sellable variants (available ones; all active ones if none is available)
+   *  have different prices and `amountDzd` is the lowest ("from …").
    *  Product page / variants: always false (exact price of that variant). */
   readonly from: boolean;
 }
@@ -432,8 +467,8 @@ export type StockState = 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export interface StockProps {
   readonly state: StockState;
-  /** Units at snapshot time; null when untracked. Stale by design: the order POST re-checks. */
-  /** Null = untracked: always orderable (state is `in_stock`). */
+  /** Units at snapshot time. Stale by design: the order POST re-checks. Null = untracked: always
+   *  orderable (state is `in_stock`). */
   readonly qty: number | null;
 }
 
@@ -448,7 +483,8 @@ export interface ProductCard {
   readonly price: PriceProps;
   /** Product-level: best state among active variants (in > low > out); qty = sum, null if any untracked. */
   readonly stock: StockProps;
-  /** Distinct colour values of active variants, option-value order, max 6; `[]` when none. */
+  /** Distinct colour values of sellable variants (available; all active if none), option-value
+   *  order, max 6; `[]` when none. */
   readonly swatches: readonly { readonly label: string; readonly hex: string }[];
   readonly placeholder: boolean;
   /** This language's text is our translation. */
@@ -540,6 +576,8 @@ export interface CategoryProps {
 export interface OptionValueProps {
   readonly id: Id;
   readonly label: string;
+  /** Indexes into `ProductProps.images` bound to this value (e.g. the red photos), position order. */
+  readonly imageIndexes: readonly number[];
   readonly swatchHex: string | null;
   /** At least one `available` variant has this value. */
   readonly available: boolean;
@@ -565,6 +603,11 @@ export interface VariantProps {
   readonly stock: StockProps;
   /** Index into `ProductProps.images` to show when selected; null ⇒ keep current. */
   readonly imageIndex: number | null;
+  /** Gallery for this variant, as indexes into `ProductProps.images`: images bound to the variant,
+   *  then images bound to any of its option values (option order), then the general images. */
+  readonly imageIndexes: readonly number[];
+  /** The effective default: the admin's default variant when it is available, else the first
+   *  available variant, else the admin's default. Preselected on the page and in the no-JS form. */
   readonly isDefault: boolean;
   /** `active && stock.state !== 'out_of_stock'`. Inactive variants are not in `variants` at all,
    *  so a combination with no entry in `variants` is unavailable too. */
@@ -600,6 +643,8 @@ export interface OrderFormProps {
   readonly kind: ProductKind;
   /** True ⇒ hide the variant picker and post `defaultVariantId`. */
   readonly singleVariant: boolean;
+  /** The effective default (see `VariantProps.isDefault`): never an out-of-stock variant while
+   *  another one is available. */
   readonly defaultVariantId: Id;
   /** Same objects as `ProductProps.variants`. */
   readonly variants: readonly VariantProps[];
@@ -616,6 +661,12 @@ export interface OrderFormProps {
   readonly qty: { readonly min: 1; readonly max: number };
   /** False when every variant is out of stock: render the form disabled + WhatsApp link. */
   readonly orderable: boolean;
+}
+
+/** A gallery image with its binding (see `SnapshotImage`). */
+export interface ProductImageProps extends ImageProps {
+  readonly variantId: Id | null;
+  readonly optionValueId: Id | null;
 }
 
 export interface ProductProps {
@@ -636,10 +687,10 @@ export interface ProductProps {
   readonly category: { readonly id: Id; readonly name: string; readonly href: string };
   readonly breadcrumbs: readonly Breadcrumb[];
   /** All images in order; `images[0]` is the LCP image (`lcp: true`). */
-  readonly images: readonly ImageProps[];
-  /** The default variant's price (`from` false). The picker swaps in `variants[i].price`. */
+  readonly images: readonly ProductImageProps[];
+  /** The effective default variant's price (`from` false). The picker swaps in `variants[i].price`. */
   readonly price: PriceProps;
-  /** The default variant's stock. Whole-product availability: `orderForm.orderable`. */
+  /** The effective default variant's stock. Whole-product availability: `orderForm.orderable`. */
   readonly stock: StockProps;
   /** Option order = `position`; values in `position` order. Empty for simple/pack. */
   readonly options: readonly OptionProps[];
@@ -664,9 +715,9 @@ export interface SearchProps {
 }
 
 /**
- * Per-language search index (CAT-5), short keys to save bytes.
- * `k` is the searchable text normalised with geo's `normalizeForSearch` (the JS applies the same
- * normalisation to the query).
+ * Per-language search index (CAT-5), short keys to save bytes, served at `/search/<lang>.json`.
+ * Matching (GEO-5): fold the query with geo's `normalizeForSearch(query, lang)` and keep entries
+ * where `k.includes(query)` (substring, not prefix: Arabic names keep the article ال).
  */
 export interface SearchIndex {
   readonly v: 1;
@@ -695,7 +746,8 @@ export interface SearchIndexEntry {
   readonly f: boolean;
   /** Placeholder product. */
   readonly x: boolean;
-  /** Normalised search key: name + brandLatin + category name + option value labels (this language). */
+  /** geo's `searchKey(field, lang)` of name, brandLatin, category name and each option value label
+   *  (this language), deduplicated and joined with `|` (so a match never spans two fields). */
   readonly k: string;
 }
 

@@ -370,7 +370,7 @@
           "lcpImage": {
             "src": "/img/1e3e1840-720.avif",
             "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 640px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/1e3e1840-360.avif",
@@ -423,7 +423,7 @@
           "image": {
             "src": "/img/1e3e1840-720.avif",
             "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 640px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/1e3e1840-360.avif",
@@ -473,7 +473,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -539,7 +539,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -601,7 +601,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -667,7 +667,7 @@
             "image": {
               "src": "/img/3b7d8857-720.avif",
               "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/3b7d8857-360.avif",
@@ -742,7 +742,7 @@
             "image": {
               "src": "/img/04067ca2-720.avif",
               "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/04067ca2-360.avif",
@@ -810,7 +810,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -953,7 +953,7 @@
           "lcpImage": {
             "src": "/img/1e3e1840-720.avif",
             "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+            "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
             "candidates": [
               {
                 "url": "/img/1e3e1840-360.avif",
@@ -1023,7 +1023,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -1077,7 +1077,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -1143,7 +1143,7 @@
             "image": {
               "src": "/img/3b7d8857-720.avif",
               "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/3b7d8857-360.avif",
@@ -1319,7 +1319,7 @@
           "lcpImage": {
             "src": "/img/f9cdabaf-720.avif",
             "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+            "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
             "candidates": [
               {
                 "url": "/img/f9cdabaf-360.avif",
@@ -1389,7 +1389,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -1443,7 +1443,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -1509,7 +1509,7 @@
             "image": {
               "src": "/img/381c18bd-720.avif",
               "srcset": "/img/381c18bd-360.avif 360w, /img/381c18bd-480.avif 480w, /img/381c18bd-720.avif 720w, /img/381c18bd-960.avif 960w, /img/381c18bd-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/381c18bd-360.avif",
@@ -1676,7 +1676,7 @@
           "lcpImage": {
             "src": "/img/04067ca2-720.avif",
             "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+            "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
             "candidates": [
               {
                 "url": "/img/04067ca2-360.avif",
@@ -1746,7 +1746,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -1800,7 +1800,7 @@
             "image": {
               "src": "/img/04067ca2-720.avif",
               "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/04067ca2-360.avif",
@@ -1866,7 +1866,7 @@
             "image": {
               "src": "/img/9479a432-720.avif",
               "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w, /img/9479a432-720.avif 720w, /img/9479a432-960.avif 960w, /img/9479a432-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/9479a432-360.avif",
@@ -2033,7 +2033,7 @@
           "lcpImage": {
             "src": "/img/f9cdabaf-720.avif",
             "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+            "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
             "candidates": [
               {
                 "url": "/img/f9cdabaf-360.avif",
@@ -2110,7 +2110,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -2176,7 +2176,7 @@
             "image": {
               "src": "/img/381c18bd-720.avif",
               "srcset": "/img/381c18bd-360.avif 360w, /img/381c18bd-480.avif 480w, /img/381c18bd-720.avif 720w, /img/381c18bd-960.avif 960w, /img/381c18bd-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/381c18bd-360.avif",
@@ -2454,7 +2454,7 @@
           "lcpImage": {
             "src": "/img/1e3e1840-720.avif",
             "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/1e3e1840-360.avif",
@@ -2492,7 +2492,9 @@
             "alt": "باك مطبخ 3 في 1",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/1e3e1840-og.jpg",
@@ -2539,7 +2541,7 @@
           {
             "src": "/img/1e3e1840-720.avif",
             "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/1e3e1840-360.avif",
@@ -2577,12 +2579,14 @@
             "alt": "باك مطبخ 3 في 1",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           {
             "src": "/img/5809b433-720.avif",
             "srcset": "/img/5809b433-360.avif 360w, /img/5809b433-480.avif 480w, /img/5809b433-720.avif 720w, /img/5809b433-960.avif 960w, /img/5809b433-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/5809b433-360.avif",
@@ -2620,7 +2624,9 @@
             "alt": "محتوى باك المطبخ",
             "type": "image/avif",
             "lcp": false,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -2656,6 +2662,10 @@
               "qty": 20
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0,
+              1
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 10
@@ -2833,7 +2843,7 @@
             "image": {
               "src": "/img/3b7d8857-720.avif",
               "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/3b7d8857-360.avif",
@@ -2908,7 +2918,7 @@
             "image": {
               "src": "/img/04067ca2-720.avif",
               "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/04067ca2-360.avif",
@@ -2974,7 +2984,7 @@
             "image": {
               "src": "/img/9479a432-720.avif",
               "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w, /img/9479a432-720.avif 720w, /img/9479a432-960.avif 960w, /img/9479a432-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/9479a432-360.avif",
@@ -3040,7 +3050,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -3122,6 +3132,10 @@
                 "qty": 20
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0,
+                1
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 10
@@ -3239,7 +3253,7 @@
           "lcpImage": {
             "src": "/img/3b7d8857-720.avif",
             "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/3b7d8857-360.avif",
@@ -3277,7 +3291,9 @@
             "alt": "مريلة مطبخ حمراء",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/3b7d8857-og.jpg",
@@ -3325,7 +3341,7 @@
           {
             "src": "/img/3b7d8857-720.avif",
             "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/3b7d8857-360.avif",
@@ -3363,12 +3379,14 @@
             "alt": "مريلة مطبخ حمراء",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           {
             "src": "/img/414dea80-720.avif",
             "srcset": "/img/414dea80-360.avif 360w, /img/414dea80-480.avif 480w, /img/414dea80-720.avif 720w, /img/414dea80-960.avif 960w, /img/414dea80-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/414dea80-360.avif",
@@ -3406,7 +3424,54 @@
             "alt": "مريلة مطبخ زرقاء",
             "type": "image/avif",
             "lcp": false,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": 304
+          },
+          {
+            "src": "/img/d11a8fc7-720.avif",
+            "srcset": "/img/d11a8fc7-360.avif 360w, /img/d11a8fc7-480.avif 480w, /img/d11a8fc7-720.avif 720w, /img/d11a8fc7-960.avif 960w, /img/d11a8fc7-1200.avif 1200w",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
+            "candidates": [
+              {
+                "url": "/img/d11a8fc7-360.avif",
+                "width": 360,
+                "height": 360,
+                "bytes": 0
+              },
+              {
+                "url": "/img/d11a8fc7-480.avif",
+                "width": 480,
+                "height": 480,
+                "bytes": 0
+              },
+              {
+                "url": "/img/d11a8fc7-720.avif",
+                "width": 720,
+                "height": 720,
+                "bytes": 0
+              },
+              {
+                "url": "/img/d11a8fc7-960.avif",
+                "width": 960,
+                "height": 960,
+                "bytes": 0
+              },
+              {
+                "url": "/img/d11a8fc7-1200.avif",
+                "width": 1200,
+                "height": 1200,
+                "bytes": 0
+              }
+            ],
+            "width": 720,
+            "height": 720,
+            "alt": "مريلة مطبخ زرقاء، مقاس L",
+            "type": "image/avif",
+            "lcp": false,
+            "placeholder": true,
+            "variantId": 1014,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -3430,12 +3495,14 @@
               {
                 "id": 301,
                 "label": "M",
+                "imageIndexes": [],
                 "swatchHex": null,
                 "available": true
               },
               {
                 "id": 302,
                 "label": "L",
+                "imageIndexes": [],
                 "swatchHex": null,
                 "available": true
               }
@@ -3449,12 +3516,16 @@
               {
                 "id": 303,
                 "label": "أحمر",
+                "imageIndexes": [],
                 "swatchHex": "#b3261e",
                 "available": true
               },
               {
                 "id": 304,
                 "label": "أزرق",
+                "imageIndexes": [
+                  1
+                ],
                 "swatchHex": "#1e4fb3",
                 "available": true
               }
@@ -3484,6 +3555,9 @@
               "qty": 8
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 8
@@ -3510,6 +3584,10 @@
               "qty": 0
             },
             "imageIndex": 1,
+            "imageIndexes": [
+              1,
+              0
+            ],
             "isDefault": false,
             "available": false,
             "maxQty": 0
@@ -3535,7 +3613,12 @@
               "state": "low_stock",
               "qty": 2
             },
-            "imageIndex": null,
+            "imageIndex": 2,
+            "imageIndexes": [
+              2,
+              1,
+              0
+            ],
             "isDefault": false,
             "available": true,
             "maxQty": 2
@@ -3553,7 +3636,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -3619,7 +3702,7 @@
             "image": {
               "src": "/img/04067ca2-720.avif",
               "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/04067ca2-360.avif",
@@ -3685,7 +3768,7 @@
             "image": {
               "src": "/img/9479a432-720.avif",
               "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w, /img/9479a432-720.avif 720w, /img/9479a432-960.avif 960w, /img/9479a432-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/9479a432-360.avif",
@@ -3751,7 +3834,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -3836,6 +3919,9 @@
                 "qty": 8
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 8
@@ -3862,6 +3948,10 @@
                 "qty": 0
               },
               "imageIndex": 1,
+              "imageIndexes": [
+                1,
+                0
+              ],
               "isDefault": false,
               "available": false,
               "maxQty": 0
@@ -3887,7 +3977,12 @@
                 "state": "low_stock",
                 "qty": 2
               },
-              "imageIndex": null,
+              "imageIndex": 2,
+              "imageIndexes": [
+                2,
+                1,
+                0
+              ],
               "isDefault": false,
               "available": true,
               "maxQty": 2
@@ -3902,12 +3997,14 @@
                 {
                   "id": 301,
                   "label": "M",
+                  "imageIndexes": [],
                   "swatchHex": null,
                   "available": true
                 },
                 {
                   "id": 302,
                   "label": "L",
+                  "imageIndexes": [],
                   "swatchHex": null,
                   "available": true
                 }
@@ -3921,12 +4018,16 @@
                 {
                   "id": 303,
                   "label": "أحمر",
+                  "imageIndexes": [],
                   "swatchHex": "#b3261e",
                   "available": true
                 },
                 {
                   "id": 304,
                   "label": "أزرق",
+                  "imageIndexes": [
+                    1
+                  ],
                   "swatchHex": "#1e4fb3",
                   "available": true
                 }
@@ -4044,7 +4145,7 @@
           "lcpImage": {
             "src": "/img/f9cdabaf-720.avif",
             "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/f9cdabaf-360.avif",
@@ -4082,7 +4183,9 @@
             "alt": "مقلاة 28 سم",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/f9cdabaf-og.jpg",
@@ -4133,7 +4236,7 @@
           {
             "src": "/img/f9cdabaf-720.avif",
             "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/f9cdabaf-360.avif",
@@ -4171,7 +4274,9 @@
             "alt": "مقلاة 28 سم",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -4207,6 +4312,9 @@
               "qty": 0
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": false,
             "maxQty": 0
@@ -4224,7 +4332,7 @@
             "image": {
               "src": "/img/381c18bd-720.avif",
               "srcset": "/img/381c18bd-360.avif 360w, /img/381c18bd-480.avif 480w, /img/381c18bd-720.avif 720w, /img/381c18bd-960.avif 960w, /img/381c18bd-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/381c18bd-360.avif",
@@ -4290,7 +4398,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -4356,7 +4464,7 @@
             "image": {
               "src": "/img/3b7d8857-720.avif",
               "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/3b7d8857-360.avif",
@@ -4431,7 +4539,7 @@
             "image": {
               "src": "/img/04067ca2-720.avif",
               "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/04067ca2-360.avif",
@@ -4513,6 +4621,9 @@
                 "qty": 0
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": false,
               "maxQty": 0
@@ -4630,7 +4741,7 @@
           "lcpImage": {
             "src": "/img/381c18bd-720.avif",
             "srcset": "/img/381c18bd-360.avif 360w, /img/381c18bd-480.avif 480w, /img/381c18bd-720.avif 720w, /img/381c18bd-960.avif 960w, /img/381c18bd-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/381c18bd-360.avif",
@@ -4668,7 +4779,9 @@
             "alt": "طنجرة 20 سم",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/381c18bd-og.jpg",
@@ -4719,7 +4832,7 @@
           {
             "src": "/img/381c18bd-720.avif",
             "srcset": "/img/381c18bd-360.avif 360w, /img/381c18bd-480.avif 480w, /img/381c18bd-720.avif 720w, /img/381c18bd-960.avif 960w, /img/381c18bd-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/381c18bd-360.avif",
@@ -4757,7 +4870,9 @@
             "alt": "طنجرة 20 سم",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -4793,6 +4908,9 @@
               "qty": 2
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 2
@@ -4810,7 +4928,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -4876,7 +4994,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -4942,7 +5060,7 @@
             "image": {
               "src": "/img/3b7d8857-720.avif",
               "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/3b7d8857-360.avif",
@@ -5017,7 +5135,7 @@
             "image": {
               "src": "/img/04067ca2-720.avif",
               "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/04067ca2-360.avif",
@@ -5099,6 +5217,9 @@
                 "qty": 2
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 2
@@ -5216,7 +5337,7 @@
           "lcpImage": {
             "src": "/img/04067ca2-720.avif",
             "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/04067ca2-360.avif",
@@ -5254,7 +5375,9 @@
             "alt": "طقم سكاكين",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/04067ca2-og.jpg",
@@ -5301,7 +5424,7 @@
           {
             "src": "/img/04067ca2-720.avif",
             "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/04067ca2-360.avif",
@@ -5339,7 +5462,9 @@
             "alt": "طقم سكاكين",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -5375,6 +5500,9 @@
               "qty": null
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 10
@@ -5392,7 +5520,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -5458,7 +5586,7 @@
             "image": {
               "src": "/img/3b7d8857-720.avif",
               "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/3b7d8857-360.avif",
@@ -5533,7 +5661,7 @@
             "image": {
               "src": "/img/9479a432-720.avif",
               "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w, /img/9479a432-720.avif 720w, /img/9479a432-960.avif 960w, /img/9479a432-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/9479a432-360.avif",
@@ -5599,7 +5727,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -5681,6 +5809,9 @@
                 "qty": null
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 10
@@ -5798,7 +5929,7 @@
           "lcpImage": {
             "src": "/img/9479a432-720.avif",
             "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w, /img/9479a432-720.avif 720w, /img/9479a432-960.avif 960w, /img/9479a432-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/9479a432-360.avif",
@@ -5836,7 +5967,9 @@
             "alt": "مصفاة أطباق",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           },
           "ogImage": {
             "url": "/img/9479a432-og.jpg",
@@ -5883,7 +6016,7 @@
           {
             "src": "/img/9479a432-720.avif",
             "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w, /img/9479a432-720.avif 720w, /img/9479a432-960.avif 960w, /img/9479a432-1200.avif 1200w",
-            "sizes": "(min-width: 1024px) 560px, 100vw",
+            "sizes": "(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)",
             "candidates": [
               {
                 "url": "/img/9479a432-360.avif",
@@ -5921,7 +6054,9 @@
             "alt": "مصفاة أطباق",
             "type": "image/avif",
             "lcp": true,
-            "placeholder": true
+            "placeholder": true,
+            "variantId": null,
+            "optionValueId": null
           }
         ],
         "price": {
@@ -5957,6 +6092,9 @@
               "qty": 12
             },
             "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
             "isDefault": true,
             "available": true,
             "maxQty": 10
@@ -5974,7 +6112,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -6040,7 +6178,7 @@
             "image": {
               "src": "/img/3b7d8857-720.avif",
               "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/3b7d8857-360.avif",
@@ -6115,7 +6253,7 @@
             "image": {
               "src": "/img/04067ca2-720.avif",
               "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/04067ca2-360.avif",
@@ -6181,7 +6319,7 @@
             "image": {
               "src": "/img/f9cdabaf-720.avif",
               "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w, /img/f9cdabaf-720.avif 720w, /img/f9cdabaf-960.avif 960w, /img/f9cdabaf-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/f9cdabaf-360.avif",
@@ -6263,6 +6401,9 @@
                 "qty": 12
               },
               "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
               "isDefault": true,
               "available": true,
               "maxQty": 10
@@ -6619,7 +6760,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -6681,7 +6822,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",
@@ -6747,7 +6888,7 @@
             "image": {
               "src": "/img/3b7d8857-720.avif",
               "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w, /img/3b7d8857-720.avif 720w, /img/3b7d8857-960.avif 960w, /img/3b7d8857-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/3b7d8857-360.avif",
@@ -6822,7 +6963,7 @@
             "image": {
               "src": "/img/04067ca2-720.avif",
               "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w, /img/04067ca2-720.avif 720w, /img/04067ca2-960.avif 960w, /img/04067ca2-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/04067ca2-360.avif",
@@ -7041,7 +7182,7 @@
             "image": {
               "src": "/img/1e3e1840-720.avif",
               "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w, /img/1e3e1840-720.avif 720w, /img/1e3e1840-960.avif 960w, /img/1e3e1840-1200.avif 1200w",
-              "sizes": "(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw",
+              "sizes": "(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)",
               "candidates": [
                 {
                   "url": "/img/1e3e1840-360.avif",

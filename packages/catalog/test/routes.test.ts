@@ -54,6 +54,15 @@ describe('createRouter', () => {
     expect(noindex).toEqual(['search', 'order-confirmed', 'not-found']);
   });
 
+  test('an active category under an inactive parent is not published (Nit 4)', () => {
+    const s = structuredClone(fixtureSnapshot) as unknown as { categories: { id: number; active: boolean }[] };
+    s.categories.find((c) => c.id === 1)!.active = false;
+    const r2 = createRouter(s as unknown as CatalogSnapshot, 2);
+    expect(r2.entries({ template: 'category', lang: 'fr' }).map((e) => e.entityId)).toEqual([3]);
+    expect(() => r2.url('fr', { template: 'category', id: 2 })).toThrow(RouteError);
+    expect(r2.entries({ template: 'product' })).toEqual([]);
+  });
+
   test('throws on a path collision', () => {
     const s = structuredClone(fixtureSnapshot) as unknown as { contentPages: { slug: { fr: string; ar: string } }[] };
     s.contentPages[1]!.slug.fr = 'livraison';

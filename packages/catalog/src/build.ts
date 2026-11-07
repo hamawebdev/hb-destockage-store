@@ -7,6 +7,7 @@
  *   buildPageProps(ctx, entry)                          // one page
  */
 import { formatPrice } from '@hb/shared/format';
+import { assertSameOriginPath, isAllowedExternalHref, isSameOriginPath, isSiteOrigin, isSiteUrl, UnsafeUrlError } from './url.ts';
 import { categoryDescendantIds, publishedCategories, publishedContentPages, publishedProducts } from './publication.ts';
 import {
   absoluteUrl,
@@ -46,6 +47,7 @@ import {
   type PaginationProps,
   type PriceProps,
   type ProductCard,
+  type ProductImageProps,
   type ProductProps,
   type RouteEntry,
   type SearchProps,
@@ -64,11 +66,19 @@ import {
 // Context
 // ---------------------------------------------------------------------------------------------
 
-/** `sizes` per slot (agreed defaults; templates may override for other uses). */
+/**
+ * `sizes` per slot, matching pages' real layout (container max 1200 px, gutter ≈ 1rem on phones;
+ * from 1024 px the gallery column is 7/12 of the container minus the column gap, approximated as
+ * (100vw − 64 px) × 0.55 and capped at 664 px from 1240 px; cards 2/3/4 columns at
+ * <768/768–1023/≥1024). Proven against rendered widths by bin/check-sizes.ts (±5 %).
+ * Accurate sizes matter for the critical path: on Lighthouse's 412 px × 1.75 DPR device the
+ * gallery resolves to 380 px × 1.75 = 665 px → the 720 w candidate, not 960 w (pages' measurement
+ * on the real seed). Templates may override `sizes` for other uses (e.g. thumbnails).
+ */
 export const SLOT_SIZES: Readonly<Record<ImageSlot, string>> = {
-  hero: '(min-width: 1024px) 640px, 100vw',
-  gallery: '(min-width: 1024px) 560px, 100vw',
-  card: '(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw',
+  hero: '(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)',
+  gallery: '(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)',
+  card: '(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)',
   thumb: '96px',
 };
 
@@ -104,6 +114,11 @@ export interface BuildInput {
   readonly lowStockThreshold?: number;
   readonly relatedCount?: number;
   readonly featuredCount?: number;
+  /**
+   * Production copy check, same rule as shell's `t()`: a UI string containing `[PLACEHOLDER]`
+   * fails the build. Default: `HB_STRICT_COPY=1` in the environment.
+   */
+  readonly strictCopy?: boolean;
 }
 
 export interface BuildContext {
@@ -115,6 +130,7 @@ export interface BuildContext {
   readonly lowStockThreshold: number;
   readonly relatedCount: number;
   readonly featuredCount: number;
+  readonly strictCopy: boolean;
   readonly products: readonly SnapshotProduct[];
   readonly categories: readonly SnapshotCategory[];
   readonly contents: readonly SnapshotContentPage[];
@@ -136,10 +152,10 @@ export function createBuildContext(snapshot: CatalogSnapshot, input: BuildInput)
     const missing = REQUIRED_STRING_KEYS.filter((k) => typeof input.strings[lang][k] !== 'string');
     if (missing.length) throw new BuildError(`strings.${lang}: missing ${missing.join(', ')}`);
   }
-  if (!/^https?:\/\/[^/]+$/.test(input.siteUrl.replace(/\/+$/, ''))) throw new BuildError(`siteUrl must be an origin: ${input.siteUrl}`);
+  if (!isSiteOrigin(input.siteUrl.replace(/\/+$/, ''))) throw new BuildError(`siteUrl must be an origin (https://host[:port]): ${input.siteUrl}`);
   const router = createRouter(snapshot, input.pageSize);
-  const products = publishedProducts(snapshot);
   const categories = publishedCategories(snapshot);
+  const products = publishedProducts(snapshot, categories);
   const subtreeProducts = new Map<Id, SnapshotProduct[]>();
   for (const c of categories) {
     const ids = categoryDescendantIds(snapshot, c.id);
@@ -157,6 +173,7 @@ export function createBuildContext(snapshot: CatalogSnapshot, input: BuildInput)
     lowStockThreshold: input.lowStockThreshold ?? 3,
     relatedCount: input.relatedCount ?? 4,
     featuredCount: input.featuredCount ?? 8,
+    strictCopy: input.strictCopy ?? (typeof process !== 'undefined' && process.env['HB_STRICT_COPY'] === '1'),
     products,
     categories,
     contents: publishedContentPages(snapshot),
@@ -176,9 +193,16 @@ export function createBuildContext(snapshot: CatalogSnapshot, input: BuildInput)
 // Small helpers
 // ---------------------------------------------------------------------------------------------
 
-const t = (ctx: BuildContext, lang: Lang, key: string, vars: Readonly<Record<string, string | number>> = {}): string => {
+/** A brand string; missing ⇒ BuildError; `[PLACEHOLDER]` ⇒ BuildError when `strictCopy`. */
+function copy(ctx: BuildContext, lang: Lang, key: string): string {
   const raw = ctx.strings[lang][key];
   if (raw === undefined) throw new BuildError(`strings.${lang}: missing ${key}`);
+  if (ctx.strictCopy && raw.includes('[PLACEHOLDER]')) throw new BuildError(`strings.${lang}: "${key}" is a placeholder (HB_STRICT_COPY=1)`);
+  return raw;
+}
+
+const t = (ctx: BuildContext, lang: Lang, key: string, vars: Readonly<Record<string, string | number>> = {}): string => {
+  const raw = copy(ctx, lang, key);
   return raw.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 };
 
@@ -194,6 +218,9 @@ export const paragraphs = (text: string): string[] =>
 function imageEntry(ctx: BuildContext, img: SnapshotImage) {
   const e = ctx.images[img.key];
   if (!e || e.candidates.length === 0) throw new BuildError(`image manifest has no entry for "${img.key}" (image ${img.id})`);
+  // The manifest is loaded from disk: its URLs go through the same allow-list as everything else.
+  for (const c of e.candidates) assertSameOriginPath(c.url, `image ${img.key}`);
+  if (e.og) assertSameOriginPath(e.og.url, `og image ${img.key}`);
   return e;
 }
 
@@ -214,10 +241,26 @@ export function toImageProps(ctx: BuildContext, img: SnapshotImage, lang: Lang, 
   };
 }
 
-/** Product-level images by position, then variant images by position. */
+const optionValueOf = (i: SnapshotImage): Id | null => i.optionValueId ?? null;
+const isGeneral = (i: SnapshotImage): boolean => i.variantId === null && optionValueOf(i) === null;
+
+/**
+ * Gallery order: general images, then option-value images (option position, value position),
+ * then variant images; each group by image position. `[0]` is the main/LCP image.
+ */
 function orderedImages(p: SnapshotProduct): SnapshotImage[] {
   const byPos = (a: SnapshotImage, b: SnapshotImage): number => a.position - b.position || a.id - b.id;
-  return [...p.images.filter((i) => i.variantId === null).sort(byPos), ...p.images.filter((i) => i.variantId !== null).sort(byPos)];
+  const valueRank = new Map<Id, number>();
+  [...p.options]
+    .sort((a, b) => a.position - b.position || a.id - b.id)
+    .forEach((o, oi) => [...o.values].sort((a, b) => a.position - b.position || a.id - b.id).forEach((x, xi) => valueRank.set(x.id, oi * 10_000 + xi)));
+  const byValue = (a: SnapshotImage, b: SnapshotImage): number =>
+    (valueRank.get(optionValueOf(a)!) ?? 0) - (valueRank.get(optionValueOf(b)!) ?? 0) || byPos(a, b);
+  return [
+    ...p.images.filter(isGeneral).sort(byPos),
+    ...p.images.filter((i) => optionValueOf(i) !== null).sort(byValue),
+    ...p.images.filter((i) => i.variantId !== null).sort(byPos),
+  ];
 }
 
 const mainImage = (p: SnapshotProduct): SnapshotImage | undefined => orderedImages(p)[0];
@@ -255,11 +298,30 @@ function productStock(ctx: BuildContext, p: SnapshotProduct): StockProps {
   return { state, qty };
 }
 
-const defaultVariant = (p: SnapshotProduct): SnapshotVariant => {
-  const v = activeVariants(p).find((x) => x.isDefault) ?? activeVariants(p)[0];
-  if (!v) throw new BuildError(`product ${p.id} has no active variant`);
-  return v;
-};
+/**
+ * The variants a customer can actually buy: active and not out of stock. Falls back to all active
+ * variants only when none is available (the product then shows as out of stock anyway).
+ * Every displayed choice (preselected variant, page price/stock, card from-price and discount,
+ * swatches) is derived from this set (CAT-3 r1 F1/F2), so the storefront never advertises a
+ * price or option the customer cannot order.
+ */
+function sellableVariants(ctx: BuildContext, p: SnapshotProduct): SnapshotVariant[] {
+  const active = activeVariants(p);
+  const available = active.filter((v) => variantStock(ctx, v).state !== 'out_of_stock');
+  return available.length ? available : active;
+}
+
+/**
+ * The variant preselected on the page and in the no-JS form: the admin's default when it is
+ * available, else the first available active variant, else the default.
+ */
+export function effectiveDefaultVariant(ctx: BuildContext, p: SnapshotProduct): SnapshotVariant {
+  const active = activeVariants(p);
+  const flagged = active.find((x) => x.isDefault) ?? active[0];
+  if (!flagged) throw new BuildError(`product ${p.id} has no active variant`);
+  if (variantStock(ctx, flagged).state !== 'out_of_stock') return flagged;
+  return active.find((v) => variantStock(ctx, v).state !== 'out_of_stock') ?? flagged;
+}
 
 function optionValueLabels(p: SnapshotProduct, lang: Lang): Map<Id, string> {
   return new Map(p.options.flatMap((o) => o.values.map((x) => [x.id, x.value[lang]] as const)));
@@ -285,7 +347,7 @@ const ref = (template: TemplateName, id?: Id, page?: number): PageRef =>
 // ---------------------------------------------------------------------------------------------
 
 export function productCard(ctx: BuildContext, p: SnapshotProduct, lang: Lang, lcp = false): ProductCard {
-  const vs = activeVariants(p);
+  const vs = sellableVariants(ctx, p);
   const cheapest = [...vs].sort((a, b) => a.priceDzd - b.priceDzd || a.id - b.id)[0]!;
   const from = new Set(vs.map((v) => v.priceDzd)).size > 1;
   const img = mainImage(p);
@@ -378,7 +440,7 @@ export function contactProps(ctx: BuildContext): ContactProps {
 function footerLinks(ctx: BuildContext, lang: Lang): FooterLink[] {
   return ctx.contents.map((c) => ({
     key: c.key,
-    label: ctx.strings[lang][`links.${c.key}`] ?? c.title[lang],
+    label: ctx.strings[lang][`links.${c.key}`] === undefined ? c.title[lang] : copy(ctx, lang, `links.${c.key}`),
     href: ctx.router.url(lang, ref('content', c.id)),
   }));
 }
@@ -423,8 +485,10 @@ function layout(ctx: BuildContext, entry: RouteEntry, x: LayoutExtras): LayoutPr
   };
 }
 
-const anyPlaceholder = (cards: readonly { placeholder: boolean; translationPlaceholder?: boolean }[]): boolean =>
-  cards.some((c) => c.placeholder || c.translationPlaceholder === true);
+/** Cards/links with placeholder content, translation or photo (CAT-3 r1 F3: photos count too). */
+const anyPlaceholder = (
+  cards: readonly { placeholder: boolean; translationPlaceholder?: boolean; image?: { placeholder: boolean } | null }[],
+): boolean => cards.some((c) => c.placeholder || c.translationPlaceholder === true || c.image?.placeholder === true);
 
 const entryFor = (ctx: BuildContext, lang: Lang, r: PageRef): RouteEntry => {
   const path = ctx.router.url(lang, r);
@@ -442,9 +506,10 @@ export function buildHomeProps(ctx: BuildContext, lang: Lang): HomeProps {
   const { homeFeaturedProductIds, homeHeroProductId } = ctx.snapshot.settings;
   const named = homeFeaturedProductIds.filter((id) => ctx.publishedProductIds.has(id)).map((id) => ctx.productById.get(id)!);
   const featuredProducts = named.length ? named : ctx.products.slice(0, ctx.featuredCount);
+  // Only an explicitly chosen, published hero product: no fallback (lead: a photo with burned-in
+  // prices must never become the hero by accident; null ⇒ type-led hero without image).
   const heroProduct =
-    (homeHeroProductId !== null && ctx.publishedProductIds.has(homeHeroProductId) ? ctx.productById.get(homeHeroProductId) : undefined) ??
-    featuredProducts[0];
+    homeHeroProductId !== null && ctx.publishedProductIds.has(homeHeroProductId) ? ctx.productById.get(homeHeroProductId) : undefined;
   const heroImg = heroProduct ? mainImage(heroProduct) : undefined;
   const heroImage = heroImg ? toImageProps(ctx, heroImg, lang, 'hero', true) : null;
   const featured = featuredProducts.map((p) => productCard(ctx, p, lang));
@@ -457,7 +522,7 @@ export function buildHomeProps(ctx: BuildContext, lang: Lang): HomeProps {
       description: t(ctx, lang, 'meta.home.description'),
       lcpImage: heroImage,
       ogImage: ogImageFor(ctx, heroImg, lang),
-      hasPlaceholders: anyPlaceholder([...featured, ...packs, ...categories]) || (hero.product?.placeholder ?? false),
+      hasPlaceholders: anyPlaceholder([...featured, ...packs, ...categories, ...(hero.product ? [hero.product] : [])]) || (heroImage?.placeholder ?? false),
     }),
     hero,
     categories,
@@ -522,13 +587,24 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
   const entry = entryFor(ctx, lang, ref('product', productId));
   const p = ctx.productById.get(productId)!;
   const imgs = orderedImages(p);
-  const images = imgs.map((img, i) => toImageProps(ctx, img, lang, 'gallery', i === 0));
+  const images: ProductImageProps[] = imgs.map((img, i) => ({
+    ...toImageProps(ctx, img, lang, 'gallery', i === 0),
+    variantId: img.variantId,
+    optionValueId: optionValueOf(img),
+  }));
+  const indexesWhere = (pred: (img: SnapshotImage) => boolean): number[] => imgs.flatMap((img, i) => (pred(img) ? [i] : []));
+  const generalIdx = indexesWhere(isGeneral);
+  const optionPos = new Map(p.options.flatMap((o) => o.values.map((x) => [x.id, o.position * 10_000 + o.id] as const)));
   const vs = activeVariants(p);
-  const def = defaultVariant(p);
+  const def = effectiveDefaultVariant(ctx, p);
 
   const variants: VariantProps[] = vs.map((v) => {
     const stock = variantStock(ctx, v);
-    const idx = imgs.findIndex((img) => img.variantId === v.id);
+    const own = indexesWhere((img) => img.variantId === v.id);
+    const byValue = [...v.optionValueIds]
+      .sort((a, b) => (optionPos.get(a) ?? 0) - (optionPos.get(b) ?? 0))
+      .flatMap((vid) => indexesWhere((img) => optionValueOf(img) === vid));
+    const specific = [...own, ...byValue];
     return {
       id: v.id,
       sku: v.sku,
@@ -537,7 +613,8 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
       label: variantLabel(p, v, lang),
       price: price(lang, v.priceDzd, v.compareAtDzd, false),
       stock,
-      imageIndex: idx === -1 ? null : idx,
+      imageIndex: specific[0] ?? null,
+      imageIndexes: [...specific, ...generalIdx],
       isDefault: v.id === def.id,
       available: stock.state !== 'out_of_stock',
       maxQty: stock.state === 'out_of_stock' ? 0 : Math.min(stock.qty ?? ORDER_MAX_QTY, ORDER_MAX_QTY),
@@ -552,7 +629,13 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
       name: o.name[lang],
       values: [...o.values]
         .sort((a, b) => a.position - b.position || a.id - b.id)
-        .map((x) => ({ id: x.id, label: x.value[lang], swatchHex: x.swatchHex, available: availableValues.has(x.id) })),
+        .map((x) => ({
+          id: x.id,
+          label: x.value[lang],
+          imageIndexes: indexesWhere((img) => optionValueOf(img) === x.id),
+          swatchHex: x.swatchHex,
+          available: availableValues.has(x.id),
+        })),
     }));
 
   const packItems: PackItemProps[] = p.packItems.map((it) => {
@@ -710,7 +793,39 @@ export type PageProps =
   | { readonly template: 'order-confirmed'; readonly props: OrderConfirmationProps }
   | { readonly template: 'not-found'; readonly props: NotFoundProps };
 
+/** Prop keys that carry a URL (checked on every built page). */
+const URL_KEY = /(?:^|[a-z])(?:href|Href|url|Url|src)$|^canonicalUrl$/;
+
+/**
+ * Walks built props and checks every URL against the allow-list (`url.ts`): same-origin path,
+ * `tel:`/`wa.me` (content links, contact), or an absolute URL on `siteUrl` (canonical,
+ * alternates). `srcset` entries are checked one by one. Throws `UnsafeUrlError`.
+ */
+export function assertPropsUrls(value: unknown, siteUrl: string, path = 'props'): void {
+  if (Array.isArray(value)) return value.forEach((v, i) => assertPropsUrls(v, siteUrl, `${path}[${i}]`));
+  if (typeof value !== 'object' || value === null) return;
+  for (const [k, v] of Object.entries(value)) {
+    const at = `${path}.${k}`;
+    if (typeof v === 'string' && URL_KEY.test(k)) {
+      if (!(isSameOriginPath(v) || isAllowedExternalHref(v) || isSiteUrl(v, siteUrl))) throw new UnsafeUrlError(`${at}: ${JSON.stringify(v)}`);
+    } else if (typeof v === 'string' && k === 'srcset') {
+      for (const part of v.split(', ')) {
+        const m = /^(\S+) \d+w$/.exec(part);
+        if (!m || !isSameOriginPath(m[1]!)) throw new UnsafeUrlError(`${at}: ${JSON.stringify(part)}`);
+      }
+    } else if (k !== 'strings') {
+      assertPropsUrls(v, siteUrl, at);
+    }
+  }
+}
+
 export function buildPageProps(ctx: BuildContext, entry: RouteEntry): PageProps {
+  const page = buildPagePropsUnchecked(ctx, entry);
+  assertPropsUrls(page.props, ctx.siteUrl, entry.path);
+  return page;
+}
+
+function buildPagePropsUnchecked(ctx: BuildContext, entry: RouteEntry): PageProps {
   const { lang, entityId: id } = entry;
   switch (entry.template) {
     case 'home':
