@@ -33,7 +33,16 @@ export function Form(props: {
   );
 }
 
-export function ErrorSummary(props: { errors: FieldErrors | undefined; labels?: Readonly<Record<string, string>> }) {
+/**
+ * Element id of a field: `f-<name>`, or `f-<name>-<idSuffix>` when the same field is rendered
+ * more than once on a page (one form per row/card). `name` (the submitted key) is unchanged.
+ */
+export function fieldId(name: string, idSuffix?: string | number): string {
+  const suffix = idSuffix === undefined || idSuffix === '' ? '' : `-${String(idSuffix).replace(/[^A-Za-z0-9_-]/g, '_')}`;
+  return `f-${name}${suffix}`;
+}
+
+export function ErrorSummary(props: { errors: FieldErrors | undefined; labels?: Readonly<Record<string, string>>; idSuffix?: string | number | undefined }) {
   const { t } = useUi();
   const entries = Object.entries(props.errors ?? {}).filter((e): e is [string, string] => typeof e[1] === 'string');
   if (entries.length === 0) return null;
@@ -42,7 +51,7 @@ export function ErrorSummary(props: { errors: FieldErrors | undefined; labels?: 
       <h2 class="error-summary__title">{t('form.errorSummary', { count: entries.length })}</h2>
       <ul>
         {entries.map(([name, msg]) => (
-          <li><a href={`#f-${name}`}>{props.labels?.[name] ? `${props.labels[name]} : ${msg}` : msg}</a></li>
+          <li><a href={`#${fieldId(name, props.idSuffix)}`}>{props.labels?.[name] ? `${props.labels[name]} : ${msg}` : msg}</a></li>
         ))}
       </ul>
     </div>
@@ -55,10 +64,12 @@ interface BaseFieldProps {
   hint?: string | undefined;
   error?: string | undefined;
   required?: boolean | undefined;
+  /** Makes the element id unique when this field is repeated on the page (see fieldId). */
+  idSuffix?: string | number | undefined;
 }
 
 function Field(props: BaseFieldProps & { children: (a: { id: string; describedBy: string | undefined; invalid: boolean }) => Child }) {
-  const id = `f-${props.name}`;
+  const id = fieldId(props.name, props.idSuffix);
   const hintId = props.hint ? `${id}-hint` : undefined;
   const errId = props.error ? `${id}-err` : undefined;
   const describedBy = [hintId, errId].filter(Boolean).join(' ') || undefined;
@@ -187,8 +198,8 @@ export function Select(props: BaseFieldProps & { value?: string | undefined; opt
   );
 }
 
-export function Checkbox(props: { name: string; label: string; checked?: boolean; hint?: string; value?: string }) {
-  const id = `f-${props.name}`;
+export function Checkbox(props: { name: string; label: string; checked?: boolean; hint?: string; value?: string; idSuffix?: string | number | undefined }) {
+  const id = fieldId(props.name, props.idSuffix);
   return (
     <div class="field field--check">
       <input type="checkbox" class="check" id={id} name={props.name} value={props.value ?? '1'} checked={props.checked} />
@@ -210,9 +221,10 @@ export function LocalizedField(props: {
   multiline?: boolean;
   maxlength?: number | undefined;
   required?: boolean | undefined;
+  idSuffix?: string | number | undefined;
 }) {
   const { t } = useUi();
-  const common = { maxlength: props.maxlength, required: props.required };
+  const common = { maxlength: props.maxlength, required: props.required, idSuffix: props.idSuffix };
   const fr = `${props.name}_fr`;
   const ar = `${props.name}_ar`;
   return (

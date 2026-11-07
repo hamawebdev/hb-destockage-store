@@ -126,7 +126,10 @@ export function createApp(opts: AppOptions = {}): Hono<AppEnv> {
 
   app.notFound((c) => renderError(c, 404));
   app.onError((err, c) => {
-    console.error(JSON.stringify({ level: 'error', msg: 'unhandled', error: err.name, requestId: c.get('requestId') }));
+    // Outside production the message helps builders (e.g. DuplicateIdError names the ids);
+    // production logs the error class only.
+    const detail = c.env.ENV === 'production' ? {} : { message: err.message.slice(0, 300) };
+    console.error(JSON.stringify({ level: 'error', msg: 'unhandled', error: err.name, ...detail, requestId: c.get('requestId') }));
     // Hono assigns this result to c.res, which would merge the headers of any response produced
     // before the throw (e.g. a redirect's Location); clear it first.
     c.res = undefined as unknown as Response;
