@@ -92,6 +92,35 @@ describe('@hb/db/fees createAdminTableFeeProvider', () => {
   });
 });
 
+describe('fee provider read retry (DB-6 r1)', () => {
+  /** A D1 stub whose first `failures` reads reject, then answers the fee row [600, available 1, placeholder 0]. */
+  function flakyD1(failures: number) {
+    let calls = 0;
+    const read = () => (++calls <= failures ? Promise.reject(new Error('D1_ERROR: Network connection lost')) : Promise.resolve([[600, 1, 0]]));
+    const stmt = { bind: () => stmt, raw: read, all: read, first: read, run: read };
+    return { d1: { prepare: () => stmt, batch: read } as unknown as AnyD1Database, calls: () => calls };
+  }
+  test('one transient D1 failure is retried and the quote succeeds', async () => {
+    const f = flakyD1(1);
+    expect(await createAdminTableFeeProvider(createDb(f.d1), { retry: { backoffMs: 0 } }).quote({ wilayaCode: 16, items })).toEqual({ available: true, feeDzd: 600, source: 'table' });
+    expect(f.calls()).toBe(2);
+  });
+  test('failing on every attempt rejects (never "no delivery"), after exactly 2 attempts by default', async () => {
+    const f = flakyD1(99);
+    const err = await createAdminTableFeeProvider(createDb(f.d1), { retry: { backoffMs: 0 } }).quote({ wilayaCode: 16, items }).then(
+      () => null,
+      (e: unknown) => e as Error & { cause?: Error },
+    );
+    expect(err?.cause?.message ?? err?.message).toMatch(/Network connection lost/); // Drizzle wraps the driver error
+    expect(f.calls()).toBe(2);
+  });
+  test('retry: { attempts: 1 } disables it', async () => {
+    const f = flakyD1(1);
+    await expect(createAdminTableFeeProvider(createDb(f.d1), { retry: { attempts: 1 } }).quote({ wilayaCode: 16, items })).rejects.toThrow();
+    expect(f.calls()).toBe(1);
+  });
+});
+
 describe('updateOrderContact', () => {
   const owner = { userId: 1, role: 'owner' as const };
   const confirmer = { userId: 2, role: 'confirmer' as const };
@@ -104,7 +133,7 @@ describe('updateOrderContact', () => {
     const t = computeTotals(lines, 600);
     const r = await createOrder(db, {
       customer: { phoneE164: phone, name: 'Amine' },
-      order: { ref: `HB-0000${seq}`, idempotencyKey: `k${seq}`, lang: 'fr', wilayaCode: 16, communeId: 1601, subtotalDzd: t.subtotalDzd, feeDzd: 600, totalDzd: t.totalDzd, feeSource: 'table', flags: [], turnstile: 'ok', fillMs: 5000, riskScore: 0, ipHash: null },
+      order: { ref: `HB-${String(seq).padStart(5, '0')}`, idempotencyKey: `k${seq}`, lang: 'fr', wilayaCode: 16, communeId: 1601, subtotalDzd: t.subtotalDzd, feeDzd: 600, totalDzd: t.totalDzd, feeSource: 'table', flags: [], turnstile: 'ok', fillMs: 5000, riskScore: 0, ipHash: null },
       lines,
     });
     return (r as { orderId: number }).orderId;
@@ -135,6 +164,21 @@ describe('updateOrderContact', () => {
       { id: 1, phone_e164: '+213560417403', order_count: 0 },
       { id: 2, phone_e164: '+213661234567', order_count: 2 },
     ]);
+  });
+
+  test('a blank or too-short name is refused (name_invalid); a blank address is stored as NULL (DB-6 r1)', async () => {
+    const id = await order();
+    for (const bad of ['   ', 'A', '١٢٣', '\u200f\u200f']) {
+      expect(await updateOrderContact(db, id, { name: bad }, provider, owner, 0), JSON.stringify(bad)).toEqual({ ok: false, code: 'name_invalid' });
+    }
+    expect(await updateOrderContact(db, id, { name: '  Amine   Benali ', address: '   ' }, provider, owner, 0)).toMatchObject({ ok: true });
+    expect(await d1.prepare('select name, address from orders').first()).toEqual({ name: 'Amine Benali', address: null });
+  });
+
+  test('a buildQuote refusal other than the ceiling is thrown, not reported as area_unavailable (DB-6 r1)', async () => {
+    const id = await order();
+    await exec(d1, `update order_items set qty = 11, line_total_dzd = unit_price_dzd * 11, stock_taken = 0 where order_id = ${id}; update orders set subtotal_dzd = 160600, total_dzd = 161200 where id = ${id}`);
+    await expect(updateOrderContact(db, id, { wilayaCode: 31, communeId: 3101 }, provider, owner, 0)).rejects.toThrow(/buildQuote refused the stored lines \(out_of_stock\)/);
   });
 
   test('the owner may still edit a confirmed order', async () => {
