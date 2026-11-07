@@ -26,6 +26,7 @@ function variant(id: number, price: number, maxQty: number, lang: Lang, extra: P
     price: { amountDzd: price, label: fmt(price, lang), compareAtDzd: null, compareAtLabel: null, discountPercent: null, from: false },
     stock: { state: maxQty === 0 ? 'out_of_stock' : 'in_stock', qty: maxQty === 10 ? null : maxQty },
     imageIndex: null,
+    imageIndexes: [],
     isDefault: false,
     available: maxQty > 0,
     maxQty,
