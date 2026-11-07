@@ -151,7 +151,10 @@ Requests counted, deduplicated by URL:
 - the LCP image: the candidate a browser picks from `<picture><source>`/`srcset`/`sizes` at
   **Lighthouse mobile emulation, 412 CSS px × DPR 1.75** (first candidate with density ≥ 1.75;
   Chromium may sometimes pick one smaller, so this errs on the larger file; an unparseable
-  `sizes` → the largest candidate);
+  `sizes` → the largest candidate). `sizes` understands `(min-width)`/`(max-width)` conditions
+  and lengths in px, vw, em, rem, including `calc()` with + − × ÷ and parentheses, `min()`,
+  `max()`, `clamp()`, nested. At 412 × 1.75 the pick is tested equal to Chrome's own
+  `currentSrc` (test/browser.test.ts), and never smaller than Chrome's elsewhere;
 - on `/ar/` (and pages outside `/fr/`), every font in an `@font-face` (first `src` URL); on
   `/fr/` only preloaded fonts (the shared sheet's Arabic face must stay unused, which the runtime
   pass proves);

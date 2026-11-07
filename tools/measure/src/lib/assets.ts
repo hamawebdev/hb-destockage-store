@@ -89,32 +89,74 @@ export function evalMedia(cond: string, vw: number): boolean | null {
   return true;
 }
 
-function evalLength(len: string, vw: number): number | null {
-  const m = /^([\d.]+)(px|vw|em|rem)$/i.exec(len);
-  if (m) {
+/**
+ * A CSS length as used in `sizes` → CSS px at viewport width `vw`: a plain length (px, vw, em,
+ * rem) or a math function — calc() with + − × ÷ and parentheses, min(), max(), clamp(), nested
+ * (MEAS-1 fix: `calc((100vw - 44px) / 2)` used to fall back to the largest candidate). A number
+ * without unit may only multiply or divide a length, as in CSS. Anything else → null (the
+ * caller then takes the conservative choice).
+ */
+export function evalLength(len: string, vw: number): number | null {
+  type V = { v: number; len: boolean };
+  const toks = len.trim().match(/\d*\.?\d+(?:e[+-]?\d+)?(?:px|vw|em|rem)?|[a-z-]+\(|[()+\-*/,]/gi);
+  if (!toks || toks.join('') !== len.replace(/\s+/g, '')) return null; // something we do not know
+  let i = 0;
+  const peek = (): string | undefined => toks[i];
+  const fail = (): never => { throw new Error('css'); };
+  const unit = (t: string): V => {
+    const m = /^(\d*\.?\d+(?:e[+-]?\d+)?)(px|vw|em|rem)?$/i.exec(t);
+    if (!m) return fail();
     const n = Number(m[1]);
     const u = (m[2] ?? '').toLowerCase();
-    return u === 'px' ? n : u === 'vw' ? (n * vw) / 100 : n * 16;
+    if (!u) return { v: n, len: false };
+    return { v: u === 'px' ? n : u === 'vw' ? (n * vw) / 100 : n * 16, len: true };
+  };
+  const args = (): V[] => {
+    const out = [expr()];
+    while (peek() === ',') { i++; out.push(expr()); }
+    if (toks[i++] !== ')') fail();
+    return out;
+  };
+  const factor = (): V => {
+    const t = toks[i++];
+    if (t === undefined) return fail();
+    if (t === '-') { const f = factor(); return { v: -f.v, len: f.len }; }
+    if (t === '(' || /^calc\($/i.test(t)) { const e = expr(); if (toks[i++] !== ')') fail(); return e; }
+    const fn = /^(min|max|clamp)\($/i.exec(t)?.[1]?.toLowerCase();
+    if (fn) {
+      const a = args();
+      if (!a.every((x) => x.len) || (fn === 'clamp' && a.length !== 3)) fail();
+      const n = a.map((x) => x.v);
+      return { v: fn === 'min' ? Math.min(...n) : fn === 'max' ? Math.max(...n) : Math.max(n[0]!, Math.min(n[1]!, n[2]!)), len: true };
+    }
+    return unit(t);
+  };
+  const term = (): V => {
+    let l = factor();
+    while (peek() === '*' || peek() === '/') {
+      const op = toks[i++];
+      const r = factor();
+      if (op === '*') { if (l.len && r.len) fail(); l = { v: l.v * r.v, len: l.len || r.len }; }
+      else { if (r.len || r.v === 0) fail(); l = { v: l.v / r.v, len: l.len }; }
+    }
+    return l;
+  };
+  const expr = (): V => {
+    let l = term();
+    while (peek() === '+' || peek() === '-') {
+      const op = toks[i++];
+      const r = term();
+      if (l.len !== r.len) fail();
+      l = { v: op === '+' ? l.v + r.v : l.v - r.v, len: l.len };
+    }
+    return l;
+  };
+  try {
+    const r = expr();
+    return i === toks.length && r.len ? r.v : null;
+  } catch {
+    return null;
   }
-  const f = /^(calc|min|max)\((.*)\)$/is.exec(len);
-  if (!f) return null;
-  const fn = (f[1] ?? '').toLowerCase();
-  const inner = f[2] ?? '';
-  if (fn === 'min' || fn === 'max') {
-    const vals = splitTopLevel(inner, ',').map((x) => evalLength(x.trim(), vw));
-    if (vals.some((v) => v === null)) return null;
-    const nums = vals as number[];
-    return fn === 'min' ? Math.min(...nums) : Math.max(...nums);
-  }
-  const terms = inner.trim().split(/\s+([+-])\s+/);
-  let total = evalLength(terms[0] ?? '', vw);
-  if (total === null) return null;
-  for (let k = 1; k < terms.length; k += 2) {
-    const v = evalLength(terms[k + 1] ?? '', vw);
-    if (v === null) return null;
-    total = terms[k] === '+' ? total + v : total - v;
-  }
-  return total;
 }
 
 /**

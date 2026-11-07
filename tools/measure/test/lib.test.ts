@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parseTags } from '../src/lib/html.ts';
-import { avifSize, cssUrls, evalSizes, fontFaces, isAvif, parseSrcset, pickCandidate } from '../src/lib/assets.ts';
+import { avifSize, cssUrls, evalLength, evalSizes, fontFaces, isAvif, parseSrcset, pickCandidate } from '../src/lib/assets.ts';
 import { absUrlsIn, jsRefs } from '../src/budget/check.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +41,26 @@ describe('srcset / sizes', () => {
     expect(evalSizes(undefined, 412)).toBe(412);
     expect(evalSizes('auto', 412)).toBeNull();
     expect(evalSizes('(orientation: portrait) 50vw, 100vw', 412)).toBeNull();
+  });
+  it('evaluates calc() with * / and parentheses, clamp(), nesting (shell SHELL-4: BUG-12 card sizes)', () => {
+    // pagedata a4daab3's card sizes, verbatim
+    const cards = '(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)';
+    expect(evalSizes(cards, 412)).toBe(184);
+    expect(evalSizes(cards, 768)).toBeCloseTo(223.33, 2);
+    expect(evalSizes(cards, 1100)).toBe(237);
+    expect(evalSizes(cards, 1440)).toBe(282);
+    // at the LCP device (412 px, DPR 1.75): 184 × 1.75 = 322 → the 360w candidate, as Chrome picks
+    const c = parseSrcset([360, 480, 720, 960, 1200].map((w) => `/i-${w}.avif ${w}w`).join(', '));
+    expect(pickCandidate(c, evalSizes(cards, 412), 1.75)?.url).toBe('/i-360.avif');
+    expect(evalLength('calc(2 * 100px + 10vw)', 1000)).toBe(300);
+    expect(evalLength('calc(100vw/3 - -10px)', 900)).toBe(310);
+    expect(evalLength('clamp(200px, 50vw, 400px)', 412)).toBe(206);
+    expect(evalLength('calc(min(100vw, 600px) - 2rem)', 1440)).toBe(568);
+    expect(evalLength('max(calc(50vw - 16px), 160px)', 300)).toBe(160);
+    // not understood → null (conservative: the largest candidate)
+    for (const bad of ['calc(100vw * 2px)', 'calc(100vw / 0)', 'calc(100vw + 2)', 'calc(100vw - 44px', '50', 'calc(100vh)', 'attr(x)', 'calc((100vw - 44px) / 2) junk']) {
+      expect(evalLength(bad, 412), bad).toBeNull();
+    }
   });
   it('picks the candidate Lighthouse mobile would download (412 px × 1.75)', () => {
     const c = parseSrcset('/a-360.avif 360w, /a-480.avif 480w, /a-720.avif 720w, /a-960.avif 960w, /a-1200.avif 1200w');

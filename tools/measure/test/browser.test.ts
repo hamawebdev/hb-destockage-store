@@ -10,6 +10,9 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { main as shots } from '../src/shots/cli.ts';
 import { checkExceptions, main as axe } from '../src/axe/cli.ts';
+import { launch } from '../src/lib/browser.ts';
+import { evalSizes, parseSrcset, pickCandidate } from '../src/lib/assets.ts';
+import { BUDGETS } from '../src/budget/config.ts';
 import { cleanup, edit, freshSite } from './fixtures/site.ts';
 import { addA11yPages } from './fixtures/a11y.ts';
 
@@ -218,3 +221,37 @@ describe('npm run axe (every default axe-core rule + measured contrast + keyboar
     expect(code).toBe(0);
   });
 });
+
+describe('srcset/sizes: the budget checker vs Chrome (shell SHELL-4 finding)', () => {
+  // pagedata a4daab3's card sizes, verbatim, and the storefront's 5 AVIF widths
+  const CARDS = '(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)';
+  const SRCSET = [360, 480, 720, 960, 1200].map((w) => `https://img.invalid/c-${w}.avif ${w}w`).join(', ');
+  const chromePick = async (width: number, dpr: number, sizes: string): Promise<string> => {
+    const browser = await launch();
+    try {
+      const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: dpr });
+      const page = await ctx.newPage();
+      await page.route('**/*.avif', (r) => r.abort()); // the choice (currentSrc) is made before any byte arrives
+      await page.setContent(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><img srcset="${SRCSET}" sizes="${sizes}" alt="">`, { waitUntil: 'domcontentloaded' });
+      return await page.waitForFunction("document.querySelector('img')?.currentSrc || null").then((h) => h.jsonValue() as Promise<string>);
+    } finally { await browser.close(); }
+  };
+  const width = (u: string): number => Number(/-(\d+)\.avif/.exec(u)?.[1]);
+  const ours = (vw: number, dpr: number, sizes: string): string => pickCandidate(parseSrcset(SRCSET), evalSizes(sizes, vw), dpr)?.url ?? '';
+
+  it('at the gate\'s device (the LCP viewport) the checker picks exactly what Chrome picks', T, async () => {
+    const { width: vw, dpr } = BUDGETS.lcpViewport;
+    for (const sizes of [CARDS, '100vw', '(min-width: 768px) 50vw, 100vw', 'calc(100vw - 32px)']) {
+      expect(ours(vw, dpr, sizes), sizes).toBe(await chromePick(vw, dpr, sizes));
+    }
+    expect(width(ours(vw, dpr, CARDS))).toBe(360);
+  });
+
+  it('elsewhere the checker never picks a SMALLER file than Chrome (it may pick larger: no geometric-mean rule)', T, async () => {
+    for (const [vw, dpr] of [[360, 3], [412, 2.625], [768, 2], [1024, 1], [1440, 1], [1440, 2]] as const) {
+      const c = await chromePick(vw, dpr, CARDS);
+      expect(width(ours(vw, dpr, CARDS)), `${vw}px @${dpr}: Chrome ${c}`).toBeGreaterThanOrEqual(width(c));
+    }
+  });
+});
+
