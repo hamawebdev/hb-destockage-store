@@ -16,7 +16,7 @@ Any deviation from it needs a measurement or a cited source, recorded in [DECISI
 - **No Rust in the runtime. No React/Next/SPA. No i18n runtime. No analytics or chat widgets.**
 - Versions measured in the report: Astro 7.4, Hono 4.13, Drizzle 0.45, Valibot 1.5, Tailwind 4.3, Wrangler 4.x, Lighthouse **13.6.0 (pinned)**.
 
-## Storefront budgets (blocking — enforced by `npm run budget` and `npm run lh`)
+## Storefront budgets (report-only since 2026-11-08, see D-004 — `npm run budget` and `npm run lh` run and report; they do not block)
 - Lighthouse mobile (13.6.0, default simulated throttling) **Performance 100 and Accessibility 100**, median of 5, on every template in `/ar/` and `/fr/`. Zero axe violations.
 - HTML document incl. inline CSS ≤ 14 KiB brotli (target ≈ 4–6 KiB). One stylesheet for both directions, inlined.
 - Critical path (HTML + preloads + LCP image + font) **≤ 45 KiB in ≤ 4 requests**.
@@ -41,8 +41,8 @@ Any deviation from it needs a measurement or a cited source, recorded in [DECISI
 - Agent-team task list, subjects `<AREA>-<n>: …` (`-0` = plan). The lead (`team-lead`) creates and closes tasks and routes reviews and requests.
 - One worktree + branch per teammate (`.worktrees/<name>`, `team/<name>`). Edit only your paths in `team/owners.json`, enforced by main's hooks (`git config core.hooksPath "/mnt/data/ecom website/.githooks"`, absolute). Dependencies: ask `tooling`.
 - One commit per task (`commit-msg` enforces `<ID>: <title>`, blank, `What changed:`, `Testing:`, `Risk tier: low|high`, `Revert:`). Review fixes = new commits; `git merge main`, never rebase.
-- `scripts/gate.sh` (typecheck, test, build, budget, Lighthouse on storefront changes) runs in the `TaskCompleted` hook; red ⇒ refused.
-- Review per [REVIEW.md](REVIEW.md) (`REV <ID> r<n>` tasks). Only the lead merges (`scripts/team/merge.sh`): approved commits only, high risk after client sign-off.
+- A task is done when typecheck, tests and build pass. `scripts/gate.sh` runs in the `TaskCompleted` hook and fails only on typecheck, tests, build and the hook/disk safety checks; byte budget, Lighthouse, axe and tap targets run and report only.
+- Review per [REVIEW.md](REVIEW.md): one pass, bugs and security only, and only for the order path, totals and fees, and admin login and roles (`team/REVIEW-REQUIRED.txt`). Only the lead merges (`scripts/team/merge.sh`); everything else merges once green. No client sign-off is needed except for deploying, which stays out of scope (see Non-goals).
 - Outputs in `artifacts/<ID>/` (main checkout); report paths. Heavy jobs (build, vitest, wrangler dev, Chrome) via `scripts/lib/locks.sh heavy -- <cmd>` (3 slots; a gate holds one, max 2 gates); Lighthouse exclusive; ports: `scripts/team/port.sh <name>`.
 
 ## Non-goals
