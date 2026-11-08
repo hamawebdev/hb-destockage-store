@@ -1,0 +1,375 @@
+{
+  "id": 210,
+  "kind": "variable",
+  "categoryId": 33,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "hidhaa-riyadi-qumash",
+    "fr": "baskets-toile"
+  },
+  "name": {
+    "ar": "حذاء رياضي من القماش",
+    "fr": "Baskets en toile"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "حذاء خفيف من القماش بنعل مطاطي.",
+    "fr": "Baskets légères en toile, semelle caoutchouc."
+  },
+  "description": {
+    "ar": "قماش قطني ونعل مطاطي.\n\nالمقاسات من 38 إلى 44.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Toile de coton, semelle caoutchouc.\n\nPointures 38 à 44.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2101,
+      "type": "size",
+      "name": {
+        "ar": "المقاس",
+        "fr": "Pointure"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 210101,
+          "value": {
+            "ar": "38",
+            "fr": "38"
+          },
+          "swatchHex": null,
+          "position": 1
+        },
+        {
+          "id": 210102,
+          "value": {
+            "ar": "39",
+            "fr": "39"
+          },
+          "swatchHex": null,
+          "position": 2
+        },
+        {
+          "id": 210103,
+          "value": {
+            "ar": "40",
+            "fr": "40"
+          },
+          "swatchHex": null,
+          "position": 3
+        },
+        {
+          "id": 210104,
+          "value": {
+            "ar": "41",
+            "fr": "41"
+          },
+          "swatchHex": null,
+          "position": 4
+        },
+        {
+          "id": 210105,
+          "value": {
+            "ar": "42",
+            "fr": "42"
+          },
+          "swatchHex": null,
+          "position": 5
+        },
+        {
+          "id": 210106,
+          "value": {
+            "ar": "43",
+            "fr": "43"
+          },
+          "swatchHex": null,
+          "position": 6
+        },
+        {
+          "id": 210107,
+          "value": {
+            "ar": "44",
+            "fr": "44"
+          },
+          "swatchHex": null,
+          "position": 7
+        }
+      ]
+    },
+    {
+      "id": 2102,
+      "type": "colour",
+      "name": {
+        "ar": "اللون",
+        "fr": "Couleur"
+      },
+      "position": 2,
+      "values": [
+        {
+          "id": 210201,
+          "value": {
+            "ar": "أبيض",
+            "fr": "Blanc"
+          },
+          "swatchHex": "#f4f4f2",
+          "position": 1
+        },
+        {
+          "id": 210202,
+          "value": {
+            "ar": "أسود",
+            "fr": "Noir"
+          },
+          "swatchHex": "#1f1f1f",
+          "position": 2
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 21001,
+      "sku": "PH-SNK-38-BLANC",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 4,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210101,
+        210201
+      ]
+    },
+    {
+      "id": 21002,
+      "sku": "PH-SNK-39-BLANC",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210102,
+        210201
+      ]
+    },
+    {
+      "id": 21003,
+      "sku": "PH-SNK-40-BLANC",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210103,
+        210201
+      ]
+    },
+    {
+      "id": 21004,
+      "sku": "PH-SNK-41-BLANC",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        210104,
+        210201
+      ]
+    },
+    {
+      "id": 21005,
+      "sku": "PH-SNK-42-BLANC",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210105,
+        210201
+      ]
+    },
+    {
+      "id": 21006,
+      "sku": "PH-SNK-43-BLANC",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210106,
+        210201
+      ]
+    },
+    {
+      "id": 21007,
+      "sku": "PH-SNK-44-BLANC",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 4,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210107,
+        210201
+      ]
+    },
+    {
+      "id": 21008,
+      "sku": "PH-SNK-38-NOIR",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 4,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210101,
+        210202
+      ]
+    },
+    {
+      "id": 21009,
+      "sku": "PH-SNK-39-NOIR",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210102,
+        210202
+      ]
+    },
+    {
+      "id": 21010,
+      "sku": "PH-SNK-40-NOIR",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210103,
+        210202
+      ]
+    },
+    {
+      "id": 21011,
+      "sku": "PH-SNK-41-NOIR",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210104,
+        210202
+      ]
+    },
+    {
+      "id": 21012,
+      "sku": "PH-SNK-42-NOIR",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210105,
+        210202
+      ]
+    },
+    {
+      "id": 21013,
+      "sku": "PH-SNK-43-NOIR",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210106,
+        210202
+      ]
+    },
+    {
+      "id": 21014,
+      "sku": "PH-SNK-44-NOIR",
+      "priceDzd": 4500,
+      "compareAtDzd": null,
+      "stock": 4,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        210107,
+        210202
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2101,
+      "variantId": null,
+      "key": "baskets-toile/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: حذاء رياضي أبيض من الجانب",
+        "fr": "Image provisoire : basket blanche de profil"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2102,
+      "variantId": null,
+      "optionValueId": 210202,
+      "key": "baskets-toile/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: الحذاء، اللون الأسود",
+        "fr": "Image provisoire : basket, coloris noir"
+      },
+      "position": 2,
+      "placeholder": true
+    },
+    {
+      "id": 2103,
+      "variantId": null,
+      "key": "baskets-toile/3.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة الحذاء",
+        "fr": "Image provisoire : boîte à chaussures"
+      },
+      "position": 3,
+      "placeholder": true
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "id": 101,
+  "kind": "pack",
+  "categoryId": 11,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "taqm-al-hammam-a-3-fi-1-piano-led",
+    "fr": "pack-a-3-en-1-colonne-piano-led"
+  },
+  "name": {
+    "ar": "طقم الحمّام A 3 في 1 – عمود «بيانو» بإضاءة LED",
+    "fr": "Pack A 3 en 1 – colonne de douche Piano LED"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "عمود استحمام «بيانو» كبير بشاشة رقمية وإضاءة LED، وخلّاط للمغسلة، وحنفية للمرحاض مع شطّاف.",
+    "fr": "Colonne de douche Piano grand modèle avec afficheur digital et LED, mitigeur de lavabo et robinet de toilette avec douchette."
+  },
+  "description": {
+    "ar": "طقم 3 في 1 – أناقة وراحة لحمّامك.\n\nعمود الاستحمام «بيانو» (الحجم الكبير): شاشة رقمية لدرجة حرارة الماء، إضاءة LED، وتصميم عصري وأنيق.\n\nخلّاط مغسلة عالي الجودة: تصميم راقٍ وعصري، مع الخرطوم المرن وقطع التثبيت.\n\nحنفية المرحاض: شطّاف يدوي بخرطوم قابل للتمديد، عملي ومريح لنظافة أفضل.",
+    "fr": "Pack 3 en 1 – élégance et confort pour votre salle de bain.\n\nColonne de douche Piano (grand modèle) : afficheur digital de température, éclairage LED d’ambiance, design moderne et élégant.\n\nMitigeur de lavabo haut de gamme : design raffiné et moderne, flexible et fixations inclus.\n\nRobinet pour toilette : douchette extensible et pratique, idéal pour plus de confort et d’hygiène."
+  },
+  "placeholder": false,
+  "translationPlaceholder": [
+    "ar"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 10101,
+      "sku": "HB-PACK-A",
+      "priceDzd": 14600,
+      "compareAtDzd": 17900,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [
+    {
+      "variantId": 11101,
+      "qty": 1
+    },
+    {
+      "variantId": 11201,
+      "qty": 1
+    },
+    {
+      "variantId": 11301,
+      "qty": 1
+    }
+  ],
+  "images": [
+    {
+      "id": 1011,
+      "variantId": null,
+      "key": "pack-a-3-en-1-colonne-piano-led/2.jpg",
+      "width": 1320,
+      "height": 1620,
+      "alt": {
+        "ar": "عمود استحمام «بيانو» أسود بشريط إضاءة LED أزرق وشاشة، وتحته حنفية المرحاض مع الشطّاف وخلّاط المغسلة، مع ملصق «14600 Da».",
+        "fr": "Colonne de douche Piano noire à bandeau LED bleu et afficheur, avec le robinet de toilette à douchette et le mitigeur de lavabo ; étiquette « 14600 Da »."
+      },
+      "position": 1,
+      "placeholder": false
+    },
+    {
+      "id": 1012,
+      "variantId": null,
+      "key": "pack-a-3-en-1-colonne-piano-led/3.jpg",
+      "width": 1320,
+      "height": 1293,
+      "alt": {
+        "ar": "عمود استحمام «بيانو» كامل في حمّام رمادي، مع خلّاط المغسلة وحنفية المرحاض، ونص «14600 da».",
+        "fr": "Colonne de douche Piano complète dans une salle de bain grise, avec le mitigeur de lavabo et le robinet de toilette ; texte « 14600 da »."
+      },
+      "position": 2,
+      "placeholder": false
+    },
+    {
+      "id": 1013,
+      "variantId": null,
+      "key": "pack-a-3-en-1-colonne-piano-led/4.jpg",
+      "width": 1237,
+      "height": 1624,
+      "alt": {
+        "ar": "لوحة عمود الاستحمام بإضاءة LED وشاشة، مع خلّاط المغسلة وحنفية المرحاض، ونص «14600 da».",
+        "fr": "Panneau de la colonne de douche avec LED et afficheur, le mitigeur de lavabo et le robinet de toilette ; texte « 14600 da »."
+      },
+      "position": 3,
+      "placeholder": false
+    },
+    {
+      "id": 1014,
+      "variantId": null,
+      "key": "pack-a-3-en-1-colonne-piano-led/5.jpg",
+      "width": 1243,
+      "height": 1980,
+      "alt": {
+        "ar": "لوحة عمود الاستحمام السوداء بحافة مضيئة زرقاء، وتحتها خلّاط المغسلة وحنفية المرحاض، مع ملصق «14600 da».",
+        "fr": "Panneau noir de la colonne de douche à bord lumineux bleu, au-dessous le mitigeur de lavabo et le robinet de toilette ; étiquette « 14600 da »."
+      },
+      "position": 4,
+      "placeholder": false
+    }
+  ]
+}

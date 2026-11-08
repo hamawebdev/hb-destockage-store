@@ -1,0 +1,72 @@
+{
+  "id": 203,
+  "kind": "simple",
+  "categoryId": 211,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "shahin-sari-20-watt",
+    "fr": "chargeur-rapide-usb-c-20w"
+  },
+  "name": {
+    "ar": "شاحن سريع USB-C بقوة 20 واط",
+    "fr": "Chargeur rapide USB-C 20 W"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "شاحن حائطي صغير بمنفذ USB-C.",
+    "fr": "Chargeur secteur compact avec port USB-C."
+  },
+  "description": {
+    "ar": "شحن سريع PD بقوة 20 واط.\n\nقابس أوروبي.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Charge rapide PD 20 W.\n\nPrise européenne.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 20301,
+      "sku": "PH-CHG-20W",
+      "priceDzd": 1800,
+      "compareAtDzd": 2400,
+      "stock": 40,
+      "weightG": 45,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2031,
+      "variantId": null,
+      "key": "chargeur-rapide-usb-c-20w/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: شاحن حائطي أبيض",
+        "fr": "Image provisoire : chargeur secteur blanc"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2032,
+      "variantId": null,
+      "key": "chargeur-rapide-usb-c-20w/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة الشاحن",
+        "fr": "Image provisoire : emballage du chargeur"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

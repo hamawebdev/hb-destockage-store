@@ -1,0 +1,152 @@
+{
+  "id": 209,
+  "kind": "variable",
+  "categoryId": 32,
+  "status": "active",
+  "sort": 20,
+  "slug": {
+    "ar": "wishah-muslin",
+    "fr": "foulard-mousseline"
+  },
+  "name": {
+    "ar": "وشاح من الموسلين",
+    "fr": "Foulard en mousseline"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "وشاح خفيف وناعم بعدة ألوان.",
+    "fr": "Foulard léger et fluide, plusieurs couleurs."
+  },
+  "description": {
+    "ar": "المقاس 180 × 70 سم.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Dimensions 180 × 70 cm.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2091,
+      "type": "colour",
+      "name": {
+        "ar": "اللون",
+        "fr": "Couleur"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 209101,
+          "value": {
+            "ar": "طوبي",
+            "fr": "Terracotta"
+          },
+          "swatchHex": "#c0643f",
+          "position": 1
+        },
+        {
+          "id": 209102,
+          "value": {
+            "ar": "خردلي",
+            "fr": "Moutarde"
+          },
+          "swatchHex": "#d4a72c",
+          "position": 2
+        },
+        {
+          "id": 209103,
+          "value": {
+            "ar": "أخضر مريمي",
+            "fr": "Vert sauge"
+          },
+          "swatchHex": "#7d9a7e",
+          "position": 3
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 20901,
+      "sku": "PH-SCF-TERRA",
+      "priceDzd": 1200,
+      "compareAtDzd": null,
+      "stock": 15,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        209101
+      ]
+    },
+    {
+      "id": 20902,
+      "sku": "PH-SCF-MOUT",
+      "priceDzd": 1200,
+      "compareAtDzd": null,
+      "stock": 15,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        209102
+      ]
+    },
+    {
+      "id": 20903,
+      "sku": "PH-SCF-SAUGE",
+      "priceDzd": 1200,
+      "compareAtDzd": null,
+      "stock": 15,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        209103
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2091,
+      "variantId": null,
+      "key": "foulard-mousseline/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: وشاح مطوي",
+        "fr": "Image provisoire : foulard plié"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2092,
+      "variantId": 20902,
+      "key": "foulard-mousseline/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: الوشاح، اللون الخردلي",
+        "fr": "Image provisoire : foulard, coloris moutarde"
+      },
+      "position": 2,
+      "placeholder": true
+    },
+    {
+      "id": 2093,
+      "variantId": 20903,
+      "key": "foulard-mousseline/3.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: الوشاح، اللون الأخضر",
+        "fr": "Image provisoire : foulard, coloris vert sauge"
+      },
+      "position": 3,
+      "placeholder": true
+    }
+  ]
+}

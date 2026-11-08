@@ -1,0 +1,117 @@
+{
+  "id": 214,
+  "kind": "variable",
+  "categoryId": 42,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "shampu-muslih",
+    "fr": "shampooing-reparateur"
+  },
+  "name": {
+    "ar": "شامبو مُصلِح",
+    "fr": "Shampooing réparateur"
+  },
+  "brandLatin": "DemoCare",
+  "summary": {
+    "ar": "شامبو للشعر الجاف والمتضرّر.",
+    "fr": "Shampooing pour cheveux secs et abîmés."
+  },
+  "description": {
+    "ar": "متوفّر بحجمين.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Disponible en deux contenances.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2141,
+      "type": "size",
+      "name": {
+        "ar": "الحجم",
+        "fr": "Contenance"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 214101,
+          "value": {
+            "ar": "250 مل",
+            "fr": "250 ml"
+          },
+          "swatchHex": null,
+          "position": 1
+        },
+        {
+          "id": 214102,
+          "value": {
+            "ar": "500 مل",
+            "fr": "500 ml"
+          },
+          "swatchHex": null,
+          "position": 2
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 21401,
+      "sku": "PH-SHP-250",
+      "priceDzd": 900,
+      "compareAtDzd": null,
+      "stock": 22,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        214101
+      ]
+    },
+    {
+      "id": 21402,
+      "sku": "PH-SHP-500",
+      "priceDzd": 1500,
+      "compareAtDzd": 1800,
+      "stock": 14,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        214102
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2141,
+      "variantId": null,
+      "key": "shampooing-reparateur/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: قارورة شامبو",
+        "fr": "Image provisoire : flacon de shampooing"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2142,
+      "variantId": null,
+      "key": "shampooing-reparateur/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: قارورة الشامبو عن قرب",
+        "fr": "Image provisoire : vue rapprochée du flacon de shampooing"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

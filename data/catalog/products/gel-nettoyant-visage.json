@@ -1,0 +1,72 @@
+{
+  "id": 213,
+  "kind": "simple",
+  "categoryId": 41,
+  "status": "active",
+  "sort": 30,
+  "slug": {
+    "ar": "jil-munazzif",
+    "fr": "gel-nettoyant-visage"
+  },
+  "name": {
+    "ar": "جل منظّف للوجه 150 مل",
+    "fr": "Gel nettoyant visage 150 ml"
+  },
+  "brandLatin": "DemoCare",
+  "summary": {
+    "ar": "جل لطيف لتنظيف البشرة يوميًا.",
+    "fr": "Gel doux pour le nettoyage quotidien."
+  },
+  "description": {
+    "ar": "يُشطف بالماء.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Se rince à l’eau.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 21301,
+      "sku": "PH-GEL-150",
+      "priceDzd": 1100,
+      "compareAtDzd": null,
+      "stock": 20,
+      "weightG": 170,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2131,
+      "variantId": null,
+      "key": "gel-nettoyant-visage/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: أنبوب جل منظّف",
+        "fr": "Image provisoire : tube de gel nettoyant"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2132,
+      "variantId": null,
+      "key": "gel-nettoyant-visage/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: الأنبوب من الجانب",
+        "fr": "Image provisoire : tube de profil"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}
