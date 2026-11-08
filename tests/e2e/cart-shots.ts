@@ -28,6 +28,8 @@ async function newCtx(browser: Browser, lang: Lang, w: number, reduced: boolean)
   return loopbackContext(browser, { viewport: viewport(w), locale: lang === 'ar' ? 'ar-DZ' : 'fr-DZ', reducedMotion: reduced ? 'reduce' : 'no-preference' });
 }
 const staticHeader = (page: Page): Promise<unknown> => ev(page, `document.querySelectorAll('.sticky,header').forEach(e => { if (getComputedStyle(e).position === 'sticky') e.style.position = 'static'; })`);
+/** A full-page capture paints a viewport-fixed bar at the first viewport's bottom; for the shot only, pin it to the page bottom, where a customer meets it after scrolling. */
+const barToPageEnd = (page: Page): Promise<unknown> => ev(page, `document.querySelectorAll('.of-bar').forEach(e => { if (getComputedStyle(e).position === 'fixed') { document.documentElement.style.position = 'relative'; e.style.position = 'absolute'; } })`);
 const measure = async (page: Page): Promise<{ pageHeight: number; formHeight: number; words: number }> => ev(page, `({
   pageHeight: document.documentElement.scrollHeight,
   formHeight: (() => { const f = document.querySelector('form[action="/api/order"]'); return f ? Math.round(f.getBoundingClientRect().height) : 0; })(),
@@ -77,6 +79,7 @@ async function main(): Promise<void> {
       await imagesLoaded(page);
       await staticHeader(page);
       const m = await measure(page);
+      await barToPageEnd(page);
       await page.screenshot({ path: path.join(out, `order-${lang}-${w}.png`), fullPage: true });
       metrics.push({ lang, w, status: r?.status() ?? 0, ...m, url: ORDER_SLUG[lang] });
 
@@ -93,6 +96,8 @@ async function main(): Promise<void> {
       await imagesLoaded(page);
       await staticHeader(page);
       const c = await measure(page);
+      if (w === 360) await page.screenshot({ path: path.join(out, `checkout-${lang}-360-viewport.png`) }); // the fixed bar as seen
+      await barToPageEnd(page);
       await page.screenshot({ path: path.join(out, `checkout-${lang}-${w}.png`), fullPage: true });
       checkout.push({ lang, w, ...c });
       await ctx.close();
