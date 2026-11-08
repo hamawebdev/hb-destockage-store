@@ -116,7 +116,7 @@ if (picker) {
     const ids = b ? b.dataset.k.split('-') : [...q].filter(([k]) => k.startsWith('opt.')).map(([, v]) => v);
     const hit = find(keyOf(ids));
     if (!hit || hit.dataset.a !== '1') return;
-    for (const id of ids) document.getElementById('ov-' + id).checked = true;
+    for (const id of hit.dataset.k.split('-')) document.getElementById('ov-' + id).checked = true;
   };
   picker.addEventListener('change', () => update(false));
   document.addEventListener('prerenderingchange', () => (fromQuery(), update(true)));
