@@ -69,6 +69,7 @@ function image(i: Image): SnapshotImage {
     alt: { ar: i.altAr, fr: i.altFr },
     position: i.position,
     placeholder: i.placeholder,
+    ...(i.printedPricesDzd.length ? { printedPricesDzd: i.printedPricesDzd } : {}),
   };
 }
 
