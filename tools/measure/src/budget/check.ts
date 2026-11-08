@@ -593,6 +593,11 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
         const dsrc = attr(t, 'data-src');
         const dset = attr(t, 'data-srcset');
         const where = `<img data-src="${dsrc.slice(0, 60)}"> (deferred)`;
+        // rev-a BUG-19 nit: nothing loads before a script runs, so a deferred image can never be
+        // the priority (LCP) image; asking for priority or eager loading on it is a mistake
+        if (attr(t, 'fetchpriority').toLowerCase() === 'high' || attr(t, 'loading').toLowerCase() === 'eager') {
+          v('lcp-image', `${where} has ${attr(t, 'fetchpriority').toLowerCase() === 'high' ? 'fetchpriority="high"' : 'loading="eager"'}: a deferred image loads only after a script runs and cannot be the LCP image (give the LCP image a real src/srcset)`);
+        }
         const dOwn = parseSrcset(dset);
         if ([...dOwn.map((c) => c.url), dsrc].filter(Boolean).every((u) => isVector(u))) continue;
         if (dOwn.length && dOwn.some((c) => /\.avif(?:$|\?)/i.test(c.url) || (() => { const p = samePath(c.url); const b = p ? read(p) : null; return !!b && isAvif(b); })())) checkAvifSet(dset, `${where} data-srcset`);

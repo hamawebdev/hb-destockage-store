@@ -94,7 +94,8 @@ For every `<img>` (also inside `<noscript>` and declarative shadow DOM):
   is checked as what a script will make of it. Its `data-srcset` gets the same AVIF-set rules
   (format, widths, byte ceilings), `data-src` the candidate checks, and the `<noscript>` copy is
   checked as a normal `<img>`. It requests nothing before a script runs, so it is never a pre-LCP
-  request in the critical path.
+  request in the critical path, and it cannot be the priority image: `fetchpriority="high"` or
+  `loading="eager"` on a deferred `<img>` fails `lcp-image`.
 Also failing: `<link rel=preload as=image>` without `imagesrcset` (its `imagesrcset` gets the same
 AVIF-set check); raster images in CSS (`url()`, `image-set()`, in `<style>` or `style=""`),
 `<video poster>`, `<input type=image>`, SVG `<image>`, `background=""`. Use an `<img>` with an AVIF

@@ -248,6 +248,9 @@ const CASES: Case[] = [
   // BUG-19: a deferred <img> (data-srcset) is checked as the srcset it becomes
   { name: 'deferred <img> whose data-srcset is a JPEG (BUG-19)', rule: 'avif', mutate: (d) => { put(d, 'img/c.jpg', noise(3000, 26)); edit(d, FR_P, (s) => s.replace('</main>', `${deferred('/img/c.jpg 360w', '/img/c.jpg')}</main>`)); } },
   { name: 'deferred <img> whose data-srcset lacks 480w (BUG-19)', rule: 'avif', mutate: (d) => edit(d, FR_P, (s) => s.replace('</main>', `${deferred(srcset('c1', [360, 720, 960, 1200]))}</main>`)) },
+  // rev-a BUG-19 nit: a deferred image cannot be the priority image
+  { name: 'deferred <img> with fetchpriority="high" (BUG-19 nit)', rule: 'lcp-image', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', `${deferred(srcset('c1')).replace(' hidden>', ' fetchpriority="high" hidden>')}</main>`)) },
+  { name: 'deferred <img> with loading="eager" (BUG-19 nit)', rule: 'lcp-image', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', `${deferred(srcset('c1')).replace('loading="lazy" decoding', 'loading="eager" decoding')}</main>`)) },
   { name: 'bare <img> with no src, srcset or data-srcset (BUG-19 ruling)', rule: 'avif', mutate: (d) => edit(d, FR_P, (s) => s.replace('</main>', '<img alt="" width="10" height="10"></main>')) },
   { name: 'deferred <img> with data-src only (BUG-19)', rule: 'avif', mutate: (d) => edit(d, FR_P, (s) => s.replace('</main>', '<img data-src="/img/c1-720.avif" alt="" hidden></main>')) },
   { name: 'plain <img src> card image without srcset', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<img src="/img/c1-360.avif" loading="lazy" width="360" height="360" alt=""></main>')) },
