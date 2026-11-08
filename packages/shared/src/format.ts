@@ -4,8 +4,8 @@
  * no side effects.
  *
  * Node 24 (ICU 77.1, CLDR 47) output:
- *   formatPrice(189000, 'ar') → '‏189.000 د.ج.‏'   (RLM-wrapped, Western digits)
- *   formatPrice(189000, 'fr') → '189 000 DA'
+ *   formatPrice(189000, 'ar') → '\u200F189.000\u00A0د.ج.\u200F'   (RLM-wrapped, Western digits)
+ *   formatPrice(189000, 'fr') → '189\u202F000\u00A0DA'
  *   formatDate(…15 Jan 2026…, 'ar') → '15 جانفي 2026'
  * SHARED-5 pins these against the Workers runtime as well.
  */
@@ -67,7 +67,7 @@ export function formatDate(at: number | Date, lang: Lang): string {
 
 /**
  * Medium date and 24-hour time in Algeria's time zone (admin lists, order events), e.g.
- * `15‏/07‏/2026، 13:00` / `15 juil. 2026, 13:00`. Same string in Node, workerd and browsers.
+ * `15\u200F/07\u200F/2026، 13:00` / `15 juil. 2026, 13:00`. Same string in Node, workerd and browsers.
  */
 export function formatDateTime(at: number | Date, lang: Lang): string {
   const date = cached(mediumDateFormatters, lang, () =>
