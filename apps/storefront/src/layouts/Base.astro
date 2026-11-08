@@ -23,6 +23,7 @@ import { LOADER, SPECULATION_RULES } from '../lib/inline-scripts.mjs';
 import { PLACEHOLDER_RE, t } from '../lib/strings.ts';
 import arabicFontUrl from '@hb/ui-tokens/fonts/noto-sans-arabic-400.woff2?url';
 import { SITE_ORIGIN } from '../lib/site.mjs';
+import { publicFileVersion } from '../components/order/asset-version.ts';
 
 interface Props {
   layout: LayoutProps;
@@ -31,8 +32,16 @@ interface Props {
   /** Template variant (MEAS-5): product simple|variable|pack, category top|sub. */
   kind?: string;
   scripts?: readonly string[];
+  /** Calm chrome for the order pages: wordmark, language switch and cart only, no footer (CART-0). */
+  chrome?: 'full' | 'minimal';
+  /** Overrides `<html data-tpl>` for pages outside the route map (checkout). */
+  tpl?: string;
 }
-const { layout: l, lcp = false, kind, scripts = [] } = Astro.props;
+const { layout: l, lcp = false, kind, scripts = [], chrome = 'full', tpl } = Astro.props;
+
+// The cart loads on every page, after LCP (D-008): header count, add buttons, and the sheet on first use.
+const cartVersion = publicFileVersion('js/cart.js');
+const js = cartVersion ? [...scripts, `/js/cart.js?v=${cartVersion}`] : scripts;
 
 const KINDS: Readonly<Record<string, readonly string[]>> = { product: ['simple', 'variable', 'pack'], category: ['top', 'sub'] };
 if (kind !== undefined && !(KINDS[l.template] ?? []).includes(kind)) {
@@ -59,7 +68,7 @@ const og = l.ogImage ?? { url: `/og-default-${l.lang}.jpg`, width: 1200, height:
 const locale = (lang: string) => (lang === 'ar' ? 'ar_DZ' : 'fr_DZ');
 ---
 <!doctype html>
-<html lang={l.lang} dir={l.dir} data-tpl={l.template} data-tpl-kind={kind}>
+<html lang={l.lang} dir={l.dir} data-tpl={tpl ?? l.template} data-tpl-kind={kind}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -88,13 +97,13 @@ const locale = (lang: string) => (lang === 'ar' ? 'ar_DZ' : 'fr_DZ');
     <meta name="twitter:card" content="summary_large_image" />
     <slot name="head" />
   </head>
-  <body data-js={scripts.length ? scripts.join(' ') : undefined}>
+  <body data-js={js.length ? js.join(' ') : undefined}>
     <a class="skip-link" href="#main">{t(l.strings, 'chrome.skip')}</a>
-    <Header layout={l} />
+    <Header layout={l} minimal={chrome === 'minimal'} />
     <main id="main" tabindex="-1">
       <slot />
     </main>
-    <Footer layout={l} />
+    {chrome === 'full' && <Footer layout={l} />}
     <script is:inline set:html={LOADER} />
   </body>
 </html>

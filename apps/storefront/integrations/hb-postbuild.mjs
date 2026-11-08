@@ -135,7 +135,7 @@ export default function hbPostbuild(opts) {
           const lang = /<html\b[^>]*\blang=["']?(ar|fr)/i.exec(src)?.[1] ?? '';
           if (merged.count > 0) {
             const known = knownClasses(universe.get(tpl) ?? new Set(), jsText);
-            const pruned = pruneCustomProperties(trim ? trimUnusedRules(merged.css, known) : merged.css);
+            const pruned = pruneCustomProperties(trim ? trimUnusedRules(merged.css, known) : merged.css, jsText);
             html = html.replace(/<style>[\s\S]*?<\/style>/, () => `<style>${pruned}</style>`);
           }
           errors.push(...checkPage(html, { allowedInlineScripts: opts.allowedInlineScripts, file: rel }));

@@ -4,20 +4,27 @@
  * search, language switch, menu button (<1024) opening a native popover sheet (no JS).
  * The language switch is a plain link to the same page in the other language; its label is in
  * the system font (--font-switcher) so /fr/ never fetches the Arabic webfont. Below 768 it shows
- * the short label (FR / ع) with the full name kept as its accessible name.
+ * the short label (FR / ع) with the full name kept as its accessible name. A cart button with its count
+ * (hidden without JS, space reserved) opens the sheet (cart.js). `minimal`: order pages keep only the
+ * wordmark, the language switch and the cart (CART-0).
  * Owner: shell. Plan: artifacts/SHELL-0/plan.md §9.
  */
 import type { LayoutProps } from '@hb/catalog';
 import Icon from '../Icon.astro';
 import Wordmark from './Wordmark.astro';
 import { t } from '../../lib/strings.ts';
+import { publicFileVersion } from '../order/asset-version.ts';
+import { cartUiJson } from '../../lib/cart-data.ts';
 
 interface Props {
   layout: LayoutProps;
+  minimal?: boolean;
 }
-const { layout: l } = Astro.props;
+const { layout: l, minimal = false } = Astro.props;
 const s = (key: string) => t(l.strings, key);
 const sw = l.languageSwitch;
+const sheetVersion = publicFileVersion('js/cart-sheet.js');
+const uiVersion = cartUiJson(l.strings).version;
 const short = sw.lang === 'ar' ? 'ع' : 'FR';
 // aria-current: "page" on the exact page, "true" on an ancestor section (e.g. category page 2).
 const current = (href: string) => (l.path === href ? 'page' : l.path.startsWith(href) ? 'true' : undefined);
@@ -26,26 +33,45 @@ const current = (href: string) => (l.path === href ? 'page' : l.path.startsWith(
   <div class="container hd-bar">
     <a class="hd-mark" href={l.homeHref} aria-label={s('chrome.homeLink')}><Wordmark /></a>
 
-    <nav class="hd-nav" aria-label={s('chrome.navLabel')}>
-      <ul role="list">
-        {l.nav.map((c) => <li><a href={c.href} aria-current={current(c.href)}>{c.name}</a></li>)}
-      </ul>
-    </nav>
+    {!minimal && (
+      <nav class="hd-nav" aria-label={s('chrome.navLabel')}>
+        <ul role="list">
+          {l.nav.map((c) => <li><a href={c.href} aria-current={current(c.href)}>{c.name}</a></li>)}
+        </ul>
+      </nav>
+    )}
 
     <div class="hd-tools">
-      <a class="hd-tool" href={l.searchHref} aria-current={current(l.searchHref)}>
-        <Icon name="search" /><span class="hd-tl">{s('chrome.search')}</span>
-      </a>
+      {!minimal && (
+        <a class="hd-tool" href={l.searchHref} aria-current={current(l.searchHref)}>
+          <Icon name="search" /><span class="hd-tl">{s('chrome.search')}</span>
+        </a>
+      )}
       <a class="hd-tool hd-lang" href={sw.href} hreflang={sw.lang} lang={sw.lang}>
         <span class="hd-tl">{sw.label}</span><span class="hd-ts" aria-hidden="true">{short}</span>
       </a>
-      <button class="hd-tool hd-menu-btn" type="button" popovertarget="hd-menu" aria-label={s('chrome.menuOpen')}>
-        <Icon name="menu" />
+      <button
+        class="hd-tool hd-cart"
+        type="button"
+        data-cart-open
+        data-lang={l.lang}
+        data-sheet={sheetVersion ? `/js/cart-sheet.js?v=${sheetVersion}` : undefined}
+        data-ui={`/${l.lang}/cart/ui.json?v=${uiVersion}`}
+        data-items={`/${l.lang}/cart/items/{id}.json`}
+        data-checkout={`/${l.lang}/checkout/`}
+        data-home={l.homeHref}
+      >
+        <Icon name="bag" /><span class="hd-tl">{s('cart.title')}</span><span class="hd-cart-n" data-cart-n hidden></span>
       </button>
+      {!minimal && (
+        <button class="hd-tool hd-menu-btn" type="button" popovertarget="hd-menu" aria-label={s('chrome.menuOpen')}>
+          <Icon name="menu" />
+        </button>
+      )}
     </div>
   </div>
 
-  <div id="hd-menu" class="hd-sheet" popover>
+  {!minimal && <div id="hd-menu" class="hd-sheet" popover>
     <div class="container hd-sheet-bar">
       <p class="hd-sheet-t">{s('chrome.menu')}</p>
       <button class="hd-tool" type="button" popovertarget="hd-menu" popovertargetaction="hide" aria-label={s('chrome.menuClose')}>
@@ -72,7 +98,7 @@ const current = (href: string) => (l.path === href ? 'page' : l.path.startsWith(
         <li><a class="hd-lang" href={sw.href} hreflang={sw.lang} lang={sw.lang}>{sw.label}</a></li>
       </ul>
     </nav>
-  </div>
+  </div>}
 </header>
 
 <style is:global>
@@ -113,6 +139,23 @@ const current = (href: string) => (l.path === href ? 'page' : l.path.startsWith(
     .hd-nav a:hover, .hd-tool:hover { background: var(--color-surface-alt); }
     .hd-nav a[aria-current] { font-weight: var(--fw-emphasis); }
     .hd-tools { display: flex; align-items: center; }
+    /* Cart button: hidden until cart.js is up, its place kept so nothing shifts. */
+    .hd-cart { position: relative; visibility: hidden; }
+    .cart-on .hd-cart { visibility: visible; }
+    .hd-cart-n {
+      position: absolute;
+      inset-block-start: var(--space-1);
+      inset-inline-end: var(--space-1);
+      min-inline-size: var(--icon-sm);
+      block-size: var(--icon-sm);
+      padding-inline: var(--space-1);
+      border-radius: var(--radius-pill);
+      background: var(--color-accent);
+      color: var(--color-on-accent);
+      font-size: var(--fs-caption);
+      line-height: var(--icon-sm);
+      text-align: center;
+    }
     /* «العربية» on /fr/: system font, never the webfont (beats tokens' zero-specificity :where rule). */
     .hd-lang { font-family: var(--font-switcher); }
     .hd-tl { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -122,6 +165,7 @@ const current = (href: string) => (l.path === href ? 'page' : l.path.startsWith(
       .hd-tool { padding-inline: var(--space-3); }
       .hd-tl { position: static; inline-size: auto; block-size: auto; overflow: visible; clip-path: none; }
       .hd-ts { display: none; }
+      .hd-cart-n { position: static; }
     }
     @media (min-width: 1024px) {
       .hd-nav { display: block; overflow-x: auto; }
