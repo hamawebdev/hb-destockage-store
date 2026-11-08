@@ -221,8 +221,8 @@ npm run lh -- --serve static --port 4114      # server choice / port (measure bl
   **heaviest** HTML (worst case), ties → shortest URL. Pages not measured are listed in the
   summary with the reason. The not-found template is measured at its file URL
   (`/{lang}/404.html`, HTTP 200): Lighthouse refuses to score a document answered with 404.
-  `order-step` (`/{lang}/order/<slug>/`) is measured when the build has it and is never an error
-  when it does not (report-only). **Variants (MEAS-5):** the layout writes `<html data-tpl-kind>` (contract with shell and
+  `order-step` (`/{lang}/order/<slug>/`) and `checkout` (`/{lang}/checkout/`) are measured when
+  the build has them and are never an error when it does not (report-only). **Variants (MEAS-5):** the layout writes `<html data-tpl-kind>` (contract with shell and
   pagedata): product → `simple` | `variable` | `pack`, category → `top` | `sub`. When a build
   declares kinds, each (template, kind) is its own target in both languages (`product-pack-ar`,
   `category-sub-fr`, shots in `product/ar-pack-360.png`). It fails the run when a page of that
