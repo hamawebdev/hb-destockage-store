@@ -2,8 +2,9 @@
 // order.js is plain JS served as-is (SHELL-0 rule 2), so it cannot import @hb/shared; these tests keep it honest.
 import { describe, expect, it } from 'vitest';
 import { DZ_MOBILE_NSN_PATTERN, normalizePhone, toAsciiDigits } from '@hb/shared/phone';
+import { normalizeName } from '@hb/shared/name';
 import { formatPrice } from '@hb/shared/format';
-import { applyLines, buildRows, fmt, parseVariants, phoneError, postRetrying, submissionKeys, toAscii, uuid } from '../../../../public/js/order.js';
+import { applyLines, buildRows, canonicalName, canonicalPhone, fmt, parseVariants, phoneError, postRetrying, submissionKeys, submissionSig, toAscii, uuid } from '../../../../public/js/order.js';
 
 const P = DZ_MOBILE_NSN_PATTERN;
 
@@ -91,6 +92,34 @@ describe('one idempotency key per exact submission (review I1)', () => {
   ])('rotates when the submission changes: %s', (_, changed) => {
     const k = submissionKeys(make);
     expect(k.of(changed)).not.toBe(k.of('101:1,201:1|16|7'));
+  });
+  it('rotates when the phone or the name is corrected: the old number must not be confirmed', () => {
+    const k = submissionKeys(make);
+    const sig = (name: string, phone: string) => submissionSig('101:1|16|7', name, phone);
+    const first = k.of(sig('Amine Test', '0555123456'));
+    expect(k.of(sig('Amine Test', '0661234567'))).not.toBe(first);
+    expect(k.of(sig('Amina Test', '0555123456'))).not.toBe(first);
+  });
+  it.each([
+    ['spaces in the phone', 'Amine Test', '0555 12 34 56'],
+    ['Arabic digits', 'Amine Test', '٠٥٥٥١٢٣٤٥٦'],
+    ['international form', 'Amine Test', '+213 555 12 34 56'],
+    ['bidi marks around the phone', 'Amine Test', '\u200f0555123456\u200f'],
+    ['extra and non-breaking spaces in the name', '  Amine\u00a0  Test ', '0555123456'],
+    ['bidi marks in the name', '\u200fAmine Test\u200f', '0555123456'],
+  ])('keeps the key for the same person typed differently: %s', (_, name, phone) => {
+    expect(submissionSig('101:1|16|7', name, phone)).toBe(submissionSig('101:1|16|7', 'Amine Test', '0555123456'));
+  });
+  it('normalises phones and names exactly as the server does', () => {
+    for (const x of COMMON) {
+      const server = normalizePhone(x);
+      if (server.ok) expect('+213' + canonicalPhone(x), x).toBe(server.e164);
+    }
+    for (const x of ['Amine Test', '  Amine   Test ', 'Am\u0065\u0301lie', 'أمين\u200f تست', 'A\u00a0B', 'a\u200cb']) {
+      const server = normalizeName(x);
+      if (!server.ok) throw new Error(x);
+      expect(canonicalName(x), x).toBe(server.value);
+    }
   });
   it('coming back to a submission finds its own key: that order may already exist', () => {
     const k = submissionKeys(make);

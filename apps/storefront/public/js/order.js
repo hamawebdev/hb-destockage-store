@@ -13,10 +13,30 @@ export const toAscii = (s) =>
     return String(c - (c >= 0xff10 ? 0xff10 : c >= 0x6f0 ? 0x6f0 : 0x660));
   });
 
+const cleanPhone = (input) => toAscii(input).replace(/＋/g, '+').replace(/[\s\p{Cf}\-‐-―−.()]/gu, '');
+
+/** The national number of a phone the client check accepted, however it was typed (same as @hb/shared normalizePhone). */
+export function canonicalPhone(input) {
+  const s = cleanPhone(input);
+  let rest;
+  if (s.startsWith('+213')) rest = s.slice(4);
+  else if (s.startsWith('00213')) rest = s.slice(5);
+  else if (s.startsWith('213') && s.length >= 11 && s.length <= 13) rest = s.slice(3);
+  else return s[0] === '0' ? s.slice(1) : s;
+  return rest[0] === '0' && (rest.length === 9 || rest.length === 10) ? rest.slice(1) : rest;
+}
+
+/** A name as the server stores it (same steps as @hb/shared normalizeName, without its validation). */
+export const canonicalName = (input) =>
+  input.normalize('NFC').replace(/[\u200b\u200e\u200f\u061c\u202a-\u202e\u2060\u2066-\u2069\ufeff]/g, '').replace(/\s+/gu, ' ').trim();
+
+/** What makes a submission the same one: its lines and place (`inputs`) plus who is ordering, as the server reads them. */
+export const submissionSig = (inputs, name, phone) => JSON.stringify([inputs, canonicalName(name), canonicalPhone(phone)]);
+
 /** Client hint mirroring @hb/shared normalizePhone: null when acceptable, else an error code. Server decides. */
 export function phoneError(input, nsnPattern) {
   if (input.length > 64) return 'phone_invalid';
-  const s = toAscii(input).replace(/＋/g, '+').replace(/[\s\p{Cf}\-‐-―−.()]/gu, '');
+  const s = cleanPhone(input);
   if (!s) return 'phone_required';
   if (!/^\+?\d+$/.test(s)) return 'phone_invalid';
   const mobile = new RegExp(`^(?:${nsnPattern})$`);
@@ -86,7 +106,7 @@ export async function post(url, body, ms, signal) {
 }
 
 /**
- * One idempotency key per exact submission (lines, quantities, wilaya, commune): a retry of the same submission reuses
+ * One idempotency key per exact submission (lines, quantities, wilaya, commune, name, phone): a retry of the same submission reuses
  * its key, so a request that did reach the server cannot create a second order; a changed submission gets its own key,
  * so the server can never answer it with the order of different lines.
  */
@@ -554,7 +574,7 @@ function init(f) {
     const sentK = inputs(); // the inputs this request (and any 409 quote in its answer) is about
     // Built once: the automatic retry re-sends exactly this, whatever happens on the page meanwhile.
     const body = {
-      idempotencyKey: keys.of(sentK),
+      idempotencyKey: keys.of(submissionSig(sentK, name.value, phone.value)),
       lang,
       items: items(),
       name: name.value,
