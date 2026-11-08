@@ -10,6 +10,6 @@ export const getStaticPaths = () => staticPaths('order-step', 'ar');
 const props = Astro.props as PropsByTemplate['order-step'];
 const scripts = pickerMode(props) !== 'none' ? [variantScript()] : [];
 ---
-<Base layout={props.layout} scripts={scripts}>
+<Base layout={props.layout} scripts={scripts} chrome="minimal">
   <OrderStepView {...props} />
 </Base>

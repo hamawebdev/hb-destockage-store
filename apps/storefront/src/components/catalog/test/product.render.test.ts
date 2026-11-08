@@ -34,7 +34,7 @@ describe.each(['ar', 'fr'] as const)('product page (%s)', (lang) => {
     const html = await render(p);
     for (const o of p.options) expect(html).toContain(`name="opt.${o.id}"`);
     expect(html).not.toContain('form="order-form"');
-    expect(html).toMatch(/<input type="hidden" name="v" value="">/);
+    expect(html).toMatch(/<input type="hidden" name="v" value="" disabled>/);
     const def = defaultVariant(p.variants)!;
     for (const id of def.optionValueIds) expect(tag(html, new RegExp(`<input[^>]*id="ov-${id}"[^>]*>`))).toContain('checked');
     // One block per variant, keyed by the CAT-1 combination key; the default one is visible without JS.

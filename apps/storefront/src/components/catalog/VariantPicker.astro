@@ -69,7 +69,8 @@ const checkedIds = new Set(def?.optionValueIds ?? []);
         </div>
       </fieldset>
     ))}
-    {mode === 'multi' && <input type="hidden" name={field} value="" form={formAttr} />}
+    {/* disabled until variant.js has a complete choice: without JS the empty field would override the opt.* radios. */}
+    {mode === 'multi' && <input type="hidden" name={field} value="" form={formAttr} disabled />}
   </div>
 )}
 

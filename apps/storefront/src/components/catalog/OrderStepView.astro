@@ -1,66 +1,40 @@
 ---
 /**
- * The order step (ORDER-STEP): one static page per product and language, /{lang}/order/<slug>/,
+ * The order step (ORDER-STEP, calm redesign CART-0): one static page per product and language, /{lang}/order/<slug>/,
  * noindex, reached from the product page's GET form or CTA link. No D1 read, no Worker render.
  *
- * Breadcrumbs, a back link to the product, a compact summary (photo ≤ 120 px, Latin brand, name,
- * the selected variant's price/stock), the variant picker and orderform's <OrderForm>. The picker's
- * inputs join the form with form="order-form". A static page cannot read the query: without JS the
- * customer confirms or changes the variant here (default = CAT-3's effective default) and the
- * Worker's review step recomputes everything; with JS, variant.js preselects from ?v= / opt.*.
+ * Only what helps the customer finish: the title, orderform's compact line and fields, the delivery fee, the
+ * total and one confirm button (Base renders the minimal chrome). The variant picker stays for the no-JS customer,
+ * who confirms the variant here: its radios join the form with form="order-form"; with JS, when the product page
+ * already chose (?v=), variant.js marks the root data-chosen and the picker gives way to the line.
  *
- * The root carries .cat-pdp / .cat-pdp-buy so the picker's constant CSS and variant.js work as on
- * the product page. The LCP is the title text: the photo is eager without fetchpriority or preload.
+ * The root carries .cat-pdp / .cat-pdp-buy so the picker's constant CSS and variant.js work as on the product page.
  */
 import './card.css';
 import './catalog.css';
 import type { OrderStepProps } from '@hb/catalog';
 import OrderForm from '../order/OrderForm.astro';
-import Breadcrumbs from './Breadcrumbs.astro';
 import VariantBlocks from './VariantBlocks.astro';
 import VariantPicker from './VariantPicker.astro';
-import { latinLang, showDevMarkers, t } from './lib/i18n.ts';
+import { t } from './lib/i18n.ts';
 import { pickerMode } from './lib/variants.ts';
 
 type Props = OrderStepProps;
-const { layout, product, image, options, variants, breadcrumbs, orderForm } = Astro.props;
+const { layout, product, image, options, variants, orderForm } = Astro.props;
 const { lang, strings } = layout;
 const mode = pickerMode({ options, variants });
-const ph = showDevMarkers() && (product.placeholder || product.translationPlaceholder);
-const privacyHref = layout.footerLinks.find((f) => f.key === 'privacy')?.href ?? null;
 ---
-<div class="container cat-pdp cat-step" data-mode={mode}>
-  <Breadcrumbs items={breadcrumbs} strings={strings} />
-  <a class="cat-more cat-step-back" href={product.href}><span class="cat-chev cat-chev--start" aria-hidden="true"></span>{t(strings, 'common.back')}</a>
-
+<div class="container of-page cat-pdp cat-step" data-mode={mode}>
   <div class="cat-pdp-buy">
-    <header class="cat-step-sum">
-      {image && <img class="cat-step-img" src={image.src} srcset={image.srcset} sizes={image.sizes} width={image.width} height={image.height} alt={image.alt} loading="eager" decoding="async" />}
-      <div class="cat-step-text">
-        {product.brandLatin && <p class="cat-step-brand"><bdi lang={latinLang(lang)} dir="ltr">{product.brandLatin}</bdi></p>}
-        <h1 class="cat-step-title">{product.name}</h1>
-        {ph && <p class="cat-step-ph">{t(strings, 'dev.placeholder')}</p>}
-        <VariantBlocks options={options} variants={variants} lang={lang} strings={strings} />
-      </div>
-    </header>
-
-    <VariantPicker options={options} variants={variants} strings={strings} />
-
-    <OrderForm lang={lang} form={orderForm} productName={product.name} brandLatin={product.brandLatin} strings={strings} contact={layout.contact} privacyHref={privacyHref} />
+    <h1 class="of-title">{t(strings, 'order.title')}</h1>
+    <OrderForm lang={lang} form={orderForm} productName={product.name} brandLatin={product.brandLatin} strings={strings} contact={layout.contact} image={image}>
+      <Fragment slot="price"><VariantBlocks options={options} variants={variants} lang={lang} strings={strings} /></Fragment>
+      <Fragment slot="picker"><VariantPicker options={options} variants={variants} strings={strings} /></Fragment>
+    </OrderForm>
   </div>
 </div>
 
 <style is:global>
-  .cat-step{max-inline-size:calc(44rem + 2 * var(--gutter));padding-block:var(--space-2) var(--section-block)}
-  .cat-step-back{min-inline-size:var(--tap-min);margin-block-end:var(--space-3);font-size:var(--fs-small)}
-  .cat-chev--start{transform:rotate(-135deg)}
-  [dir="rtl"] .cat-chev--start{transform:rotate(135deg)}
-  .cat-pdp-buy{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-6);min-inline-size:0}
-  .cat-step-sum{display:grid;grid-template-columns:96px minmax(0,1fr);gap:var(--space-4);align-items:start}
-  @media (min-width:768px){.cat-step-sum{grid-template-columns:120px minmax(0,1fr)}}
-  .cat-step-img{display:block;inline-size:100%;block-size:auto;aspect-ratio:1;object-fit:contain;border-radius:var(--radius-md);background:var(--color-surface-alt)}
-  .cat-step-text{display:grid;gap:var(--space-2);min-inline-size:0}
-  .cat-step-brand{margin:0;color:var(--color-text-secondary);font-size:var(--fs-caption);line-height:var(--lh-ui);text-transform:uppercase;letter-spacing:var(--ls-caps)}
-  .cat-step-title{margin:0;font-size:var(--fs-h3);font-weight:var(--fw-emphasis);line-height:var(--lh-heading);letter-spacing:var(--ls-heading);text-wrap:balance}
-  .cat-step-ph{justify-self:start;margin:0;padding:0 var(--space-2);border-radius:var(--radius-pill);background:var(--color-warning-surface);color:var(--color-warning);font-size:var(--fs-caption);line-height:1.8}
+  .cat-pdp-buy{display:grid;grid-template-columns:minmax(0,1fr);min-inline-size:0}
+  .cat-step[data-chosen] .cat-picker{display:none}
 </style>

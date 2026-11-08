@@ -23,23 +23,23 @@ const PAN = { fr: 'poele-28-cm', ar: 'miqlat-28-cm' };
 const KNIVES = { fr: 'set-de-couteaux', ar: 'taqm-sakakin' };
 
 describe.each(['ar', 'fr'] as const)('order step (%s)', (l) => {
-  it('is noindex and links back to the product, with the order breadcrumb', async () => {
+  it('is noindex and shows only what helps finish: no breadcrumb, back link or SKU', async () => {
     const p = step(l, APRON);
     expect(p.layout.noindex).toBe(true);
     const html = await render(p);
-    expect(html).toContain(`class="cat-more cat-step-back" href="${p.product.href}"`);
-    expect(html).toContain('<nav class="cat-crumbs"');
-    expect(html).toContain(p.breadcrumbs[p.breadcrumbs.length - 1]!.label);
+    expect(html).not.toContain('cat-crumbs');
+    expect(html).not.toContain('cat-step-back');
+    expect(html).toContain(p.product.name);
   });
 
-  it('summary: the title is the h1, the photo is eager with no fetchpriority (LCP is text)', async () => {
+  it('the page title is the h1 (LCP is text); the line photo is eager, no fetchpriority', async () => {
     const p = step(l, APRON);
     const html = await render(p);
-    expect(html).toMatch(new RegExp(`<h1 class="cat-step-title">${p.product.name}</h1>`));
-    const img = html.match(/<img class="cat-step-img"[^>]*>/)?.[0] ?? '';
+    expect(html).toMatch(/<h1 class="of-title">/);
+    const img = html.match(/<img class="of-th"[^>]*>/)?.[0] ?? '';
     expect(img).toContain('loading="eager"');
     expect(img).not.toContain('fetchpriority');
-    expect(img).toContain(`sizes="${p.image!.sizes}"`);
+    expect(img).toContain('sizes="64px"');
   });
 
   it('variants: picker inputs join the order form; one price block per variant with variant.js data', async () => {
@@ -48,9 +48,9 @@ describe.each(['ar', 'fr'] as const)('order step (%s)', (l) => {
     expect(html).toContain('<form id="order-form"');
     for (const o of p.options) expect(html).toContain(`name="opt.${o.id}"`);
     expect(html.match(/<input[^>]*class="cat-val-in"[^>]*form="order-form"/g)?.length).toBe(p.options.reduce((n, o) => n + o.values.length, 0));
-    expect(html).toMatch(/<input type="hidden" name="variantId" value="" form="order-form">/);
+    expect(html).toMatch(/<input type="hidden" name="variantId" value="" form="order-form" disabled>/);
     for (const v of p.variants) expect(html).toContain(`data-v="${v.id}"`);
-    expect(html).toContain('class="container cat-pdp cat-step"');
+    expect(html).toContain('class="container of-page cat-pdp cat-step"');
     expect(html).not.toContain('#order"');
   });
 

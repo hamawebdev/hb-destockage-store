@@ -88,7 +88,10 @@ if (picker) {
       }
     });
 
-    if (hidden) hidden.value = block ? block.dataset.v : '';
+    if (hidden) {
+      hidden.value = block ? block.dataset.v : '';
+      hidden.disabled = !block;
+    }
     const ok = !!block && block.dataset.a === '1';
     for (const a of ctas) {
       a.href = a.dataset.cta + (ok ? '?v=' + block.dataset.v : '');
@@ -117,6 +120,7 @@ if (picker) {
     const hit = find(keyOf(ids));
     if (!hit || hit.dataset.a !== '1') return;
     for (const id of hit.dataset.k.split('-')) document.getElementById('ov-' + id).checked = true;
+    pdp.dataset.chosen = '1'; // order step: the customer already chose on the product page; the line shows it
   };
   picker.addEventListener('change', () => update(false));
   document.addEventListener('prerenderingchange', () => (fromQuery(), update(true)));

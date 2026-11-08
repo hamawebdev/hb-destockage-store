@@ -21,8 +21,10 @@ interface Props {
   level?: 2 | 3;
   /** Below-the-fold block on a page whose JS promotes deferred images (product page related grid, BUG-18). */
   defer?: boolean;
+  /** Shows the add-to-cart button (homepage cards, CART-0). */
+  addable?: boolean;
 }
-const { card, lang, strings, level = 2, defer = false } = Astro.props;
+const { card, lang, strings, level = 2, defer = false, addable = false } = Astro.props;
 const H = `h${level}` as 'h2' | 'h3';
 const out = card.stock.state === 'out_of_stock';
 const dev = showDevMarkers();
@@ -42,6 +44,11 @@ const dev = showDevMarkers();
       {card.kind === 'pack' && <li class="cat-flag">{t(strings, 'badge.pack')}</li>}
       {dev && (card.placeholder || card.translationPlaceholder) && <li class="cat-flag cat-flag--ph">{t(strings, 'dev.placeholder')}</li>}
     </ul>
+    {addable && !out && (
+      <button class="cat-add" type="button" data-cart-add={card.id} aria-label={t(strings, 'cart.addItem', { name: card.name })}>
+        <span aria-hidden="true">+</span>
+      </button>
+    )}
   </div>
   <div class="cat-card-body">
     {card.brandLatin && <p class="cat-card-brand"><bdi lang={latinLang(lang)} dir="ltr">{card.brandLatin}</bdi></p>}
@@ -70,6 +77,9 @@ const dev = showDevMarkers();
   .cat-flag{padding:0 var(--space-2);border-radius:var(--radius-pill);background:var(--color-surface);color:var(--color-text);font-size:var(--fs-caption);line-height:1.7}
   .cat-flag--sale{background:var(--color-sale-surface);color:var(--color-sale)}
   .cat-flag--ph{background:var(--color-warning-surface);color:var(--color-warning)}
+  .cat-add{position:absolute;inset-block-end:var(--space-2);inset-inline-end:var(--space-2);z-index:1;display:grid;place-items:center;inline-size:var(--tap-min);block-size:var(--tap-min);border-radius:var(--radius-round);background:var(--color-surface);color:var(--color-text);font-size:var(--fs-lead);line-height:1;box-shadow:var(--shadow-hover);visibility:hidden}
+  .cart-on .cat-add{visibility:visible}
+  .cat-add:hover{background:var(--color-surface-alt)}
   .cat-card-body{display:flex;flex-direction:column;gap:var(--space-1);padding-inline:var(--space-1)}
   .cat-card-brand{margin:0;color:var(--color-text-secondary);font-size:var(--fs-caption);line-height:var(--lh-ui);text-transform:uppercase;letter-spacing:var(--ls-caps)}
   .cat-card-title{margin:0;font-size:var(--fs-body);font-weight:var(--fw-emphasis);line-height:var(--lh-ui);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
