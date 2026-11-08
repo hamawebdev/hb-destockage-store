@@ -135,9 +135,10 @@ export function parseStatements(sql: string): Statement[] {
       push(number, false, i);
       onOtherToken();
       i += number.length;
-    } else if (/[A-Za-z_]/.test(c)) {
+    } else if (/[A-Za-z_\u0080-\uffff]/.test(c)) {
+      // Like SQLite: anything above ASCII is an identifier character, so `écase` is one word.
       let j = i + 1;
-      while (j < sql.length && /[\w$]/.test(sql[j]!)) j++;
+      while (j < sql.length && /[\w$\u0080-\uffff]/.test(sql[j]!)) j++;
       const word = sql.slice(i, j).toUpperCase();
       const prev = tokens.at(-1);
       const afterDot = prev !== undefined && !prev.quoted && prev.text === '.';
@@ -147,7 +148,8 @@ export function parseStatements(sql: string): Statement[] {
     } else if (c === ';') {
       if (isTrigger() && phase === 2) {
         if (atStatementStart) problem ??= 'an empty statement in the trigger body';
-        if (depth === 1) atStatementStart = true;
+        if (depth !== 1) problem ??= 'a ; inside a CASE in the trigger body';
+        atStatementStart = true;
       } else {
         flush(i);
       }

@@ -93,6 +93,23 @@ describe('classifyMigration', () => {
     expect(plan.action).toBe('halt');
   });
 
+  it('non-ASCII identifiers are not read as CASE (re-review T1, exact example)', () => {
+    const sql = 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT 1 AS \u00e9case, 2 AS \u00e9CASE; END;\nDROP TABLE orders;\nSELECT 1 AS end, 2 AS end;';
+    expect(parseStatements(sql)).toHaveLength(3);
+    const reasons = classifyMigration(sql);
+    expect(reasons.join()).toMatch(/DROP TABLE orders/);
+    const plan = planMigrations({ files: [{ name: '0100_x.sql', content: sql }], applied: ['0001_a.sql'], userTables: 20, approval: '' });
+    expect(plan.action).toBe('halt');
+  });
+
+  it('a non-ASCII identifier is one word outside triggers too', () => {
+    expect(classifyMigration('ALTER TABLE \u00e9add RENAME TO y;').join()).toMatch(/RENAME/);
+  });
+
+  it('a ; inside a CASE is a problem, whatever inflated the depth', () => {
+    expect(classifyMigration('CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT CASE WHEN 1 THEN 2; END; END;').join()).toMatch(/inside a CASE/);
+  });
+
   it.each([
     ['1.', 'SELECT CASE WHEN 1 THEN 1. END'],
     ['.5', 'SELECT CASE WHEN 1 THEN .5 END'],

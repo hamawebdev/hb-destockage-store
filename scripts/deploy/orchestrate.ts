@@ -344,25 +344,75 @@ function settingsSql(rows: readonly Record<string, unknown>[]): string {
     .join('');
 }
 
-/** Live products straight from production: the smoke checks never rely on anything the build produced. */
-async function smokeCatalogue(io: Io): Promise<SmokeSnapshot> {
+/** One environment string is limited to 128 KiB on Linux; the sample stays far below that. */
+export const SMOKE_MAX_BYTES = 32 * 1024;
+const SMOKE_MAX_PRODUCTS = 50;
+const SMOKE_MAX_FEATURED = 20;
+
+export interface SmokeRow {
+  readonly id: number;
+  readonly slug: { readonly ar: string; readonly fr: string };
+  readonly variants: readonly { readonly id: number; readonly priceDzd: number; readonly stock: number | null }[];
+}
+
+const sellable = (v: SmokeRow['variants'][number]): boolean => v.priceDzd > 0 && (v.stock === null || v.stock > 0);
+
+/**
+ * The few products the smoke checks need: the home page links to the hero and the named featured
+ * products, or else to the first products by sort order, and the quote needs one variant on sale.
+ */
+export function smokeSample(products: readonly SmokeRow[], home: { heroId: number | null; featuredIds: readonly number[] }): SmokeSnapshot {
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const picked = new Map<number, SmokeRow>();
+  const add = (p: SmokeRow | undefined): void => {
+    if (p && picked.size < SMOKE_MAX_PRODUCTS) picked.set(p.id, p);
+  };
+  add(products.find((p) => p.variants.some(sellable)));
+  if (home.heroId !== null) add(byId.get(home.heroId));
+  home.featuredIds.slice(0, SMOKE_MAX_FEATURED).forEach((id) => add(byId.get(id)));
+  products.forEach(add);
+
+  const sample = [...picked.values()].map((p) => ({
+    status: 'active',
+    slug: p.slug,
+    variants: [...p.variants.filter(sellable), ...p.variants.filter((v) => !sellable(v))].slice(0, 2).map((v) => ({ ...v, active: true })),
+  }));
+  while (sample.length > 1 && Buffer.byteLength(JSON.stringify({ products: sample })) > SMOKE_MAX_BYTES) sample.pop();
+  return { products: sample };
+}
+
+/** A sample of live products straight from production: the smoke checks never rely on anything the build produced. */
+async function smokeCatalogue(io: Io, settings: readonly Record<string, unknown>[]): Promise<SmokeSnapshot> {
   const rows = await queryD1(
     io,
     REMOTE_CONFIG,
     ['--remote'],
     "SELECT p.id AS product_id, p.slug_ar, p.slug_fr, v.id AS variant_id, v.price_dzd, v.stock FROM products p JOIN variants v ON v.product_id = p.id WHERE p.status = 'active' AND v.active = 1 ORDER BY p.sort, p.id, v.position",
   );
-  const byProduct = new Map<number, { status: string; slug: { ar: string; fr: string }; variants: { id: number; priceDzd: number; stock: number | null; active: boolean }[] }>();
+  const byProduct = new Map<number, { id: number; slug: { ar: string; fr: string }; variants: { id: number; priceDzd: number; stock: number | null }[] }>();
   for (const r of rows) {
     const id = Number(r['product_id']);
     let p = byProduct.get(id);
     if (!p) {
-      p = { status: 'active', slug: { ar: String(r['slug_ar']), fr: String(r['slug_fr']) }, variants: [] };
+      p = { id, slug: { ar: String(r['slug_ar']), fr: String(r['slug_fr']) }, variants: [] };
       byProduct.set(id, p);
     }
-    p.variants.push({ id: Number(r['variant_id']), priceDzd: Number(r['price_dzd']), stock: r['stock'] === null ? null : Number(r['stock']), active: true });
+    p.variants.push({ id: Number(r['variant_id']), priceDzd: Number(r['price_dzd']), stock: r['stock'] === null ? null : Number(r['stock']) });
   }
-  return { products: [...byProduct.values()] };
+  const setting = (key: string): unknown => {
+    const row = settings.find((s) => s['key'] === key);
+    try {
+      return row ? JSON.parse(String(row['value'])) : null;
+    } catch {
+      return null;
+    }
+  };
+  const hero = setting('homeHeroProductId');
+  const featured = setting('homeFeaturedProductIds');
+  return smokeSample([...byProduct.values()], {
+    heroId: typeof hero === 'number' ? hero : null,
+    featuredIds: Array.isArray(featured) ? featured.filter((x): x is number => typeof x === 'number') : [],
+  });
 }
 
 /** Export job, with the token: versions, migrations, then everything the build needs from production. */
@@ -414,7 +464,7 @@ export async function prepare(cfg: RunConfig, io: Io): Promise<void> {
 
   await io.writeState({ authorIds, imageKeys });
   io.setOutput('before', JSON.stringify(before));
-  io.setOutput('smoke', JSON.stringify(await smokeCatalogue(io)));
+  io.setOutput('smoke', JSON.stringify(await smokeCatalogue(io, settings)));
   io.summary(`Catalogue exported from production (${products} products, ${imageKeys.length} image originals).`);
 }
 

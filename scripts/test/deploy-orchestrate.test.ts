@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MigrationFile } from '../deploy/migrations.ts';
-import { build, CATALOGUE_TABLES, check, DeployHalt, deployWorkers, exportedTables, importSite, preflightProblems, prepare, rollback, siteProblems, smoke, type CommandResult, type DeployState, type Io, type PublishedSnapshot, type RunConfig, type WranglerConfig } from '../deploy/orchestrate.ts';
+import { sellableVariant } from '../deploy/smoke.ts';
+import { build, CATALOGUE_TABLES, check, DeployHalt, deployWorkers, exportedTables, importSite, preflightProblems, prepare, rollback, siteProblems, smoke, SMOKE_MAX_BYTES, smokeSample, type SmokeRow, type CommandResult, type DeployState, type Io, type PublishedSnapshot, type RunConfig, type WranglerConfig } from '../deploy/orchestrate.ts';
 
 const SHA = 'a'.repeat(40);
 const TIP = 'b'.repeat(40);
@@ -455,6 +456,44 @@ describe('catalogue boundary', () => {
   it('older_commit requires the sha input', async () => {
     const h = harness({ tip: TIP });
     await expect(run(cfg({ event: 'workflow_dispatch', olderCommit: 'yes', shaExplicit: false }), h.io)).rejects.toThrow(/needs the commit named/);
+  });
+});
+
+describe('smokeSample', () => {
+  const longSlug = (n: number): string => `${'\u0637'.repeat(120)}-${n}`;
+  const product = (id: number, stock: number | null = null): SmokeRow => ({
+    id,
+    slug: { ar: longSlug(id), fr: `produit-${'x'.repeat(120)}-${id}` },
+    variants: [{ id: id * 10, priceDzd: 14600, stock }, { id: id * 10 + 1, priceDzd: 15000, stock }, { id: id * 10 + 2, priceDzd: 16000, stock }],
+  });
+  const many = Array.from({ length: 5000 }, (_, i) => product(i + 1));
+  const names = (s: { products: readonly { slug: { fr: string } }[] }): string[] => s.products.map((p) => p.slug.fr);
+
+  it('stays far under the 128 KiB limit with thousands of products', () => {
+    const sample = smokeSample(many, { heroId: 4000, featuredIds: Array.from({ length: 300 }, (_, i) => i + 1000) });
+    expect(Buffer.byteLength(JSON.stringify(sample))).toBeLessThanOrEqual(SMOKE_MAX_BYTES);
+    expect(SMOKE_MAX_BYTES).toBeLessThan(128 * 1024);
+    expect(sample.products.length).toBeGreaterThan(10);
+  });
+
+  it('includes the hero and the named featured products, which the home page links to', () => {
+    const sample = smokeSample(many, { heroId: 4000, featuredIds: [4500, 4501] });
+    for (const id of [4000, 4500, 4501]) expect(names(sample)).toContain(product(id).slug.fr);
+  });
+
+  it('includes the first products by sort, the home page fallback', () => {
+    expect(names(smokeSample(many, { heroId: null, featuredIds: [] }))).toContain(product(8).slug.fr);
+  });
+
+  it('always includes a sellable variant, even far down the catalogue', () => {
+    const soldOut = Array.from({ length: 5000 }, (_, i) => product(i + 1, 0));
+    soldOut[4900] = product(4901);
+    const sample = smokeSample(soldOut, { heroId: null, featuredIds: [] });
+    expect(sellableVariant(sample)).toBe(49010);
+  });
+
+  it('ignores ids that are not live products', () => {
+    expect(smokeSample([product(1)], { heroId: 99, featuredIds: [98] }).products).toHaveLength(1);
   });
 });
 

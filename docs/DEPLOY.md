@@ -119,7 +119,7 @@ The site build runs a large tree of third-party packages (Astro, sharp, the cata
 
 - A compromised build dependency can only affect the `site` artifact. It can change what the site serves, which no pipeline can prevent, but it can't read the token, change the deploy job's code or packages, or change the Worker code, which is bundled in the deploy job from the fresh checkout.
 - The deploy job never executes anything from the build. It checks the artifact is plain files (no links, no server code), and `wrangler deploy` then only reads those files. `apps/web`'s `build.command` (`deploy-guard.ts` and `csp.ts`, from the fresh checkout, Node built-ins only) reads them to build the CSP.
-- The Worker versions for rollback and the product list for smoke checks come from the export job's outputs, never from the build.
+- The Worker versions for rollback and the small product sample for the smoke checks (kept under 32 KiB) come from the export job's outputs, never from the build.
 - **What the `catalogue` artifact holds:** the export of the 10 catalogue tables, the 7 storefront settings, image originals, and the numeric ids of admins who edited content pages. No orders, customers, admin emails or other settings. The export is checked against the table allowlist and stops if any other table appears. It is kept 1 day. The `site` artifact is the public site, also kept 1 day.
 - The artifact digest is verified on download, which detects corruption but doesn't vouch for the build job: the checks above are what count.
 
