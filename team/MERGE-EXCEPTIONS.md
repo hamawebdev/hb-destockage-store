@@ -35,3 +35,6 @@ d02154ad0e4a69678ff0fa23c25292f4983fa1e5 message ORDER-6 — pre-hook message: "
 357edcc2998393251bcc3bc46ecfb5c9e671308b message SEED-5 — pre-hook message: "Risk tier:" is out of order (expected "Testing:" next)
 49cfb41a5fd8c34bcee20f046bca17b0cf317f5a owner ADMIN-1 — admin skeleton mounted the catalogue route placeholder that admin-catalog then took over
 bc8e0eecf9ce2dbb3750e02b2b4b4cd40ad57107 owner SHELL-1 — storefront skeleton created the empty route files BRIEF §4 asked for
+d0a14686d393bcf50269e9d09e260de6341954d1 message CAT-6 — commit message fields out of order; written while hooks were inactive
+dd9b5820e1c9009d1d0ca2422e0a8e5ac4946704 message CAT-6 — commit message fields out of order; written while hooks were inactive
+d55d67635a807058454cd06584c61063f4c3149f owner PAGES-2 — lead-authorised 4-line change in shell's catalog types (shell stopped)
