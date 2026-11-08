@@ -103,11 +103,15 @@ that output must never ship.
 - **Real deploy:** rebuild first with `HB_SITE_ORIGIN=https://<production domain>` and the production snapshot.
 - **`wrangler deploy --temporary` (measurement):** it is a real upload, so it is checked like a deploy. Build the
   storefront with `HB_SITE_ORIGIN=https://<name>.workers.dev`, the host the temporary deploy will get, then deploy.
-  A localhost build is refused.
+  A localhost build is refused. A `workers.dev` origin passes **only** with an unambiguous `--temporary`; a normal
+  deploy of a workers.dev build is refused.
+- **`--assets <dir>`:** the guard checks that directory instead of `apps/storefront/dist`.
 - **`wrangler dev`:** no check.
 - **`wrangler deploy --dry-run`** (`npm run build`, the gate): checked and reported, never fails.
 - How dry-run is detected: wrangler gives the build its command in `WRANGLER_COMMAND` ("deploy" for both real and
-  dry runs). The guard reads `--dry-run` from the wrangler process's argv via Linux `/proc`. **On a system without
+  dry runs). The guard reads `--dry-run` from the wrangler process's argv via Linux `/proc`, and counts it only as
+  a single bare `--dry-run`, `--dry-run true` or `--dry-run=true`. Every other form (`--dry-run false`, `--no-dry-run`,
+  repeats, conflicts, aliases) is treated as a real deploy and fully checked. **On a system without
   `/proc` (macOS, Windows), a dry run of a non-production build fails by design**: when the guard cannot tell, it
   treats the run as a real deploy. Run dry runs there on a build made for a production origin, or on Linux.
 

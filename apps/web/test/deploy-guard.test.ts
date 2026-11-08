@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, test } from 'vitest';
-import { checkDist, originProblems, publishedOrigins, runMode } from '../scripts/deploy-guard.ts';
+import { assetsOverride, checkDist, distFor, flagOn, originProblems, publishedOrigins, runMode, type Ancestor } from '../scripts/deploy-guard.ts';
 
 const GUARD = resolve(dirname(fileURLToPath(import.meta.url)), '../scripts/deploy-guard.ts');
 const dirs: string[] = [];
@@ -53,8 +53,16 @@ describe('originProblems', () => {
     expect(originProblems(origin).length).toBeGreaterThan(0);
   });
 
-  test.each(['https://hbdestockagedz.com', 'https://www.hbdestockagedz.com', 'https://shop.hb-destockage.dz', 'https://hb-web.thankful-servant.workers.dev'])('%s is allowed', (origin) => {
+  test.each(['https://hbdestockagedz.com', 'https://www.hbdestockagedz.com', 'https://shop.hb-destockage.dz'])('%s is allowed', (origin) => {
     expect(originProblems(origin)).toEqual([]);
+  });
+
+  test('a workers.dev origin passes only for a temporary deploy', () => {
+    const o = 'https://hb-web.thankful-servant.workers.dev';
+    expect(originProblems(o).join()).toMatch(/only for `wrangler deploy --temporary`/);
+    expect(originProblems(o, { allowWorkersDev: true })).toEqual([]);
+    // never http, even for a temporary deploy
+    expect(originProblems('http://hb-web.x.workers.dev', { allowWorkersDev: true }).length).toBeGreaterThan(0);
   });
 });
 
@@ -87,20 +95,77 @@ describe('checkDist', () => {
   });
 });
 
+describe('flagOn: a run is a dry run only in the unambiguous forms (fail safe)', () => {
+  test.each([
+    [['--dry-run']],
+    [['--dry-run', '--env=', '--outdir', 'dist']],
+    [['--env=', '--dry-run']],
+    [['--dry-run', 'true']],
+    [['--dry-run', 'true', '--env=']],
+    [['--dry-run=true']],
+  ])('%j → dry run', (args) => {
+    expect(flagOn(['wrangler', 'deploy', ...args], 'dry-run')).toBe(true);
+  });
+
+  test.each([
+    [[]],
+    [['--dry-run', 'false']], // rev-d WEB-7 r1: yargs reads this as false: a REAL deploy
+    [['--dry-run', 'false', '--env=']],
+    [['--dry-run', '0']],
+    [['--dry-run', 'no']],
+    [['--dry-run', 'dist']], // a stray value: not one of the forms we trust
+    [['--dry-run=false']],
+    [['--dry-run=0']],
+    [['--dry-run=']],
+    [['--no-dry-run']],
+    [['--no-dry-run=true']],
+    [['--dryRun']], // alias: wrangler may read it, we do not rely on it
+    [['--noDryRun']],
+    [['--dry-run', '--dry-run']], // repeated
+    [['--dry-run', '--no-dry-run']], // conflicting
+    [['--dry-run', '--dry-run=false']],
+    [['--dry-run=true', '--dry-run', 'false']],
+  ])('%j → NOT a dry run: fully checked', (args) => {
+    expect(flagOn(['wrangler', 'deploy', ...args], 'dry-run')).toBe(false);
+  });
+});
+
 describe('runMode', () => {
+  const chain = (...argvs: string[][]): Ancestor[] => argvs.map((argv) => ({ argv, cwd: '/w' }));
   test.each([
     [{}, null, 'local'],
-    [{ WRANGLER_COMMAND: 'dev' }, [['node', 'wrangler', 'dev']], 'local'],
-    [{ WRANGLER_COMMAND: 'deploy' }, [['sh', '-c', 'node scripts/deploy-guard.ts'], ['node', '/x/wrangler-dist/cli.js', 'deploy', '--dry-run', '--env=', '--outdir', 'dist']], 'dry-run'],
-    [{ WRANGLER_COMMAND: 'deploy' }, [['node', '/x/node_modules/.bin/wrangler', 'deploy', '--dry-run=true']], 'dry-run'],
-    [{ WRANGLER_COMMAND: 'versions upload' }, [['node', '/x/bin/wrangler', 'versions', 'upload', '--dry-run']], 'dry-run'],
-    [{ WRANGLER_COMMAND: 'deploy' }, [['node', '/x/bin/wrangler', 'deploy', '--env=']], 'deploy'],
-    [{ WRANGLER_COMMAND: 'versions upload' }, [['node', '/x/bin/wrangler', 'versions', 'upload']], 'deploy'],
-    [{ WRANGLER_COMMAND: 'deploy' }, [['node', '/x/bin/wrangler', 'deploy', '--temporary']], 'deploy'], // a temporary deploy is a real upload
+    [{ WRANGLER_COMMAND: 'dev' }, chain(['node', 'wrangler', 'dev']), 'local'],
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['sh', '-c', 'node scripts/deploy-guard.ts'], ['node', '/x/wrangler-dist/cli.js', 'deploy', '--dry-run', '--env=', '--outdir', 'dist']), 'dry-run'],
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['node', '/x/node_modules/.bin/wrangler', 'deploy', '--dry-run=true']), 'dry-run'],
+    [{ WRANGLER_COMMAND: 'versions upload' }, chain(['node', '/x/bin/wrangler', 'versions', 'upload', '--dry-run']), 'dry-run'],
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['node', '/x/bin/wrangler', 'deploy', '--env=']), 'deploy'],
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['node', '/x/bin/wrangler', 'deploy', '--dry-run', 'false']), 'deploy'],
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['node', '/x/bin/wrangler', 'deploy', '--no-dry-run']), 'deploy'],
+    [{ WRANGLER_COMMAND: 'versions upload' }, chain(['node', '/x/bin/wrangler', 'versions', 'upload']), 'deploy'],
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['node', '/x/bin/wrangler', 'deploy', '--temporary']), 'temporary'],
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['node', '/x/bin/wrangler', 'deploy', '--temporary', 'false']), 'deploy'],
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['node', '/x/bin/wrangler', 'deploy', '--temporary', '--no-temporary']), 'deploy'],
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['node', '/x/bin/wrangler', 'deploy', '--dry-run', '--temporary']), 'dry-run'],
     [{ WRANGLER_COMMAND: 'deploy' }, null, 'deploy'], // cannot read the parent: fail closed
-    [{ WRANGLER_COMMAND: 'deploy' }, [['bash']], 'deploy'], // no wrangler found: fail closed
+    [{ WRANGLER_COMMAND: 'deploy' }, chain(['bash']), 'deploy'], // no wrangler found: fail closed
   ] as const)('%j + %j → %s', (env, ancestors, mode) => {
-    expect(runMode(env, ancestors as string[][] | null)).toBe(mode);
+    expect(runMode(env, ancestors as Ancestor[] | null)).toBe(mode);
+  });
+});
+
+describe('--assets override: the deployed directory is the one checked', () => {
+  test('parsing', () => {
+    expect(assetsOverride(['wrangler', 'deploy', '--assets', './public'])).toBe('./public');
+    expect(assetsOverride(['wrangler', 'deploy', '--assets=/srv/site'])).toBe('/srv/site');
+    expect(assetsOverride(['wrangler', 'deploy'])).toBeUndefined();
+  });
+  test('resolution: relative to wrangler\'s cwd; absolute as-is; unreadable cwd or missing value refused', () => {
+    expect(distFor('/d', null)).toEqual({ dist: '/d' });
+    expect(distFor('/d', { argv: ['wrangler', 'deploy'], cwd: '/w' })).toEqual({ dist: '/d' });
+    expect(distFor('/d', { argv: ['wrangler', 'deploy', '--assets', 'pub'], cwd: '/w' })).toEqual({ dist: '/w/pub' });
+    expect(distFor('/d', { argv: ['wrangler', 'deploy', '--assets=/abs'], cwd: null })).toEqual({ dist: '/abs' });
+    expect(distFor('/d', { argv: ['wrangler', 'deploy', '--assets', 'pub'], cwd: null })).toMatchObject({ error: expect.stringContaining('unreadable') });
+    expect(distFor('/d', { argv: ['wrangler', 'deploy', '--assets'], cwd: '/w' })).toMatchObject({ error: expect.stringContaining('without a directory') });
   });
 });
 
@@ -133,13 +198,39 @@ describe('the guard as wrangler runs it', () => {
   test('temporary deploy (our only remote measurement) of a build for its workers.dev host → exit 0', () => {
     const r = run(site('https://hb-web.thankful-servant.workers.dev'), { WRANGLER_COMMAND: 'deploy' }, ['wrangler', 'deploy', '--temporary']);
     expect(r.status).toBe(0);
-    expect(r.stdout).toMatch(/deploy: site origin OK \(https:\/\/hb-web\.thankful-servant\.workers\.dev\)/);
+    expect(r.stdout).toMatch(/temporary: site origin OK \(https:\/\/hb-web\.thankful-servant\.workers\.dev\)/);
   });
 
   test('temporary deploy of a localhost build → refused like a real deploy (not treated as a dry run)', () => {
     const r = run(site('http://localhost:8787'), { WRANGLER_COMMAND: 'deploy' }, ['wrangler', 'deploy', '--temporary']);
     expect(r.status).toBe(1);
     expect(r.stderr).toMatch(/REFUSING to deploy/);
+  });
+
+  test.each([
+    [['--dry-run', 'false']],
+    [['--dry-run=false']],
+    [['--no-dry-run']],
+    [['--dry-run', '0']],
+    [['--dry-run', '--dry-run']],
+  ])('wrangler deploy %j of a localhost build is a real deploy → exit 1', (flags) => {
+    const r = run(site('http://localhost:8787'), { WRANGLER_COMMAND: 'deploy' }, ['wrangler', 'deploy', ...flags]);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/REFUSING/);
+  });
+
+  test('real deploy of a workers.dev build → exit 1 (only --temporary may use it)', () => {
+    const r = run(site('https://hb-web.thankful-servant.workers.dev'), { WRANGLER_COMMAND: 'deploy' }, ['wrangler', 'deploy']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/workers\.dev is allowed only for/);
+  });
+
+  test('--assets <dir> with a bad build is refused even when the default dist is fine', () => {
+    const good = site('https://hbdestockagedz.com');
+    const bad = site('http://localhost:8787');
+    const r = run(good, { WRANGLER_COMMAND: 'deploy' }, ['wrangler', 'deploy', '--assets', bad]);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain(bad);
   });
 
   test('deploy --dry-run of a localhost build → exit 0, problems reported (gate and local checks keep working)', () => {

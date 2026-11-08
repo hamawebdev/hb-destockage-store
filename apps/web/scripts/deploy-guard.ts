@@ -10,16 +10,17 @@
 //   - dev / unset (script run by hand)              → no check (local work)
 //   - deploy --dry-run, versions upload --dry-run    → checked and reported, never fails (local checks, the gate)
 //   - deploy, versions upload (real)                 → checked; any problem ⇒ exit 1, wrangler aborts
-// `--dry-run` is read from the wrangler process's own argv (Linux /proc). If that cannot be read,
-// the run is treated as a real deploy (fail closed).
+// `--dry-run` / `--temporary` are read from the wrangler process's own argv (Linux /proc) and count
+// only in their unambiguous forms (see flagOn); anything else is a real deploy (fail closed). A
+// workers.dev origin passes only with `--temporary`. An `--assets <dir>` override is the build checked.
 //
 // Origins are read from everything the site publishes: sitemap.xml <loc>/hreflang links,
 // robots.txt `Sitemap:`, and every page's canonical, hreflang alternate and og:url.
 //
 // Usage: node scripts/deploy-guard.ts [distDir]   (default ../storefront/dist)
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync, readdirSync, readFileSync, readlinkSync, statSync } from 'node:fs';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const DEPLOY_COMMANDS = new Set(['deploy', 'versions upload']);
@@ -29,7 +30,7 @@ const NON_PRODUCTION_TLDS = ['example', 'test', 'invalid', 'localhost', 'local',
 const NON_PRODUCTION_HOSTS = new Set(['localhost', 'example.com', 'example.net', 'example.org']);
 
 /** Why this origin must not be deployed; empty when it is a plausible production origin. */
-export function originProblems(origin: string): string[] {
+export function originProblems(origin: string, opts: { allowWorkersDev?: boolean } = {}): string[] {
   let u: URL;
   try {
     u = new URL(origin);
@@ -46,6 +47,10 @@ export function originProblems(origin: string): string[] {
     const tld = host.split('.').pop() ?? '';
     if (!host.includes('.')) out.push(`${origin}: single-label host`);
     else if (NON_PRODUCTION_TLDS.includes(tld)) out.push(`${origin}: .${tld} is a reserved/non-public domain`);
+    // A workers.dev host is what a `wrangler deploy --temporary` measurement gets; never production.
+    else if ((host === 'workers.dev' || host.endsWith('.workers.dev')) && opts.allowWorkersDev !== true) {
+      out.push(`${origin}: workers.dev is allowed only for \`wrangler deploy --temporary\``);
+    }
   }
   return out;
 }
@@ -94,23 +99,36 @@ export function publishedOrigins(dist: string): Set<string> {
 }
 
 /** Problems that make this build undeployable (empty = OK). */
-export function checkDist(dist: string): string[] {
+export function checkDist(dist: string, opts: { allowWorkersDev?: boolean } = {}): string[] {
   if (!existsSync(dist)) return [`storefront build not found: ${dist}`];
   const origins = publishedOrigins(dist);
   if (origins.size === 0) return [`no absolute site URL found in ${dist} (sitemap.xml, canonical links): cannot verify the origin`];
-  const problems = [...origins].flatMap(originProblems);
+  const problems = [...origins].flatMap((o) => originProblems(o, opts));
   if (origins.size > 1) problems.push(`more than one site origin published: ${[...origins].sort().join(', ')}`);
   return problems;
 }
 
-/** Argv of this process's ancestors (Linux /proc); null when it cannot be read. */
-export function ancestorArgv(maxDepth = 12): string[][] | null {
+export interface Ancestor {
+  readonly argv: readonly string[];
+  /** The process's working directory (resolves a relative `--assets <dir>`); null when unreadable. */
+  readonly cwd: string | null;
+}
+
+/** This process's ancestors (Linux /proc); null when they cannot be read. */
+export function ancestors(maxDepth = 12): Ancestor[] | null {
   if (!existsSync('/proc/self/stat')) return null;
-  const out: string[][] = [];
+  const out: Ancestor[] = [];
   let pid = process.ppid;
   try {
     for (let i = 0; i < maxDepth && pid > 1; i++) {
-      out.push(readFileSync(`/proc/${pid}/cmdline`, 'utf8').split('\0').filter((a) => a !== ''));
+      const argv = readFileSync(`/proc/${pid}/cmdline`, 'utf8').split('\0').filter((a) => a !== '');
+      let cwd: string | null = null;
+      try {
+        cwd = readlinkSync(`/proc/${pid}/cwd`);
+      } catch {
+        cwd = null;
+      }
+      out.push({ argv, cwd });
       const stat = readFileSync(`/proc/${pid}/stat`, 'utf8');
       pid = Number(stat.slice(stat.lastIndexOf(')') + 2).split(' ')[1]);
     }
@@ -120,33 +138,103 @@ export function ancestorArgv(maxDepth = 12): string[][] | null {
   return out;
 }
 
-export type Mode = 'local' | 'dry-run' | 'deploy';
+export type Mode = 'local' | 'dry-run' | 'temporary' | 'deploy';
 
-/** What kind of wrangler run started this build. Unknown dry-run state ⇒ 'deploy' (fail closed). */
-export function runMode(env: { WRANGLER_COMMAND?: string | undefined }, ancestors: string[][] | null): Mode {
+/**
+ * A boolean flag is ON only when it is unambiguous: exactly one occurrence, given as the bare flag
+ * (last token, or followed by another `-`-prefixed token), `--flag true` or `--flag=true`. Anything
+ * else (`--flag false|0|no|…`, `--flag=false`, `--no-flag`, the camelCase alias, repeats, conflicts)
+ * is OFF, so a dry-run or temporary request that wrangler might read differently is treated as a
+ * real deploy and fully checked (fail safe; rev-d WEB-7 r1: yargs reads `--dry-run false` as false).
+ */
+export function flagOn(argv: readonly string[], kebab: string): boolean {
+  const camel = kebab.replace(/-([a-z])/g, (_m, ch: string) => ch.toUpperCase());
+  const names = new Set([`--${kebab}`, `--${camel}`, `--no-${kebab}`, `--no${camel[0]!.toUpperCase()}${camel.slice(1)}`]);
+  const hits: boolean[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const tok = argv[i]!;
+    const [name, value] = tok.includes('=') ? [tok.slice(0, tok.indexOf('=')), tok.slice(tok.indexOf('=') + 1)] : [tok, undefined];
+    if (!names.has(name)) continue;
+    if (name.startsWith('--no')) {
+      hits.push(false);
+      continue;
+    }
+    if (name !== `--${kebab}`) {
+      hits.push(false); // camelCase alias: possible, but not a form we rely on
+      continue;
+    }
+    if (value !== undefined) {
+      hits.push(value === 'true');
+      continue;
+    }
+    const next = argv[i + 1];
+    if (next === undefined || next.startsWith('-')) hits.push(true);
+    else if (next === 'true') {
+      hits.push(true);
+      i++;
+    } else hits.push(false); // `--dry-run false`, `--dry-run 0`, `--dry-run no`, `--dry-run <anything>`
+  }
+  return hits.length === 1 && hits[0] === true;
+}
+
+/** `--assets <dir>` / `--assets=<dir>` on the wrangler command line, if any. */
+export function assetsOverride(argv: readonly string[]): string | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const tok = argv[i]!;
+    if (tok.startsWith('--assets=')) return tok.slice('--assets='.length);
+    if (tok === '--assets') return argv[i + 1] ?? '';
+  }
+  return undefined;
+}
+
+/** The wrangler process that started this build (the nearest ancestor running the command). */
+export function findWrangler(env: { WRANGLER_COMMAND?: string | undefined }, chain: Ancestor[] | null): Ancestor | null {
+  const cmd = env.WRANGLER_COMMAND;
+  if (cmd === undefined || chain === null) return null;
+  return chain.find((a) => a.argv.some((x) => /wrangler/.test(x)) && a.argv.includes(cmd.split(' ')[0]!)) ?? null;
+}
+
+/** What kind of wrangler run started this build. Unknown ⇒ 'deploy' (fail closed). */
+export function runMode(env: { WRANGLER_COMMAND?: string | undefined }, chain: Ancestor[] | null): Mode {
   const cmd = env.WRANGLER_COMMAND;
   if (cmd === undefined || !DEPLOY_COMMANDS.has(cmd)) return 'local';
-  if (ancestors === null) return 'deploy';
-  const wrangler = ancestors.find((argv) => argv.some((a) => /wrangler/.test(a)) && argv.includes(cmd.split(' ')[0]!));
-  if (wrangler === undefined) return 'deploy';
-  return wrangler.some((a) => a === '--dry-run' || a === '--dry-run=true') ? 'dry-run' : 'deploy';
+  const w = findWrangler(env, chain);
+  if (w === null) return 'deploy';
+  if (flagOn(w.argv, 'dry-run')) return 'dry-run';
+  if (flagOn(w.argv, 'temporary')) return 'temporary';
+  return 'deploy';
+}
+
+/** The storefront build this deploy would ship: `--assets` override (resolved), else the default. */
+export function distFor(defaultDist: string, w: Ancestor | null): { dist: string } | { error: string } {
+  const override = w === null ? undefined : assetsOverride(w.argv);
+  if (override === undefined) return { dist: defaultDist };
+  if (override === '') return { error: '--assets given without a directory' };
+  if (isAbsolute(override)) return { dist: override };
+  if (w?.cwd == null) return { error: `cannot resolve --assets ${override}: wrangler's working directory is unreadable` };
+  return { dist: resolve(w.cwd, override) };
 }
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const dist = resolve(process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), '../../storefront/dist'));
-  const mode = runMode(process.env, ancestorArgv());
+  const defaultDist = resolve(process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), '../../storefront/dist'));
+  const chain = ancestors();
+  const mode = runMode(process.env, chain);
   if (mode === 'local') {
     console.log(`deploy-guard: WRANGLER_COMMAND=${process.env['WRANGLER_COMMAND'] ?? '(unset)'}: local run, site-origin check skipped`);
   } else {
-    const problems = checkDist(dist);
+    const target = distFor(defaultDist, findWrangler(process.env, chain));
+    const dist = 'dist' in target ? target.dist : defaultDist;
+    const problems = 'error' in target ? [target.error] : checkDist(dist, { allowWorkersDev: mode === 'temporary' });
     if (problems.length === 0) {
       console.log(`deploy-guard: ${mode}: site origin OK (${[...publishedOrigins(dist)].join(', ')})`);
     } else if (mode === 'dry-run') {
       console.log(`deploy-guard: dry-run: this build could NOT be deployed for real:\n  ${problems.join('\n  ')}`);
     } else {
       console.error(
-        `deploy-guard: REFUSING to deploy apps/storefront/dist: it was not built for the production origin.\n  ${problems.join('\n  ')}\n` +
-          '  Rebuild the storefront with HB_SITE_ORIGIN=https://<production domain> (and the production snapshot), then deploy again.',
+        `deploy-guard: REFUSING to ${mode === 'temporary' ? 'deploy --temporary' : 'deploy'} ${dist}: it was not built for the production origin.\n  ${problems.join('\n  ')}\n` +
+          (mode === 'temporary'
+            ? '  For a temporary deploy, build the storefront with HB_SITE_ORIGIN=https://<name>.workers.dev (the host it will get).'
+            : '  Rebuild the storefront with HB_SITE_ORIGIN=https://<production domain> (and the production snapshot), then deploy again.'),
       );
       process.exit(1);
     }
