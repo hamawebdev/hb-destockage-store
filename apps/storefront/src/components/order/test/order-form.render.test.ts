@@ -23,6 +23,21 @@ const render = async (lang: 'ar' | 'fr', form = singleForm(lang), name = 'single
 const attrs = (html: string, id: string) => html.match(new RegExp(`<[a-z]+ [^>]*id="${id}"[^>]*>`))?.[0] ?? '';
 
 describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
+  it('cart mode does not depend on the borrowed product being orderable (review I3)', async () => {
+    const html = await container.renderToString(OrderForm, {
+      props: { lang, mode: 'cart', form: { ...singleForm(lang), orderable: false }, strings: strings[lang], contact },
+    });
+    expect(html).not.toMatch(/<fieldset[^>]*\bdisabled/);
+    expect(html).not.toContain('of-unavail');
+    expect(html).toContain('id="of-rows"');
+  });
+
+  it('a sold-out product keeps its disabled form', async () => {
+    const html = await render(lang, { ...singleForm(lang), orderable: false }, 'sold-out');
+    expect(html).toMatch(/<fieldset[^>]*\bdisabled/);
+    expect(html).toContain('of-unavail');
+  });
+
   it('is a plain POST form to /api/order that works without JS', async () => {
     const html = await render(lang);
     expect(html).toMatch(/<form id="order-form" class="of-form" method="post" action="\/api\/order" novalidate/);

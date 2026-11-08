@@ -1,157 +1,239 @@
 ---
 /**
- * Order form (ORDER-1). Dropped into the product page by `pages`:
- *   <OrderForm lang form={p.orderForm} productName={p.product.name} brandLatin={p.product.brandLatin}
- *              strings={p.layout.strings} contact={p.layout.contact} privacyHref={…} />
- * Works without JS (POST → Worker review step, WEB-0 §2.3). /js/order.js enhances it after LCP
- * (loaded through shell's [data-js] loader). CSP: no script tags, no style attributes, no inline handlers.
- * Plan: artifacts/ORDER-0/plan.md §2. Owner: orderform.
+ * The calm order page's form (ORDER-1, CART-0). Two uses:
+ *  - `mode="product"` (default, /{lang}/order/<slug>/): one product, works without JS (POST → Worker review step,
+ *    WEB-0 §2.3). `slot="price"` is the no-JS price block of the chosen variant, `slot="picker"` the variant picker.
+ *  - `mode="cart"` (/{lang}/checkout/): the cart's lines, rendered by order.js. Hidden until order.js is up: it
+ *    needs JS (CheckoutView.astro carries the no-JS message).
+ * /js/order.js enhances it after LCP (shell's [data-js] loader). CSP: no script tags, no style attributes, no inline
+ * handlers. Plan: artifacts/CART-0/plan.md. Owner: orderform.
  */
-import type { ContactProps, Lang, OrderFormProps, StringTable } from '@hb/catalog';
+import type { ContactProps, ImageProps, Lang, OrderFormProps, StringTable } from '@hb/catalog';
 import { orderFormModel } from './form-model.ts';
 import { publicFileVersion } from './asset-version.ts';
 
 interface Props {
   lang: Lang;
   form: OrderFormProps;
-  productName: string;
-  brandLatin: string | null;
+  productName?: string;
+  brandLatin?: string | null;
   strings: StringTable;
   contact: ContactProps;
   privacyHref?: string | null;
+  /** The product's compact photo (≤ 120 px candidates); null shows an empty thumbnail. */
+  image?: ImageProps | null;
+  mode?: 'product' | 'cart';
+  /** Cart mode: `${origin-relative}` product JSON template and the links back to the shop. */
+  itemsUrl?: string;
+  homeHref?: string;
 }
 
 const p = Astro.props;
-const m = orderFormModel({ ...p, jsVersion: publicFileVersion('js/order.js'), tsJsVersion: publicFileVersion('js/order-ts.js') });
+const mode = p.mode ?? 'product';
+const m = orderFormModel({
+  ...p,
+  productName: p.productName ?? '',
+  brandLatin: p.brandLatin ?? null,
+  jsVersion: publicFileVersion('js/order.js'),
+  tsJsVersion: publicFileVersion('js/order-ts.js'),
+  cart: mode === 'cart' ? { jsVersion: publicFileVersion('js/cart.js'), itemsUrl: p.itemsUrl ?? `/${p.lang}/cart/items/{id}.json`, homeHref: p.homeHref ?? `/${p.lang}/` } : null,
+});
 const { t, summary: s } = m;
+const cart = mode === 'cart';
+// One product's stock says nothing about a cart: the checkout borrows a product's form only for wilayas and endpoints.
+const unavailable = !cart && !m.orderable;
 ---
 <section id="order" class="of" aria-labelledby="of-title">
-  <h2 id="of-title" class="of-title">{t('order.title')}</h2>
-  <p class="of-intro">{t('order.intro')}</p>
-  <form id="order-form" class="of-form" method="post" action={p.form.orderEndpoint} novalidate {...m.dataAttrs}>
+  <h2 id="of-title" class="of-sr">{t('order.title')}</h2>
+  <form id="order-form" class="of-form" method="post" action={p.form.orderEndpoint} novalidate {...m.dataAttrs} hidden={cart}>
     {m.hidden.map((h) => <input type="hidden" name={h.name} value={h.value} />)}
     <input type="hidden" name="idempotencyKey" value="" />
-    <fieldset class="of-fields" disabled={!m.orderable}>
-      <legend class="visually-hidden">{t('order.title')}</legend>
-      {!m.orderable && (
-        <p class="note note-warning" id="of-unavail">
-          <span>{t('order.unavailable')}{' '}<a href={m.contact.whatsappHref} class="of-link">{t('order.whatsappCta')}</a></span>
-        </p>
-      )}
+    <fieldset class="of-fields" disabled={unavailable}>
+      <legend class="of-sr">{t('order.title')}</legend>
 
-      <div class="field">
-        <label for="of-name" class="label">{t('order.name.label')} <span aria-hidden="true">*</span></label>
-        <p id="of-name-hint" class="hint">{t('order.name.hint')}</p>
-        <input id="of-name" class="input" name="name" type="text" autocomplete="name" required
-          minlength={m.name.minLength} aria-describedby="of-name-hint of-name-err" />
-        <p id="of-name-err" class="error"></p>
-      </div>
-
-      <div class="field">
-        <label for="of-phone" class="label">{t('order.phone.label')} <span aria-hidden="true">*</span></label>
-        <p id="of-phone-hint" class="hint">{t('order.phone.hint')}</p>
-        <input id="of-phone" class="input" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" required
-          maxlength={m.phone.maxLength} placeholder={t('order.phone.placeholder')} aria-describedby="of-phone-hint of-phone-err" />
-        <p id="of-phone-err" class="error"></p>
-      </div>
-
-      <div class="field">
-        <label for="of-wilaya" class="label">{t('order.wilaya.label')} <span aria-hidden="true">*</span></label>
-        <select id="of-wilaya" class="input" name="wilayaCode" required autocomplete="address-level1" aria-describedby="of-wilaya-err">
-          <option value="">{t('order.wilaya.placeholder')}</option>
-          {m.wilayas.map((w) => <option value={w.value}>{w.label}</option>)}
-        </select>
-        <p id="of-wilaya-err" class="error"></p>
-      </div>
-
-      <div class="field">
-        <label for="of-commune" class="label">{t('order.commune.label')} <span aria-hidden="true">*</span></label>
-        <select id="of-commune" class="input" name="communeId" required disabled autocomplete="address-level2"
-          aria-describedby="of-commune-hint of-commune-err">
-          <option value="">{t('order.commune.waiting')}</option>
-        </select>
-        <noscript><p id="of-commune-hint" class="hint">{t('order.commune.nextStep')}</p></noscript>
-        <p id="of-commune-err" class="error"></p>
-      </div>
-
-      <div class="field">
-        <label for="of-qty" class="label">{t('order.qty.label')} <span aria-hidden="true">*</span></label>
-        <div class="of-qty">
-          <button type="button" class="btn btn-secondary of-step" data-d="-1" aria-controls="of-qty" aria-label={t('order.qty.decrease')}>−</button>
-          <input id="of-qty" class="input" name="qty" type="number" inputmode="numeric" min={m.qty.min} max={m.qty.max}
-            value={m.qty.value} required aria-describedby="of-qty-err" />
-          <button type="button" class="btn btn-secondary of-step" data-d="1" aria-controls="of-qty" aria-label={t('order.qty.increase')}>+</button>
-        </div>
-        <p id="of-qty-err" class="error"></p>
-      </div>
-
-      <div class="of-hp">
-        <label for="of-hp">{t('order.honeypot')}</label>
-        <input id="of-hp" name={m.honeypotName} type="text" tabindex="-1" autocomplete="off" />
-      </div>
-
-      <section class="of-sum" id="of-sum" aria-labelledby="of-sum-h">
-        <h3 id="of-sum-h" class="of-sum-h" tabindex="-1">{t('order.summary.title')}</h3>
-        <dl class="of-dl">
-          <div><dt><bdi>{s.product}</bdi>{s.variantLabel && <> · <bdi id="of-s-var">{s.variantLabel}</bdi></>}</dt><dd><bdi id="of-s-unit">{s.unitPrice}</bdi> × <bdi id="of-s-qty">{s.qty}</bdi> = <bdi id="of-s-sub">{s.subtotal}</bdi></dd></div>
-          <div><dt id="of-s-fee-l">{t('order.summary.delivery')}</dt><dd id="of-s-fee">{s.delivery}</dd></div>
-          <div class="of-total"><dt>{t('order.summary.total')}</dt><dd id="of-s-total">{s.total}</dd></div>
-        </dl>
+      <section class="of-panel of-lines" aria-labelledby="of-lines-h">
+        <h3 id="of-lines-h" class="of-sr">{t('order.summary.title')}</h3>
+        {cart ? (
+          <ul id="of-rows" class="of-rows" role="list"></ul>
+        ) : (
+          <div class="of-line">
+            {p.image ? (
+              <img class="of-th" src={p.image.src} srcset={p.image.srcset} sizes="64px" width={p.image.width} height={p.image.height} alt="" loading="eager" decoding="async" />
+            ) : (
+              <span class="of-th"></span>
+            )}
+            <div class="of-l-d">
+              <p class="of-l-n"><bdi>{s.product}</bdi></p>
+              {s.variantLabel && <p class="of-l-v"><bdi id="of-s-var">{s.variantLabel}</bdi></p>}
+              <div class="of-l-vps"><slot name="price" /></div>
+              <p class="of-l-p"><bdi id="of-s-unit">{s.unitPrice}</bdi></p>
+              <div class="of-q">
+                <button type="button" class="of-b of-step" data-d="-1" aria-controls="of-qty" aria-label={t('order.qty.decrease')}>−</button>
+                <label for="of-qty" class="of-sr">{t('order.qty.label')}</label>
+                <input id="of-qty" class="input" name="qty" type="number" inputmode="numeric" min={m.qty.min} max={m.qty.max}
+                  value={m.qty.value} required aria-describedby="of-qty-err" />
+                <button type="button" class="of-b of-step" data-d="1" aria-controls="of-qty" aria-label={t('order.qty.increase')}>+</button>
+              </div>
+              <p id="of-qty-err" class="error"></p>
+            </div>
+          </div>
+        )}
+        <p id="of-rows-note" class="of-note" hidden></p>
       </section>
 
-      <div id="of-ts" class="of-ts"></div>
-      <p id="of-alert" class="note note-danger of-alert" role="alert"></p>
-      <p id="of-help" class="of-help" hidden>
-        <button type="button" id="of-retry" class="btn btn-secondary">{t('common.retry')}</button>
-        <a class="of-link" href={m.contact.phoneHref}><bdi dir="ltr">{m.contact.phoneDisplay}</bdi></a>
-        <a class="of-link" href={m.contact.whatsappHref}>{t('order.whatsappCta')}</a>
-      </p>
-      <button type="submit" id="of-submit" class="btn btn-primary btn-block">{t('order.submit')}</button>
-      <p id="of-status" class="of-status" role="status" aria-live="polite"></p>
-      <p class="hint">
-        {t('order.privacyNote')}
-        {m.privacyHref && <>{' '}<a class="of-link" href={m.privacyHref}>{t('order.privacyLink')}</a></>}
-      </p>
+      <section class="of-panel of-who" aria-labelledby="of-who-h">
+        <h3 id="of-who-h" class="of-sr">{t('order.name.label')}</h3>
+        {unavailable && (
+          <p class="note note-warning" id="of-unavail">
+            <span>{t('order.unavailable')}{' '}<a href={m.contact.whatsappHref} class="of-link">{t('order.whatsappCta')}</a></span>
+          </p>
+        )}
+        <div class="field">
+          <label for="of-name" class="label">{t('order.name.label')}</label>
+          <input id="of-name" class="input" name="name" type="text" autocomplete="name" required minlength={m.name.minLength} aria-describedby="of-name-err" />
+          <p id="of-name-err" class="error"></p>
+        </div>
+        <div class="field">
+          <label for="of-phone" class="label">{t('order.phone.label')}</label>
+          <input id="of-phone" class="input" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" required
+            maxlength={m.phone.maxLength} placeholder={t('order.phone.placeholder')} aria-describedby="of-phone-err" />
+          <p id="of-phone-err" class="error"></p>
+        </div>
+        <div class="of-pair">
+          <div class="field">
+            <label for="of-wilaya" class="label">{t('order.wilaya.label')}</label>
+            <select id="of-wilaya" class="input" name="wilayaCode" required autocomplete="address-level1" aria-describedby="of-wilaya-err">
+              <option value="">{t('order.wilaya.placeholder')}</option>
+              {m.wilayas.map((w) => <option value={w.value}>{w.label}</option>)}
+            </select>
+            <p id="of-wilaya-err" class="error"></p>
+          </div>
+          <div class="field">
+            <label for="of-commune" class="label">{t('order.commune.label')}</label>
+            <select id="of-commune" class="input" name="communeId" required disabled autocomplete="address-level2" aria-describedby="of-commune-err">
+              <option value="">{t('order.commune.waiting')}</option>
+            </select>
+            <noscript><p id="of-commune-hint" class="hint">{t('order.commune.nextStep')}</p></noscript>
+            <p id="of-commune-err" class="error"></p>
+          </div>
+        </div>
+        <div class="of-hp">
+          <label for="of-hp">{t('order.honeypot')}</label>
+          <input id="of-hp" name={m.honeypotName} type="text" tabindex="-1" autocomplete="off" />
+        </div>
+        <slot name="picker" />
+      </section>
+
+      <section class="of-panel of-sum" id="of-sum" aria-labelledby="of-sum-h">
+        <h3 id="of-sum-h" class="of-sr" tabindex="-1">{t('order.summary.title')}</h3>
+        <dl class="of-dl">
+          <div><dt id="of-s-fee-l">{t('order.summary.delivery')}</dt><dd id="of-s-fee">{s.delivery}</dd></div>
+        </dl>
+        <div id="of-ts" class="of-ts"></div>
+        <div class="bottom-bar of-bar">
+          <p id="of-alert" class="note note-danger of-alert" role="alert"></p>
+          <p id="of-help" class="of-help" hidden>
+            <button type="button" id="of-retry" class="btn btn-secondary">{t('common.retry')}</button>
+            <a class="of-link" href={m.contact.phoneHref}><bdi dir="ltr">{m.contact.phoneDisplay}</bdi></a>
+            <a class="of-link" href={m.contact.whatsappHref}>{t('order.whatsappCta')}</a>
+          </p>
+          <div class="of-confirm">
+            <p class="of-total">
+              <span class="of-tl of-tl-s">{t('order.summary.totalShort')}</span>
+              <span class="of-tl of-tl-l">{t('order.summary.total')}</span>
+              <bdi id="of-s-total">{s.total}</bdi>
+            </p>
+            <button type="submit" id="of-submit" class="btn btn-primary of-cta">{t('order.submit')}</button>
+          </div>
+        </div>
+        <p id="of-status" class="of-sr" role="status" aria-live="polite"></p>
+        <ul class="of-rs" role="list">
+          <li>{t('trust.cod')}</li>
+          <li>
+            {t('footer.contact')}{' '}
+            <a class="of-link" href={m.contact.phoneHref}><bdi dir="ltr">{m.contact.phoneDisplay}</bdi></a>
+            {' · '}
+            <a class="of-link" href={m.contact.whatsappHref}>{t('footer.whatsapp')}</a>
+          </li>
+        </ul>
+      </section>
     </fieldset>
     <template id="of-ui">{m.uiMessages.map((x) => <p data-k={x.code}>{x.text}</p>)}</template>
   </form>
 </section>
 
 <style is:global>
-  /* Field, input, button and note styles: @hb/ui-tokens base.css + forms.css. Only order-form layout here. */
-  .of { max-inline-size: var(--reading-max); scroll-margin-block-start: var(--scroll-pad-start); }
-  .of-title { font-size: var(--fs-h2); line-height: var(--lh-heading); margin-block: 0 var(--space-2); }
-  .of-intro { color: var(--color-text-secondary); margin-block: 0 var(--space-6); }
-  .of-fields { border: 0; margin: 0; padding: 0; min-inline-size: 0; display: grid; gap: var(--space-5); }
+  /* The calm order page (order step and cart checkout). Field, input and note styles: @hb/ui-tokens forms.css. */
+  @import "@hb/ui-tokens/forms.css";
+  .of-page { max-inline-size: calc(var(--reading-max) + var(--gutter) * 2); padding-block: var(--space-4) calc(var(--section-block) + var(--bottom-bar-h)); }
+  .of-title { margin-block: 0 var(--space-4); font-size: var(--fs-h3); font-weight: var(--fw-emphasis); line-height: var(--lh-heading); }
+  .of-sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .of-fields { border: 0; margin: 0; padding: 0; min-inline-size: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   .of-fields p { margin: 0; }
+  .of-panel { background: var(--color-surface-alt); border-radius: var(--radius-xl); padding: var(--space-5); display: grid; gap: var(--space-4); align-content: start; }
   .of-hp { display: none; }
   .of .error:empty, .of-ts:empty { display: none; }
-  /* Live regions stay in the accessibility tree while empty (a region that is display:none when text arrives is
-     often not announced): visually hidden instead, out of the grid flow. ORDER-5. */
-  .of-alert:empty, .of-status:empty {
-    position: absolute; inline-size: 1px; block-size: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
-  }
   .of .error::before { content: "!"; flex: none; display: inline-grid; place-items: center; inline-size: 1.25em; block-size: 1.25em; border-radius: var(--radius-round); background: var(--color-danger); color: var(--color-surface); font-size: .8em; }
-  .of-qty { display: grid; grid-template-columns: var(--tap-min) minmax(0, 8rem) var(--tap-min); gap: var(--space-2); }
-  .of-qty .input { text-align: center; }
-  .of-step { padding-inline: 0; }
+  .of-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); align-items: start; }
+  .of .field { min-inline-size: 0; }
+  .of :is(input:not([type=hidden]), select) { min-block-size: var(--tap-min); }
+
+  .of-rows { margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+  .of-line, .of-row { display: grid; grid-template-columns: var(--space-16) minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+  .of-row { grid-template-columns: var(--space-16) minmax(0, 1fr) auto; }
+  .of-th { display: block; inline-size: var(--space-16); block-size: var(--space-16); border-radius: var(--radius-md); background: var(--color-surface); object-fit: contain; }
+  .of-l-d { display: grid; gap: var(--space-1); min-inline-size: 0; }
+  .of-l-n { font-size: var(--fs-small); font-weight: var(--fw-emphasis); line-height: var(--lh-ui); }
+  .of-l-v { color: var(--color-text-secondary); font-size: var(--fs-caption); line-height: var(--lh-ui); }
+  .of-l-p { font-variant-numeric: tabular-nums; font-size: var(--fs-small); }
+  .of-row.is-na { color: var(--color-text-secondary); }
+  .of-note { color: var(--color-text-secondary); font-size: var(--fs-caption); line-height: var(--lh-ui); }
+  /* No-JS price: the picker's positional CSS shows the block; with JS order.js owns #of-s-unit. */
+  .of-form:not(.of-js) .of-l-p, .of-form:not(.of-js) #of-s-var { display: none; }
+  .of-form.of-js .of-l-vps { display: none; }
+  .of-line .of-l-vps .cat-price-now { font-size: var(--fs-small); }
+  .of-line .of-l-vps :is(.cat-price-was, .cat-price-off, .cat-vp-meta) { display: none; }
+
+  .of-q { display: inline-flex; align-items: center; justify-self: start; margin-block-start: var(--space-1); border-radius: var(--radius-pill); box-shadow: inset 0 0 0 var(--bw-control) var(--color-border); background: var(--color-surface); }
+  .of-b { display: inline-grid; place-items: center; inline-size: var(--tap-min); block-size: var(--tap-min); border-radius: var(--radius-round); font-size: var(--fs-lead); line-height: 1; color: var(--color-text); }
+  .of-b[aria-disabled=true] { color: var(--color-border-control); cursor: not-allowed; }
+  .of-q .input { inline-size: var(--space-12); padding: 0; border: 0; background: transparent; text-align: center; appearance: textfield; font-variant-numeric: tabular-nums; }
+  .of-q .input::-webkit-inner-spin-button { appearance: none; }
+  .of-c { min-inline-size: var(--space-8); text-align: center; font-variant-numeric: tabular-nums; }
   .of-form:not(.of-js) .of-step { visibility: hidden; }
-  .of-sum { background: var(--color-surface-alt); border-radius: var(--radius-lg); padding: var(--space-4); }
-  .of-sum[aria-busy=true] dd { opacity: .6; }
-  .of-sum-h { font-size: var(--fs-lead); margin-block: 0 var(--space-3); }
+
   .of-dl { margin: 0; display: grid; gap: var(--space-2); }
   .of-dl div { display: flex; justify-content: space-between; gap: var(--space-3); }
   .of-dl dt { color: var(--color-text-secondary); }
   .of-dl dd { margin: 0; text-align: end; }
-  .of-total { border-block-start: var(--bw-hairline) solid var(--color-border); padding-block-start: var(--space-2); }
-  .of-total dt { color: var(--color-text); font-weight: var(--fw-emphasis); }
-  .of-total dd { color: var(--color-price); font-size: var(--fs-lead); font-weight: var(--fw-emphasis); }
+  .of-sum[aria-busy=true] dd, .of-sum[aria-busy=true] #of-s-total { opacity: .6; }
+  .of-bar { position: fixed; inset-inline: 0; inset-block-end: 0; z-index: var(--z-sticky); display: grid; gap: var(--space-2); padding: var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom)); background: var(--color-surface); box-shadow: 0 -1px 0 var(--color-border); max-block-size: 60dvh; overflow-y: auto; }
+  .of-confirm { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+  .of-total { display: grid; gap: 0; line-height: var(--lh-ui); }
+  .of-tl { color: var(--color-text-secondary); font-size: var(--fs-caption); }
+  .of-tl-l { display: none; }
+  #of-s-total { font-size: var(--fs-lead); font-weight: var(--fw-emphasis); color: var(--color-price); font-variant-numeric: tabular-nums; }
+  .of-cta { flex: 1; min-block-size: 48px; }
+  .of-alert:empty { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .of-help:not([hidden]) { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
-  /* Tap targets ≥ 44 px even without tokens' forms.css (not wired by the storefront yet: QA BUG-20). */
-  .of :is(input:not([type=hidden]), select) { min-block-size: var(--tap-min); }
+  .of-rs { margin: 0; padding: 0; display: grid; gap: var(--space-1); color: var(--color-text-secondary); font-size: var(--fs-small); }
   .of-link { color: var(--color-accent-text); display: inline-flex; align-items: center; justify-content: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
   .of-fields:disabled .btn-primary { opacity: .5; cursor: not-allowed; }
+  .of-empty { justify-items: start; }
+
+  @media (min-width: 1024px) {
+    .of-page { max-inline-size: calc(var(--reading-max) + var(--space-32) * 3); padding-block-end: var(--section-block); }
+    .of-fields { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-rows: auto auto 1fr; gap: var(--space-5) var(--space-6); }
+    .of-who { grid-column: 1; grid-row: 1 / -1; align-self: start; }
+    .of-lines { grid-column: 2; grid-row: 1; }
+    .of-sum { grid-column: 2; grid-row: 2; }
+    .of-bar { position: static; padding: 0; box-shadow: none; background: none; max-block-size: none; overflow: visible; }
+    .of-confirm { flex-direction: column; align-items: stretch; }
+    .of-total { grid-template-columns: 1fr auto; align-items: baseline; }
+    .of-tl-s { display: none; }
+    .of-tl-l { display: inline; }
+  }
   @media (prefers-reduced-motion: no-preference) {
-    .of-sum dd { transition: opacity var(--dur-fast) var(--ease-standard); }
+    .of-sum dd, #of-s-total { transition: opacity var(--dur-fast) var(--ease-standard); }
   }
 </style>

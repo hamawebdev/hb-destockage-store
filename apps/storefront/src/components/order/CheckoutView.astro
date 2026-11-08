@@ -1,0 +1,31 @@
+---
+/**
+ * The cart's order page, /{lang}/checkout/ (CART-0): the calm order form in cart mode. Without JS it says the
+ * cart needs JavaScript and links to the products; a single product can still be ordered without JS from its page.
+ * Owner: orderform.
+ */
+import type { Lang, LayoutProps, OrderFormProps } from '@hb/catalog';
+import OrderForm from './OrderForm.astro';
+import { str } from './str.ts';
+
+interface Props {
+  lang: Lang;
+  layout: LayoutProps;
+  form: OrderFormProps;
+}
+const { lang, layout: l, form } = Astro.props;
+const t = (k: string) => str(l.strings, k);
+---
+<div class="container of-page">
+  <h1 class="of-title">{t('order.title')}</h1>
+  <noscript>
+    <p class="note">
+      <span>{t('cart.noJs')}{' '}<a class="of-link" href={l.homeHref}>{t('home.heroCta')}</a></span>
+    </p>
+  </noscript>
+  <div id="of-empty" class="of-panel of-empty" hidden>
+    <p>{t('cart.empty')}</p>
+    <a class="btn btn-secondary" href={l.homeHref}>{t('home.heroCta')}</a>
+  </div>
+  <OrderForm lang={lang} mode="cart" form={form} strings={l.strings} contact={l.contact} homeHref={l.homeHref} />
+</div>
