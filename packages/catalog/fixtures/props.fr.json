@@ -305,7 +305,7 @@
     "cart.noJs": "Le panier a besoin de JavaScript pour fonctionner. Vous pouvez commander chaque produit directement depuis sa page.",
     "meta.cart.description": "Vérifiez votre panier et confirmez votre commande, payée à la livraison.",
     "order.summary.totalShort": "Total",
-    "consent.text": "Acceptez-vous que nous mesurions nos publicités avec Meta (Facebook, Instagram) ? Si vous acceptez, Meta reçoit des informations sur votre visite et, lors d'une commande, votre numéro de téléphone sous forme hachée.",
+    "consent.text": "Partager votre visite et votre numéro haché avec Meta pour nos publicités ?",
     "consent.accept": "Accepter",
     "consent.decline": "Refuser",
     "consent.more": "En savoir plus",

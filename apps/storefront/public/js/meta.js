@@ -263,22 +263,24 @@ async function boot(id, consentRequired) {
     }
     const sheet = new CSSStyleSheet();
     sheet.replaceSync(
-      'html{scroll-padding-block-end:var(--mc-sp,0)}.mc{position:fixed;inset-inline:0;inset-block-end:var(--mc-off,0);z-index:var(--z-sticky);display:grid;gap:var(--space-2);padding:var(--space-3) var(--gutter) calc(var(--space-3) + env(safe-area-inset-bottom));background:var(--color-surface);box-shadow:0 -1px 0 var(--color-border);font-size:var(--fs-small)}.mc p{margin:0}.mc a{color:var(--color-accent-text);display:inline-flex;align-items:center;min-block-size:var(--tap-min)}.mc-a{display:flex;gap:var(--space-2)}.mc-a button{flex:1;min-block-size:var(--tap-min)}',
+      'html{scroll-padding-block-end:var(--mc-sp,0)}.mc{position:fixed;inset-inline:0;inset-block-end:var(--mc-off,0);z-index:var(--z-sticky);display:grid;gap:var(--space-3);padding:var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));background:var(--color-surface);box-shadow:0 -1px 0 var(--color-border);font-size:var(--fs-small)}.mc p{margin:0}.mc a{color:var(--color-accent-text);display:inline-block;padding-block:calc((var(--tap-min) - 1lh)/2);margin-block:calc((1lh - var(--tap-min))/2)}.mc-a{display:flex;gap:var(--space-2)}.mc-a button{flex:1;min-block-size:var(--tap-min)}',
     );
     D.adoptedStyleSheets = [...D.adoptedStyleSheets, sheet];
     const el = D.createElement('section');
     el.className = 'mc';
     el.setAttribute('aria-labelledby', 'mc-t');
     const p = D.createElement('p');
-    p.id = 'mc-t';
-    p.textContent = t.text;
-    el.append(p);
+    const label = D.createElement('span');
+    label.id = 'mc-t';
+    label.textContent = t.text;
+    p.append(label);
     if (t.privacy) {
       const a = D.createElement('a');
       a.href = t.privacy;
       a.textContent = t.more;
-      el.append(a);
+      p.append(' ', a);
     }
+    el.append(p);
     const row = D.createElement('div');
     row.className = 'mc-a';
     const button = (label) => {
