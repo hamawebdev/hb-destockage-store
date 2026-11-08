@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { assertSameOriginPath, isContentLinkHref, isImageKey, isSameOriginPath, isSiteOrigin, isSiteUrl, UnsafeUrlError } from '../src/url.ts';
+import { assertSameOriginPath, isContentLinkHref, isImageKey, isPublicSiteOrigin, isSameOriginPath, isSiteOrigin, isSiteUrl, parseSiteOrigin, UnsafeUrlError } from '../src/url.ts';
 
 /** Strings that browsers resolve off-site or to script (CAT-1 r1 Important 1 + lead's list). */
 export const OFF_SITE: readonly string[] = [
@@ -64,17 +64,79 @@ describe('isImageKey', () => {
   );
 });
 
-describe('isSiteOrigin / isSiteUrl', () => {
-  test.each(['https://hbdestockage.dz', 'https://www.hbdestockage.dz', 'https://hb.example:8443', 'http://localhost:4180', 'http://127.0.0.1'])('origin %j', (o) =>
-    expect(isSiteOrigin(o)).toBe(true),
+describe('parseSiteOrigin (publish builds need a public https origin)', () => {
+  test.each([
+    'http://hbdestockagedz.com',
+    'https://127.0.0.1',
+    'https://10.1',
+    'https://192.168.1.10',
+    'https://[::1]',
+    'https://[2001:db8::1]',
+    'https://localhost',
+    'https://shop.localhost',
+    'https://hb.local',
+    'https://hb.internal',
+    'https://hb.test',
+    'https://hbdestockage.example',
+    'https://hb.invalid',
+    'https://example.com',
+    'https://www.example.org',
+    'https://shop.example.net',
+    'https://hbdestockagedz.com:8443',
+    'https://hbdestockagedz.com/shop',
+    'https://hbdestockagedz.com?x=1',
+    'https://hbdestockagedz.com#x',
+    'https://user@hbdestockagedz.com',
+    'https://user:pw@hbdestockagedz.com',
+    'https://hbdestockagedz',
+    'https://HBDESTOCKAGEDZ.COM',
+    'https://-bad.dz',
+    'http://localhost:8787',
+    'http://127.0.0.1:4180',
+    'javascript:alert(1)',
+    '',
+  ])('publish refuses %j', (o) => {
+    const r = parseSiteOrigin(o, { publish: true });
+    expect(r.ok).toBe(false);
+    expect(isPublicSiteOrigin(o)).toBe(false);
+  });
+  test.each(['https://hbdestockagedz.com', 'https://www.hbdestockagedz.com', 'https://hb-destockage.dz', 'https://myexample.com'])(
+    'publish accepts %j',
+    (o) => {
+      expect(parseSiteOrigin(o, { publish: true })).toEqual({ ok: true, origin: o });
+      expect(isSiteOrigin(o)).toBe(true);
+    },
   );
-  test.each(['https://hbdestockage.dz/', 'https://hb.dz/shop', 'http://hbdestockage.dz', 'https://user@evil.example', 'https://evil.example\\@hb.dz', 'javascript:x', 'https://localhost'])(
-    'not an origin %j',
-    (o) => expect(isSiteOrigin(o)).toBe(false),
+  test('a trailing slash is normalised', () => {
+    expect(parseSiteOrigin('https://hbdestockagedz.com/', { publish: true })).toEqual({ ok: true, origin: 'https://hbdestockagedz.com' });
+  });
+  test.each(['http://localhost:8787', 'http://localhost', 'http://127.0.0.1', 'http://127.0.0.1:4180', 'https://hbdestockage.example'])(
+    'non-publish also accepts %j (local dev origin; the fixture origin)',
+    (o) => {
+      expect(parseSiteOrigin(o, { publish: false }).ok).toBe(true);
+      expect(isSiteOrigin(o)).toBe(true);
+    },
   );
-  test('isSiteUrl', () => {
+  test('publish refusal of reserved names cites RFC 2606/6761; fixture mode keeps its .example origin', async () => {
+    expect(parseSiteOrigin('https://hbdestockage.example', { publish: true })).toEqual({
+      ok: false,
+      reason: 'reserved documentation/invalid hostname (RFC 2606/6761): hbdestockage.example',
+    });
+    const { siteOriginFromEnv, FIXTURE_ORIGIN } = await import('../src/sources.ts');
+    expect(siteOriginFromEnv({ HB_SNAPSHOT: 'fixture' })).toBe(FIXTURE_ORIGIN);
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_PUBLISH: '1', HB_SITE_ORIGIN: FIXTURE_ORIGIN })).toThrow(/RFC 2606/);
+  });
+  test.each(['https://127.0.0.1', 'https://localhost', 'https://hb.test', 'http://hbdestockagedz.com', 'https://hb.dz:8443'])('non-publish still refuses %j', (o) => {
+    expect(parseSiteOrigin(o, { publish: false }).ok).toBe(false);
+    expect(isSiteOrigin(o)).toBe(false);
+  });
+});
+
+describe('isSiteUrl', () => {
+  test('absolute URL on the origin only', () => {
     expect(isSiteUrl('https://hb.dz/ar/p/x/', 'https://hb.dz')).toBe(true);
     expect(isSiteUrl('https://hb.dz//evil.example/', 'https://hb.dz')).toBe(false);
     expect(isSiteUrl('https://hb.dz.evil.example/ar/', 'https://hb.dz')).toBe(false);
+    expect(isSiteUrl('https://127.0.0.1/ar/', 'https://127.0.0.1')).toBe(false);
   });
 });

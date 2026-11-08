@@ -6,7 +6,7 @@
  *  - `validateSnapshot` / `parseSnapshot`: both together.
  */
 import * as v from 'valibot';
-import { RESERVED_SEGMENTS, SNAPSHOT_VERSION, type CatalogSnapshot, type Id, type ProductKind, type SnapshotProduct } from './types.ts';
+import { RESERVED_ORDER_SLUGS, RESERVED_SEGMENTS, SNAPSHOT_VERSION, type CatalogSnapshot, type Id, type ProductKind, type SnapshotProduct } from './types.ts';
 import { isContentLinkHref, isImageKey } from './url.ts';
 
 const id = v.pipe(v.number(), v.integer(), v.minValue(1));
@@ -44,6 +44,11 @@ const slug = v.pipe(
   v.string(),
   v.regex(SLUG, 'slug must be ASCII kebab-case'),
   v.check((s) => !RESERVED_SEGMENTS.includes(s), 'slug is a reserved URL segment'),
+);
+/** Product slugs also live under /{lang}/order/<slug>/ (ORDER-STEP). */
+const productSlug = v.pipe(
+  slug,
+  v.check((s) => !RESERVED_ORDER_SLUGS.includes(s), 'product slug collides with an /order/ route (confirmation, review)'),
 );
 
 const langs = v.pipe(
@@ -120,7 +125,7 @@ const ProductSchema = v.strictObject({
   id,
   kind: v.picklist(['simple', 'variable', 'pack']),
   categoryId: id,
-  slug: localized(slug),
+  slug: localized(productSlug),
   name: localized(nonEmpty),
   brandLatin: v.nullable(nonEmpty),
   summary: localized(line(500)),
