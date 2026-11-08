@@ -8,7 +8,8 @@ import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, postAs, refOf, seedGeoAndCatalog, type CatalogFixture } from './fixtures.ts';
 
 // Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
-vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
+// This file's bulk tests make many sequential D1 round trips: 30 s was not enough under load.
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
 
 let h: Harness;
 let cat: CatalogFixture;
@@ -32,6 +33,7 @@ async function newOrder(status: 'new' | 'confirmed' | 'shipped', over: { name?: 
 }
 const row = async (id: number) => (await db().select().from(orders).where(eq(orders.id, id)))[0]!;
 const auditsFor = (id: number) => db().select().from(auditLog).where(and(eq(auditLog.entity, 'orders'), eq(auditLog.entityId, String(id))));
+type SlipAuditAfter = { refs: string[]; refused: string[]; count: number; size: string };
 const slipAudits = () => db().select().from(auditLog).where(eq(auditLog.action, 'order.slips'));
 /** A form with repeated `ref` fields, as the browser sends ticked checkboxes. */
 const shipForm = (refs: string[], extra: Record<string, string>) => {
@@ -139,7 +141,6 @@ describe('slips', () => {
     const x = await newOrder('confirmed', { name: 'Karim Haddad', address: 'Cité 200 logements, bloc 4' });
     const y = await newOrder('shipped', { name: 'أمينة بن علي', address: 'حي النصر، عمارة 12' });
     const z = await newOrder('new');
-    const before = (await slipAudits()).length;
     const res = await postMulti(USERS.logistics, '/orders/shipping/slips', shipForm([x.ref, y.ref, z.ref, 'HB-ZZZZZ'], { size: 'a5' }));
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -155,11 +156,12 @@ describe('slips', () => {
     expect(html).toContain('0560417403');
     expect(html).toContain('Non imprimées');
     expect(html).toContain(`<bdi dir="ltr">${z.ref}</bdi>`);
-    const a = await slipAudits();
-    expect(a).toHaveLength(before + 1);
-    const after = a.at(-1)!.after as { refs: string[]; refused: string[]; count: number; size: string };
-    expect(after).toEqual({ refs: [x.ref, y.ref], count: 2, refused: [z.ref, 'HB-ZZZZZ'], size: 'a5' });
-    const json = JSON.stringify(a.at(-1));
+    // This print's own row, found by its refs: never by counting the table, which another test's
+    // late request could change.
+    const mine = (await slipAudits()).filter((r) => (r.after as SlipAuditAfter).refs.includes(x.ref));
+    expect(mine).toHaveLength(1);
+    expect(mine[0]!.after).toEqual({ refs: [x.ref, y.ref], count: 2, refused: [z.ref, 'HB-ZZZZZ'], size: 'a5' });
+    const json = JSON.stringify(mine[0]);
     for (const pii of ['Karim', 'Haddad', 'أمينة', 'Cité', '+213', '0560']) expect(json).not.toContain(pii);
   });
   test('no sensitive data on a slip', async () => {
@@ -189,9 +191,13 @@ describe('slips', () => {
     expect(screen).not.toMatch(/<bdi>\s*<\/bdi>/);
   });
   test('nothing ticked → 422; no audit row', async () => {
-    const before = (await slipAudits()).length;
     expect((await postMulti(USERS.owner, '/orders/shipping/slips', shipForm([], {}))).status).toBe(422);
-    expect(await slipAudits()).toHaveLength(before);
+    // Every print row names at least one ref (printed or refused); an empty request must leave none.
+    const empty = (await slipAudits()).filter((r) => {
+      const after = r.after as SlipAuditAfter;
+      return after.refs.length === 0 && after.refused.length === 0;
+    });
+    expect(empty).toHaveLength(0);
   });
   test('no inline script/style on the print page', async () => {
     const x = await newOrder('confirmed');
