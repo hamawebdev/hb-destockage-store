@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "doc": "Who may write which paths. Enforced by .githooks/pre-commit (identity = branch team/<name>; main = lead with HB_ROLE=lead). Globs use node:path matchesGlob. 'except' removes paths from 'paths'. 'reserved' paths belong to their owner no matter which area glob also matches. Change this file only through tooling.",
+  "maxFileBytes": 2097152,
+  "largeFileGlobs": [
+    "data/photos/**",
+    "packages/ui-tokens/fonts/**",
+    "packages/ui-tokens/icons/**",
+    "brand/assets/**",
+    "brand/logo/**",
+    "docs/design-reference/**"
+  ],
+  "appendOnlyForAll": [
+    "DECISIONS.md"
+  ],
+  "reserved": {
+    "tooling": [
+      "package.json",
+      "package-lock.json",
+      "**/package.json",
+      "**/package-lock.json",
+      "tsconfig*.json",
+      "**/tsconfig*.json"
+    ],
+    "lead": [
+      "team/APPROVALS.md",
+      "team/SIGNOFFS.md",
+      "team/BRIEF.md",
+      "team/MERGE-EXCEPTIONS.md",
+      "team/REVIEW-REQUIRED.txt"
+    ]
+  },
+  "idAreas": {
+    "ACAT": "admin-catalog",
+    "ADMIN": "admin-core",
+    "AORD": "admin-orders",
+    "BRAND": "brand",
+    "CAT": "pagedata",
+    "DB": "db",
+    "GEO": "geo",
+    "JOBS": "jobs",
+    "MEAS": "measure",
+    "ORDER": "orderform",
+    "PAGES": "pages",
+    "QA": "qa",
+    "SEED": "seed",
+    "SHARED": "shared",
+    "SHELL": "shell",
+    "TOKENS": "tokens",
+    "TOOL": "tooling",
+    "WEB": "web"
+  },
+  "owners": {
+    "tooling": {
+      "paths": [
+        "package.json",
+        "package-lock.json",
+        "**/package.json",
+        "tsconfig*.json",
+        "**/tsconfig*.json",
+        ".githooks/**",
+        "scripts/**",
+        ".claude/settings.json",
+        ".claude/agents/**",
+        "team/owners.json",
+        "CLAUDE.md",
+        "REVIEW.md",
+        "DECISIONS.md",
+        ".gitignore",
+        ".nvmrc",
+        "vitest.workspace.*"
+      ],
+      "reviewer": "rev-a",
+      "portBase": 4100
+    },
+    "measure": {
+      "paths": [
+        "tools/measure/**",
+        "tests/e2e/**"
+      ],
+      "reviewer": "rev-a",
+      "portBase": 4110
+    },
+    "jobs": {
+      "paths": [
+        "apps/jobs/**"
+      ],
+      "reviewer": "rev-a",
+      "portBase": 4120
+    },
+    "brand": {
+      "paths": [
+        "brand/**",
+        "data/content/**"
+      ],
+      "reviewer": "rev-b",
+      "portBase": 4130
+    },
+    "tokens": {
+      "paths": [
+        "packages/ui-tokens/**"
+      ],
+      "reviewer": "rev-b",
+      "portBase": 4140
+    },
+    "shell": {
+      "paths": [
+        "apps/storefront/**"
+      ],
+      "except": [
+        "apps/storefront/src/pages/{ar,fr}/{c,p,search}/**",
+        "apps/storefront/src/components/catalog/**",
+        "apps/storefront/public/js/search*.js",
+        "apps/storefront/public/js/variant*.js",
+        "apps/storefront/src/components/order/**",
+        "apps/storefront/src/pages/{ar,fr}/order/**",
+        "apps/storefront/public/js/order*.js"
+      ],
+      "reviewer": "rev-b",
+      "portBase": 4150
+    },
+    "geo": {
+      "paths": [
+        "data/geo/**"
+      ],
+      "reviewer": "rev-c",
+      "portBase": 4160
+    },
+    "seed": {
+      "paths": [
+        "data/catalog/**",
+        "data/photos/**"
+      ],
+      "reviewer": "rev-c",
+      "portBase": 4170
+    },
+    "pagedata": {
+      "paths": [
+        "packages/catalog/**"
+      ],
+      "reviewer": "rev-c",
+      "portBase": 4180
+    },
+    "db": {
+      "paths": [
+        "packages/db/**"
+      ],
+      "reviewer": "rev-d",
+      "portBase": 4190
+    },
+    "shared": {
+      "paths": [
+        "packages/shared/**"
+      ],
+      "reviewer": "rev-d",
+      "portBase": 4200
+    },
+    "web": {
+      "paths": [
+        "apps/web/**"
+      ],
+      "reviewer": "rev-d",
+      "portBase": 4210
+    },
+    "pages": {
+      "paths": [
+        "apps/storefront/src/pages/{ar,fr}/{c,p,search}/**",
+        "apps/storefront/src/components/catalog/**",
+        "apps/storefront/public/js/search*.js",
+        "apps/storefront/public/js/variant*.js",
+        "apps/storefront/src/pages/{ar,fr}/order/[[]slug[]].astro"
+      ],
+      "reviewer": "rev-e",
+      "portBase": 4220
+    },
+    "orderform": {
+      "paths": [
+        "apps/storefront/src/components/order/**",
+        "apps/storefront/src/pages/{ar,fr}/order/confirmation/**",
+        "apps/storefront/src/pages/{ar,fr}/order/review/**",
+        "apps/storefront/src/pages/{ar,fr}/order/form.json.ts",
+        "apps/storefront/public/js/order*.js"
+      ],
+      "reviewer": "rev-e",
+      "portBase": 4230
+    },
+    "admin-core": {
+      "paths": [
+        "apps/admin/*",
+        "apps/admin/src/{app.ts,app.tsx,index.ts,env.ts}",
+        "apps/admin/src/{auth,audit,ui,i18n,lib}/**",
+        "apps/admin/src/routes/{dashboard,users,settings}/**",
+        "apps/admin/test/**",
+        "apps/admin/public/**"
+      ],
+      "reviewer": "rev-f",
+      "portBase": 4240,
+      "except": [
+        "apps/admin/test/{orders,catalog}/**"
+      ]
+    },
+    "admin-orders": {
+      "paths": [
+        "apps/admin/src/routes/{orders,customers}/**",
+        "apps/admin/test/orders/**"
+      ],
+      "reviewer": "rev-f",
+      "portBase": 4250
+    },
+    "admin-catalog": {
+      "paths": [
+        "apps/admin/src/routes/{products,categories,fees,content,media,publish}/**",
+        "apps/admin/test/catalog/**"
+      ],
+      "reviewer": "rev-f",
+      "portBase": 4260
+    },
+    "qa": {
+      "paths": [],
+      "reviewer": null,
+      "portBase": 4270
+    },
+    "rev-a": {
+      "paths": [],
+      "reviewer": null,
+      "portBase": 4280
+    },
+    "rev-b": {
+      "paths": [],
+      "reviewer": null,
+      "portBase": 4290
+    },
+    "rev-c": {
+      "paths": [],
+      "reviewer": null,
+      "portBase": 4300
+    },
+    "rev-d": {
+      "paths": [],
+      "reviewer": null,
+      "portBase": 4310
+    },
+    "rev-e": {
+      "paths": [],
+      "reviewer": null,
+      "portBase": 4320
+    },
+    "rev-f": {
+      "paths": [],
+      "reviewer": null,
+      "portBase": 4330
+    },
+    "lead": {
+      "paths": [
+        "team/APPROVALS.md",
+        "team/BRIEF.md",
+        "team/SIGNOFFS.md",
+        "docs/**",
+        "STACK-REPORT.md",
+        "research-evidence/**",
+        "team/MERGE-EXCEPTIONS.md",
+        "team/REVIEW-REQUIRED.txt"
+      ],
+      "reviewer": null,
+      "portBase": 4340
+    }
+  },
+  "forbiddenGlobs": [
+    "**/*.sql.gz",
+    "**/*.dump",
+    "**/hb-restore-*/**",
+    "**/backups/**",
+    "**/d1-export-*"
+  ],
+  "forbiddenExcept": [
+    "packages/db/migrations/[0-9][0-9][0-9][0-9]_*.sql",
+    "packages/db/migrations/meta/_journal.json",
+    "packages/db/migrations/meta/[0-9][0-9][0-9][0-9]_snapshot.json"
+  ],
+  "maxBytesByGlob": {
+    "apps/jobs/**": 1048576
+  }
+}

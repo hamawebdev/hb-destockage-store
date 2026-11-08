@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# git runs this (not pre-commit) for merges that complete without conflicts, including `-s ours`.
+# Same ownership rules: a merge may not change or revert another owner's file.
+# git has not written MERGE_HEAD yet at this point; the merged commit is the last word of
+# GIT_REFLOG_ACTION ("merge <ref>"), passed on as HB_MERGE_THEIRS.
+set -euo pipefail
+ref="${GIT_REFLOG_ACTION:-}"
+ref="${ref##* }"
+theirs="$(git rev-parse -q --verify "${ref}^{commit}" 2>/dev/null || true)"
+if [[ -z "$theirs" ]]; then
+  echo "pre-merge-commit: cannot tell which commit is being merged (GIT_REFLOG_ACTION='${GIT_REFLOG_ACTION:-}'). Use: git merge --no-commit <branch> && git commit" >&2
+  exit 1
+fi
+export HB_MERGE_THEIRS="$theirs"
+exec "$(dirname "${BASH_SOURCE[0]}")/pre-commit" "$@"

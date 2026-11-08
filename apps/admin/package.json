@@ -14,7 +14,6 @@
     "@hb/db": "*",
     "@hb/shared": "*",
     "@hb/ui-tokens": "*",
-    "@hb/web": "*",
     "drizzle-orm": "0.45.4",
     "hono": "4.13.16",
     "jose": "6.2.15",

@@ -1,0 +1,566 @@
+// Tests for scripts/team/merge.sh (TOOL-5). Authority = the lead-only ledger main:team/APPROVALS.md
+// (lead ruling 2026-11-05). Includes rev-d's TOOL-5 r1 attack cases (artifacts/TOOL-5/rev-d/attack*.sh)
+// as permanent tests: C1–C7 controls, X1–X8 attacks, and the evil octopus / 2-parent merges.
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { GOOD_BODY, cleanupTmp, commit, git, makeRepo, msg, ok, sh, tmpRoots, write } from './helpers.ts';
+
+afterAll(cleanupTmp);
+
+describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
+  let root: string;
+  let wt: string;
+  let gateOk: string;
+  let gateRed: string;
+
+  const mainSha = () => ok(git(root, 'rev-parse', 'main')).stdout.trim();
+  const merge = (args: string[], gate = gateOk) =>
+    sh(root, join(root, 'scripts/team/merge.sh'), args, { HB_ARTIFACTS_DIR: join(root, 'artifacts'), HB_GATE_CMD: gate });
+  const tier = (t: string) => `What changed: x\nTesting: y\n${t}\nRevert: z\n`;
+  const commitIn = (dir: string, subject: string, body = GOOD_BODY, noVerify = false) => {
+    ok(git(dir, 'add', '-A'));
+    ok(sh(dir, 'git', ['commit', '-q', ...(noVerify ? ['--no-verify'] : []), '-F', '-'], {}, msg(subject, body)));
+    return ok(git(dir, 'rev-parse', 'HEAD')).stdout.trim();
+  };
+  /** The lead records a review round in the ledger on main. */
+  const ledger = (line: string) => {
+    const f = join(root, 'team/APPROVALS.md');
+    writeFileSync(f, readFileSync(f, 'utf8') + line + '\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: ledger', { HB_ROLE: 'lead' }));
+  };
+  const approve = (id: string, n: number, verdict: 'APPROVED' | 'CHANGES_REQUESTED', commits: string[], t = 'low', reviewer = 'rev-d') =>
+    ledger(`${id} r${n} ${verdict} tier=${t} reviewer=${reviewer} commits=${commits.join(',')} review=artifacts/${id}/review-r${n}.md`);
+  const resetBranch = () => {
+    ok(git(wt, 'checkout', '-q', 'team/web'));
+    ok(git(wt, 'reset', '-q', '--hard', 'main'));
+  };
+
+  beforeAll(() => {
+    root = makeRepo();
+    const bin = mkdtempSync(join(tmpdir(), 'hb-gate-fake-'));
+    tmpRoots.push(bin);
+    gateOk = join(bin, 'gate-ok.sh');
+    gateRed = join(bin, 'gate-red.sh');
+    writeFileSync(gateOk, '#!/bin/sh\necho "fake gate GREEN $*"\n', { mode: 0o755 });
+    writeFileSync(gateRed, '#!/bin/sh\necho "gate: RED at test" >&2\nexit 1\n', { mode: 0o755 });
+    write(root, 'team/REVIEW-REQUIRED.txt', '# paths whose commits need a ledger approval\napps/web/src/**\napps/admin/**\npackages/**\n');
+    write(root, 'team/APPROVALS.md', '# Approvals ledger (lead-only)\n\nOne line per review round:\n`<ID> r<n> APPROVED|CHANGES_REQUESTED tier=<low|high> reviewer=<rev-x> commits=<full-sha>[,…] review=artifacts/<ID>/review-r<n>.md`\n\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-1: ledgers', { HB_ROLE: 'lead' }));
+    ok(git(root, 'branch', 'team/web'));
+    wt = join(root, '.worktrees/web');
+    ok(git(root, 'worktree', 'add', '-q', wt, 'team/web'));
+  });
+
+  // ---- controls (rev-d C1–C7) -------------------------------------------------------------------
+  test('C1: no ledger line → refused, main untouched', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/a.ts', 'export const a = 1;\n');
+    commitIn(wt, 'WEB-1: a');
+    const before = mainSha();
+    const r = merge(['team/web']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('no line for WEB-1 in team/APPROVALS.md');
+    expect(mainSha()).toBe(before);
+  });
+
+  test('C2: approved low-risk commit merges --no-ff after a green gate; the table names the ledger line', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/b.ts', 'export const b = 1;\n');
+    const c = commitIn(wt, 'WEB-2: b');
+    approve('WEB-2', 1, 'APPROVED', [c]);
+    const before = mainSha();
+    const r = merge(['team/web']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('MERGED');
+    expect(r.stdout).toContain('ledger WEB-2 r1 APPROVED by rev-d');
+    expect(ok(git(root, 'rev-parse', 'main^1')).stdout.trim()).toBe(before);
+    expect(ok(git(root, 'rev-parse', 'main^2')).stdout.trim()).toBe(c);
+    expect(readFileSync(join(root, 'artifacts/merges.log'), 'utf8')).toContain('team/web');
+    expect(ok(git(root, 'worktree', 'list')).stdout).not.toContain('hb-merge');
+  });
+
+  test('C3: an approval recorded under another ID does not cover the commit', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/c3.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-3: c3');
+    approve('OTHER-1', 1, 'APPROVED', [c]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('no line for WEB-3');
+  });
+
+  test('no sign-off check: a high-tier commit merges with just its ledger line', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/e.ts', 'export const e = 1;\n');
+    const c = commitIn(wt, 'WEB-5: e', tier('Risk tier: high'));
+    approve('WEB-5', 1, 'APPROVED', [c], 'high');
+    const r = merge(['team/web']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+  });
+
+  test('a commit touching no review-required path merges without a ledger line; a missing list refuses', () => {
+    resetBranch();
+    write(wt, 'apps/web/public/readme.txt', 'x\n');
+    commitIn(wt, 'WEB-50: public file');
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('no review required');
+
+    const f = join(root, 'team/REVIEW-REQUIRED.txt');
+    const saved = readFileSync(f, 'utf8');
+    rmSync(f);
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: drop list', { HB_ROLE: 'lead' }));
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status).toBe(1);
+    expect(r2.stderr).toContain('REVIEW-REQUIRED');
+    writeFileSync(f, saved);
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: restore list', { HB_ROLE: 'lead' }));
+  });
+
+  test('C5: a --no-verify commit touching another owner\'s path is refused', () => {
+    resetBranch();
+    write(wt, 'packages/db/src/y.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-6: foreign', GOOD_BODY, true);
+    approve('WEB-6', 1, 'APPROVED', [c]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('ownership');
+    expect(r.stderr).toContain('owned by db');
+  });
+
+  test('C6: malformed or missing Risk tier lines are refused (and full format is checked)', () => {
+    for (const t of ['Risk tier: High', 'Risk tier:  high', 'risk tier: high', 'Risk tier: medium', '']) {
+      resetBranch();
+      write(wt, 'apps/web/src/t.ts', `// ${t}\n`);
+      const c = commitIn(wt, 'WEB-7: tier', tier(t), true);
+      approve('WEB-7', 1, 'APPROVED', [c]);
+      const r = merge(['team/web', '--dry-run']);
+      expect(r.status, t).toBe(1);
+      expect(r.stderr).toMatch(/Risk tier|message format/);
+    }
+    resetBranch();
+    write(wt, 'apps/web/src/t2.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-8: empty fields', 'What changed:\nTesting:\nRisk tier: low\nRevert:\n', true);
+    approve('WEB-8', 1, 'APPROVED', [c]);
+    expect(merge(['team/web', '--dry-run']).stderr).toContain('message format');
+  });
+
+  test('C7: a branch that merged main with -s ours (reverting a main change) is refused', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/c7.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-9: c7');
+    write(root, 'REVIEW.md', 'main change\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-2: main change', { HB_ROLE: 'lead' }));
+    ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'merge', '-q', '-s', 'ours', '--no-edit', 'main']));
+    approve('WEB-9', 1, 'APPROVED', [c]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/hand-edited or conflicted|net-diff/);
+  });
+
+  // ---- attacks (rev-d X1–X8) ----------------------------------------------------------------------
+  test('X2–X4: review files are evidence, never authority (drafts, quoted verdicts, self-written approvals)', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/x2.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-11: x2');
+    const art = join(root, 'artifacts/WEB-11');
+    write(art, 'review-r1.md', `Findings: 0\nVerdict: APPROVED\nCommits: ${c}\nReviewer: web · Risk tier: low\n`);
+    write(art, 'review-r1-draft.md', `Findings: 0\nVerdict: APPROVED\nCommits: ${c}\nReviewer: rev-d · Risk tier: low\n`);
+    expect(merge(['team/web', '--dry-run']).status).toBe(1);
+    approve('WEB-11', 1, 'CHANGES_REQUESTED', [c]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('latest ledger line for WEB-11 is r1 CHANGES_REQUESTED');
+  });
+
+  test('X4b: a teammate cannot write the ledger (pre-commit) and a ledger line naming a non-reviewer refuses everything', () => {
+    resetBranch();
+    write(wt, 'team/APPROVALS.md', 'WEB-12 r1 APPROVED tier=low reviewer=rev-d commits=' + 'a'.repeat(40) + ' review=x\n');
+    ok(git(wt, 'add', '-A'));
+    const r1 = sh(wt, 'git', ['commit', '-q', '-F', '-'], {}, msg('WEB-12: forge'));
+    expect(r1.status).not.toBe(0);
+    expect(r1.stderr).toContain('owned by lead');
+    ok(git(wt, 'reset', '-q', '--hard'));
+    write(wt, 'apps/web/src/x4b.ts', 'export {};\n');
+    commitIn(wt, 'WEB-12: x4b'); // something to merge, so the ledger is read
+    ledger(`WEB-12 r1 APPROVED tier=low reviewer=rev-z commits=${'b'.repeat(40)} review=x`);
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status).toBe(1);
+    expect(r2.stderr).toContain("reviewer 'rev-z' is not a reviewer");
+    ledger('WEB-12 r2 APPROVED tier=low reviewer=rev-d commits=abc1234 review=x');
+    const r3 = merge(['team/web', '--dry-run']);
+    expect(r3.stderr).toContain('malformed ledger line');
+    // the lead repairs the ledger by rewriting those lines
+    const f = join(root, 'team/APPROVALS.md');
+    writeFileSync(f, readFileSync(f, 'utf8').split('\n').filter((l) => !l.startsWith('WEB-12 ')).join('\n'));
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: ledger repair', { HB_ROLE: 'lead' }));
+  });
+
+  test('X4e / X4h (rev-d r2): a ledger line with odd spacing, tab, CRLF, lowercase verdict or short sha is never ignored — it refuses everything', () => {
+    for (const bad of [
+      ' WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x', // X4e leading space
+      'WEB-14  r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x', // X4h two spaces
+      'WEB-14\tr2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x', // tab
+      'WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x trailing', // junk
+      '- WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x', // list bullet
+      'WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=CS review=x\r', // CRLF
+      'WEB-14 r2 changes_requested tier=low reviewer=rev-d commits=CS review=x', // lowercase verdict
+      'WEB-14 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=SHORT review=x', // truncated sha
+    ]) {
+      resetBranch();
+      write(wt, 'apps/web/src/x4e.ts', `// ${bad.length}\n`);
+      const c = commitIn(wt, 'WEB-14: x4e');
+      approve('WEB-14', 1, 'APPROVED', [c]);
+      ledger(bad.replace('CS', c).replace('SHORT', c.slice(0, 12)));
+      const r = merge(['team/web', '--dry-run']);
+      expect(r.status, JSON.stringify(bad)).toBe(1);
+      expect(r.stderr).toContain('malformed ledger line');
+      // the lead repairs the ledger
+      const f = join(root, 'team/APPROVALS.md');
+      writeFileSync(f, readFileSync(f, 'utf8').split('\n').filter((l) => !l.includes('WEB-14')).join('\n'));
+      ok(git(root, 'add', '-A'));
+      ok(commit(root, 'BOOT-9: ledger repair', { HB_ROLE: 'lead' }));
+    }
+  });
+
+  test('R4 (rev-d r3): a backticked verdict line is a real line — CHANGES_REQUESTED refuses, APPROVED counts', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/r4.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-24: r4');
+    approve('WEB-24', 1, 'APPROVED', [c]);
+    ledger('`WEB-24 r2 CHANGES_REQUESTED tier=low reviewer=rev-d commits=' + c + ' review=x`');
+    const r1 = merge(['team/web', '--dry-run']);
+    expect(r1.status).toBe(1);
+    expect(r1.stderr).toContain('latest ledger line for WEB-24 is r2 CHANGES_REQUESTED');
+    ledger('`WEB-24 r3 APPROVED tier=low reviewer=rev-d commits=' + c + ' review=x`');
+    // R4b: a stray '<' does not make a real line a template
+    ledger('`WEB-24 r4 CHANGES_REQUESTED tier=low reviewer=rev-d commits=' + c + ' review=x` <- reopened');
+    const r1b = merge(['team/web', '--dry-run']);
+    expect(r1b.status).toBe(1);
+    expect(r1b.stderr).toContain('malformed ledger line');
+    const fl = join(root, 'team/APPROVALS.md');
+    writeFileSync(fl, readFileSync(fl, 'utf8').split('\n').filter((l) => !l.includes('<- reopened')).join('\n'));
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: ledger repair', { HB_ROLE: 'lead' }));
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status, r2.stdout + r2.stderr).toBe(0);
+    expect(r2.stdout).toContain('ledger WEB-24 r3 APPROVED');
+  });
+
+  test('R7: prose with ID-shaped tokens fails closed and names the line and its text', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/r7.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-25: r7');
+    approve('WEB-25', 1, 'APPROVED', [c]);
+    ledger('Note: evidence hashes are SHA-256; files are UTF-8.');
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/team\/APPROVALS\.md:\d+ malformed ledger line: .*SHA-256.*'#' comment/);
+    const f = join(root, 'team/APPROVALS.md');
+    writeFileSync(f, readFileSync(f, 'utf8').replace('Note: evidence hashes', '# Note: evidence hashes'));
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: ledger prose as comment', { HB_ROLE: 'lead' }));
+    expect(merge(['team/web', '--dry-run']).status).toBe(0);
+  });
+
+  test('X12 (rev-d): attribution never follows a moved team/* ref — a WEB commit editing packages/db is refused', () => {
+    resetBranch();
+    write(wt, 'packages/db/src/y.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-26: sneaks into db', GOOD_BODY, true);
+    approve('WEB-26', 1, 'APPROVED', [c]);
+    ok(git(root, 'branch', '-f', 'team/db', c)); // the tamper: point team/db at it
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('ownership');
+    expect(r.stderr).toContain('packages/db/src/y.ts');
+    ok(git(root, 'branch', '-f', 'team/db', 'main'));
+  });
+
+  test('X14 (rev-d r4): a branch commit labelled BOOT-n cannot edit the lead-only ledger files, even with a ledger line', () => {
+    resetBranch();
+    write(wt, 'team/APPROVALS.md', readFileSync(join(root, 'team/APPROVALS.md'), 'utf8') + '# forged\n');
+    const c = commitIn(wt, 'BOOT-77: forge the ledger', GOOD_BODY, true);
+    approve('BOOT-77', 1, 'APPROVED', [c]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('ownership');
+    expect(r.stderr).toContain('team/APPROVALS.md');
+  });
+
+  const exceptions = (line: string) => {
+    const f = join(root, 'team/MERGE-EXCEPTIONS.md');
+    writeFileSync(f, (existsSync(f) ? readFileSync(f, 'utf8') : '# Merge exceptions (lead-only)\n') + line + '\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: merge exception', { HB_ROLE: 'lead' }));
+  };
+  const clearExceptions = () => {
+    const f = join(root, 'team/MERGE-EXCEPTIONS.md');
+    writeFileSync(f, '# Merge exceptions (lead-only)\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: clear merge exceptions', { HB_ROLE: 'lead' }));
+  };
+
+  test('MERGE-EXCEPTIONS message: a legacy message merges only for that exact sha and ID', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/legacy.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-40: legacy', 'What changed:\nmulti-line value\nTesting:\nran it\nRisk tier: low\nRevert:\ngit revert\n', true);
+    approve('WEB-40', 1, 'APPROVED', [c]);
+    expect(merge(['team/web', '--dry-run']).stderr).toContain('message format');
+    exceptions(`${c} message WEB-41 — wrong ID`);
+    expect(merge(['team/web', '--dry-run']).stderr).toContain("'message' line names WEB-41");
+    clearExceptions();
+    exceptions(`${c} message WEB-40 — pre-hook legacy message`);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    clearExceptions();
+  });
+
+  test('MERGE-EXCEPTIONS owner: skips only ownership (net diff accepts that exact version; dumps still refused)', () => {
+    resetBranch();
+    write(wt, 'apps/admin/src/routes/categories/index.tsx', 'export {};\n');
+    const c = commitIn(wt, 'WEB-42: mount placeholder', GOOD_BODY, true);
+    approve('WEB-42', 1, 'APPROVED', [c]);
+    expect(merge(['team/web', '--dry-run']).stderr).toContain('ownership');
+    exceptions(`${c} owner WEB-42 — placeholder route the brief asked for`);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('OK (author *');
+    clearExceptions();
+    resetBranch();
+    write(wt, 'apps/admin/backups/x.json', '{}\n');
+    const d = commitIn(wt, 'WEB-43: dump', GOOD_BODY, true);
+    approve('WEB-43', 1, 'APPROVED', [d]);
+    exceptions(`${d} owner WEB-43 — try to sneak a dump`);
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status).toBe(1);
+    expect(r2.stderr).toContain('dump');
+    clearExceptions();
+  });
+
+  test('MERGE-EXCEPTIONS: a malformed line (bad kind, short sha, CRLF) refuses every merge', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/okx.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-44: ok');
+    approve('WEB-44', 1, 'APPROVED', [c]);
+    for (const bad of [`${c} merge WEB-44 — not a kind`, `${c.slice(0, 12)} message WEB-44 — short`, `${c} message WEB-44 — crlf\r`]) {
+      exceptions(bad);
+      const r = merge(['team/web', '--dry-run']);
+      expect(r.status, JSON.stringify(bad)).toBe(1);
+      expect(r.stderr).toContain('MERGE-EXCEPTIONS.md');
+      clearExceptions();
+    }
+    expect(merge(['team/web', '--dry-run']).status).toBe(0);
+  });
+
+  test('a clean octopus merge is accepted automatically (recreated by merge-tree); a hand-edited 2-parent merge is not', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/o0.ts', 'export {};\n');
+    const s0 = commitIn(wt, 'WEB-45: o0');
+    const sides: string[] = [];
+    for (const b of ['oct1', 'oct2']) {
+      ok(git(wt, 'checkout', '-q', '-B', b, 'main'));
+      write(wt, `apps/web/src/${b}.ts`, 'export {};\n');
+      sides.push(commitIn(wt, `WEB-45: ${b}`, GOOD_BODY, true)); // side branches are not team/* (hooks off)
+    }
+    ok(git(wt, 'checkout', '-q', 'team/web'));
+    ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'merge', '-q', '--no-ff', '--no-edit', 'oct1', 'oct2']));
+    approve('WEB-45', 1, 'APPROVED', [s0, ...sides]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('OK (clean merge, 3 parents, recreated)');
+
+    resetBranch();
+    write(wt, 'apps/web/src/h0.ts', 'export {};\n');
+    const h0 = commitIn(wt, 'WEB-46: h0');
+    ok(git(wt, 'checkout', '-q', '-B', 'hside', 'main'));
+    write(wt, 'apps/web/src/h1.ts', 'export {};\n');
+    const h1 = commitIn(wt, 'WEB-46: h1', GOOD_BODY, true);
+    ok(git(wt, 'checkout', '-q', 'team/web'));
+    ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'merge', '-q', '--no-ff', '--no-commit', 'hside']));
+    write(wt, 'apps/web/src/h1.ts', 'export const edited = true;\n'); // hand edit inside the merge
+    ok(git(wt, 'add', '-A'));
+    ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'commit', '-q', '-m', 'Merge hside']));
+    const m = ok(git(wt, 'rev-parse', 'HEAD')).stdout.trim();
+    approve('WEB-46', 1, 'APPROVED', [h0, h1]);
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status).toBe(1);
+    expect(r2.stderr).toContain('hand-edited or conflicted');
+    approve('WEB-46', 2, 'APPROVED', [m]); // reviewed → accepted
+    expect(merge(['team/web', '--dry-run']).status).toBe(0);
+  });
+
+  test('X5 / X6: merge commits adding a foreign file are refused, octopus explicitly', () => {
+    for (const kind of ['octopus', 'two']) {
+      resetBranch();
+      write(wt, 'apps/web/src/x5.ts', 'export {};\n');
+      const s0 = commitIn(wt, 'WEB-13: x5');
+      const sides: string[] = [];
+      for (const b of kind === 'octopus' ? ['side1', 'side2'] : ['side1']) {
+        ok(git(wt, 'checkout', '-q', '-B', b, 'main'));
+        write(wt, `apps/web/src/${b}.ts`, 'export {};\n');
+        sides.push(commitIn(wt, `WEB-13: ${b}`, GOOD_BODY, true));
+      }
+      ok(git(wt, 'checkout', '-q', 'team/web'));
+      ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'merge', '-q', '--no-ff', '--no-commit', ...(kind === 'octopus' ? ['side1', 'side2'] : ['side1'])]));
+      write(wt, 'packages/db/src/evil.ts', 'evil\n');
+      ok(git(wt, 'add', '-A'));
+      ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'commit', '-q', '-m', 'Merge sides']));
+      approve('WEB-13', 1, 'APPROVED', [s0, ...sides]);
+      const r = merge(['team/web', '--dry-run']);
+      expect(r.status, kind).toBe(1);
+      expect(r.stderr).toContain('hand-edited or conflicted');
+      expect(git(root, 'cat-file', '-e', 'main:packages/db/src/evil.ts').status).not.toBe(0);
+    }
+  });
+
+  test('X8 (lead ruling): r1 CHANGES_REQUESTED lists A, r2 APPROVED lists B → both merge; r2 CHANGES_REQUESTED → neither', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/m1.ts', 'export const m = 1;\n');
+    const a = commitIn(wt, 'WEB-16: m');
+    write(wt, 'apps/web/src/m1.ts', 'export const m = 2;\n');
+    const b = commitIn(wt, 'WEB-16: address review r1');
+    approve('WEB-16', 1, 'CHANGES_REQUESTED', [a]);
+    approve('WEB-16', 2, 'CHANGES_REQUESTED', [b]);
+    const r1 = merge(['team/web', '--dry-run']);
+    expect(r1.status).toBe(1);
+    expect(r1.stderr).toContain(a.slice(0, 9));
+    expect(r1.stderr).toContain(b.slice(0, 9));
+    approve('WEB-16', 2, 'APPROVED', [b]); // same round recorded again: the later line wins
+    const r2 = merge(['team/web']);
+    expect(r2.status, r2.stdout + r2.stderr).toBe(0);
+    expect(git(root, 'merge-base', '--is-ancestor', a, 'main').status).toBe(0);
+  });
+
+  test('a commit on no ledger line is refused even when its ID is approved', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/n.ts', 'export const n = 1;\n');
+    const a = commitIn(wt, 'WEB-17: n');
+    write(wt, 'apps/web/src/n2.ts', 'export const n = 2;\n');
+    commitIn(wt, 'WEB-17: unreviewed follow-up');
+    approve('WEB-17', 1, 'APPROVED', [a]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('not listed for WEB-17');
+  });
+
+  test('a D1/Drizzle migration (packages/db/migrations/*.sql) from team/db passes merge.sh (rev-a TOOL-7)', () => {
+    ok(git(root, 'branch', '-f', 'team/db', 'main'));
+    const dbw = join(root, '.worktrees/db');
+    if (!existsSync(dbw)) ok(git(root, 'worktree', 'add', '-q', dbw, 'team/db'));
+    ok(git(dbw, 'reset', '-q', '--hard', 'main'));
+    write(dbw, 'packages/db/migrations/0006_new.sql', 'CREATE TABLE t (id INTEGER PRIMARY KEY);\n');
+    const c = commitIn(dbw, 'DB-9: migration 0006');
+    approve('DB-9', 1, 'APPROVED', [c], 'low', 'rev-d');
+    const r = merge(['team/db', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('OK (author db');
+  });
+
+  // ---- mechanics -----------------------------------------------------------------------------------
+  test('red gate leaves main and branches untouched; dry-run never moves main', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/f.ts', 'export const f = 1;\n');
+    const c = commitIn(wt, 'WEB-18: f');
+    approve('WEB-18', 1, 'APPROVED', [c]);
+    const before = mainSha();
+    const r = merge(['team/web'], gateRed);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('RED');
+    expect(mainSha()).toBe(before);
+    expect(ok(git(root, 'branch', '--list', 'hb-merge/*')).stdout.trim()).toBe('');
+    const d = merge(['team/web', '--dry-run']);
+    expect(d.status, d.stderr).toBe(0);
+    expect(d.stdout).toContain('DRY-RUN OK');
+    expect(mainSha()).toBe(before);
+  });
+
+  test('conflict refuses and leaves main untouched', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/conflict.ts', 'export const v = "web";\n');
+    const c = commitIn(wt, 'WEB-19: conflict');
+    write(root, 'apps/web/src/conflict.ts', 'export const v = "lead";\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-3: conflict', { HB_ROLE: 'lead' }));
+    approve('WEB-19', 1, 'APPROVED', [c]);
+    const before = mainSha();
+    const r = merge(['team/web']);
+    expect(r.status, r.stdout + r.stderr).toBe(1);
+    expect(r.stderr).toContain('conflicts with main');
+    expect(mainSha()).toBe(before);
+  });
+
+  test('merge commits: a conflict resolution needs a ledger listing; a clean merge of main needs none', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/conflict2.ts', 'export const v = "web";\n');
+    const c = commitIn(wt, 'WEB-20: conflict2');
+    write(root, 'apps/web/src/conflict2.ts', 'export const v = "lead";\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-4: conflict2', { HB_ROLE: 'lead' }));
+    expect(git(wt, 'merge', '-q', '--no-edit', 'main').status).not.toBe(0);
+    write(wt, 'apps/web/src/conflict2.ts', 'export const v = "both";\n');
+    ok(git(wt, 'add', '-A'));
+    ok(sh(wt, 'git', ['commit', '-q', '--no-edit']));
+    const m = ok(git(wt, 'rev-parse', 'HEAD')).stdout.trim();
+    approve('WEB-20', 1, 'APPROVED', [c]);
+    const r1 = merge(['team/web', '--dry-run']);
+    expect(r1.status).toBe(1);
+    expect(r1.stderr).toContain('hand-edited or conflicted');
+    approve('WEB-20', 2, 'APPROVED', [m]);
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status, r2.stdout + r2.stderr).toBe(0);
+
+    resetBranch();
+    write(wt, 'apps/web/src/j.ts', 'export const j = 1;\n');
+    const c2 = commitIn(wt, 'WEB-21: j');
+    write(root, 'apps/admin/src/auth/other.ts', 'export {};\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-5: other', { HB_ROLE: 'lead' }));
+    ok(git(wt, 'merge', '-q', '--no-edit', 'main'));
+    approve('WEB-21', 1, 'APPROVED', [c2]);
+    const r3 = merge(['team/web', '--dry-run']);
+    expect(r3.status, r3.stdout + r3.stderr).toBe(0);
+    expect(r3.stdout).toContain('clean merge');
+  });
+
+  test('commits merged in from another team branch are attributed to that branch', () => {
+    resetBranch();
+    ok(git(root, 'branch', '-f', 'team/admin-core', 'main'));
+    const ac = join(root, '.worktrees/admin-core');
+    if (!existsSync(ac)) ok(git(root, 'worktree', 'add', '-q', ac, 'team/admin-core'));
+    ok(git(ac, 'reset', '-q', '--hard', 'main'));
+    write(ac, 'apps/admin/src/routes/dashboard/x.ts', 'export {};\n');
+    const a = commitIn(ac, 'ADMIN-20: dashboard');
+    ok(git(wt, 'merge', '-q', '--no-edit', 'team/admin-core'));
+    write(wt, 'apps/web/src/k.ts', 'export {};\n');
+    const w = commitIn(wt, 'WEB-22: k');
+    approve('ADMIN-20', 1, 'APPROVED', [a], 'low', 'rev-f');
+    approve('WEB-22', 1, 'APPROVED', [w]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('OK (author admin-core');
+  });
+
+  test('net diff (review F1): a revert hidden in a merge commit is refused even when the merge is listed', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/l.ts', 'export {};\n');
+    const w = commitIn(wt, 'WEB-23: l');
+    write(root, 'apps/admin/src/app.ts', 'export const a = 42;\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-7: admin change on main', { HB_ROLE: 'lead' }));
+    ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'merge', '-q', '-s', 'ours', '--no-edit', 'main']));
+    const m = ok(git(wt, 'rev-parse', 'HEAD')).stdout.trim();
+    approve('WEB-23', 1, 'APPROVED', [w, m]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('net-diff');
+    expect(r.stderr).toContain('apps/admin/src/app.ts');
+  });
+});

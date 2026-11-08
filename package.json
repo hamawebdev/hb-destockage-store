@@ -5,12 +5,12 @@
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p tsconfig.json",
     "test": "npm run test --workspaces --if-present && vitest run --config scripts/vitest.config.ts && npm run test:data",
-    "build": "npm run build --workspaces --if-present",
-    "budget": "echo 'budget: not wired yet' && exit 0",
-    "lh": "echo 'lh: not wired yet' && exit 0",
-    "shots": "echo 'shots: not wired yet' && exit 0",
-    "axe": "echo 'axe: not wired yet' && exit 0",
-    "e2e": "echo 'e2e: not wired yet' && exit 0",
+    "build": "scripts/require-catalog.sh && HB_SNAPSHOT=${HB_SNAPSHOT:-seed} HB_SITE_ORIGIN=${HB_SITE_ORIGIN:-http://localhost:8787} npm run build --workspaces --if-present",
+    "budget": "node tools/measure/src/budget/cli.ts",
+    "lh": "node tools/measure/src/lh/cli.ts",
+    "shots": "node tools/measure/src/shots/cli.ts",
+    "axe": "node tools/measure/src/axe/cli.ts",
+    "e2e": "node tools/measure/src/e2e/cli.ts",
     "test:data": "scripts/test-data.sh"
   },
   "devDependencies": {

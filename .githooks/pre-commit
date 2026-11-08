@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Ownership + size rules (team/owners.json). Activate ONCE for the whole repo with the ABSOLUTE path
+# of the main checkout's hooks, so every worktree runs main's reviewed hooks and rules, never its
+# own branch's copy:
+#   git config core.hooksPath "/mnt/data/ecom website/.githooks"
+# Identity = branch team/<name>. On main only the lead commits, with HB_ROLE=lead.
+# Never use `git stash`: the stash is shared by every worktree (BRIEF §9). Use a WIP commit instead.
+set -euo pipefail
+hooks="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+owners_js="$hooks/../scripts/lib/owners.mjs"
+export HB_OWNERS_FILE="$hooks/../team/owners.json"
+branch="$(git symbolic-ref --short -q HEAD || true)"
+
+if [[ "$branch" == "main" ]]; then
+  if [[ "${HB_ROLE:-}" != "lead" ]]; then
+    echo "pre-commit: refused — only the lead commits on main (HB_ROLE=lead). Teammates commit on team/<name> in .worktrees/<name>." >&2
+    exit 1
+  fi
+  exec node "$owners_js" check-staged lead --lead
+fi
+
+if [[ "$branch" != team/* ]]; then
+  echo "pre-commit: refused — commit from your branch team/<your-name> (current: ${branch:-detached HEAD}). See team/BRIEF.md §6." >&2
+  exit 1
+fi
+
+exec node "$owners_js" check-staged "${branch#team/}"
