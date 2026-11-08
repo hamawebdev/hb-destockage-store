@@ -162,3 +162,12 @@ Rules:
 - Why: client request, 2026-11-08 (artifacts/CART-0/plan.md): first paint must not pay for a sheet most visitors never open. A constructable stylesheet needs no change to the hash-based `style-src`; a `<link>` would have needed `'self'`.
 - Evidence: measured on the seed build of this commit: sheet CSS 5,544 B raw, 1,318 B brotli (inside cart-sheet.js, 3,978 B brotli in all); cart.js 1,431 B brotli on every page after LCP. The sheet is tested in Chrome under the served CSP (no violations). Per-template byte and Lighthouse deltas are in the CART proof run.
 - Status: active
+
+## D-009 — Meta's Pixel is a scoped exception to "no third-party scripts, no cookies, no analytics"
+- Date: 2026-11-08 · Author: growth (for lead, client instruction) · Task: META-1
+- Report says: CLAUDE.md "No analytics or chat widgets", "Storefront: no cookies, no third-party scripts, hash-based CSP", "No third-party origin before LCP"; STACK-REPORT.md §2.
+- We do instead: the storefront may load Meta's Pixel (`https://connect.facebook.net/en_US/fbevents.js`), accept the cookies Meta's own script sets (`_fbp`, `_fbc`), and send it events. **This covers Meta's Pixel and its own cookies only.** Every other storefront rule still holds: no other third-party script, no cookie of ours, nothing third-party before LCP, a hash-based CSP that grows only by the Pixel's origins and only on pages that carry the Pixel. Until a Pixel ID is set there is no script, no choice shown, no CSP change and no request. With one set, nothing loads or is sent, by browser or server, until the visitor accepts (setting `META_CONSENT_REQUIRED`, on by default).
+- Why: client decision, for Meta ad measurement on a cash-on-delivery store.
+- Trust boundary: consent reaches the server as the visitor's own browser's claim (`meta.consent === true` in the JSON order body). It cannot be verified without a cookie, which the client ruled out for the choice. A bot posting someone else's phone with `consent:true` sends that hash to Meta, the same exposure as placing a fake order in that person's name. The no-JS path has no consent and never sends.
+- Evidence: client instruction, 2026-11-08 (artifacts/META-0/brief.md Part 1, "WHAT IS DECIDED"); contract and lead approval (artifacts/META-0/contract.md, artifacts/META-0/lead-approval.md); `.claude/skills/meta-pixel/SKILL.md` and `references/privacy-and-consent.md`; `.claude/skills/meta-conversions-api/SKILL.md`. Behaviour against the real Meta is not verified by this entry: it needs real credentials (docs/META-GO-LIVE.md).
+- Status: active
