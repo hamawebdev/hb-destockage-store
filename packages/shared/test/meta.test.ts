@@ -32,8 +32,16 @@ const input = (over: Partial<Parameters<typeof buildPurchaseEvent>[0]> = {}): Pa
 });
 
 describe('sha256Hex and phone digits', () => {
-  test("Meta's published phone vector", async () => {
-    expect(await sha256Hex('16505551212')).toBe(META_US_PHONE);
+  test.each([
+    ['email', 'john_smith@gmail.com', '62a14e44f765419d10fea99367361a727c12365e2520f32218d505ed9aa0f62f'],
+    ['phone', '16505551212', META_US_PHONE],
+    ['first name', 'mary', '6915771be1c5aa0c886870b6951b03d7eafc121fea0e80a5ea83beb7c449f4ec'],
+    ['non-Roman name', '정', '8fa8cd9c440be61d0151429310034083132b35975c4bea67fdd74158eb51db14'],
+    ['accented name', 'valéry', '08e1996b5dd49e62a4b4c010d44e4345592a863bb9f8e3976219bac29417149c'],
+    ['date of birth', '19970216', '01acdbf6ec7b4f478a225f1a246e5d6767eeab1a7ffa17f025265b5b94f40f0c'],
+    ['country', 'us', '79adb2a2fce5c6ba215fe5f27f532d4e7edbac4b6a5e09e1ef3a08084a904621'],
+  ])("Meta's published vector: %s", async (_n, normalized, digest) => {
+    expect(await sha256Hex(normalized)).toBe(digest);
   });
   test('refuses an empty string', async () => {
     await expect(sha256Hex('')).rejects.toThrow(RangeError);
