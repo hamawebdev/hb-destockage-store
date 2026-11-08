@@ -19,7 +19,7 @@ describe.each(['ar', 'fr'] as const)('no-JS order in /%s/', (lang) => {
     const page = await ctx.newPage();
     const v = pickVariant(lang);
     const place = pickPlace();
-    await openOrderStep(page, web, lang, v);
+    await openOrderStep(page, web, lang, v, { js: false });
     await chooseVariant(page, v); // the step shows the default: the customer picks again
     // without JS the commune list may only appear on the review page: fill what the form offers
     const form = page.locator('form[action="/api/order"]');

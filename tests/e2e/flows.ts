@@ -67,9 +67,12 @@ export function pickPlace(): Place {
 /** Pick the variant's option values in the page's picker (product page or order step). */
 export async function chooseVariant(page: Page, p: Pick): Promise<void> {
   for (const v of p.optionValueIds) {
-    const radio = page.locator(`input[type="radio"][data-ov="${v}"]`);
+    const radio = page.locator(`input[type="radio"][data-ov="${v}"]`).first();
     if (!(await radio.count())) throw new Error(`no picker radio for option value ${v} of variant ${p.variantId} at ${page.url()}`);
-    await radio.first().check({ force: true });
+    if (await radio.isChecked()) continue;
+    // the radio itself is visually hidden: a customer clicks its label (the pill or swatch)
+    await page.locator('label', { has: radio }).first().click();
+    if (!(await radio.isChecked())) throw new Error(`clicking the label of option value ${v} did not select it at ${page.url()}`);
   }
 }
 
@@ -78,16 +81,18 @@ export const orderStepPath = (lang: string, slug: string): string => `/${lang}/o
 
 /**
  * The customer's way in: open the product page, pick the variant, press the CTA, land on the order
- * step. With JS the CTA link carries ?v=<variantId>; without JS it is the GET form's button.
+ * step. With JS, variant.js reveals the CTA link (which carries ?v=<variantId>) and hides the
+ * form's button; wait for that first, so the pick reaches the link. Without JS: the form's button.
  */
-export async function openOrderStep(page: Page, web: string, lang: string, p: Pick): Promise<void> {
+export async function openOrderStep(page: Page, web: string, lang: string, p: Pick, opts: { js?: boolean } = {}): Promise<void> {
+  const js = opts.js !== false;
   const res = await page.goto(`${web}/${lang}/p/${p.slug}/`);
   if (res?.status() !== 200) throw new Error(`product page /${lang}/p/${p.slug}/: HTTP ${res?.status()} (build the storefront from the seed: HB_SNAPSHOT=seed)`);
   const buy = page.locator('#cat-buy');
   if (!(await buy.count())) throw new Error(`/${lang}/p/${p.slug}/ has no #cat-buy form (ORDER-STEP product page)`);
+  const cta = buy.locator(js ? 'a.cat-cta' : 'button.cat-cta').first();
+  await cta.waitFor({ state: 'visible', timeout: 15_000 });
   await chooseVariant(page, p);
-  const link = page.locator('a.cat-cta:visible');
-  const cta = (await link.count()) ? link.first() : buy.locator('button[type="submit"]').first();
   const target = orderStepPath(lang, p.slug);
   await Promise.all([page.waitForURL((u) => u.pathname === target, { timeout: 20_000 }), cta.click()]);
   await page.waitForLoadState('load');
@@ -97,8 +102,14 @@ export async function openOrderStep(page: Page, web: string, lang: string, p: Pi
 export async function expectPreselected(page: Page, p: Pick): Promise<void> {
   const v = new URL(page.url()).searchParams.get('v');
   if (v !== String(p.variantId)) throw new Error(`the CTA did not carry the variant: ?v=${v}, expected ${p.variantId} (${page.url()})`);
+  // polled from here, not page.waitForFunction: the site's CSP (correctly) forbids eval in the page
   for (const ov of p.optionValueIds) {
-    await page.waitForFunction(`document.querySelector('input[type="radio"][data-ov="${ov}"]')?.checked === true`, undefined, { timeout: 10_000 });
+    const radio = page.locator(`input[type="radio"][data-ov="${ov}"]`).first();
+    const end = Date.now() + 10_000;
+    while (!(await radio.isChecked())) {
+      if (Date.now() > end) throw new Error(`?v=${p.variantId} did not preselect option value ${ov} on the order step`);
+      await page.waitForTimeout(100);
+    }
   }
 }
 
