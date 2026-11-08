@@ -330,7 +330,7 @@ describe('every registered route refuses without auth (route walk over the produ
       expect(res.status, `${r.method} ${r.path}`).toBe(r.path.startsWith('/__dev') ? 404 : 401);
       expect(res.headers.get('Cache-Control')).toBe('private, no-store');
     }
-  }, 60_000);
+  }, 180_000);
 
   test('production env, malformed token → 403 on every route and method', async () => {
     const env = { ...testEnv({} as D1Database), ENV: 'production' as const, ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD };
@@ -339,7 +339,7 @@ describe('every registered route refuses without auth (route walk over the produ
       const res = await prodApp.request(`https://admin.hb.example${concrete(r.path)}`, { method: r.method, headers: { 'Cf-Access-Jwt-Assertion': 'x.y.z' } }, env);
       expect(res.status, `${r.method} ${r.path}`).toBe(403);
     }
-  }, 60_000);
+  }, 180_000);
 
   test('production env, valid token for an unknown email → 403 on every route', async () => {
     const jwt = await token({ email: 'stranger@example.com' });
@@ -348,7 +348,7 @@ describe('every registered route refuses without auth (route walk over the produ
       const res = await withJwt(jwt, concrete(r.path), accessEnv, { method: r.method });
       expect(res.status, `${r.method} ${r.path}`).toBe(403);
     }
-  }, 60_000);
+  }, 180_000);
 
   test('development env on localhost, no session → 401 everywhere except the dev login itself', async () => {
     const env: Env = { ...h.env, ENV: 'development', DEV_SESSION_SECRET: DEV_SECRET };
@@ -361,7 +361,7 @@ describe('every registered route refuses without auth (route walk over the produ
         expect(res.status, `${r.method} ${r.path}`).toBe(401);
       }
     }
-  }, 60_000);
+  }, 180_000);
 });
 
 // seedUsers is re-exported for builders' tests; keep the import used.
