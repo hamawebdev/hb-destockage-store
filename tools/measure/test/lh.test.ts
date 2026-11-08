@@ -304,6 +304,18 @@ describe('template registry', () => {
     put(one, 'ar/order/a/index.html', page('ar', 'order-step'));
     expect(discover(one).errors).toEqual([]); // one language only: reported, not an error
   });
+  it('checkout: an optional template, recognised by data-tpl and by URL', () => {
+    expect(['/ar/checkout/', '/fr/checkout/'].map(templateFromUrl)).toEqual(['checkout', 'checkout']);
+    const none = tmp();
+    site(none);
+    expect(discover(none).errors).toEqual([]);
+    const d = tmp();
+    site(d);
+    for (const l of ['ar', 'fr']) put(d, `${l}/checkout/index.html`, page(l, 'checkout'));
+    const r = discover(d);
+    expect(r.errors).toEqual([]);
+    expect(r.targets.filter((t) => t.template === 'checkout').map((t) => [t.id, t.url])).toEqual([['checkout-ar', '/ar/checkout/'], ['checkout-fr', '/fr/checkout/']]);
+  });
   it('explicit URL lists', () => {
     expect(targetsFromUrls(['/ar/', 'http://h/fr/p/x/']).map((t) => [t.id, t.url])).toEqual([['01-home-ar', '/ar/'], ['02-product-fr', '/fr/p/x/']]);
   });

@@ -17,10 +17,10 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { walk } from './lib/paths.ts';
 
-export const TEMPLATES = ['home', 'category', 'product', 'search', 'content', 'order-confirmed', 'not-found', 'order-step'] as const;
+export const TEMPLATES = ['home', 'category', 'product', 'search', 'content', 'order-confirmed', 'not-found', 'order-step', 'checkout'] as const;
 export type Template = (typeof TEMPLATES)[number];
 /** Measured when the build has them, never an error when it does not (report-only: lead, ORDER-STEP). */
-export const OPTIONAL_TEMPLATES: ReadonlySet<Template> = new Set<Template>(['order-step']);
+export const OPTIONAL_TEMPLATES: ReadonlySet<Template> = new Set<Template>(['order-step', 'checkout']);
 /** Allowed `data-tpl-kind` values per template (others take none). */
 export const KINDS: Partial<Record<Template, readonly string[]>> = { product: ['simple', 'variable', 'pack'], category: ['top', 'sub'] };
 export type Lang = 'ar' | 'fr';
@@ -60,7 +60,7 @@ export interface Registry {
   errors: string[];
 }
 
-const RESERVED = new Set(['c', 'p', 'search', 'order', '404', 'img', 'js', 'fonts', 'geo', 'api', '_astro']);
+const RESERVED = new Set(['c', 'p', 'search', 'order', 'checkout', 'cart', '404', 'img', 'js', 'fonts', 'geo', 'api', '_astro']);
 
 /** Classify one URL path by the CAT-1 scheme. */
 export function templateFromUrl(url: string): Template | null {
@@ -74,6 +74,7 @@ export function templateFromUrl(url: string): Template | null {
   if (rest === 'search/') return 'search';
   if (rest === 'order/confirmation/') return 'order-confirmed';
   if (/^order\/(?!confirmation\/|review\/)[^/]+\/$/.test(rest)) return 'order-step';
+  if (rest === 'checkout/') return 'checkout';
   if (/^[^/]+\/$/.test(rest) && !RESERVED.has(rest.slice(0, -1))) return 'content';
   return null;
 }
