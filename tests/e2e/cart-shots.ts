@@ -92,7 +92,10 @@ async function main(): Promise<void> {
       await form.locator('select[name="wilayaCode"]').selectOption(String(place.wilaya));
       await form.locator(`[name="communeId"] option[value="${place.communeId}"]`).waitFor({ state: 'attached', timeout: 15_000 });
       await form.locator('[name="communeId"]').selectOption(String(place.communeId));
-      await page.waitForTimeout(800); // the quote, with its fee and total
+      // the quote, with its fee and total: the shot must not catch "calculating"
+      for (const end = Date.now() + 15_000; !/\d/.test((await page.locator('#of-s-total').textContent()) ?? ''); await page.waitForTimeout(200)) {
+        if (Date.now() > end) throw new Error(`checkout ${lang} ${w}: the total never appeared`);
+      }
       await imagesLoaded(page);
       await staticHeader(page);
       const c = await measure(page);
