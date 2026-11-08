@@ -144,7 +144,7 @@ const dev = import.meta.env.DEV;
   .cat-pdp #order{view-timeline:--cat-order block}
   .cat-prose{max-inline-size:var(--measure)}
   .cat-prose p{margin:0 0 var(--space-4);line-height:var(--lh-body)}
-  .cat-buybar{position:fixed;inset-inline:0;inset-block-end:0;z-index:var(--z-sticky);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);min-block-size:var(--bottom-bar-h);padding:var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 -1px 0 rgba(0,0,0,.08);animation:cat-bar-out linear both;animation-timeline:--cat-order;animation-range:entry 0% entry 40%}
+  .cat-buybar{position:fixed;inset-inline:0;inset-block-end:0;z-index:var(--z-sticky);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);min-block-size:var(--bottom-bar-h);padding:var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));background:var(--color-surface);box-shadow:0 -1px 0 var(--color-border);animation:cat-bar-out linear both;animation-timeline:--cat-order;animation-range:entry 0% entry 40%}
   .cat-buybar-price{font-weight:var(--fw-emphasis);font-variant-numeric:tabular-nums}
   .cat-buybar-cta{flex:none}
   @keyframes cat-bar-out{to{opacity:0;visibility:hidden;translate:0 100%}}
