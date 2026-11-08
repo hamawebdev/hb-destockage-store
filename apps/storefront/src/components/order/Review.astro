@@ -114,5 +114,7 @@ const FIELD_CODES = REVIEW_FIELD_CODES;
   .or-total dt { color: var(--color-text); font-weight: var(--fw-emphasis); }
   .or-total dd { color: var(--color-price); font-size: var(--fs-lead); font-weight: var(--fw-emphasis); }
   .or-confirm:not([hidden]) { display: grid; gap: var(--space-2); }
-  .or-link { color: var(--color-accent-text); display: inline-flex; align-items: center; min-block-size: var(--tap-min); }
+  /* Tap targets ≥ 44 px even without tokens' forms.css (not wired by the storefront yet: QA BUG-20). */
+  .or :is(input:not([type=hidden]), select) { min-block-size: var(--tap-min); }
+  .or-link { color: var(--color-accent-text); display: inline-flex; align-items: center; justify-content: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
 </style>

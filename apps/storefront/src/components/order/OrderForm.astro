@@ -147,7 +147,9 @@ const { t, summary: s } = m;
   .of-total dt { color: var(--color-text); font-weight: var(--fw-emphasis); }
   .of-total dd { color: var(--color-price); font-size: var(--fs-lead); font-weight: var(--fw-emphasis); }
   .of-help:not([hidden]) { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
-  .of-link { color: var(--color-accent-text); display: inline-flex; align-items: center; min-block-size: var(--tap-min); }
+  /* Tap targets ≥ 44 px even without tokens' forms.css (not wired by the storefront yet: QA BUG-20). */
+  .of :is(input:not([type=hidden]), select) { min-block-size: var(--tap-min); }
+  .of-link { color: var(--color-accent-text); display: inline-flex; align-items: center; justify-content: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
   .of-fields:disabled .btn-primary { opacity: .5; cursor: not-allowed; }
   @media (prefers-reduced-motion: no-preference) {
     .of-sum dd { transition: opacity var(--dur-fast) var(--ease-standard); }
