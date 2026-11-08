@@ -1,0 +1,176 @@
+# CI + production deployment for the HB Destockage store. Docs: docs/DEPLOY.md.
+# Checks run on a clean runner for PRs and pushes; deploy needs them, for the same commit.
+name: pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    # team/tooling: CI only (the deploy job is limited to refs/heads/main).
+    branches: [main, team/tooling]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'deploy = full pipeline; publish = rebuild and redeploy hb-web from current production data, no migrations'
+        type: choice
+        options: [deploy, publish]
+        default: deploy
+      sha:
+        description: 'Full commit SHA on main (empty = current main)'
+        type: string
+        default: ''
+      approve_destructive_migrations:
+        description: 'sha256 printed by the run that halted on destructive migrations'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  COMMIT: ${{ inputs.sha || github.sha }}
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund --fetch-retries=6
+      - run: npm run typecheck
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: shared, dir: packages/shared, timeout: 15 }
+          - { name: ui-tokens, dir: packages/ui-tokens, timeout: 15 }
+          - { name: catalog, dir: packages/catalog, timeout: 20 }
+          - { name: db, dir: packages/db, per_file: true, timeout: 60 }
+          - { name: storefront, dir: apps/storefront, timeout: 30 }
+          - { name: web, dir: apps/web, timeout: 30 }
+          - { name: admin, dir: apps/admin, per_file: true, timeout: 90 }
+          - { name: jobs, dir: apps/jobs, timeout: 45 }
+          - { name: measure, dir: tools/measure, timeout: 20 }
+          - { name: repo, dir: ., timeout: 30 }
+    name: test (${{ matrix.name }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund --fetch-retries=6
+      - name: Workspace tests, one process per file
+        if: matrix.per_file
+        env:
+          DIR: ${{ matrix.dir }}
+        run: scripts/ci/test-per-file.sh "$DIR"
+      - name: Workspace tests
+        if: ${{ !matrix.per_file && matrix.name != 'repo' }}
+        env:
+          DIR: ${{ matrix.dir }}
+        run: npm test -w "$DIR"
+      - name: Repository scripts and data
+        if: matrix.name == 'repo'
+        run: |
+          npx vitest run --config scripts/vitest.config.ts
+          npm run test:data
+
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund --fetch-retries=6
+      - run: npm run build
+
+  # Report only: never blocks a merge or a deployment; no secrets.
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund --fetch-retries=6
+      - run: npm run build
+      - name: Byte budget (report only)
+        continue-on-error: true
+        run: npm run budget
+      - name: Lighthouse (report only)
+        continue-on-error: true
+        run: npm run lh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: measurements
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  deploy:
+    needs: [typecheck, test, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: production
+    # One production change at a time; pipeline deploys and publishes share this group.
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund --fetch-retries=6
+      - name: Restore image derivative cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/hb-image-derivatives
+          key: hb-image-derivatives-v1-${{ github.run_id }}
+          restore-keys: hb-image-derivatives-v1-
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DEPLOY_MODE: ${{ inputs.mode || 'deploy' }}
+          DEPLOY_SHA: ${{ env.COMMIT }}
+          DEPLOY_EVENT: ${{ github.event_name }}
+          DEPLOY_REF: ${{ github.ref }}
+          APPROVE_DESTRUCTIVE_MIGRATIONS: ${{ inputs.approve_destructive_migrations }}
+          HB_IMAGE_CACHE: ~/.cache/hb-image-derivatives
+        run: node scripts/deploy/deploy.ts
