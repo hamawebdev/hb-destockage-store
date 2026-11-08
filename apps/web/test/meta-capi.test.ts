@@ -122,16 +122,27 @@ describe('afterWrite', () => {
   }
   const store = { noteEnqueueFailed: vi.fn(async () => {}) };
 
+  const hangingFetch = (_url: unknown, init?: RequestInit) =>
+    new Promise<Response>((_ok, fail) => init?.signal?.addEventListener('abort', () => fail(init.signal?.reason)));
+
   test.each([
     ['500', async () => response(500)],
     ['400', async () => response(400)],
     ['network', async () => { throw new TypeError('down'); }],
-  ])('order.created still goes out once when Meta fails (%s)', async (_n, impl) => {
+    ['hang', hangingFetch],
+  ] as [string, typeof fetch][])('order.created still goes out once when Meta fails (%s)', async (_n, impl) => {
     const x = context(ENV);
     vi.stubGlobal('fetch', vi.fn(impl));
     afterWrite(x.c, store, created, 'comptoirdeluxe.com', meta);
     await Promise.all(x.pending);
     expect(x.send).toHaveBeenCalledTimes(1);
+  }, 10_000);
+
+  test('afterWrite returns while the call to Meta is still pending', () => {
+    const x = context(ENV);
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
+    afterWrite(x.c, store, created, 'comptoirdeluxe.com', meta); // synchronous: a fetch that never answers cannot hold it up
+    expect(x.pending).toHaveLength(2);
   });
 
   test.each([

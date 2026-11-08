@@ -52,9 +52,26 @@ const until = async (cond: () => boolean, ms = 8000) => {
   while (!cond() && Date.now() < end) await new Promise((r) => setTimeout(r, 25));
   if (!cond()) throw new Error('condition not met in time');
 };
-/** Long enough for waitUntil to have run: used only where the expected count is zero. */
-const settle = () => new Promise((r) => setTimeout(r, 400));
 const one = <T>(sql: string, ...binds: unknown[]) => h.env.DB.prepare(sql).bind(...binds).first<T>();
+const orderExists = async (ref: string) => (await one<{ n: number }>('select count(*) as n from orders where ref = ?', ref))!.n === 1;
+/** Failed-enqueue notes for an order: 0 means the order.created notification went out. */
+const enqueueNotes = async (ref: string) =>
+  (await one<{ n: number }>("select count(*) as n from order_events e join orders o on o.id = e.order_id where o.ref = ? and e.note like '%could not be enqueued%'", ref))!.n;
+
+/**
+ * Sentinel for "no event": one consenting order, then every earlier send has had its waitUntil run,
+ * so a stray event would already be in the list. Returns the ids received, the sentinel's last.
+ */
+async function sentinelIds(): Promise<string[]> {
+  const { json } = await place(order(consent));
+  const ref = json['ref'] as string;
+  await until(() => standIn.events().some((e) => e.event_id === ref));
+  const ids = standIn.events().map((e) => e.event_id);
+  expect(ids.at(-1)).toBe(ref);
+  return ids.slice(0, -1);
+}
+
+const logsWith = (needle: string, atLeast = 1) => () => h.server.getLogs().filter((l) => JSON.stringify(l).includes(needle)).length >= atLeast;
 
 describe('with consent', () => {
   test.each(['ar', 'fr'] as const)('%s: one correct event, server totals, token in the body only', async (lang) => {
@@ -96,8 +113,7 @@ describe('with consent', () => {
     await until(() => standIn.events().length === 1);
     const again = await place(body);
     expect(again.json['ref']).toBe(first.json['ref']);
-    await settle();
-    expect(standIn.events()).toHaveLength(1);
+    expect(await sentinelIds()).toEqual([first.json['ref']]);
   });
 
   test('a genuine double submit with a new key adds no event', async () => {
@@ -106,21 +122,18 @@ describe('with consent', () => {
     await until(() => standIn.events().length === 1);
     const again = await place(order({ phone, ...consent }));
     expect(again.json).toMatchObject({ ref: first.json['ref'], duplicate: true });
-    await settle();
-    expect(standIn.events()).toHaveLength(1);
+    expect(await sentinelIds()).toEqual([first.json['ref']]);
   });
 
   test('a sunk decoy sends nothing', async () => {
     const r = await place(order({ website: 'http://spam.example', fillMs: 10, ...consent }));
     expect(r.status).toBe(201);
-    await settle();
-    expect(standIn.events()).toHaveLength(0);
+    expect(await sentinelIds()).toEqual([]);
   });
 
   test('no user agent: order accepted, no event', async () => {
     expect((await place(order(consent), { 'User-Agent': '' })).status).toBe(201);
-    await settle();
-    expect(standIn.events()).toHaveLength(0);
+    expect(await sentinelIds()).toEqual([]);
   });
 });
 
@@ -134,8 +147,7 @@ describe('without consent', () => {
     ['consent false', { meta: { consent: false, fbp: FBP } }],
   ])('%s: order 201, no event', async (_n, extra) => {
     expect((await place(order(extra))).status).toBe(201);
-    await settle();
-    expect(standIn.events()).toHaveLength(0);
+    expect(await sentinelIds()).toEqual([]);
   });
 
   test('a malformed fbp is dropped, the event still goes', async () => {
@@ -146,8 +158,7 @@ describe('without consent', () => {
 
   test('a Cookie header alone is not consent', async () => {
     expect((await place(order(), { ...UA, Cookie: `_fbp=${FBP}` })).status).toBe(201);
-    await settle();
-    expect(standIn.events()).toHaveLength(0);
+    expect(await sentinelIds()).toEqual([]);
   });
 });
 
@@ -173,42 +184,66 @@ describe('no-JS path', () => {
       },
       UA,
     );
-    expect([303, 422, 409, 200]).toContain(res.status);
-    await settle();
-    expect(standIn.events()).toHaveLength(0);
+    expect(res.status).toBe(303);
+    const ref = new URL(res.headers.get('location') ?? '', 'http://x').searchParams.get('ref');
+    expect(await orderExists(ref ?? '')).toBe(true);
+    expect(await sentinelIds()).toEqual([]);
   });
 });
 
 describe('Meta failing', () => {
-  const noted = async (ref: string) =>
-    (await one<{ n: number }>("select count(*) as n from order_events e join orders o on o.id = e.order_id where o.ref = ? and e.type like '%enqueue%'", ref))!.n;
+  const noToken = () => expect(JSON.stringify(h.server.getLogs())).not.toContain(TOKEN);
 
-  test('hang: the response arrives while the stand-in still holds the request', async () => {
-    standIn.setMode('hang');
-    const { status, json } = await place(order(consent));
-    expect(status).toBe(201);
-    await until(() => standIn.held() >= 1);
-    expect(await noted(json['ref'] as string)).toBe(0);
-    // The timeout counts as retryable: wait for the one retry, so it does not land in the next test.
-    await until(() => standIn.hits().length === 2);
+  test('ok: the Worker log has the send, not the token', async () => {
+    h.server.clearLogs();
+    expect((await place(order(consent))).status).toBe(201);
+    await until(logsWith('meta_capi'));
+    noToken();
   });
 
-  test('500: exactly two attempts, same event_id, order stands', async () => {
+  test('500: exactly two attempts, same event_id, order stands, notification sent, no token in the logs', async () => {
+    h.server.clearLogs();
     standIn.setMode('500');
     const { status, json } = await place(order(consent));
+    const ref = json['ref'] as string;
     expect(status).toBe(201);
+    expect(await orderExists(ref)).toBe(true);
     await until(() => standIn.hits().length === 2);
-    await settle();
-    const ids = standIn.events().map((e) => e.event_id);
-    expect(ids).toEqual([json['ref'], json['ref']]);
-    expect(await noted(json['ref'] as string)).toBe(0);
+    await until(logsWith('meta_capi', 2));
+    expect(standIn.events().map((e) => e.event_id)).toEqual([ref, ref]);
+    expect(await enqueueNotes(ref)).toBe(0);
+    noToken();
   });
 
-  test('400: exactly one attempt', async () => {
+  test('400: exactly one attempt, order stands, notification sent, no token in the logs', async () => {
+    h.server.clearLogs();
     standIn.setMode('400');
-    expect((await place(order(consent))).status).toBe(201);
+    const { status, json } = await place(order(consent));
+    const ref = json['ref'] as string;
+    expect(status).toBe(201);
+    expect(await orderExists(ref)).toBe(true);
     await until(() => standIn.hits().length === 1);
-    await settle();
-    expect(standIn.hits()).toHaveLength(1);
+    await until(logsWith('meta_capi'));
+    standIn.setMode('ok'); // the sentinel order below must be answered normally
+    expect(await sentinelIds()).toEqual([ref]);
+    expect(standIn.hits()).toHaveLength(2); // the 400 was not retried; the second hit is the sentinel
+    expect(await enqueueNotes(ref)).toBe(0);
+    noToken();
+  });
+
+  // Last in the file on purpose: the Worker's retry can land after this test has finished.
+  test('hang: the response arrives before the Worker gives up on Meta; order stands; no token in the logs', async () => {
+    h.server.clearLogs();
+    standIn.setMode('hang');
+    const { status, json } = await place(order(consent));
+    // Two timeouts of 1.5 s separate the first attempt from giving up: a response that waited for
+    // Meta could not arrive before the second attempt has reached the stand-in.
+    expect(standIn.hits().length).toBeLessThan(2);
+    const ref = json['ref'] as string;
+    expect(status).toBe(201);
+    expect(await orderExists(ref)).toBe(true);
+    await until(logsWith('meta_capi'));
+    expect(await enqueueNotes(ref)).toBe(0);
+    noToken();
   });
 });

@@ -73,5 +73,7 @@ describe('stand-in down', () => {
     const { ref } = (await res.json()) as { ref: string };
     const row = await h.env.DB.prepare('select ref from orders where ref = ?').bind(ref).first();
     expect(row).not.toBeNull();
+    const notes = await h.env.DB.prepare("select count(*) as n from order_events e join orders o on o.id = e.order_id where o.ref = ? and e.note like '%could not be enqueued%'").bind(ref).first<{ n: number }>();
+    expect(notes?.n).toBe(0);
   });
 });
