@@ -1,7 +1,8 @@
 ---
 /**
  * A UI string from brand/copy that may still be a placeholder fact (opening hours, delays, …).
- * Dev builds: the text without its "[PLACEHOLDER]" marker, plus a visible dev pill
+ * Dev builds: the text without its "[PLACEHOLDER]" marker, plus a visible dev pill that takes the
+ * page's direction (marker isolated LTR first, then the note isolated: SHELL-4 r1 N2)
  * (dev.placeholder) and data-placeholder on the wrapper, so QA and screenshots show it.
  * Production (HB_STRICT_COPY=1): t() refuses the placeholder and the build fails, as on content pages.
  * Use it for every chrome string sourced from a fact the client must confirm (QA-2 BUG-11), and for
@@ -33,7 +34,7 @@ const pill = placeholder ? t(strings, 'dev.placeholder') : '';
     'text' in x ? (
       x.text
     ) : (
-      <>{i > 0 && ' '}<bdi class="dev-ph">{pill}{x.note && `: ${x.note}`}</bdi>{i < parts.length - 1 && ' '}</>
+      <>{i > 0 && ' '}<span class="dev-ph"><bdi dir="ltr">{pill}</bdi>{x.note && <>: <bdi>{x.note}</bdi></>}</span>{i < parts.length - 1 && ' '}</>
     ),
   )
 }</span>
@@ -41,9 +42,9 @@ const pill = placeholder ? t(strings, 'dev.placeholder') : '';
 <style is:global>
   @layer components {
     .dev-ph {
+      /* Default slice decoration: no padding where a long pill wraps, so a fragment can never stick
+         out of the line box (box-decoration-break: clone overflowed 5 px at 360 px in RTL). */
       display: inline;
-      -webkit-box-decoration-break: clone;
-      box-decoration-break: clone;
       padding-inline: var(--space-2);
       border-radius: var(--radius-pill);
       background: var(--color-warning-surface);

@@ -26,7 +26,7 @@ const blocks: readonly ContentBlock[] = p.page.blocks;
   <Breadcrumbs items={p.breadcrumbs} strings={l.strings} />
   {!strict && p.page.placeholder && <p class="ct-banner" role="note">{t(l.strings, 'dev.placeholderBanner')}</p>}
   <header class="ct-head">
-    <h1 class="ct-title">{p.page.title}</h1>
+    <h1 class="ct-title"><Copy strings={l.strings} text={p.page.title} /></h1>
     <p class="ct-date">{t(l.strings, 'content.lastUpdated', { date })}</p>
   </header>
   <div class="ct-body reading">

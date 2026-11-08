@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { checkPage, findPhysicalProperty, mergeStyles, orphanImagePreload, pruneCustomProperties, removeEmptyRules } from '../integrations/postbuild-core.mjs';
-import { ALLOWED_INLINE_SCRIPTS, LOADER } from '../src/lib/inline-scripts.mjs';
+import { ALLOWED_INLINE_SCRIPTS, LOADER, SPECULATION_RULES } from '../src/lib/inline-scripts.mjs';
 
 const page = (head: string, body = '', html = '<html lang="fr" dir="ltr">') =>
   `<!doctype html>${html}<head><meta charset="utf-8">${head}</head><body>${body}<script>${LOADER}</script></body></html>`;
@@ -86,8 +86,8 @@ describe('checkPage', () => {
 });
 
 describe('LOADER', () => {
-  test('is the only allowed inline script and only accepts same-origin /js/*.js', () => {
-    expect(ALLOWED_INLINE_SCRIPTS).toEqual([LOADER]);
+  test('is allow-listed and only accepts same-origin /js/*.js', () => {
+    expect(ALLOWED_INLINE_SCRIPTS).toEqual([LOADER, SPECULATION_RULES]);
     const re = /if\(\/(.+?)\/\.test\(u\)\)/.exec(LOADER)?.[1];
     expect(re).toBeDefined();
     const rx = new RegExp(re as string);
