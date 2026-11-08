@@ -260,3 +260,10 @@ TOKENS-9 r1 APPROVED tier=low reviewer=rev-b commits=c45c32ab2dc442f91bc254ba4c5
 ORDER-1 r3 APPROVED tier=low reviewer=rev-c commits=e57dd3b8b33f71f0865fa00cfe9ad9df585f9918 review=artifacts/ORDER-INT-1/review-r1.md
 PAGES-2 r3 APPROVED tier=high reviewer=rev-c commits=d55d67635a807058454cd06584c61063f4c3149f,01a4a9f3b60885ae6ffd29003b63cda906cb1133 review=artifacts/ORDER-STEP/review-pages2-r1.md
 PAGES-2 r4 APPROVED tier=low reviewer=rev-c commits=a9b7c14262e4acc9a3043607177d5e29ab611883 review=artifacts/ORDER-STEP/review-pages2-r2.md
+# CART-0 reviewed 2026-11-08 by the fresh reviewer agent "cart-review", recorded under the reviewer slot rev-c (the single reviewer since D-004).
+WEB-11 r1 APPROVED tier=high reviewer=rev-c commits=f63fd8fafbb70ff0d190200ee822e38e7824d7c8 review=artifacts/CART-0/review.md
+ORDER-7 r1 APPROVED tier=high reviewer=rev-c commits=e42bd62f1444ba031d83f162100a5f49d6d8dbe0 review=artifacts/CART-0/review.md
+ORDER-8 r1 APPROVED tier=high reviewer=rev-c commits=aa1eb4f4768e4a0e0fd2dae89ecb4eebbeb4370a review=artifacts/CART-0/review.md
+ORDER-9 r1 APPROVED tier=high reviewer=rev-c commits=cfa15546525cb96bbdda712dc49254dac6a0f61b review=artifacts/CART-0/review.md
+PAGES-6 r1 APPROVED tier=high reviewer=rev-c commits=550f129d4ffa1579a4c248967e23ea803ff60e33 review=artifacts/CART-0/review.md
+SHELL-8 r1 APPROVED tier=high reviewer=rev-c commits=b74d81e7ca8dfe70cca4394e3e5ce6bbf52fcbe2 review=artifacts/CART-0/review.md
