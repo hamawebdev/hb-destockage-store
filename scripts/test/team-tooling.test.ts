@@ -1,11 +1,11 @@
 // Tests for the team process tooling (TOOL-1): pre-commit, pre-merge-commit, commit-msg, port.sh,
 // gate.sh, locks, TaskCompleted and TeammateIdle hooks. Each test builds a throwaway git repo.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { branch, cleanupTmp, commit, git, makeRepo, msg, ok, sh, tmpRoots, write } from './helpers.ts';
+import { branch, cleanupTmp, commit, git, makeRepo, msg, ok, sh, src, tmpRoots, write } from './helpers.ts';
 
 afterAll(cleanupTmp);
 
@@ -353,6 +353,28 @@ describe('gate.sh', () => {
       `"${join(root, 'scripts/gate.sh')}" "${root}" --no-cache >/dev/null 2>&1; b=$?; echo "$a $b"`],
       { encoding: 'utf8', env: { ...process.env, ...env } });
     expect(holder.stdout.trim()).toBe('75 1');
+  });
+
+  test('require-catalog: a seed build without data/catalog fails early and clearly; fixture and a present catalogue pass (rev-a TOOL-7 r7)', () => {
+    const root = makeRepo({ build: 'scripts/require-catalog.sh' });
+    prepNodeModules(root);
+    cpSync(join(src, 'scripts/require-catalog.sh'), join(root, 'scripts/require-catalog.sh'));
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-6: guard', { HB_ROLE: 'lead' }));
+    const guard = join(root, 'scripts/require-catalog.sh');
+    const noData = sh(root, guard, []);
+    expect(noData.status).toBe(1);
+    expect(noData.stderr).toContain('data/catalog missing: merge seed or run build:fixture');
+    expect(sh(root, guard, [], { HB_SNAPSHOT: 'fixture' }).status).toBe(0);
+    // a checkout without data/: the gate's default (fixture) builds; an explicit seed gate is RED with the message
+    expect(gate(root, '--no-cache').status).toBe(0);
+    const seed = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], { HB_LOCK_DIR: lockDir, HB_SNAPSHOT: 'seed' });
+    expect(seed.status).toBe(1);
+    expect(seed.stdout).toContain('RED   build');
+    const log = seed.stdout.match(/log: (\S.*\.log)/)?.[1] ?? '';
+    expect(readFileSync(log, 'utf8')).toContain('data/catalog missing: merge seed or run build:fixture');
+    write(root, 'data/catalog/categories.json', '[]\n');
+    expect(sh(root, guard, []).status).toBe(0);
   });
 
   test('data/ checks are named steps that can go RED', () => {
