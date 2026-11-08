@@ -279,6 +279,7 @@ describe('rules scale with templates, not with products (lead ruling on ORDER-ST
     scriptHashes: [sha256(SPEC), sha256(LOADER)],
     styleHashes: [(STYLE[template] ??= sha256(`.${template}{}`))],
     hasOrderForm: template === 'order-step' || template === 'order-confirmed',
+    hasMeta: false,
     problems: [],
   });
   function catalogue(products: number): PageScan[] {

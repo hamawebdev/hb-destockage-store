@@ -54,6 +54,13 @@ export default function hbPostbuild(opts) {
 
         const errors = [];
 
+        // Meta off (D-009): nothing Meta-related ships. Before the JS scan and the token pruning below,
+        // so an unconfigured build carries no trace of it.
+        if (!opts.metaEnabled) {
+          await rm(join(root, 'js', 'meta.js'), { force: true });
+          for (const lang of ['ar', 'fr']) await rm(join(root, lang, 'meta'), { recursive: true, force: true });
+        }
+
         // 6. Brand assets.
         for (const { from, to } of opts.copy ?? []) {
           try {

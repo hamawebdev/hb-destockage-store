@@ -5,6 +5,7 @@ import hbPostbuild from './integrations/hb-postbuild.mjs';
 import hbPrebuild from './integrations/hb-prebuild.mjs';
 import { ALLOWED_INLINE_SCRIPTS } from './src/lib/inline-scripts.mjs';
 import { SITE_ORIGIN } from './src/lib/site.mjs';
+import { metaConfig } from './src/lib/meta.mjs';
 
 // Lightning CSS targets: the Algerian baseline (research_i18n_ui row 8, ~98% of DZ traffic).
 // Old targets would lower logical properties to physical ones + :dir() fallbacks.
@@ -33,6 +34,7 @@ export default defineConfig({
       // Loaded lazily at astro:build:done: the catalogue needs the image manifest the pre-build writes,
       // so it must not be evaluated when the config loads.
       siteOrigin: SITE_ORIGIN,
+      metaEnabled: metaConfig() !== null,
       routes: async () => (await import('./src/lib/catalog.ts')).allRoutes(),
       // orderform's Worker-filled review template (not in the route map).
       extraGroups: [
