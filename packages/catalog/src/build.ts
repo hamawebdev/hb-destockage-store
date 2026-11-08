@@ -42,6 +42,7 @@ import {
   type OptionProps,
   type OrderConfirmationProps,
   type OrderFormProps,
+  type OrderStepProps,
   type PackItemProps,
   type PageRef,
   type PaginationProps,
@@ -80,6 +81,8 @@ export const SLOT_SIZES: Readonly<Record<ImageSlot, string>> = {
   gallery: '(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)',
   card: '(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)',
   thumb: '96px',
+  /** ORDER-STEP summary photo, ≤ 120 CSS px (candidates trimmed to ≤ 480 w). */
+  summary: '120px',
 };
 
 /** Brand string keys the builders read. A missing key fails the build. */
@@ -101,6 +104,7 @@ export const REQUIRED_STRING_KEYS = [
   'catalog.home',
   'catalog.pagination.page',
   'chrome.langSwitch',
+  'product.orderCta',
 ] as const;
 
 export interface BuildInput {
@@ -698,6 +702,7 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
       translationPlaceholder: isTranslationPlaceholder(p, lang),
     },
     category: { id: cat.id, name: cat.name[lang], href: ctx.router.url(lang, ref('category', cat.id)) },
+    orderStepHref: ctx.router.url(lang, ref('order-step', p.id)),
     breadcrumbs: breadcrumbs(ctx, lang, categoryChain(ctx, p.categoryId), name),
     images,
     price: defProps.price,
@@ -748,6 +753,58 @@ export function buildContentProps(ctx: BuildContext, lang: Lang, contentId: Id):
   };
 }
 
+/** Summary photo for the order step: the main image with candidates ≤ 480 w only (plan §1/§4). */
+function summaryImage(ctx: BuildContext, img: SnapshotImage, lang: Lang): ImageProps {
+  const full = toImageProps(ctx, img, lang, 'summary', false);
+  const kept = full.candidates.filter((c) => c.width <= 480);
+  const candidates = kept.length ? kept : full.candidates.slice(0, 1);
+  const top = candidates[candidates.length - 1]!;
+  return {
+    ...full,
+    src: top.url,
+    srcset: candidates.map((c) => `${c.url} ${c.width}w`).join(', '),
+    candidates,
+    width: top.width,
+    height: top.height,
+  };
+}
+
+/** ORDER-STEP: the prerendered order page of one published product (sold-out included). */
+export function buildOrderStepProps(ctx: BuildContext, lang: Lang, productId: Id): OrderStepProps {
+  const entry = entryFor(ctx, lang, ref('order-step', productId));
+  const pp = buildProductProps(ctx, lang, productId);
+  const p = ctx.productById.get(productId)!;
+  const main = mainImage(p);
+  const image = main ? summaryImage(ctx, main, lang) : null;
+  const cta = t(ctx, lang, 'product.orderCta');
+  const crumbs = pp.breadcrumbs.map((b, i) => (i === pp.breadcrumbs.length - 1 ? { label: b.label, href: pp.product.href } : b));
+  return {
+    layout: layout(ctx, entry, {
+      title: titled(ctx, lang, `${cta} · ${pp.product.name}`),
+      description: t(ctx, lang, 'meta.product.description', { product: pp.product.name, price: pp.price.label }),
+      lcpImage: null,
+      ogImage: null,
+      hasPlaceholders: pp.product.placeholder || pp.product.translationPlaceholder || (image?.placeholder ?? false),
+    }),
+    product: {
+      id: pp.product.id,
+      kind: pp.product.kind,
+      name: pp.product.name,
+      brandLatin: pp.product.brandLatin,
+      href: pp.product.href,
+      placeholder: pp.product.placeholder,
+      translationPlaceholder: pp.product.translationPlaceholder,
+    },
+    category: pp.category,
+    image,
+    price: pp.price,
+    options: pp.options,
+    variants: pp.variants,
+    breadcrumbs: [...crumbs, { label: cta, href: null }],
+    orderForm: pp.orderForm,
+  };
+}
+
 export function buildOrderConfirmationProps(ctx: BuildContext, lang: Lang): OrderConfirmationProps {
   const entry = entryFor(ctx, lang, ref('order-confirmed'));
   const delivery = ctx.contents.find((c) => c.key === 'delivery');
@@ -791,6 +848,7 @@ export type PageProps =
   | { readonly template: 'search'; readonly props: SearchProps }
   | { readonly template: 'content'; readonly props: ContentProps }
   | { readonly template: 'order-confirmed'; readonly props: OrderConfirmationProps }
+  | { readonly template: 'order-step'; readonly props: OrderStepProps }
   | { readonly template: 'not-found'; readonly props: NotFoundProps };
 
 /** Prop keys that carry a URL (checked on every built page). */
@@ -840,6 +898,8 @@ function buildPagePropsUnchecked(ctx: BuildContext, entry: RouteEntry): PageProp
       return { template: 'content', props: buildContentProps(ctx, lang, id!) };
     case 'order-confirmed':
       return { template: 'order-confirmed', props: buildOrderConfirmationProps(ctx, lang) };
+    case 'order-step':
+      return { template: 'order-step', props: buildOrderStepProps(ctx, lang, id!) };
     case 'not-found':
       return { template: 'not-found', props: buildNotFoundProps(ctx, lang) };
   }

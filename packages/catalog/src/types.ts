@@ -268,6 +268,7 @@ export type TemplateName =
   | 'search'
   | 'content'
   | 'order-confirmed'
+  | 'order-step'
   | 'not-found';
 
 /**
@@ -277,17 +278,24 @@ export type TemplateName =
  *   product          /ar/p/<slug>/
  *   search           /ar/search/
  *   order confirmed  /ar/order/confirmation/    (the order ref arrives as `?ref=HB-XXXXX`)
+ *   order step       /ar/order/<product-slug>/  (ORDER-STEP: one per published product, noindex)
  *   content          /ar/<slug>/                (slug must not be a reserved segment)
  *   not found        /ar/404.html               (served by the static host for unknown /ar/… paths)
  * Sub-categories are flat (`/ar/c/<child-slug>/`); hierarchy is shown by breadcrumbs.
  */
 export const RESERVED_SEGMENTS: readonly string[] = ['c', 'p', 'search', 'order', '404', 'img', 'js', 'fonts', 'geo', 'api'];
+/**
+ * Product slugs that would collide under /{lang}/order/: the static confirmation page and the
+ * Worker-rendered no-JS review step (ORDER-STEP plan §1). Refused by the validator.
+ */
+export const RESERVED_ORDER_SLUGS: readonly string[] = ['confirmation', 'review'];
 
 /** Reference to a page, resolved to a path by the router (`createRouter(snapshot).url(lang, ref)`). */
 export type PageRef =
   | { readonly template: 'home' | 'search' | 'order-confirmed' | 'not-found' }
   | { readonly template: 'category'; readonly id: Id; readonly page?: number }
   | { readonly template: 'product'; readonly id: Id }
+  | { readonly template: 'order-step'; readonly id: Id }
   | { readonly template: 'content'; readonly id: Id };
 
 /** One generated page. `CAT-3` returns all of them; `shell` maps them to `getStaticPaths`. */
@@ -352,7 +360,7 @@ export interface ImageManifestEntry {
 }
 
 /** Where an image is shown; decides `sizes`. Templates may override `sizes` for other uses. */
-export type ImageSlot = 'hero' | 'gallery' | 'card' | 'thumb';
+export type ImageSlot = 'hero' | 'gallery' | 'card' | 'thumb' | 'summary';
 /**
  * Spec budget (CLAUDE.md "≤ 25 KB": decimal kilobytes, 25,000 B, the same number measure's budget
  * checks independently): the hard limit. A candidate ≤ 960 w that cannot reach the 20 kB target at
@@ -685,6 +693,8 @@ export interface ProductProps {
   };
   /** The product's own category (for "more in …" and JSON-LD `category`). */
   readonly category: { readonly id: Id; readonly name: string; readonly href: string };
+  /** ORDER-STEP: the product's order page /{lang}/order/<slug>/ (the GET form's action, the CTA link). */
+  readonly orderStepHref: string;
   readonly breadcrumbs: readonly Breadcrumb[];
   /** All images in order; `images[0]` is the LCP image (`lcp: true`). */
   readonly images: readonly ProductImageProps[];
@@ -770,6 +780,42 @@ export interface OrderConfirmationProps {
   readonly refParam: 'ref';
   readonly deliveryHref: string | null;
   readonly continueHref: string;
+}
+
+/**
+ * ORDER-STEP (plan §1/§8): the prerendered order page /{lang}/order/<slug>/ for one published
+ * product, sold-out included (it then shows the disabled form). noindex: no hreflang alternates, not
+ * in the sitemap; `layout.paths` keep the language switch working. No LCP image (the LCP is the
+ * summary title): `layout.lcpImage` and `layout.ogImage` are null.
+ */
+export interface OrderStepProps {
+  readonly layout: LayoutProps;
+  readonly product: {
+    readonly id: Id;
+    readonly kind: ProductKind;
+    readonly name: string;
+    readonly brandLatin: string | null;
+    /** The product page (back link). */
+    readonly href: string;
+    readonly placeholder: boolean;
+    readonly translationPlaceholder: boolean;
+  };
+  /** The product's own category (same object as ProductProps.category). */
+  readonly category: { readonly id: Id; readonly name: string; readonly href: string };
+  /**
+   * Main photo for the ≤ 120 px summary: candidates ≤ 480 w only, `sizes: 120px`, `lcp: false`.
+   * Render loading="eager" without fetchpriority and without a preload. Null when the product has no image.
+   */
+  readonly image: ImageProps | null;
+  /** The effective default variant's price (same object as ProductProps.price). */
+  readonly price: PriceProps;
+  /** Same objects as ProductProps.options / .variants. */
+  readonly options: readonly OptionProps[];
+  readonly variants: readonly VariantProps[];
+  /** Home › category chain › product › the order CTA label (`product.orderCta`, current). */
+  readonly breadcrumbs: readonly Breadcrumb[];
+  /** Unchanged OrderFormProps (frozen interface). */
+  readonly orderForm: OrderFormProps;
 }
 
 export interface NotFoundProps {

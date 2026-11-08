@@ -24,6 +24,8 @@ export const categoryPath = (lang: Lang, slug: string, page = 1): string =>
 export const productPath = (lang: Lang, slug: string): string => `/${lang}/p/${slug}/`;
 export const searchPath = (lang: Lang): string => `/${lang}/search/`;
 export const orderConfirmationPath = (lang: Lang): string => `/${lang}/order/confirmation/`;
+/** ORDER-STEP: the prerendered order page of one product. */
+export const orderStepPath = (lang: Lang, slug: string): string => `/${lang}/order/${slug}/`;
 export const contentPath = (lang: Lang, slug: string): string => `/${lang}/${slug}/`;
 /** File the static host serves for unknown `/<lang>/…` paths (Workers static assets `404-page`). */
 export const notFoundPath = (lang: Lang): string => `/${lang}/404.html`;
@@ -111,6 +113,11 @@ export function createRouter(snapshot: CatalogSnapshot, pageSize = DEFAULT_PAGE_
         if (!p) throw new RouteError(`product ${ref.id} is not published`);
         return both((l) => productPath(l, p.slug[l]));
       }
+      case 'order-step': {
+        const p = productById.get(ref.id);
+        if (!p) throw new RouteError(`product ${ref.id} is not published`);
+        return both((l) => orderStepPath(l, p.slug[l]));
+      }
       case 'content': {
         const c = contentById.get(ref.id);
         if (!c) throw new RouteError(`content page ${ref.id} is not published`);
@@ -131,6 +138,7 @@ export function createRouter(snapshot: CatalogSnapshot, pageSize = DEFAULT_PAGE_
     for (let page = 1; page <= (pageCounts.get(c.id) ?? 1); page++) add('category', { template: 'category', id: c.id, page }, c.id, page, true);
   }
   for (const p of products) add('product', { template: 'product', id: p.id }, p.id, 1, true);
+  for (const p of products) add('order-step', { template: 'order-step', id: p.id }, p.id, 1, false);
   for (const c of contents) add('content', { template: 'content', id: c.id }, c.id, 1, true);
   add('search', { template: 'search' }, null, 1, false);
   add('order-confirmed', { template: 'order-confirmed' }, null, 1, false);
