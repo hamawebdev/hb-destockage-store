@@ -106,6 +106,29 @@ describe('classifyMigration', () => {
     expect(classifyMigration('ALTER TABLE \u00e9add RENAME TO y;').join()).toMatch(/RENAME/);
   });
 
+  it.each([
+    ['INSERT <BOM>OR REPLACE', "INSERT \ufeffOR REPLACE INTO t VALUES(1,'new');"],
+    ['INSERT OR <BOM>REPLACE', "INSERT OR \ufeffREPLACE INTO t VALUES(1,'new');"],
+    ['DO <BOM>UPDATE', "INSERT INTO t VALUES(1,'new') ON CONFLICT(id) DO \ufeffUPDATE SET v='new';"],
+    ['ON CONFLICT <BOM>REPLACE', 'CREATE TABLE t (a text UNIQUE ON CONFLICT \ufeffREPLACE);'],
+    ['a BOM before a statement', '\ufeffDROP TABLE orders;'],
+  ])('treats a byte-order mark at the start of a token as whitespace: %s', (_label, sql) => {
+    expect(classifyMigration(sql).length).toBeGreaterThan(0);
+  });
+
+  it('keeps a byte-order mark inside a word, as SQLite does', () => {
+    expect(parseStatements('SELECT ab\ufeffcd;')[0]!.tokens.map((t) => t.text)).toEqual(['SELECT', 'AB\ufeffCD']);
+  });
+
+  it.each([
+    ['\u017f (uppercases to S)', 'SELECT 1 AS ca\u017fe;'],
+    ['\u0131 (uppercases to I)', 'SELECT 1 AS beg\u0131n;'],
+  ])('folds keywords in ASCII only, so %s cannot form one', (_label, body) => {
+    const sql = `CREATE TRIGGER t AFTER INSERT ON x BEGIN ${body} END;`;
+    expect(parseStatements(sql)[0]!.triggerProblem).toBeUndefined();
+    expect(classifyMigration(sql)).toEqual([]);
+  });
+
   it('a ; inside a CASE is a problem, whatever inflated the depth', () => {
     expect(classifyMigration('CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT CASE WHEN 1 THEN 2; END; END;').join()).toMatch(/inside a CASE/);
   });

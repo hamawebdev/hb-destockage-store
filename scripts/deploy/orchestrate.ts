@@ -362,8 +362,9 @@ const sellable = (v: SmokeRow['variants'][number]): boolean => v.priceDzd > 0 &&
  * The few products the smoke checks need: the home page links to the hero and the named featured
  * products, or else to the first products by sort order, and the quote needs one variant on sale.
  */
-export function smokeSample(products: readonly SmokeRow[], home: { heroId: number | null; featuredIds: readonly number[] }, wilayas: readonly number[]): SmokeSnapshot {
-  const quoteWilayas = wilayas.slice(0, SMOKE_MAX_WILAYAS);
+export function smokeSample(products: readonly SmokeRow[], home: { heroId: number | null; featuredIds: readonly number[] }, fees: { confirmed: readonly number[]; refused: number | null }): SmokeSnapshot {
+  const quoteWilayas = fees.confirmed.slice(0, SMOKE_MAX_WILAYAS);
+  const refusedWilaya = fees.refused;
   const byId = new Map(products.map((p) => [p.id, p]));
   const picked = new Map<number, SmokeRow>();
   const add = (p: SmokeRow | undefined): void => {
@@ -379,8 +380,8 @@ export function smokeSample(products: readonly SmokeRow[], home: { heroId: numbe
     slug: p.slug,
     variants: [...p.variants.filter(sellable), ...p.variants.filter((v) => !sellable(v))].slice(0, 2).map((v) => ({ ...v, active: true })),
   }));
-  while (sample.length > 1 && Buffer.byteLength(JSON.stringify({ products: sample, quoteWilayas })) > SMOKE_MAX_BYTES) sample.pop();
-  return { products: sample, quoteWilayas };
+  while (sample.length > 1 && Buffer.byteLength(JSON.stringify({ products: sample, quoteWilayas, refusedWilaya })) > SMOKE_MAX_BYTES) sample.pop();
+  return { products: sample, quoteWilayas, refusedWilaya };
 }
 
 /** A sample of live products straight from production: the smoke checks never rely on anything the build produced. */
@@ -404,6 +405,14 @@ async function smokeCatalogue(io: Io, settings: readonly Record<string, unknown>
   // The rule of @hb/db/fees with ENV=production: a row, available, and not a placeholder.
   const fees = await queryD1(io, REMOTE_CONFIG, ['--remote'], `SELECT wilaya_code FROM delivery_fees WHERE available = 1 AND placeholder = 0 AND wilaya_code BETWEEN 1 AND 69 ORDER BY wilaya_code LIMIT ${SMOKE_MAX_WILAYAS}`);
   const quoteWilayas = fees.map((f) => Number(f['wilaya_code'])).filter(Number.isInteger);
+  // A fee that exists but is invented must be refused. With no confirmed fee at all, any wilaya must be.
+  const code = (rows: readonly Record<string, unknown>[], column: string): number | null => {
+    const n = Number(rows[0]?.[column]);
+    return rows.length > 0 && Number.isInteger(n) ? n : null;
+  };
+  const placeholder = await queryD1(io, REMOTE_CONFIG, ['--remote'], 'SELECT wilaya_code FROM delivery_fees WHERE available = 1 AND placeholder = 1 AND wilaya_code BETWEEN 1 AND 69 ORDER BY wilaya_code LIMIT 1');
+  let refused = code(placeholder, 'wilaya_code');
+  if (refused === null && quoteWilayas.length === 0) refused = code(await queryD1(io, REMOTE_CONFIG, ['--remote'], 'SELECT code FROM wilayas ORDER BY code LIMIT 1'), 'code');
   const setting = (key: string): unknown => {
     const row = settings.find((s) => s['key'] === key);
     try {
@@ -417,7 +426,7 @@ async function smokeCatalogue(io: Io, settings: readonly Record<string, unknown>
   return smokeSample([...byProduct.values()], {
     heroId: typeof hero === 'number' ? hero : null,
     featuredIds: Array.isArray(featured) ? featured.filter((x): x is number => typeof x === 'number') : [],
-  }, quoteWilayas);
+  }, { confirmed: quoteWilayas, refused });
 }
 
 /** Export job, with the token: versions, migrations, then everything the build needs from production. */

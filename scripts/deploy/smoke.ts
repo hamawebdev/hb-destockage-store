@@ -16,6 +16,8 @@ export interface SmokeSnapshot {
   readonly products: readonly SmokeProduct[];
   /** Wilayas production has a confirmed fee for (up to 3); empty until the client confirms fees. */
   readonly quoteWilayas: readonly number[];
+  /** A wilaya production must refuse: one with a placeholder fee, or any when none is confirmed. */
+  readonly refusedWilaya: number | null;
 }
 
 export interface SmokeTargets {
@@ -26,8 +28,6 @@ export interface SmokeTargets {
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 const UA = 'hb-deploy-smoke/1 (GitHub Actions)';
-// Any valid wilaya: with no confirmed fee, none of them may be offered.
-const UNCONFIRMED_WILAYA = 16;
 
 const lang = (l: string): { lang: string; dir: string } => ({ lang: l, dir: l === 'ar' ? 'rtl' : 'ltr' });
 
@@ -80,7 +80,11 @@ interface QuoteBody {
 export function checkQuote(status: number, body: QuoteBody): string[] | 'unavailable' {
   if (status !== 200) return [`/api/quote returned ${status}, expected 200 (code: ${String(body.code)})`];
   if (body.ok !== true) return ['/api/quote answered 200 without ok: true'];
-  if (body.available !== true) return 'unavailable';
+  if (body.available === false) {
+    if (body.feeDzd !== null || body.totalDzd !== null) return ['/api/quote refused delivery but still returned a fee or total'];
+    return 'unavailable';
+  }
+  if (body.available !== true) return ['/api/quote answered 200 with neither available: true nor available: false'];
   const { lines, subtotalDzd, feeDzd, totalDzd } = body;
   if (!isDzd(subtotalDzd) || !isDzd(feeDzd) || !isDzd(totalDzd)) return ['/api/quote totals are not integer DZD amounts'];
   if (!Array.isArray(lines) || lines.length === 0) return ['/api/quote returned no lines'];
@@ -148,18 +152,19 @@ export async function runSmokeOnce(targets: SmokeTargets, snapshot: SmokeSnapsho
       });
       return checkQuote(r.status, (await r.json().catch(() => ({}))) as QuoteBody);
     };
-    if (snapshot.quoteWilayas.length === 0) {
-      const result = await quote(UNCONFIRMED_WILAYA);
-      if (result === 'unavailable') return; // production correctly refuses unconfirmed fees
-      problems.push(...result);
-      if (result.length === 0) problems.push(`/api/quote offered delivery to wilaya ${UNCONFIRMED_WILAYA}, but production has no confirmed fee: an unconfirmed fee is being quoted`);
-      return;
-    }
     for (const wilayaCode of snapshot.quoteWilayas) {
       const result = await quote(wilayaCode);
       if (result === 'unavailable') problems.push(`/api/quote: wilaya ${wilayaCode} has a confirmed fee in production but delivery is not offered`);
       else problems.push(...result);
     }
+    if (snapshot.refusedWilaya === null) {
+      if (snapshot.quoteWilayas.length === 0) problems.push('/api/quote: production has neither a confirmed fee nor a wilaya to check the refusal on');
+      return;
+    }
+    const refused = await quote(snapshot.refusedWilaya);
+    if (refused === 'unavailable') return;
+    problems.push(...refused);
+    if (refused.length === 0) problems.push(`/api/quote offered delivery to wilaya ${snapshot.refusedWilaya}, which has no confirmed fee in production: an unconfirmed fee is being quoted`);
   });
 
   await attempt('/api/order', async () => {
