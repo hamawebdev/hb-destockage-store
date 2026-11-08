@@ -288,6 +288,7 @@
         "brand/copy/strings.fr.json",
         "data/content/privacy.json",
         "docs/META-GO-LIVE.md",
+        "packages/catalog/fixtures/props.*.json",
         "packages/catalog/src/**",
         "packages/catalog/test/**",
         "packages/shared/src/index.ts",
