@@ -106,6 +106,7 @@ const ImageSchema = v.strictObject({
   alt: localized(line(300)),
   position: sortKey,
   placeholder: v.boolean(),
+  printedPricesDzd: v.exactOptional(v.array(v.pipe(v.number(), v.integer(), v.minValue(0)))),
 });
 
 const CategorySchema = v.strictObject({

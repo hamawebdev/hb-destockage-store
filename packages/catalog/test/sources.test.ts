@@ -41,6 +41,16 @@ const ALL_WILAYAS = Array.from({ length: 69 }, (_, i) => {
 const byId = <T extends { id: number }>(xs: readonly T[]): T[] => [...xs].sort((a, b) => a.id - b.id);
 
 describe('fromSeed', () => {
+  test('copies each photo\'s printed prices from data/photos/manifest.json (HOME-0)', async () => {
+    const root = await fakeRepo();
+    const printedKey = fixtureSnapshot.products[0]!.images[0]!.key;
+    await put(root, 'data/photos/manifest.json', { about: '', photos: [{ key: printedKey, printedPrices: [14600] }, { key: 'other.jpg', printedPrices: [] }] });
+    const snap = await fromSeed(root, { generatedAt: 1, seedValidation: false });
+    const product = snap.products.find((p) => p.id === fixtureSnapshot.products[0]!.id)!;
+    expect(product.images[0]!.printedPricesDzd).toEqual([14600]);
+    expect(product.images.slice(1).every((i) => i.printedPricesDzd === undefined)).toBe(true);
+  });
+
   test('assembles the same catalogue as the fixture', async () => {
     const snap = await fromSeed(await fakeRepo(), { generatedAt: 42 });
     expect(snap.meta).toEqual({ version: 1, source: 'seed', generatedAt: 42, publishRunId: null });

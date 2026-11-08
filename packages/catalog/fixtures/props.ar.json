@@ -6579,6 +6579,31 @@
           "lcp": false,
           "placeholder": true
         },
+        "cartImage": {
+          "src": "/img/1e3e1840-480.avif",
+          "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/1e3e1840-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/1e3e1840-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "باك مطبخ 3 في 1",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
         "price": {
           "amountDzd": 14600,
           "label": "‏14.600 د.ج.‏",
@@ -6785,6 +6810,31 @@
           "href": "/ar/c/matbakh/"
         },
         "image": {
+          "src": "/img/3b7d8857-480.avif",
+          "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/3b7d8857-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/3b7d8857-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "مريلة مطبخ حمراء",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "cartImage": {
           "src": "/img/3b7d8857-480.avif",
           "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w",
           "sizes": "120px",
@@ -7255,6 +7305,31 @@
           "lcp": false,
           "placeholder": true
         },
+        "cartImage": {
+          "src": "/img/f9cdabaf-480.avif",
+          "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/f9cdabaf-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/f9cdabaf-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "مقلاة 28 سم",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
         "price": {
           "amountDzd": 3200,
           "label": "‏3.200 د.ج.‏",
@@ -7463,6 +7538,31 @@
           "href": "/ar/c/adawat/"
         },
         "image": {
+          "src": "/img/381c18bd-480.avif",
+          "srcset": "/img/381c18bd-360.avif 360w, /img/381c18bd-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/381c18bd-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/381c18bd-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "طنجرة 20 سم",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "cartImage": {
           "src": "/img/381c18bd-480.avif",
           "srcset": "/img/381c18bd-360.avif 360w, /img/381c18bd-480.avif 480w",
           "sizes": "120px",
@@ -7719,6 +7819,31 @@
           "lcp": false,
           "placeholder": true
         },
+        "cartImage": {
+          "src": "/img/04067ca2-480.avif",
+          "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/04067ca2-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/04067ca2-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "طقم سكاكين",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
         "price": {
           "amountDzd": 4500,
           "label": "‏4.500 د.ج.‏",
@@ -7923,6 +8048,31 @@
           "href": "/ar/c/matbakh/"
         },
         "image": {
+          "src": "/img/9479a432-480.avif",
+          "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/9479a432-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/9479a432-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "مصفاة أطباق",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "cartImage": {
           "src": "/img/9479a432-480.avif",
           "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w",
           "sizes": "120px",

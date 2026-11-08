@@ -361,3 +361,63 @@ test('SLOT_SIZES describe the rendered slot width (lead: never under-resolve)', 
   expect(p.images[0]!.sizes).toBe(SLOT_SIZES.gallery);
   expect(p.layout.lcpImage!.sizes).toBe(SLOT_SIZES.gallery);
 });
+
+describe('photos with a printed price (HOME-0: never on the homepage)', () => {
+  const noCardImages = (h: ReturnType<typeof buildHomeProps>): string[] =>
+    [...h.featured, ...h.packs].flatMap((c) => (c.image ? [c.image.src] : []));
+  type Snap = typeof fixtureSnapshot;
+  function build(mut: (s: Snap) => void) {
+    const snapshot = structuredClone(fixtureSnapshot) as Snap;
+    mut(snapshot);
+    return createBuildContext(snapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: stubImageManifest(snapshot) });
+  }
+  const urls = (c: ReturnType<typeof build>, key: string): string[] => stubImageManifest(c.snapshot)[key]!.candidates.map((x) => x.url);
+  const printed = [14600];
+  const snap = (s: Snap, id: number) => s.products.find((p) => p.id === id)!;
+
+  test('a product whose photos all print a price drops off the homepage; the next clean product fills in', () => {
+    const c = build((s) => {
+      for (const img of snap(s, 106).images) (img as { printedPricesDzd?: readonly number[] }).printedPricesDzd = printed;
+    });
+    const h = buildHomeProps(c, 'fr');
+    expect(h.featured.map((x) => x.id)).not.toContain(106);
+    expect(h.packs.map((x) => x.id)).not.toContain(106);
+    expect(h.featured.length).toBeGreaterThanOrEqual(4);
+    // The product itself still sells on its own page, its photo included (BUG-14).
+    expect(buildProductProps(c, 'fr', 106).images.length).toBeGreaterThan(0);
+  });
+
+  test('a card and the cart thumbnail use the first clean photo when the main one prints a price', () => {
+    const c = build((s) => {
+      (snap(s, 101).images[0] as { printedPricesDzd?: readonly number[] }).printedPricesDzd = printed;
+    });
+    const clean = snap(c.snapshot, 101).images.find((i) => (i.printedPricesDzd?.length ?? 0) === 0)!;
+    const home = buildHomeProps(c, 'fr');
+    const card = home.featured.find((x) => x.id === 101)!;
+    expect(urls(c, clean.key)).toContain(card.image?.src);
+    const printedUrls = urls(c, snap(c.snapshot, 101).images[0]!.key);
+    expect(noCardImages(home).some((u) => printedUrls.includes(u))).toBe(false);
+  });
+
+  test('a category tile skips a printed own photo and printed product photos', () => {
+    const c = build((s) => {
+      const cat = s.categories.find((x) => x.id === 1)!;
+      (cat as { image?: unknown }).image = { ...snap(s, 101).images[0]!, id: 900, key: 'fixture/own-category.jpg', printedPricesDzd: printed };
+      for (const p of s.products.filter((x) => x.categoryId === 1 || s.categories.find((y) => y.id === x.categoryId)?.parentId === 1)) {
+        for (const img of p.images) (img as { printedPricesDzd?: readonly number[] }).printedPricesDzd = printed;
+      }
+    });
+    const tile = buildHomeProps(c, 'fr').categories.find((x) => x.id === 1)!;
+    expect(tile.image).toBeNull();
+  });
+
+  test('the hero never takes a printed photo', () => {
+    const c = build((s) => {
+      (s.settings as { homeHeroProductId: number | null }).homeHeroProductId = 106;
+      for (const img of snap(s, 106).images) (img as { printedPricesDzd?: readonly number[] }).printedPricesDzd = printed;
+    });
+    const h = buildHomeProps(c, 'fr');
+    expect(h.hero.image).toBeNull();
+    expect(h.layout.lcpImage).toBeNull();
+  });
+});
