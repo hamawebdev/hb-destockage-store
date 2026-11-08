@@ -36,6 +36,7 @@ beforeAll(async () => {
     put(`${lang}/p/pack/index.html`, page(lang, 'product', '.product{}', '<form method="post" action="/api/order"></form>'));
     put(`${lang}/order/confirmation/index.html`, page(lang, 'confirmation', '.conf{}', '<p data-hb-when="has-ref" hidden><bdi data-hb="ref"></bdi></p>'));
     put(`${lang}/404.html`, page(lang, '404', `.nf-${lang}{}`));
+    put(`${lang}/order/pack/index.html`, page(lang, 'order-step', '.step{}', '<form method="post" action="/api/order"></form>'));
   }
   put('404.html', page('ar', '404', '.nf{}'));
   // Review templates: orderform's real built pages (ORDER-6), so the slot contract and their inline
@@ -123,6 +124,24 @@ describe('static assets with the generated _headers', () => {
     expect(res.status).toBe(404);
     const csp = oneCsp(res);
     expect(csp).toContain(sha256('.nf-ar{}'));
+  });
+
+  test('order step: No-Vary-Search params=("v"), also for ?v=; never on confirmation or the no-JS review', async () => {
+    for (const lang of ['ar', 'fr']) {
+      const step = await server.fetch(`/${lang}/order/pack/`);
+      expect(step.status).toBe(200);
+      expect(step.headers.get('no-vary-search')).toBe('params=("v")');
+      oneCsp(step);
+      expect((await server.fetch(`/${lang}/order/pack/?v=21`)).headers.get('no-vary-search')).toBe('params=("v")');
+      expect((await server.fetch(`/${lang}/order/confirmation/?ref=HB-7K2Q9`)).headers.get('no-vary-search')).toBeNull();
+      expect((await server.fetch(`/${lang}/p/pack/`)).headers.get('no-vary-search')).toBeNull();
+    }
+    const review = await server.fetch('/api/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ lang: 'fr', variantId: '11', qty: '1', name: 'Amine', phone: '0555123456', wilayaCode: '16' }).toString(),
+    });
+    expect(review.headers.get('no-vary-search')).toBeNull();
   });
 
   test('hashed assets are immutable (one Cache-Control value)', async () => {

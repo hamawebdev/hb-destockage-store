@@ -33,6 +33,13 @@ export const SECURITY_HEADERS: readonly (readonly [string, string])[] = [
 ];
 export const HTML_CACHE = 'public, max-age=0, must-revalidate';
 export const IMMUTABLE = 'public, max-age=31536000, immutable';
+/**
+ * ORDER-STEP plan §4: the product page prerenders the bare `/{lang}/order/<slug>/`; a click on
+ * `…/?v=<variant>` must activate that prerender. Not on the confirmation or review pages.
+ */
+export const NO_VARY_SEARCH = 'params=("v")';
+export const ORDER_STEP_PATHS = ['/ar/order/*', '/fr/order/*'] as const;
+export const ORDER_STEP_EXCLUDED = ['/ar/order/confirmation/*', '/ar/order/review/*', '/fr/order/confirmation/*', '/fr/order/review/*'] as const;
 /** Content-hashed (or `?v=<hash>`-referenced) asset directories. */
 export const IMMUTABLE_PATHS = ['/_astro/*', '/img/*', '/fonts/*', '/js/*'] as const;
 
@@ -233,6 +240,9 @@ export function buildRules(pages: readonly PageScan[]): { rules: Rule[]; groups:
   const rules: Rule[] = [
     { pattern: '/*', headers: [...SECURITY_HEADERS, ['Cache-Control', HTML_CACHE], ['Content-Security-Policy', fallback]] },
     ...IMMUTABLE_PATHS.map((pattern): Rule => ({ pattern, detach: ['Cache-Control'], headers: [['Cache-Control', IMMUTABLE]] })),
+    ...ORDER_STEP_PATHS.map((pattern): Rule => ({ pattern, headers: [['No-Vary-Search', NO_VARY_SEARCH]] })),
+    // Later rules detach earlier ones' headers: confirmation and review never get No-Vary-Search.
+    ...ORDER_STEP_EXCLUDED.map((pattern): Rule => ({ pattern, detach: ['No-Vary-Search'], headers: [] })),
   ];
   for (const g of groups) {
     for (const pattern of g.patterns) rules.push({ pattern, detach: ['Content-Security-Policy'], headers: [['Content-Security-Policy', g.csp]] });

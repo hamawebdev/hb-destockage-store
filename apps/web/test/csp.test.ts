@@ -229,6 +229,24 @@ describe('generate on a fixture site', () => {
     expect(text).not.toMatch(/set-cookie/i);
   });
 
+  test('No-Vary-Search params=("v") on the order step only (not confirmation, review or other pages)', () => {
+    const d = tmpSite();
+    for (const lang of ['ar', 'fr']) {
+      mkdirSync(join(d, `${lang}/order/pack-a`), { recursive: true });
+      writeFileSync(join(d, `${lang}/order/pack-a/index.html`), page(lang, 'order-step', '.os{}'));
+    }
+    generate(d);
+    const text = readFileSync(join(d, '_headers'), 'utf8');
+    for (const lang of ['ar', 'fr']) {
+      expect(headersFor(text, `/${lang}/order/pack-a/`).get('no-vary-search'), lang).toEqual(['params=("v")']);
+      for (const p of [`/${lang}/order/confirmation/`, `/${lang}/order/review/`, `/${lang}/p/pack-a/`, `/${lang}/`]) {
+        expect(headersFor(text, p).get('no-vary-search'), p).toBeUndefined();
+      }
+      // The order step still gets exactly one CSP covering its own inline code.
+      assertCovered(page(lang, 'order-step', '.os{}'), cspOf(text, `/${lang}/order/pack-a/`), `/${lang}/order/pack-a/`);
+    }
+  });
+
   test('build fails on uncoverable markup, on a foreign _headers, and on a missing dist', () => {
     const d = tmpSite();
     writeFileSync(join(d, 'ar/search/index.html'), page('ar', 'search', '.s{}').replace('<main>', '<main style="x">'));
