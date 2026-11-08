@@ -12,7 +12,7 @@ Set these in the GitHub repository settings. The production pipeline (`.github/w
 |---|---|---|---|
 | `META_PIXEL_ID` | Variable | Settings → Secrets and variables → Actions → **Variables**, repository level (the build job has no environment, so an environment variable would not reach it) | Turns the Pixel, the consent choice and the CSP additions on. Unset or empty: everything off |
 | `META_ACCESS_TOKEN` | Secret | Settings → Environments → **production** → Secrets | Turns server events on. Also needs `META_PIXEL_ID`. Without it, browser only |
-| `META_CONSENT_REQUIRED` | Variable, repository level | Same as the Pixel ID | Unset or `1`: visitors must accept. `0`: no choice is shown, but a stored decline is still respected. Any other value fails the build. **Before setting `0`, counsel must change `privacy.meta.*` in `brand/copy/strings.{ar,fr}.json`: the privacy page says nothing is loaded until the visitor accepts, which `0` makes false, and nothing checks for this** |
+| `META_CONSENT_REQUIRED` | Variable, repository level | Same as the Pixel ID | Unset or `1`: visitors must accept. `0`: no choice is shown, but a stored decline is still respected. Any other value fails the build. **Turning consent off is a decision for counsel.** With `0` the privacy section renders its `privacy.meta.off.*` wording, also awaiting legal review |
 | `META_TEST_EVENT_CODE` | Variable, repository level | Same as the Pixel ID | Only for the Test Events check below. Remove it afterwards: while set, every production Purchase is tagged as a test event, and the deploy summary warns about it |
 
 The pipeline refuses a malformed or all-zero Pixel ID and a token starting with `FAKE`. It never prints the values.

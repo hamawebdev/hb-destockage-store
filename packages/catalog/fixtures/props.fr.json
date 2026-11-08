@@ -315,6 +315,10 @@
     "privacy.meta.body2": "Tant que vous n'avez pas accepté, rien n'est chargé depuis Meta et rien ne lui est envoyé, ni par votre navigateur ni par notre serveur. Si vous refusez, il en va de même. Votre choix est enregistré dans votre navigateur, sans cookie.",
     "privacy.meta.body3": "Si vous acceptez, Meta reçoit des informations sur votre visite (pages et produits consultés, ajouts au panier, adresse IP, type de navigateur) et dépose ses propres cookies. Lors d'une commande, nous lui transmettons aussi votre numéro de téléphone sous forme hachée, le montant de la commande et les produits commandés.",
     "privacy.meta.body4": "Vous pouvez changer d'avis à tout moment avec le bouton ci-dessous.",
+    "privacy.meta.off.body1": "[PLACEHOLDER: texte en attente de validation juridique] Nous utilisons le Pixel de Meta (société propriétaire de Facebook et d'Instagram) pour mesurer l'efficacité de nos publicités. Cette section prévaut sur tout passage plus bas indiquant que nous n'utilisons ni cookies ni outils de suivi.",
+    "privacy.meta.off.body2": "Aucun choix ne vous est demandé sur ce site. Si vous avez refusé auparavant, ce refus reste enregistré dans votre navigateur et il est respecté : rien n'est chargé depuis Meta et rien ne lui est envoyé.",
+    "privacy.meta.off.body3": "Meta reçoit des informations sur votre visite (pages et produits consultés, ajouts au panier, adresse IP, type de navigateur) et dépose ses propres cookies. Lors d'une commande, nous lui transmettons aussi votre numéro de téléphone sous forme hachée, le montant de la commande et les produits commandés.",
+    "privacy.meta.off.body4": "Le bouton ci-dessous efface le choix enregistré dans votre navigateur.",
     "dev.placeholder": "[PLACEHOLDER]",
     "dev.placeholderBanner": "Contenu provisoire, en attente de validation par HB Destockage. [PLACEHOLDER]",
     "dev.photoPlaceholder": "Photo provisoire [PLACEHOLDER]"

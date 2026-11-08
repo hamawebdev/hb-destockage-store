@@ -10,6 +10,9 @@ import ContentView from '../src/components/content/ContentView.astro';
 const PIXEL = '000000000000000';
 const root = join(import.meta.dirname, '..', '..', '..');
 
+/** The rendered text escapes apostrophes; compare on a stretch that has none. */
+const stripMark = (text: string) => text.replace(/\[PLACEHOLDER[^\]]*\]\s*/, '').split(/['"]/)[0]!.slice(0, 40);
+
 function privacyProps(lang: 'ar' | 'fr'): ContentProps {
   const page = Object.values(fixturePages(lang)).find((p) => p.template === 'content');
   if (!page) throw new Error('no content fixture');
@@ -41,6 +44,26 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
     expect(html).toMatch(/data-placeholder="privacy\.meta\.body1"/);
     expect(html).toMatch(/<button[^>]*data-meta-reset[^>]*hidden/);
     expect(html).toContain(p.layout.strings['consent.change']);
+  });
+
+  it('consent required: promises the choice; no consent-off wording', async () => {
+    vi.stubEnv('META_PIXEL_ID', PIXEL);
+    const p = privacyProps(lang);
+    const html = await render(p);
+    expect(html).toMatch(/data-placeholder="privacy\.meta\.body1"/);
+    expect(html).toContain(stripMark(p.layout.strings['privacy.meta.body2']!));
+    expect(html).not.toContain(stripMark(p.layout.strings['privacy.meta.off.body2']!));
+  });
+
+  it('META_CONSENT_REQUIRED=0: the variant, marked for legal review, with no promise of acceptance', async () => {
+    vi.stubEnv('META_PIXEL_ID', PIXEL);
+    vi.stubEnv('META_CONSENT_REQUIRED', '0');
+    const p = privacyProps(lang);
+    const html = await render(p);
+    expect(html).toMatch(/data-placeholder="privacy\.meta\.off\.body1"/);
+    expect(html).toContain(stripMark(p.layout.strings['privacy.meta.off.body2']!));
+    expect(html).not.toContain(stripMark(p.layout.strings['privacy.meta.body2']!));
+    expect(html).toMatch(/<button[^>]*data-meta-reset[^>]*hidden/);
   });
 
   it('only on the privacy page', async () => {

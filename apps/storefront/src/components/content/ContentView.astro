@@ -24,7 +24,9 @@ const strict = process.env['HB_STRICT_COPY'] === '1';
 const date = new Intl.DateTimeFormat(l.lang === 'ar' ? 'ar-DZ' : 'fr-DZ', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Algiers' }).format(new Date(p.page.updatedAt));
 const isExternal = (href: string) => href.startsWith('https://');
 const blocks: readonly ContentBlock[] = p.page.blocks;
-const metaSection = p.page.key === 'privacy' && metaConfig() !== null;
+const meta = p.page.key === 'privacy' ? metaConfig() : null;
+// META_CONSENT_REQUIRED=0: no choice is asked, so the text must not promise one (Addendum 4).
+const metaKeys = meta?.consent === 'off' ? 'privacy.meta.off' : 'privacy.meta';
 ---
 <article class="container ct">
   <Breadcrumbs items={p.breadcrumbs} strings={l.strings} />
@@ -34,13 +36,13 @@ const metaSection = p.page.key === 'privacy' && metaConfig() !== null;
     <p class="ct-date">{t(l.strings, 'content.lastUpdated', { date })}</p>
   </header>
   <div class="ct-body reading">
-    {metaSection && (
+    {meta && (
       <Fragment>
         <h2><Copy strings={l.strings} k="privacy.meta.title" /></h2>
-        <p><Copy strings={l.strings} k="privacy.meta.body1" /></p>
-        <p><Copy strings={l.strings} k="privacy.meta.body2" /></p>
-        <p><Copy strings={l.strings} k="privacy.meta.body3" /></p>
-        <p><Copy strings={l.strings} k="privacy.meta.body4" /></p>
+        <p><Copy strings={l.strings} k={`${metaKeys}.body1`} /></p>
+        <p><Copy strings={l.strings} k={`${metaKeys}.body2`} /></p>
+        <p><Copy strings={l.strings} k={`${metaKeys}.body3`} /></p>
+        <p><Copy strings={l.strings} k={`${metaKeys}.body4`} /></p>
         <p><button type="button" class="btn btn-secondary" data-meta-reset hidden>{t(l.strings, 'consent.change')}</button></p>
       </Fragment>
     )}
