@@ -51,7 +51,7 @@ describe('createRouter', () => {
 
   test('indexable: not search, confirmation or 404', () => {
     const noindex = r.entries({ lang: 'ar' }).filter((e) => !e.indexable).map((e) => e.template);
-    expect(noindex).toEqual(['search', 'order-confirmed', 'not-found']);
+    expect(noindex).toEqual([...Array<string>(6).fill('order-step'), 'search', 'order-confirmed', 'not-found']);
   });
 
   test('an active category under an inactive parent is not published (Nit 4)', () => {

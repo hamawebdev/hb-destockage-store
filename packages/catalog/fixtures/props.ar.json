@@ -2523,6 +2523,7 @@
           "name": "المطبخ",
           "href": "/ar/c/matbakh/"
         },
+        "orderStepHref": "/ar/order/bak-matbakh-3-fi-1/",
         "breadcrumbs": [
           {
             "label": "الرئيسية",
@@ -3323,6 +3324,7 @@
           "name": "المطبخ",
           "href": "/ar/c/matbakh/"
         },
+        "orderStepHref": "/ar/order/mariyalat-matbakh/",
         "breadcrumbs": [
           {
             "label": "الرئيسية",
@@ -4214,6 +4216,7 @@
           "name": "أدوات",
           "href": "/ar/c/adawat/"
         },
+        "orderStepHref": "/ar/order/miqlat-28-cm/",
         "breadcrumbs": [
           {
             "label": "الرئيسية",
@@ -4810,6 +4813,7 @@
           "name": "أدوات",
           "href": "/ar/c/adawat/"
         },
+        "orderStepHref": "/ar/order/tanjara-20-cm/",
         "breadcrumbs": [
           {
             "label": "الرئيسية",
@@ -5406,6 +5410,7 @@
           "name": "المطبخ",
           "href": "/ar/c/matbakh/"
         },
+        "orderStepHref": "/ar/order/taqm-sakakin/",
         "breadcrumbs": [
           {
             "label": "الرئيسية",
@@ -5998,6 +6003,7 @@
           "name": "المطبخ",
           "href": "/ar/c/matbakh/"
         },
+        "orderStepHref": "/ar/order/musaffat/",
         "breadcrumbs": [
           {
             "label": "الرئيسية",
@@ -6374,6 +6380,1602 @@
             "swatches": [],
             "placeholder": true,
             "translationPlaceholder": false
+          }
+        ],
+        "orderForm": {
+          "productId": 105,
+          "kind": "simple",
+          "singleVariant": true,
+          "defaultVariantId": 1051,
+          "variants": [
+            {
+              "id": 1051,
+              "sku": "EGO-1",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 1500,
+                "label": "‏1.500 د.ج.‏",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "in_stock",
+                "qty": 12
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 10
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - بسكرة"
+            },
+            {
+              "code": 16,
+              "label": "16 - الجزائر"
+            },
+            {
+              "code": 31,
+              "label": "31 - وهران"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/ar/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/ar/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 10
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/ar/order/bak-matbakh-3-fi-1/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "ar",
+          "dir": "rtl",
+          "title": "اطلب الآن · باك مطبخ 3 في 1 · HB Destockage",
+          "description": "باك مطبخ 3 في 1 بسعر ‏14.600 د.ج.‏. الدفع عند الاستلام، والتأكيد عبر الهاتف، والتوصيل إلى 69 ولاية.",
+          "path": "/ar/order/bak-matbakh-3-fi-1/",
+          "canonicalUrl": "https://hbdestockage.example/ar/order/bak-matbakh-3-fi-1/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "fr",
+            "label": "Français",
+            "href": "/fr/order/pack-cuisine-3-en-1/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/ar/",
+          "searchHref": "/ar/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "المطبخ",
+              "href": "/ar/c/matbakh/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "أدوات",
+                  "href": "/ar/c/adawat/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "الحمام",
+              "href": "/ar/c/hammam/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "من نحن",
+              "href": "/ar/man-nahnu/"
+            },
+            {
+              "key": "delivery",
+              "label": "التوصيل والرسوم",
+              "href": "/ar/tawsil/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": true,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 106,
+          "kind": "pack",
+          "name": "باك مطبخ 3 في 1",
+          "brandLatin": null,
+          "href": "/ar/p/bak-matbakh-3-fi-1/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 1,
+          "name": "المطبخ",
+          "href": "/ar/c/matbakh/"
+        },
+        "image": {
+          "src": "/img/1e3e1840-480.avif",
+          "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/1e3e1840-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/1e3e1840-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "باك مطبخ 3 في 1",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 14600,
+          "label": "‏14.600 د.ج.‏",
+          "compareAtDzd": 17900,
+          "compareAtLabel": "‏17.900 د.ج.‏",
+          "discountPercent": 18,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1061,
+            "sku": "PACK-CUI-3",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 14600,
+              "label": "‏14.600 د.ج.‏",
+              "compareAtDzd": 17900,
+              "compareAtLabel": "‏17.900 د.ج.‏",
+              "discountPercent": 18,
+              "from": false
+            },
+            "stock": {
+              "state": "in_stock",
+              "qty": 20
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0,
+              1
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 10
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "الرئيسية",
+            "href": "/ar/"
+          },
+          {
+            "label": "المطبخ",
+            "href": "/ar/c/matbakh/"
+          },
+          {
+            "label": "باك مطبخ 3 في 1",
+            "href": "/ar/p/bak-matbakh-3-fi-1/"
+          },
+          {
+            "label": "اطلب الآن",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 106,
+          "kind": "pack",
+          "singleVariant": true,
+          "defaultVariantId": 1061,
+          "variants": [
+            {
+              "id": 1061,
+              "sku": "PACK-CUI-3",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 14600,
+                "label": "‏14.600 د.ج.‏",
+                "compareAtDzd": 17900,
+                "compareAtLabel": "‏17.900 د.ج.‏",
+                "discountPercent": 18,
+                "from": false
+              },
+              "stock": {
+                "state": "in_stock",
+                "qty": 20
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0,
+                1
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 10
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - بسكرة"
+            },
+            {
+              "code": 16,
+              "label": "16 - الجزائر"
+            },
+            {
+              "code": 31,
+              "label": "31 - وهران"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/ar/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/ar/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 10
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/ar/order/mariyalat-matbakh/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "ar",
+          "dir": "rtl",
+          "title": "اطلب الآن · مريلة مطبخ · HB Destockage",
+          "description": "مريلة مطبخ بسعر ‏1.900 د.ج.‏. الدفع عند الاستلام، والتأكيد عبر الهاتف، والتوصيل إلى 69 ولاية.",
+          "path": "/ar/order/mariyalat-matbakh/",
+          "canonicalUrl": "https://hbdestockage.example/ar/order/mariyalat-matbakh/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "fr",
+            "label": "Français",
+            "href": "/fr/order/tablier-de-cuisine/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/ar/",
+          "searchHref": "/ar/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "المطبخ",
+              "href": "/ar/c/matbakh/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "أدوات",
+                  "href": "/ar/c/adawat/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "الحمام",
+              "href": "/ar/c/hammam/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "من نحن",
+              "href": "/ar/man-nahnu/"
+            },
+            {
+              "key": "delivery",
+              "label": "التوصيل والرسوم",
+              "href": "/ar/tawsil/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": true,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 101,
+          "kind": "variable",
+          "name": "مريلة مطبخ",
+          "brandLatin": null,
+          "href": "/ar/p/mariyalat-matbakh/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 1,
+          "name": "المطبخ",
+          "href": "/ar/c/matbakh/"
+        },
+        "image": {
+          "src": "/img/3b7d8857-480.avif",
+          "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/3b7d8857-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/3b7d8857-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "مريلة مطبخ حمراء",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 1900,
+          "label": "‏1.900 د.ج.‏",
+          "compareAtDzd": 2400,
+          "compareAtLabel": "‏2.400 د.ج.‏",
+          "discountPercent": 21,
+          "from": false
+        },
+        "options": [
+          {
+            "id": 201,
+            "type": "size",
+            "name": "المقاس",
+            "values": [
+              {
+                "id": 301,
+                "label": "M",
+                "imageIndexes": [],
+                "swatchHex": null,
+                "available": true
+              },
+              {
+                "id": 302,
+                "label": "L",
+                "imageIndexes": [],
+                "swatchHex": null,
+                "available": true
+              }
+            ]
+          },
+          {
+            "id": 202,
+            "type": "colour",
+            "name": "اللون",
+            "values": [
+              {
+                "id": 303,
+                "label": "أحمر",
+                "imageIndexes": [],
+                "swatchHex": "#b3261e",
+                "available": true
+              },
+              {
+                "id": 304,
+                "label": "أزرق",
+                "imageIndexes": [
+                  1
+                ],
+                "swatchHex": "#1e4fb3",
+                "available": true
+              }
+            ]
+          }
+        ],
+        "variants": [
+          {
+            "id": 1011,
+            "sku": "TAB-M-RGE",
+            "optionValueIds": [
+              301,
+              303
+            ],
+            "key": "301-303",
+            "label": "M / أحمر",
+            "price": {
+              "amountDzd": 1900,
+              "label": "‏1.900 د.ج.‏",
+              "compareAtDzd": 2400,
+              "compareAtLabel": "‏2.400 د.ج.‏",
+              "discountPercent": 21,
+              "from": false
+            },
+            "stock": {
+              "state": "in_stock",
+              "qty": 8
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 8
+          },
+          {
+            "id": 1012,
+            "sku": "TAB-M-BLU",
+            "optionValueIds": [
+              301,
+              304
+            ],
+            "key": "301-304",
+            "label": "M / أزرق",
+            "price": {
+              "amountDzd": 1900,
+              "label": "‏1.900 د.ج.‏",
+              "compareAtDzd": 2400,
+              "compareAtLabel": "‏2.400 د.ج.‏",
+              "discountPercent": 21,
+              "from": false
+            },
+            "stock": {
+              "state": "out_of_stock",
+              "qty": 0
+            },
+            "imageIndex": 1,
+            "imageIndexes": [
+              1,
+              0
+            ],
+            "isDefault": false,
+            "available": false,
+            "maxQty": 0
+          },
+          {
+            "id": 1014,
+            "sku": "TAB-L-BLU",
+            "optionValueIds": [
+              302,
+              304
+            ],
+            "key": "302-304",
+            "label": "L / أزرق",
+            "price": {
+              "amountDzd": 2100,
+              "label": "‏2.100 د.ج.‏",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "low_stock",
+              "qty": 2
+            },
+            "imageIndex": 2,
+            "imageIndexes": [
+              2,
+              1,
+              0
+            ],
+            "isDefault": false,
+            "available": true,
+            "maxQty": 2
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "الرئيسية",
+            "href": "/ar/"
+          },
+          {
+            "label": "المطبخ",
+            "href": "/ar/c/matbakh/"
+          },
+          {
+            "label": "مريلة مطبخ",
+            "href": "/ar/p/mariyalat-matbakh/"
+          },
+          {
+            "label": "اطلب الآن",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 101,
+          "kind": "variable",
+          "singleVariant": false,
+          "defaultVariantId": 1011,
+          "variants": [
+            {
+              "id": 1011,
+              "sku": "TAB-M-RGE",
+              "optionValueIds": [
+                301,
+                303
+              ],
+              "key": "301-303",
+              "label": "M / أحمر",
+              "price": {
+                "amountDzd": 1900,
+                "label": "‏1.900 د.ج.‏",
+                "compareAtDzd": 2400,
+                "compareAtLabel": "‏2.400 د.ج.‏",
+                "discountPercent": 21,
+                "from": false
+              },
+              "stock": {
+                "state": "in_stock",
+                "qty": 8
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 8
+            },
+            {
+              "id": 1012,
+              "sku": "TAB-M-BLU",
+              "optionValueIds": [
+                301,
+                304
+              ],
+              "key": "301-304",
+              "label": "M / أزرق",
+              "price": {
+                "amountDzd": 1900,
+                "label": "‏1.900 د.ج.‏",
+                "compareAtDzd": 2400,
+                "compareAtLabel": "‏2.400 د.ج.‏",
+                "discountPercent": 21,
+                "from": false
+              },
+              "stock": {
+                "state": "out_of_stock",
+                "qty": 0
+              },
+              "imageIndex": 1,
+              "imageIndexes": [
+                1,
+                0
+              ],
+              "isDefault": false,
+              "available": false,
+              "maxQty": 0
+            },
+            {
+              "id": 1014,
+              "sku": "TAB-L-BLU",
+              "optionValueIds": [
+                302,
+                304
+              ],
+              "key": "302-304",
+              "label": "L / أزرق",
+              "price": {
+                "amountDzd": 2100,
+                "label": "‏2.100 د.ج.‏",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "low_stock",
+                "qty": 2
+              },
+              "imageIndex": 2,
+              "imageIndexes": [
+                2,
+                1,
+                0
+              ],
+              "isDefault": false,
+              "available": true,
+              "maxQty": 2
+            }
+          ],
+          "options": [
+            {
+              "id": 201,
+              "type": "size",
+              "name": "المقاس",
+              "values": [
+                {
+                  "id": 301,
+                  "label": "M",
+                  "imageIndexes": [],
+                  "swatchHex": null,
+                  "available": true
+                },
+                {
+                  "id": 302,
+                  "label": "L",
+                  "imageIndexes": [],
+                  "swatchHex": null,
+                  "available": true
+                }
+              ]
+            },
+            {
+              "id": 202,
+              "type": "colour",
+              "name": "اللون",
+              "values": [
+                {
+                  "id": 303,
+                  "label": "أحمر",
+                  "imageIndexes": [],
+                  "swatchHex": "#b3261e",
+                  "available": true
+                },
+                {
+                  "id": 304,
+                  "label": "أزرق",
+                  "imageIndexes": [
+                    1
+                  ],
+                  "swatchHex": "#1e4fb3",
+                  "available": true
+                }
+              ]
+            }
+          ],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - بسكرة"
+            },
+            {
+              "code": 16,
+              "label": "16 - الجزائر"
+            },
+            {
+              "code": 31,
+              "label": "31 - وهران"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/ar/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/ar/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 8
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/ar/order/miqlat-28-cm/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "ar",
+          "dir": "rtl",
+          "title": "اطلب الآن · مقلاة 28 سم · HB Destockage",
+          "description": "مقلاة 28 سم بسعر ‏3.200 د.ج.‏. الدفع عند الاستلام، والتأكيد عبر الهاتف، والتوصيل إلى 69 ولاية.",
+          "path": "/ar/order/miqlat-28-cm/",
+          "canonicalUrl": "https://hbdestockage.example/ar/order/miqlat-28-cm/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "fr",
+            "label": "Français",
+            "href": "/fr/order/poele-28-cm/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/ar/",
+          "searchHref": "/ar/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "المطبخ",
+              "href": "/ar/c/matbakh/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "أدوات",
+                  "href": "/ar/c/adawat/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "الحمام",
+              "href": "/ar/c/hammam/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "من نحن",
+              "href": "/ar/man-nahnu/"
+            },
+            {
+              "key": "delivery",
+              "label": "التوصيل والرسوم",
+              "href": "/ar/tawsil/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": true,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 102,
+          "kind": "simple",
+          "name": "مقلاة 28 سم",
+          "brandLatin": null,
+          "href": "/ar/p/miqlat-28-cm/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 2,
+          "name": "أدوات",
+          "href": "/ar/c/adawat/"
+        },
+        "image": {
+          "src": "/img/f9cdabaf-480.avif",
+          "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/f9cdabaf-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/f9cdabaf-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "مقلاة 28 سم",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 3200,
+          "label": "‏3.200 د.ج.‏",
+          "compareAtDzd": null,
+          "compareAtLabel": null,
+          "discountPercent": null,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1021,
+            "sku": "POE-28",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 3200,
+              "label": "‏3.200 د.ج.‏",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "out_of_stock",
+              "qty": 0
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": false,
+            "maxQty": 0
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "الرئيسية",
+            "href": "/ar/"
+          },
+          {
+            "label": "المطبخ",
+            "href": "/ar/c/matbakh/"
+          },
+          {
+            "label": "أدوات",
+            "href": "/ar/c/adawat/"
+          },
+          {
+            "label": "مقلاة 28 سم",
+            "href": "/ar/p/miqlat-28-cm/"
+          },
+          {
+            "label": "اطلب الآن",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 102,
+          "kind": "simple",
+          "singleVariant": true,
+          "defaultVariantId": 1021,
+          "variants": [
+            {
+              "id": 1021,
+              "sku": "POE-28",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 3200,
+                "label": "‏3.200 د.ج.‏",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "out_of_stock",
+                "qty": 0
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": false,
+              "maxQty": 0
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - بسكرة"
+            },
+            {
+              "code": 16,
+              "label": "16 - الجزائر"
+            },
+            {
+              "code": 31,
+              "label": "31 - وهران"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/ar/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/ar/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 1
+          },
+          "orderable": false
+        }
+      }
+    },
+    "/ar/order/tanjara-20-cm/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "ar",
+          "dir": "rtl",
+          "title": "اطلب الآن · طنجرة 20 سم · HB Destockage",
+          "description": "طنجرة 20 سم بسعر ‏2.800 د.ج.‏. الدفع عند الاستلام، والتأكيد عبر الهاتف، والتوصيل إلى 69 ولاية.",
+          "path": "/ar/order/tanjara-20-cm/",
+          "canonicalUrl": "https://hbdestockage.example/ar/order/tanjara-20-cm/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "fr",
+            "label": "Français",
+            "href": "/fr/order/casserole-20-cm/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/ar/",
+          "searchHref": "/ar/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "المطبخ",
+              "href": "/ar/c/matbakh/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "أدوات",
+                  "href": "/ar/c/adawat/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "الحمام",
+              "href": "/ar/c/hammam/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "من نحن",
+              "href": "/ar/man-nahnu/"
+            },
+            {
+              "key": "delivery",
+              "label": "التوصيل والرسوم",
+              "href": "/ar/tawsil/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": true,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 103,
+          "kind": "simple",
+          "name": "طنجرة 20 سم",
+          "brandLatin": null,
+          "href": "/ar/p/tanjara-20-cm/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 2,
+          "name": "أدوات",
+          "href": "/ar/c/adawat/"
+        },
+        "image": {
+          "src": "/img/381c18bd-480.avif",
+          "srcset": "/img/381c18bd-360.avif 360w, /img/381c18bd-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/381c18bd-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/381c18bd-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "طنجرة 20 سم",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 2800,
+          "label": "‏2.800 د.ج.‏",
+          "compareAtDzd": null,
+          "compareAtLabel": null,
+          "discountPercent": null,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1031,
+            "sku": "CAS-20",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 2800,
+              "label": "‏2.800 د.ج.‏",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "low_stock",
+              "qty": 2
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 2
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "الرئيسية",
+            "href": "/ar/"
+          },
+          {
+            "label": "المطبخ",
+            "href": "/ar/c/matbakh/"
+          },
+          {
+            "label": "أدوات",
+            "href": "/ar/c/adawat/"
+          },
+          {
+            "label": "طنجرة 20 سم",
+            "href": "/ar/p/tanjara-20-cm/"
+          },
+          {
+            "label": "اطلب الآن",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 103,
+          "kind": "simple",
+          "singleVariant": true,
+          "defaultVariantId": 1031,
+          "variants": [
+            {
+              "id": 1031,
+              "sku": "CAS-20",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 2800,
+                "label": "‏2.800 د.ج.‏",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "low_stock",
+                "qty": 2
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 2
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - بسكرة"
+            },
+            {
+              "code": 16,
+              "label": "16 - الجزائر"
+            },
+            {
+              "code": 31,
+              "label": "31 - وهران"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/ar/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/ar/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 2
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/ar/order/taqm-sakakin/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "ar",
+          "dir": "rtl",
+          "title": "اطلب الآن · طقم سكاكين · HB Destockage",
+          "description": "طقم سكاكين بسعر ‏4.500 د.ج.‏. الدفع عند الاستلام، والتأكيد عبر الهاتف، والتوصيل إلى 69 ولاية.",
+          "path": "/ar/order/taqm-sakakin/",
+          "canonicalUrl": "https://hbdestockage.example/ar/order/taqm-sakakin/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "fr",
+            "label": "Français",
+            "href": "/fr/order/set-de-couteaux/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/ar/",
+          "searchHref": "/ar/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "المطبخ",
+              "href": "/ar/c/matbakh/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "أدوات",
+                  "href": "/ar/c/adawat/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "الحمام",
+              "href": "/ar/c/hammam/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "من نحن",
+              "href": "/ar/man-nahnu/"
+            },
+            {
+              "key": "delivery",
+              "label": "التوصيل والرسوم",
+              "href": "/ar/tawsil/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": true,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 104,
+          "kind": "simple",
+          "name": "طقم سكاكين",
+          "brandLatin": "HB Home",
+          "href": "/ar/p/taqm-sakakin/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 1,
+          "name": "المطبخ",
+          "href": "/ar/c/matbakh/"
+        },
+        "image": {
+          "src": "/img/04067ca2-480.avif",
+          "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/04067ca2-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/04067ca2-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "طقم سكاكين",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 4500,
+          "label": "‏4.500 د.ج.‏",
+          "compareAtDzd": null,
+          "compareAtLabel": null,
+          "discountPercent": null,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1041,
+            "sku": "COU-SET5",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 4500,
+              "label": "‏4.500 د.ج.‏",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "in_stock",
+              "qty": null
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 10
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "الرئيسية",
+            "href": "/ar/"
+          },
+          {
+            "label": "المطبخ",
+            "href": "/ar/c/matbakh/"
+          },
+          {
+            "label": "طقم سكاكين",
+            "href": "/ar/p/taqm-sakakin/"
+          },
+          {
+            "label": "اطلب الآن",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 104,
+          "kind": "simple",
+          "singleVariant": true,
+          "defaultVariantId": 1041,
+          "variants": [
+            {
+              "id": 1041,
+              "sku": "COU-SET5",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 4500,
+                "label": "‏4.500 د.ج.‏",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "in_stock",
+                "qty": null
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 10
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - بسكرة"
+            },
+            {
+              "code": 16,
+              "label": "16 - الجزائر"
+            },
+            {
+              "code": 31,
+              "label": "31 - وهران"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/ar/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/ar/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 10
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/ar/order/musaffat/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "ar",
+          "dir": "rtl",
+          "title": "اطلب الآن · مصفاة أطباق [PLACEHOLDER] · HB Destockage",
+          "description": "مصفاة أطباق [PLACEHOLDER] بسعر ‏1.500 د.ج.‏. الدفع عند الاستلام، والتأكيد عبر الهاتف، والتوصيل إلى 69 ولاية.",
+          "path": "/ar/order/musaffat/",
+          "canonicalUrl": "https://hbdestockage.example/ar/order/musaffat/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "fr",
+            "label": "Français",
+            "href": "/fr/order/egouttoir/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/ar/",
+          "searchHref": "/ar/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "المطبخ",
+              "href": "/ar/c/matbakh/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "أدوات",
+                  "href": "/ar/c/adawat/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "الحمام",
+              "href": "/ar/c/hammam/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "من نحن",
+              "href": "/ar/man-nahnu/"
+            },
+            {
+              "key": "delivery",
+              "label": "التوصيل والرسوم",
+              "href": "/ar/tawsil/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": true,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 105,
+          "kind": "simple",
+          "name": "مصفاة أطباق [PLACEHOLDER]",
+          "brandLatin": null,
+          "href": "/ar/p/musaffat/",
+          "placeholder": true,
+          "translationPlaceholder": true
+        },
+        "category": {
+          "id": 1,
+          "name": "المطبخ",
+          "href": "/ar/c/matbakh/"
+        },
+        "image": {
+          "src": "/img/9479a432-480.avif",
+          "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/9479a432-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/9479a432-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "مصفاة أطباق",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 1500,
+          "label": "‏1.500 د.ج.‏",
+          "compareAtDzd": null,
+          "compareAtLabel": null,
+          "discountPercent": null,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1051,
+            "sku": "EGO-1",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 1500,
+              "label": "‏1.500 د.ج.‏",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "in_stock",
+              "qty": 12
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 10
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "الرئيسية",
+            "href": "/ar/"
+          },
+          {
+            "label": "المطبخ",
+            "href": "/ar/c/matbakh/"
+          },
+          {
+            "label": "مصفاة أطباق [PLACEHOLDER]",
+            "href": "/ar/p/musaffat/"
+          },
+          {
+            "label": "اطلب الآن",
+            "href": null
           }
         ],
         "orderForm": {

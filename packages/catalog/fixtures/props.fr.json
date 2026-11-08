@@ -2523,6 +2523,7 @@
           "name": "Cuisine",
           "href": "/fr/c/cuisine/"
         },
+        "orderStepHref": "/fr/order/pack-cuisine-3-en-1/",
         "breadcrumbs": [
           {
             "label": "Accueil",
@@ -3323,6 +3324,7 @@
           "name": "Cuisine",
           "href": "/fr/c/cuisine/"
         },
+        "orderStepHref": "/fr/order/tablier-de-cuisine/",
         "breadcrumbs": [
           {
             "label": "Accueil",
@@ -4214,6 +4216,7 @@
           "name": "Ustensiles",
           "href": "/fr/c/ustensiles/"
         },
+        "orderStepHref": "/fr/order/poele-28-cm/",
         "breadcrumbs": [
           {
             "label": "Accueil",
@@ -4810,6 +4813,7 @@
           "name": "Ustensiles",
           "href": "/fr/c/ustensiles/"
         },
+        "orderStepHref": "/fr/order/casserole-20-cm/",
         "breadcrumbs": [
           {
             "label": "Accueil",
@@ -5406,6 +5410,7 @@
           "name": "Cuisine",
           "href": "/fr/c/cuisine/"
         },
+        "orderStepHref": "/fr/order/set-de-couteaux/",
         "breadcrumbs": [
           {
             "label": "Accueil",
@@ -5998,6 +6003,7 @@
           "name": "Cuisine",
           "href": "/fr/c/cuisine/"
         },
+        "orderStepHref": "/fr/order/egouttoir/",
         "breadcrumbs": [
           {
             "label": "Accueil",
@@ -6374,6 +6380,1602 @@
             "swatches": [],
             "placeholder": true,
             "translationPlaceholder": false
+          }
+        ],
+        "orderForm": {
+          "productId": 105,
+          "kind": "simple",
+          "singleVariant": true,
+          "defaultVariantId": 1051,
+          "variants": [
+            {
+              "id": 1051,
+              "sku": "EGO-1",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 1500,
+                "label": "1 500 DA",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "in_stock",
+                "qty": 12
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 10
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - Biskra"
+            },
+            {
+              "code": 16,
+              "label": "16 - Alger"
+            },
+            {
+              "code": 31,
+              "label": "31 - Oran"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/fr/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/fr/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 10
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/fr/order/pack-cuisine-3-en-1/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "fr",
+          "dir": "ltr",
+          "title": "Commander · Pack cuisine 3 en 1 · HB Destockage",
+          "description": "Pack cuisine 3 en 1 à 14 600 DA. Paiement à la livraison, confirmation par téléphone, livraison dans les 69 wilayas.",
+          "path": "/fr/order/pack-cuisine-3-en-1/",
+          "canonicalUrl": "https://hbdestockage.example/fr/order/pack-cuisine-3-en-1/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "ar",
+            "label": "العربية",
+            "href": "/ar/order/bak-matbakh-3-fi-1/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/fr/",
+          "searchHref": "/fr/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "Cuisine",
+              "href": "/fr/c/cuisine/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "Ustensiles",
+                  "href": "/fr/c/ustensiles/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "Salle de bain",
+              "href": "/fr/c/salle-de-bain/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "Qui sommes-nous",
+              "href": "/fr/a-propos/"
+            },
+            {
+              "key": "delivery",
+              "label": "Livraison et frais",
+              "href": "/fr/livraison/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": false,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 106,
+          "kind": "pack",
+          "name": "Pack cuisine 3 en 1",
+          "brandLatin": null,
+          "href": "/fr/p/pack-cuisine-3-en-1/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 1,
+          "name": "Cuisine",
+          "href": "/fr/c/cuisine/"
+        },
+        "image": {
+          "src": "/img/1e3e1840-480.avif",
+          "srcset": "/img/1e3e1840-360.avif 360w, /img/1e3e1840-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/1e3e1840-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/1e3e1840-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "Pack cuisine 3 en 1",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 14600,
+          "label": "14 600 DA",
+          "compareAtDzd": 17900,
+          "compareAtLabel": "17 900 DA",
+          "discountPercent": 18,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1061,
+            "sku": "PACK-CUI-3",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 14600,
+              "label": "14 600 DA",
+              "compareAtDzd": 17900,
+              "compareAtLabel": "17 900 DA",
+              "discountPercent": 18,
+              "from": false
+            },
+            "stock": {
+              "state": "in_stock",
+              "qty": 20
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0,
+              1
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 10
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "Accueil",
+            "href": "/fr/"
+          },
+          {
+            "label": "Cuisine",
+            "href": "/fr/c/cuisine/"
+          },
+          {
+            "label": "Pack cuisine 3 en 1",
+            "href": "/fr/p/pack-cuisine-3-en-1/"
+          },
+          {
+            "label": "Commander",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 106,
+          "kind": "pack",
+          "singleVariant": true,
+          "defaultVariantId": 1061,
+          "variants": [
+            {
+              "id": 1061,
+              "sku": "PACK-CUI-3",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 14600,
+                "label": "14 600 DA",
+                "compareAtDzd": 17900,
+                "compareAtLabel": "17 900 DA",
+                "discountPercent": 18,
+                "from": false
+              },
+              "stock": {
+                "state": "in_stock",
+                "qty": 20
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0,
+                1
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 10
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - Biskra"
+            },
+            {
+              "code": 16,
+              "label": "16 - Alger"
+            },
+            {
+              "code": 31,
+              "label": "31 - Oran"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/fr/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/fr/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 10
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/fr/order/tablier-de-cuisine/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "fr",
+          "dir": "ltr",
+          "title": "Commander · Tablier de cuisine · HB Destockage",
+          "description": "Tablier de cuisine à 1 900 DA. Paiement à la livraison, confirmation par téléphone, livraison dans les 69 wilayas.",
+          "path": "/fr/order/tablier-de-cuisine/",
+          "canonicalUrl": "https://hbdestockage.example/fr/order/tablier-de-cuisine/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "ar",
+            "label": "العربية",
+            "href": "/ar/order/mariyalat-matbakh/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/fr/",
+          "searchHref": "/fr/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "Cuisine",
+              "href": "/fr/c/cuisine/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "Ustensiles",
+                  "href": "/fr/c/ustensiles/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "Salle de bain",
+              "href": "/fr/c/salle-de-bain/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "Qui sommes-nous",
+              "href": "/fr/a-propos/"
+            },
+            {
+              "key": "delivery",
+              "label": "Livraison et frais",
+              "href": "/fr/livraison/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": false,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 101,
+          "kind": "variable",
+          "name": "Tablier de cuisine",
+          "brandLatin": null,
+          "href": "/fr/p/tablier-de-cuisine/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 1,
+          "name": "Cuisine",
+          "href": "/fr/c/cuisine/"
+        },
+        "image": {
+          "src": "/img/3b7d8857-480.avif",
+          "srcset": "/img/3b7d8857-360.avif 360w, /img/3b7d8857-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/3b7d8857-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/3b7d8857-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "Tablier de cuisine rouge",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 1900,
+          "label": "1 900 DA",
+          "compareAtDzd": 2400,
+          "compareAtLabel": "2 400 DA",
+          "discountPercent": 21,
+          "from": false
+        },
+        "options": [
+          {
+            "id": 201,
+            "type": "size",
+            "name": "Taille",
+            "values": [
+              {
+                "id": 301,
+                "label": "M",
+                "imageIndexes": [],
+                "swatchHex": null,
+                "available": true
+              },
+              {
+                "id": 302,
+                "label": "L",
+                "imageIndexes": [],
+                "swatchHex": null,
+                "available": true
+              }
+            ]
+          },
+          {
+            "id": 202,
+            "type": "colour",
+            "name": "Couleur",
+            "values": [
+              {
+                "id": 303,
+                "label": "Rouge",
+                "imageIndexes": [],
+                "swatchHex": "#b3261e",
+                "available": true
+              },
+              {
+                "id": 304,
+                "label": "Bleu",
+                "imageIndexes": [
+                  1
+                ],
+                "swatchHex": "#1e4fb3",
+                "available": true
+              }
+            ]
+          }
+        ],
+        "variants": [
+          {
+            "id": 1011,
+            "sku": "TAB-M-RGE",
+            "optionValueIds": [
+              301,
+              303
+            ],
+            "key": "301-303",
+            "label": "M / Rouge",
+            "price": {
+              "amountDzd": 1900,
+              "label": "1 900 DA",
+              "compareAtDzd": 2400,
+              "compareAtLabel": "2 400 DA",
+              "discountPercent": 21,
+              "from": false
+            },
+            "stock": {
+              "state": "in_stock",
+              "qty": 8
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 8
+          },
+          {
+            "id": 1012,
+            "sku": "TAB-M-BLU",
+            "optionValueIds": [
+              301,
+              304
+            ],
+            "key": "301-304",
+            "label": "M / Bleu",
+            "price": {
+              "amountDzd": 1900,
+              "label": "1 900 DA",
+              "compareAtDzd": 2400,
+              "compareAtLabel": "2 400 DA",
+              "discountPercent": 21,
+              "from": false
+            },
+            "stock": {
+              "state": "out_of_stock",
+              "qty": 0
+            },
+            "imageIndex": 1,
+            "imageIndexes": [
+              1,
+              0
+            ],
+            "isDefault": false,
+            "available": false,
+            "maxQty": 0
+          },
+          {
+            "id": 1014,
+            "sku": "TAB-L-BLU",
+            "optionValueIds": [
+              302,
+              304
+            ],
+            "key": "302-304",
+            "label": "L / Bleu",
+            "price": {
+              "amountDzd": 2100,
+              "label": "2 100 DA",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "low_stock",
+              "qty": 2
+            },
+            "imageIndex": 2,
+            "imageIndexes": [
+              2,
+              1,
+              0
+            ],
+            "isDefault": false,
+            "available": true,
+            "maxQty": 2
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "Accueil",
+            "href": "/fr/"
+          },
+          {
+            "label": "Cuisine",
+            "href": "/fr/c/cuisine/"
+          },
+          {
+            "label": "Tablier de cuisine",
+            "href": "/fr/p/tablier-de-cuisine/"
+          },
+          {
+            "label": "Commander",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 101,
+          "kind": "variable",
+          "singleVariant": false,
+          "defaultVariantId": 1011,
+          "variants": [
+            {
+              "id": 1011,
+              "sku": "TAB-M-RGE",
+              "optionValueIds": [
+                301,
+                303
+              ],
+              "key": "301-303",
+              "label": "M / Rouge",
+              "price": {
+                "amountDzd": 1900,
+                "label": "1 900 DA",
+                "compareAtDzd": 2400,
+                "compareAtLabel": "2 400 DA",
+                "discountPercent": 21,
+                "from": false
+              },
+              "stock": {
+                "state": "in_stock",
+                "qty": 8
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 8
+            },
+            {
+              "id": 1012,
+              "sku": "TAB-M-BLU",
+              "optionValueIds": [
+                301,
+                304
+              ],
+              "key": "301-304",
+              "label": "M / Bleu",
+              "price": {
+                "amountDzd": 1900,
+                "label": "1 900 DA",
+                "compareAtDzd": 2400,
+                "compareAtLabel": "2 400 DA",
+                "discountPercent": 21,
+                "from": false
+              },
+              "stock": {
+                "state": "out_of_stock",
+                "qty": 0
+              },
+              "imageIndex": 1,
+              "imageIndexes": [
+                1,
+                0
+              ],
+              "isDefault": false,
+              "available": false,
+              "maxQty": 0
+            },
+            {
+              "id": 1014,
+              "sku": "TAB-L-BLU",
+              "optionValueIds": [
+                302,
+                304
+              ],
+              "key": "302-304",
+              "label": "L / Bleu",
+              "price": {
+                "amountDzd": 2100,
+                "label": "2 100 DA",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "low_stock",
+                "qty": 2
+              },
+              "imageIndex": 2,
+              "imageIndexes": [
+                2,
+                1,
+                0
+              ],
+              "isDefault": false,
+              "available": true,
+              "maxQty": 2
+            }
+          ],
+          "options": [
+            {
+              "id": 201,
+              "type": "size",
+              "name": "Taille",
+              "values": [
+                {
+                  "id": 301,
+                  "label": "M",
+                  "imageIndexes": [],
+                  "swatchHex": null,
+                  "available": true
+                },
+                {
+                  "id": 302,
+                  "label": "L",
+                  "imageIndexes": [],
+                  "swatchHex": null,
+                  "available": true
+                }
+              ]
+            },
+            {
+              "id": 202,
+              "type": "colour",
+              "name": "Couleur",
+              "values": [
+                {
+                  "id": 303,
+                  "label": "Rouge",
+                  "imageIndexes": [],
+                  "swatchHex": "#b3261e",
+                  "available": true
+                },
+                {
+                  "id": 304,
+                  "label": "Bleu",
+                  "imageIndexes": [
+                    1
+                  ],
+                  "swatchHex": "#1e4fb3",
+                  "available": true
+                }
+              ]
+            }
+          ],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - Biskra"
+            },
+            {
+              "code": 16,
+              "label": "16 - Alger"
+            },
+            {
+              "code": 31,
+              "label": "31 - Oran"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/fr/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/fr/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 8
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/fr/order/poele-28-cm/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "fr",
+          "dir": "ltr",
+          "title": "Commander · Poêle 28 cm · HB Destockage",
+          "description": "Poêle 28 cm à 3 200 DA. Paiement à la livraison, confirmation par téléphone, livraison dans les 69 wilayas.",
+          "path": "/fr/order/poele-28-cm/",
+          "canonicalUrl": "https://hbdestockage.example/fr/order/poele-28-cm/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "ar",
+            "label": "العربية",
+            "href": "/ar/order/miqlat-28-cm/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/fr/",
+          "searchHref": "/fr/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "Cuisine",
+              "href": "/fr/c/cuisine/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "Ustensiles",
+                  "href": "/fr/c/ustensiles/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "Salle de bain",
+              "href": "/fr/c/salle-de-bain/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "Qui sommes-nous",
+              "href": "/fr/a-propos/"
+            },
+            {
+              "key": "delivery",
+              "label": "Livraison et frais",
+              "href": "/fr/livraison/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": false,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 102,
+          "kind": "simple",
+          "name": "Poêle 28 cm",
+          "brandLatin": null,
+          "href": "/fr/p/poele-28-cm/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 2,
+          "name": "Ustensiles",
+          "href": "/fr/c/ustensiles/"
+        },
+        "image": {
+          "src": "/img/f9cdabaf-480.avif",
+          "srcset": "/img/f9cdabaf-360.avif 360w, /img/f9cdabaf-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/f9cdabaf-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/f9cdabaf-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "Poêle 28 cm",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 3200,
+          "label": "3 200 DA",
+          "compareAtDzd": null,
+          "compareAtLabel": null,
+          "discountPercent": null,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1021,
+            "sku": "POE-28",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 3200,
+              "label": "3 200 DA",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "out_of_stock",
+              "qty": 0
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": false,
+            "maxQty": 0
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "Accueil",
+            "href": "/fr/"
+          },
+          {
+            "label": "Cuisine",
+            "href": "/fr/c/cuisine/"
+          },
+          {
+            "label": "Ustensiles",
+            "href": "/fr/c/ustensiles/"
+          },
+          {
+            "label": "Poêle 28 cm",
+            "href": "/fr/p/poele-28-cm/"
+          },
+          {
+            "label": "Commander",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 102,
+          "kind": "simple",
+          "singleVariant": true,
+          "defaultVariantId": 1021,
+          "variants": [
+            {
+              "id": 1021,
+              "sku": "POE-28",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 3200,
+                "label": "3 200 DA",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "out_of_stock",
+                "qty": 0
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": false,
+              "maxQty": 0
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - Biskra"
+            },
+            {
+              "code": 16,
+              "label": "16 - Alger"
+            },
+            {
+              "code": 31,
+              "label": "31 - Oran"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/fr/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/fr/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 1
+          },
+          "orderable": false
+        }
+      }
+    },
+    "/fr/order/casserole-20-cm/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "fr",
+          "dir": "ltr",
+          "title": "Commander · Casserole 20 cm · HB Destockage",
+          "description": "Casserole 20 cm à 2 800 DA. Paiement à la livraison, confirmation par téléphone, livraison dans les 69 wilayas.",
+          "path": "/fr/order/casserole-20-cm/",
+          "canonicalUrl": "https://hbdestockage.example/fr/order/casserole-20-cm/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "ar",
+            "label": "العربية",
+            "href": "/ar/order/tanjara-20-cm/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/fr/",
+          "searchHref": "/fr/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "Cuisine",
+              "href": "/fr/c/cuisine/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "Ustensiles",
+                  "href": "/fr/c/ustensiles/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "Salle de bain",
+              "href": "/fr/c/salle-de-bain/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "Qui sommes-nous",
+              "href": "/fr/a-propos/"
+            },
+            {
+              "key": "delivery",
+              "label": "Livraison et frais",
+              "href": "/fr/livraison/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": false,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 103,
+          "kind": "simple",
+          "name": "Casserole 20 cm",
+          "brandLatin": null,
+          "href": "/fr/p/casserole-20-cm/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 2,
+          "name": "Ustensiles",
+          "href": "/fr/c/ustensiles/"
+        },
+        "image": {
+          "src": "/img/381c18bd-480.avif",
+          "srcset": "/img/381c18bd-360.avif 360w, /img/381c18bd-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/381c18bd-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/381c18bd-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "Casserole 20 cm",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 2800,
+          "label": "2 800 DA",
+          "compareAtDzd": null,
+          "compareAtLabel": null,
+          "discountPercent": null,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1031,
+            "sku": "CAS-20",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 2800,
+              "label": "2 800 DA",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "low_stock",
+              "qty": 2
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 2
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "Accueil",
+            "href": "/fr/"
+          },
+          {
+            "label": "Cuisine",
+            "href": "/fr/c/cuisine/"
+          },
+          {
+            "label": "Ustensiles",
+            "href": "/fr/c/ustensiles/"
+          },
+          {
+            "label": "Casserole 20 cm",
+            "href": "/fr/p/casserole-20-cm/"
+          },
+          {
+            "label": "Commander",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 103,
+          "kind": "simple",
+          "singleVariant": true,
+          "defaultVariantId": 1031,
+          "variants": [
+            {
+              "id": 1031,
+              "sku": "CAS-20",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 2800,
+                "label": "2 800 DA",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "low_stock",
+                "qty": 2
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 2
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - Biskra"
+            },
+            {
+              "code": 16,
+              "label": "16 - Alger"
+            },
+            {
+              "code": 31,
+              "label": "31 - Oran"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/fr/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/fr/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 2
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/fr/order/set-de-couteaux/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "fr",
+          "dir": "ltr",
+          "title": "Commander · Set de couteaux · HB Destockage",
+          "description": "Set de couteaux à 4 500 DA. Paiement à la livraison, confirmation par téléphone, livraison dans les 69 wilayas.",
+          "path": "/fr/order/set-de-couteaux/",
+          "canonicalUrl": "https://hbdestockage.example/fr/order/set-de-couteaux/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "ar",
+            "label": "العربية",
+            "href": "/ar/order/taqm-sakakin/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/fr/",
+          "searchHref": "/fr/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "Cuisine",
+              "href": "/fr/c/cuisine/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "Ustensiles",
+                  "href": "/fr/c/ustensiles/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "Salle de bain",
+              "href": "/fr/c/salle-de-bain/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "Qui sommes-nous",
+              "href": "/fr/a-propos/"
+            },
+            {
+              "key": "delivery",
+              "label": "Livraison et frais",
+              "href": "/fr/livraison/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": false,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 104,
+          "kind": "simple",
+          "name": "Set de couteaux",
+          "brandLatin": "HB Home",
+          "href": "/fr/p/set-de-couteaux/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 1,
+          "name": "Cuisine",
+          "href": "/fr/c/cuisine/"
+        },
+        "image": {
+          "src": "/img/04067ca2-480.avif",
+          "srcset": "/img/04067ca2-360.avif 360w, /img/04067ca2-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/04067ca2-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/04067ca2-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "Set de couteaux",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 4500,
+          "label": "4 500 DA",
+          "compareAtDzd": null,
+          "compareAtLabel": null,
+          "discountPercent": null,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1041,
+            "sku": "COU-SET5",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 4500,
+              "label": "4 500 DA",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "in_stock",
+              "qty": null
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 10
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "Accueil",
+            "href": "/fr/"
+          },
+          {
+            "label": "Cuisine",
+            "href": "/fr/c/cuisine/"
+          },
+          {
+            "label": "Set de couteaux",
+            "href": "/fr/p/set-de-couteaux/"
+          },
+          {
+            "label": "Commander",
+            "href": null
+          }
+        ],
+        "orderForm": {
+          "productId": 104,
+          "kind": "simple",
+          "singleVariant": true,
+          "defaultVariantId": 1041,
+          "variants": [
+            {
+              "id": 1041,
+              "sku": "COU-SET5",
+              "optionValueIds": [],
+              "key": "",
+              "label": "",
+              "price": {
+                "amountDzd": 4500,
+                "label": "4 500 DA",
+                "compareAtDzd": null,
+                "compareAtLabel": null,
+                "discountPercent": null,
+                "from": false
+              },
+              "stock": {
+                "state": "in_stock",
+                "qty": null
+              },
+              "imageIndex": null,
+              "imageIndexes": [
+                0
+              ],
+              "isDefault": true,
+              "available": true,
+              "maxQty": 10
+            }
+          ],
+          "options": [],
+          "wilayas": [
+            {
+              "code": 7,
+              "label": "7 - Biskra"
+            },
+            {
+              "code": 16,
+              "label": "16 - Alger"
+            },
+            {
+              "code": 31,
+              "label": "31 - Oran"
+            }
+          ],
+          "communesUrlTemplate": "/geo/communes/fr/{code}.json",
+          "quoteEndpoint": "/api/quote",
+          "orderEndpoint": "/api/order",
+          "confirmationHref": "/fr/order/confirmation/",
+          "turnstileSiteKey": null,
+          "qty": {
+            "min": 1,
+            "max": 10
+          },
+          "orderable": true
+        }
+      }
+    },
+    "/fr/order/egouttoir/": {
+      "template": "order-step",
+      "props": {
+        "layout": {
+          "template": "order-step",
+          "lang": "fr",
+          "dir": "ltr",
+          "title": "Commander · Égouttoir [PLACEHOLDER] · HB Destockage",
+          "description": "Égouttoir [PLACEHOLDER] à 1 500 DA. Paiement à la livraison, confirmation par téléphone, livraison dans les 69 wilayas.",
+          "path": "/fr/order/egouttoir/",
+          "canonicalUrl": "https://hbdestockage.example/fr/order/egouttoir/",
+          "alternates": [],
+          "languageSwitch": {
+            "lang": "ar",
+            "label": "العربية",
+            "href": "/ar/order/musaffat/"
+          },
+          "noindex": true,
+          "storeName": "HB Destockage",
+          "homeHref": "/fr/",
+          "searchHref": "/fr/search/",
+          "nav": [
+            {
+              "id": 1,
+              "name": "Cuisine",
+              "href": "/fr/c/cuisine/",
+              "count": 6,
+              "placeholder": true,
+              "children": [
+                {
+                  "id": 2,
+                  "name": "Ustensiles",
+                  "href": "/fr/c/ustensiles/",
+                  "count": 2,
+                  "placeholder": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": 3,
+              "name": "Salle de bain",
+              "href": "/fr/c/salle-de-bain/",
+              "count": 0,
+              "placeholder": true,
+              "children": []
+            }
+          ],
+          "footerLinks": [
+            {
+              "key": "about",
+              "label": "Qui sommes-nous",
+              "href": "/fr/a-propos/"
+            },
+            {
+              "key": "delivery",
+              "label": "Livraison et frais",
+              "href": "/fr/livraison/"
+            }
+          ],
+          "contact": {
+            "phoneDisplay": "0560 41 74 03",
+            "phoneHref": "tel:+213560417403",
+            "whatsappDisplay": "+213 779 942 022",
+            "whatsappHref": "https://wa.me/213779942022",
+            "email": null
+          },
+          "strings": "(see top-level strings)",
+          "lcpImage": null,
+          "ogImage": null,
+          "preloadArabicFont": false,
+          "hasPlaceholders": true
+        },
+        "product": {
+          "id": 105,
+          "kind": "simple",
+          "name": "Égouttoir [PLACEHOLDER]",
+          "brandLatin": null,
+          "href": "/fr/p/egouttoir/",
+          "placeholder": true,
+          "translationPlaceholder": false
+        },
+        "category": {
+          "id": 1,
+          "name": "Cuisine",
+          "href": "/fr/c/cuisine/"
+        },
+        "image": {
+          "src": "/img/9479a432-480.avif",
+          "srcset": "/img/9479a432-360.avif 360w, /img/9479a432-480.avif 480w",
+          "sizes": "120px",
+          "candidates": [
+            {
+              "url": "/img/9479a432-360.avif",
+              "width": 360,
+              "height": 360,
+              "bytes": 0
+            },
+            {
+              "url": "/img/9479a432-480.avif",
+              "width": 480,
+              "height": 480,
+              "bytes": 0
+            }
+          ],
+          "width": 480,
+          "height": 480,
+          "alt": "Égouttoir",
+          "type": "image/avif",
+          "lcp": false,
+          "placeholder": true
+        },
+        "price": {
+          "amountDzd": 1500,
+          "label": "1 500 DA",
+          "compareAtDzd": null,
+          "compareAtLabel": null,
+          "discountPercent": null,
+          "from": false
+        },
+        "options": [],
+        "variants": [
+          {
+            "id": 1051,
+            "sku": "EGO-1",
+            "optionValueIds": [],
+            "key": "",
+            "label": "",
+            "price": {
+              "amountDzd": 1500,
+              "label": "1 500 DA",
+              "compareAtDzd": null,
+              "compareAtLabel": null,
+              "discountPercent": null,
+              "from": false
+            },
+            "stock": {
+              "state": "in_stock",
+              "qty": 12
+            },
+            "imageIndex": null,
+            "imageIndexes": [
+              0
+            ],
+            "isDefault": true,
+            "available": true,
+            "maxQty": 10
+          }
+        ],
+        "breadcrumbs": [
+          {
+            "label": "Accueil",
+            "href": "/fr/"
+          },
+          {
+            "label": "Cuisine",
+            "href": "/fr/c/cuisine/"
+          },
+          {
+            "label": "Égouttoir [PLACEHOLDER]",
+            "href": "/fr/p/egouttoir/"
+          },
+          {
+            "label": "Commander",
+            "href": null
           }
         ],
         "orderForm": {
