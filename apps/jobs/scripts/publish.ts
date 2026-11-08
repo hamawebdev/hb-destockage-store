@@ -44,7 +44,9 @@ import { containedPath } from './lib/private-dir.ts';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 // The repo's pinned wrangler, as in RESTORE.md (JOBS-3 review nit), never a global npx.
-export const DEPLOY_COMMAND = './node_modules/.bin/wrangler deploy -c apps/web/wrangler.jsonc';
+// Same form as the pipeline (scripts/deploy/orchestrate.ts): --cwd so apps/web's build.command runs
+// from its own directory (`-c` from the repo root fails), --env= for the top-level production config.
+export const DEPLOY_COMMAND = './node_modules/.bin/wrangler deploy --cwd apps/web --env=';
 
 const { values: args } = parseArgs({
   options: {
