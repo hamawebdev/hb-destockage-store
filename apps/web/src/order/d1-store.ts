@@ -6,7 +6,7 @@ import { and, desc, eq, gte, inArray, ne, sql } from 'drizzle-orm';
 import { customers, orderEvents, orderItems, orders, type Db } from '@hb/db';
 import { createOrder as dbCreateOrder, markDuplicate as dbMarkDuplicate } from '@hb/db/orders';
 import { DUPLICATE_WINDOW_MS, makeOrderRef, type OrderRef } from '@hb/shared';
-import type { CreateOrderInput, CreateOrderResult, DuplicateAttempt, ExistingOrder, OrderStore, PhoneHistory } from './store.ts';
+import type { CreateOrderInput, CreateOrderResult, DuplicateAttempt, ExistingOrder, OrderLineQty, OrderStore, PhoneHistory, RecentOrder } from './store.ts';
 
 export interface OrderWrites {
   createOrder(db: Db, input: CreateOrderInput): Promise<CreateOrderResult>;
@@ -30,8 +30,23 @@ const existingColumns = {
   communeId: orders.communeId,
 };
 
+/**
+ * Each recent order's lines as one JSON column, so they arrive with the order in the existing read
+ * batch and RECENT_LIMIT still counts orders. Literal SQL names on purpose: on a query without joins,
+ * Drizzle strips the table from `${column}` chunks in the selection, and `${orders.id}` would render
+ * as a bare "id", which inside this sub-select means order_items.id.
+ */
+const recentColumns = {
+  ...existingColumns,
+  lines: sql<string>`(select json_group_array(json_object('variantId', oi.variant_id, 'qty', oi.qty)) from order_items oi where oi.order_id = orders.id)`,
+};
+
 function toExisting(r: Omit<ExistingOrder, 'ref'> & { ref: string }): ExistingOrder {
   return { ...r, ref: r.ref as OrderRef };
+}
+
+function toRecent({ lines, ...r }: Omit<ExistingOrder, 'ref'> & { ref: string; lines: string }): RecentOrder {
+  return { ...toExisting(r), lines: JSON.parse(lines) as OrderLineQty[] };
 }
 
 export function createD1OrderStore(db: Db, writes: OrderWrites): OrderStore {
@@ -48,7 +63,7 @@ export function createD1OrderStore(db: Db, writes: OrderWrites): OrderStore {
 
     async phoneHistory(phoneE164, variantIds, now): Promise<PhoneHistory> {
       const dupQuery = db
-        .select(existingColumns)
+        .select(recentColumns)
         .from(orders)
         .where(
           and(
@@ -67,7 +82,7 @@ export function createD1OrderStore(db: Db, writes: OrderWrites): OrderStore {
       const customerQuery = db.select({ blocked: customers.blocked }).from(customers).where(eq(customers.phoneE164, phoneE164)).limit(1);
       const [dup, count, customer] = await db.batch([dupQuery, countQuery, customerQuery]);
       return {
-        recent: dup.map(toExisting),
+        recent: dup.map(toRecent),
         ordersLast24h: Number(count[0]?.n ?? 0),
         blocked: customer[0]?.blocked === true,
       };

@@ -20,6 +20,17 @@ export interface ExistingOrder {
   readonly communeId: number;
 }
 
+/** One line as dedup compares it. */
+export interface OrderLineQty {
+  readonly variantId: number;
+  readonly qty: number;
+}
+
+/** A recent order with its lines: only an exact resubmission of those lines is a double submit. */
+export interface RecentOrder extends ExistingOrder {
+  readonly lines: readonly OrderLineQty[];
+}
+
 export interface CreateOrderLine {
   readonly variantId: number;
   readonly productId: number;
@@ -65,9 +76,9 @@ export interface PhoneHistory {
   /**
    * Every non-cancelled order for this phone with an overlapping variant inside the dedup window,
    * newest first (bounded). All are checked: another person's order in between must not hide a
-   * genuine double submit (rev-d WEB-3 r2).
+   * genuine double submit (rev-d WEB-3 r2). An overlap alone is not a duplicate: see `lines`.
    */
-  readonly recent: readonly ExistingOrder[];
+  readonly recent: readonly RecentOrder[];
   /** Non-cancelled orders for this phone in the last 24 h. */
   readonly ordersLast24h: number;
   readonly blocked: boolean;
@@ -75,7 +86,7 @@ export interface PhoneHistory {
 
 /** What the second (duplicate) submission asked for, kept as an order_events note for the confirmer. */
 export interface DuplicateAttempt {
-  readonly items: readonly { readonly variantId: number; readonly qty: number }[];
+  readonly items: readonly OrderLineQty[];
   readonly wilayaCode: number;
   readonly communeId: number;
 }

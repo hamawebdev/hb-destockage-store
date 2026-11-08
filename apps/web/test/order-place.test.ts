@@ -16,7 +16,7 @@ import * as v from 'valibot';
 import type { PricingReads, VariantForSale, VariantSnapshot } from '../src/catalog-reads.ts';
 import { ipRateKey, sinkRef } from '../src/order/crypto.ts';
 import { placeOrder, type PlaceDeps, type PlaceOutcome } from '../src/order/place.ts';
-import type { CreateOrderInput, CreateOrderResult, DuplicateAttempt, ExistingOrder, OrderStore, PhoneHistory } from '../src/order/store.ts';
+import type { CreateOrderInput, CreateOrderResult, DuplicateAttempt, ExistingOrder, OrderStore, PhoneHistory, RecentOrder } from '../src/order/store.ts';
 
 const NOW = 1_793_800_000_000;
 const KEY = '6f1c2a4e-8b3d-4c5e-9f6a-7b8c9d0e1f2a';
@@ -385,7 +385,7 @@ describe('layer 1: honeypot and fill time', () => {
 });
 
 describe('layer 7: dedup (lead ruling: no data about another order unless it is a genuine double submit)', () => {
-  const existing: ExistingOrder = {
+  const existing: RecentOrder = {
     id: 42,
     ref: 'HB-42424' as OrderRef,
     status: 'new',
@@ -396,10 +396,11 @@ describe('layer 7: dedup (lead ruling: no data about another order unless it is 
     name: 'محمد  أمين ',
     wilayaCode: 16,
     communeId: 1601,
+    lines: [{ variantId: 11, qty: 1 }],
   };
 
-  test('genuine double submit (same phone + variant + name + wilaya + commune) → the existing order, 201, duplicate:true, attempt noted', async () => {
-    store.history = { recent: [existing], ordersLast24h: 1, blocked: false };
+  test('genuine double submit (same phone + lines + name + wilaya + commune) → the existing order, 201, duplicate:true, attempt noted', async () => {
+    store.history = { recent: [{ ...existing, lines: [{ variantId: 11, qty: 2 }] }], ordersLast24h: 1, blocked: false };
     const out = wire(await place({ items: [{ variantId: 11, qty: 2 }], expectedTotalDzd: 29800 }));
     expect(out).toEqual({
       kind: 'duplicate',
@@ -432,7 +433,7 @@ describe('layer 7: dedup (lead ruling: no data about another order unless it is 
   });
 
   test("another person's order in between does not hide a genuine double submit (every recent order is checked)", async () => {
-    const other: ExistingOrder = { ...existing, id: 43, ref: 'HB-43434' as OrderRef, name: 'Someone Else', communeId: 1602 };
+    const other: RecentOrder = { ...existing, id: 43, ref: 'HB-43434' as OrderRef, name: 'Someone Else', communeId: 1602 };
     store.history = { recent: [other, existing], ordersLast24h: 2, blocked: false }; // newest first
     const out = await place();
     expect(out).toMatchObject({ kind: 'duplicate', status: 201, body: { ref: 'HB-42424', duplicate: true } });
@@ -443,6 +444,80 @@ describe('layer 7: dedup (lead ruling: no data about another order unless it is 
   test('names compare as typed: case, spaces and Unicode normalisation do not matter', async () => {
     store.history = { recent: [{ ...existing, name: '  AMINE   ben ali ' }], ordersLast24h: 1, blocked: false };
     expect((await place({ name: 'Amine Ben Ali' })).kind).toBe('duplicate');
+  });
+
+  // Prices: 11 = 14600, 21 = 15500; wilaya 16 fee = 600.
+  const A = { variantId: 11, qty: 1 };
+  const B = { variantId: 21, qty: 1 };
+  const cartTotal = 14600 + 15500 + 600;
+  const history = (...recent: RecentOrder[]): PhoneHistory => ({ recent, ordersLast24h: recent.length, blocked: false });
+
+  function expectNewFlagged(out: PlaceOutcome, lines: readonly { variantId: number; qty: number }[]): void {
+    expect(out.kind).toBe('created');
+    expect(store.created).toHaveLength(1);
+    expect(store.created[0]!.order.flags).toEqual(['duplicate']);
+    expect(store.created[0]!.lines.map(({ variantId, qty }) => ({ variantId, qty }))).toEqual(lines);
+    expect(store.duplicates).toHaveLength(0);
+  }
+
+  test('exact resubmission of one line → the same order', async () => {
+    store.history = history(existing);
+    const out = wire(await place({ items: [A] }));
+    expect(out).toMatchObject({ kind: 'duplicate', body: { ref: 'HB-42424', duplicate: true } });
+    expect(store.created).toHaveLength(0);
+  });
+
+  test('exact resubmission of a cart → the same order', async () => {
+    store.history = history({ ...existing, lines: [A, B] });
+    const out = wire(await place({ items: [A, B], expectedTotalDzd: cartTotal }));
+    expect(out).toMatchObject({ kind: 'duplicate', body: { ref: 'HB-42424', duplicate: true } });
+    expect(store.duplicates.map((d) => d.orderId)).toEqual([42]);
+    expect(store.created).toHaveLength(0);
+  });
+
+  test('the same lines in another order are the same cart', async () => {
+    store.history = history({ ...existing, lines: [A, B] });
+    const out = await place({ items: [B, A], expectedTotalDzd: cartTotal });
+    expect(out).toMatchObject({ kind: 'duplicate', body: { ref: 'HB-42424', duplicate: true } });
+    expect(store.created).toHaveLength(0);
+  });
+
+  test('A then A+B → a new order that keeps B, flagged duplicate; the A order is not returned', async () => {
+    store.history = history(existing);
+    const out = wire(await place({ items: [A, B], expectedTotalDzd: cartTotal }));
+    expectNewFlagged(out, [A, B]);
+    expect(out).toMatchObject({ body: { duplicate: false, totalDzd: cartTotal } });
+    expect(JSON.stringify(out)).not.toContain('42424');
+  });
+
+  test('A+B then A → a new order (fewer lines is not a resubmission)', async () => {
+    store.history = history({ ...existing, lines: [A, B] });
+    expectNewFlagged(await place({ items: [A] }), [A]);
+  });
+
+  test('same variant with another quantity → a new order', async () => {
+    store.history = history(existing);
+    expectNewFlagged(await place({ items: [{ variantId: 11, qty: 2 }], expectedTotalDzd: 29800 }), [{ variantId: 11, qty: 2 }]);
+  });
+
+  test('same variants with one quantity changed → a new order', async () => {
+    store.history = history({ ...existing, lines: [A, B] });
+    const lines = [A, { variantId: 21, qty: 2 }];
+    expectNewFlagged(await place({ items: lines, expectedTotalDzd: 14600 + 2 * 15500 + 600 }), lines);
+  });
+
+  test('two recent orders, the older one is the exact match → the older order comes back', async () => {
+    const newer: RecentOrder = { ...existing, id: 43, ref: 'HB-43434' as OrderRef, lines: [A, B] };
+    store.history = history(newer, existing); // newest first
+    const out = await place({ items: [A] });
+    expect(out).toMatchObject({ kind: 'duplicate', body: { ref: 'HB-42424', duplicate: true } });
+    expect(store.duplicates.map((d) => d.orderId)).toEqual([42]);
+    expect(store.created).toHaveLength(0);
+  });
+
+  test('the exact lines on another person\'s order are not a double submit', async () => {
+    store.history = history({ ...existing, name: 'Someone Else', lines: [A, B] });
+    expectNewFlagged(await place({ items: [A, B], expectedTotalDzd: cartTotal }), [A, B]);
   });
 });
 

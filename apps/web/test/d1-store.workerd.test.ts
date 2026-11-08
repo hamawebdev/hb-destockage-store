@@ -14,6 +14,7 @@ const NOW = Date.now();
 const MIN = 60_000;
 const P1 = '+213555000001';
 const P2 = '+213555000002';
+const P3 = '+213555000003';
 
 async function addOrder(o: { id: number; ref: string; key: string; phone: string; at: number; status?: string; variant: number; lang?: string }) {
   await h.env.DB.batch([
@@ -39,6 +40,13 @@ beforeAll(async () => {
   await addOrder({ id: 4, ref: 'HB-00004', key: '00000000-0000-4000-8000-000000000004', phone: P1, at: NOW - 25 * 60 * MIN, variant: 11 });
   await addOrder({ id: 5, ref: 'HB-00005', key: '00000000-0000-4000-8000-000000000005', phone: P2, at: NOW - 1 * MIN, variant: 11 });
   await h.env.DB.prepare(`update customers set blocked = 1 where phone_e164 = ?`).bind(P2).run();
+  // Two recent orders of one phone: a cart (11×1 + 21×2) and, older, a single line (21×1).
+  await addOrder({ id: 6, ref: 'HB-00006', key: '00000000-0000-4000-8000-000000000006', phone: P3, at: NOW - 2 * MIN, variant: 11 });
+  await h.env.DB.prepare(
+    `insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd)
+     values (6, 21, (select product_id from variants where id = 21), 'n', 'n', 's', 15500, 2, 31000)`,
+  ).run();
+  await addOrder({ id: 7, ref: 'HB-00007', key: '00000000-0000-4000-8000-000000000007', phone: P3, at: NOW - 3 * MIN, variant: 21 });
 });
 afterAll(async () => {
   await h?.server.close();
@@ -70,6 +78,17 @@ describe('D1 order store reads', () => {
     expect((await store.phoneHistory('+213555000099', [11], NOW)).recent).toEqual([]);
     // 31 min later, order 1 is out of the window.
     expect((await store.phoneHistory(P1, [11], NOW + 21 * MIN)).recent).toEqual([]);
+  });
+
+  test('recent orders carry their own lines, whichever variant overlapped', async () => {
+    const byLine = (a: { variantId: number }, b: { variantId: number }) => a.variantId - b.variantId;
+    const { recent } = await store.phoneHistory(P3, [21], NOW);
+    expect(recent.map((o) => o.ref)).toEqual(['HB-00006', 'HB-00007']);
+    expect([...recent[0]!.lines].sort(byLine)).toEqual([{ variantId: 11, qty: 1 }, { variantId: 21, qty: 2 }]);
+    expect(recent[1]!.lines).toEqual([{ variantId: 21, qty: 1 }]);
+    // The filter is on the overlap only: the cart's other line is still loaded.
+    const [cart] = (await store.phoneHistory(P3, [11], NOW)).recent;
+    expect([...cart!.lines].sort(byLine)).toEqual([{ variantId: 11, qty: 1 }, { variantId: 21, qty: 2 }]);
   });
 
   test('velocity counts non-cancelled orders of the last 24 h; blocked comes from customers', async () => {
