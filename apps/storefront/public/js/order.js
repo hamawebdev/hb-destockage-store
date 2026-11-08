@@ -85,6 +85,98 @@ export async function post(url, body, ms, signal) {
   }
 }
 
+/**
+ * One idempotency key per exact submission (lines, quantities, wilaya, commune): a retry of the same submission reuses
+ * its key, so a request that did reach the server cannot create a second order; a changed submission gets its own key,
+ * so the server can never answer it with the order of different lines.
+ */
+export function submissionKeys(make = uuid) {
+  const keys = new Map();
+  return {
+    of(sig) {
+      if (!keys.has(sig)) keys.set(sig, make());
+      return keys.get(sig);
+    },
+    clear: () => keys.clear(),
+  };
+}
+
+const pause = (ms) => new Promise((ok) => setTimeout(ok, ms));
+
+/** Posts one frozen body, with one automatic retry of that same body after a network failure. */
+export async function postRetrying(url, body, getToken, postFn = post, wait = pause) {
+  for (let attempt = 0; ; attempt++) {
+    const tok = await getToken();
+    try {
+      return await postFn(url, tok ? { ...body, turnstileToken: tok } : body, 20000);
+    } catch {
+      if (attempt) return { status: 0, body: {} };
+      await wait(1500);
+    }
+  }
+}
+
+/**
+ * Checkout rows from the cart lines and the per-product JSON ('err' = that fetch failed). A failed fetch only marks
+ * the row retryable; what the server said (`sold`, a lower `max`, its price) survives a rebuild.
+ */
+export function buildRows(lines, data, prev = []) {
+  const had = new Map(prev.map((r) => [r.v, r]));
+  return lines.map((l, i) => {
+    const p = data[i];
+    const err = p === 'err';
+    const h = had.get(l.v);
+    const known = h && !h.err; // a row built from a failed fetch knows nothing worth keeping
+    const v = !err && p ? p.variants.find((x) => x.id === l.v) : undefined;
+    const sold = !!h?.sold;
+    const ok = !err && !!v?.ok && v.max > 0 && !sold;
+    const max = known ? Math.min(h.max, v?.max ?? h.max) : v?.max ?? 0;
+    return {
+      p: l.p,
+      v: l.v,
+      q: ok ? Math.min(l.q, max || l.q) : l.q,
+      name: !err && p ? p.name : '',
+      label: !err && p && p.variants.length > 1 ? v?.label ?? '' : '',
+      price: known && ok ? h.price : v?.price ?? 0,
+      max,
+      ok,
+      img: !err && p ? p.img : null,
+      err,
+      sold,
+      maxed: h?.maxed ?? false,
+      priceEl: null,
+    };
+  });
+}
+
+/**
+ * Applies the server's `lines` (quote answers and the 409s of /api/order) to the rows: prices and stock follow it, a
+ * quantity above the stock comes down to it, a line it no longer sells leaves the order.
+ * @returns {{clamped: boolean, dropped: boolean}}
+ */
+export function applyLines(rows, lines) {
+  let clamped = false;
+  let dropped = false;
+  for (const l of lines || []) {
+    const r = rows.find((x) => x.v === l.variantId);
+    if (!r) continue;
+    r.max = l.maxQty;
+    if (l.maxQty > 0) {
+      if (l.unitPriceDzd != null) r.price = l.unitPriceDzd;
+      if (r.ok && r.q > l.maxQty) {
+        r.q = l.maxQty;
+        r.maxed = true;
+        clamped = true;
+      }
+    } else if (r.ok) {
+      r.ok = false;
+      r.sold = true;
+      dropped = true;
+    }
+  }
+  return { clamped, dropped };
+}
+
 const D = typeof document === 'object' ? document : null;
 const form = D?.getElementById('order-form');
 if (form && !form.dataset.ready) init(form);
@@ -127,7 +219,8 @@ function init(f) {
   const formMax = Number(qty?.max) || 10;
   const communes = new Map();
   const quotes = new Map();
-  let key = uuid();
+  const keys = submissionKeys();
+  let sending = false; // a submit (or its automatic retry) is in flight: lines are read-only until it is answered
   let started = 0; // performance.now() of the first interaction (fillMs)
   let busy = false;
   let blocked = false; // quote failed / area unavailable: confirm stays disabled (lead's rule)
@@ -141,6 +234,11 @@ function init(f) {
   // on its own (e.g. the re-quote that follows it) must not clear it (ORDER-2 review r2 F1, lead's rule).
   let stickyAlert = false;
   const customerActed = () => (stickyAlert = false);
+  const frozen = [f.querySelector('.of-lines'), f.querySelector('.cat-picker')].filter(Boolean);
+  const setSending = (b) => {
+    sending = b;
+    for (const e of frozen) e.inert = b;
+  };
 
   const readVariant = () => variants.get(Number(el.namedItem('variantId')?.value)) ?? null;
   let variant = readVariant();
@@ -201,7 +299,7 @@ function init(f) {
   };
   f.addEventListener('click', (e) => {
     const b = e.target.closest?.('.of-step');
-    if (b) {
+    if (b && !sending) {
       customerActed();
       qty.value = String((n() || 1) + Number(b.dataset.d));
       changed();
@@ -313,7 +411,7 @@ function init(f) {
 
   /** Applies a quote answer (also the `quote` carried by 409 order answers). */
   function apply(k, d) {
-    if (cartMode) syncRows(d.lines);
+    const moved = cartMode && syncRows(d.lines);
     const line = d.lines?.[0];
     if (!cartMode && line && variant && line.variantId === variant.id) {
       variant.max = line.maxQty;
@@ -334,8 +432,9 @@ function init(f) {
     if (d.status === 422 && d.errors) fieldErrors(d.errors);
     else if (d.code === 'out_of_stock' || d.code === 'variant_unavailable') {
       if (cartMode) {
-        settleRows();
         showAlert(msg(d.code));
+        stickyAlert = true; // the re-quote that follows must not clear it
+        if (moved) changed();
       } else {
         clampQty();
         setErr(qty, d.code);
@@ -352,6 +451,10 @@ function init(f) {
   }
 
   $('retry').addEventListener('click', () => {
+    if (cartMode && rows.some((r) => r.err)) {
+      loadTries = 0;
+      loadRows();
+    }
     quotes.delete(inputs());
     quote = null;
     setBlocked(false);
@@ -365,7 +468,7 @@ function init(f) {
     for (const e of errors || []) {
       const input = fieldOf[e.field];
       if (input) {
-        setErr(input, M.has(e.code) ? e.code : 'invalid_request', { max: qty.max });
+        setErr(input, M.has(e.code) ? e.code : 'invalid_request', { max: qty?.max });
         first ||= input;
       } else showAlert(msg(M.has(e.code) ? e.code : 'invalid_request'));
     }
@@ -414,6 +517,13 @@ function init(f) {
       bad[0][0].focus();
       return;
     }
+    if (cartMode && rows.some((r) => r.err)) {
+      await loadRows();
+      if (rows.some((r) => r.err)) {
+        showAlert(msg('load_failed'), true);
+        return;
+      }
+    }
     if (cartMode ? !items().length : !variant?.ok) {
       showAlert(msg(cartMode ? 'items_empty' : variant ? 'variant_unavailable' : 'variant_required'));
       return;
@@ -432,17 +542,19 @@ function init(f) {
       }
       return;
     }
-    send(false);
+    send();
   });
 
-  async function send(isRetry) {
+  async function send() {
     busy = true;
+    setSending(true);
     btn.setAttribute('aria-disabled', 'true');
     text(btn, msg('submitting'));
     say(msg('submitting'));
     const sentK = inputs(); // the inputs this request (and any 409 quote in its answer) is about
+    // Built once: the automatic retry re-sends exactly this, whatever happens on the page meanwhile.
     const body = {
-      idempotencyKey: key,
+      idempotencyKey: keys.of(sentK),
       lang,
       items: items(),
       name: name.value,
@@ -453,18 +565,8 @@ function init(f) {
       website: el.website.value,
     };
     if (started) body.fillMs = Math.round(performance.now() - started);
-    const tok = ts ? await ts.token(3000).catch(() => '') : '';
-    if (tok) body.turnstileToken = tok;
-    let r;
-    try {
-      r = await post(f.action, body, 20000);
-    } catch {
-      if (!isRetry) {
-        await new Promise((ok) => setTimeout(ok, 1500));
-        return send(true); // same key: if the first attempt reached the server, this returns that order
-      }
-      r = { status: 0, body: {} };
-    }
+    // Same key on the retry: if the first attempt reached the server, this returns that order.
+    const r = await postRetrying(f.action, body, () => (ts ? ts.token(3000).catch(() => '') : ''));
     const d = r.body || {};
     if (d.ok && d.ref) {
       if (cartMode) cart.store.write(cart.removeVariants(cart.store.lines(), body.items.map((i) => i.variantId)));
@@ -472,6 +574,7 @@ function init(f) {
       return;
     }
     busy = false;
+    setSending(false);
     btn.removeAttribute('aria-disabled');
     text(btn, submitText);
     say('');
@@ -493,9 +596,23 @@ function init(f) {
       showAlert(countMsg(d.errors?.length || 1));
       fieldErrors(d.errors);
     } else if (c === 'out_of_stock' || c === 'variant_unavailable') {
-      changed(); // clamps qty to the fresh maxQty and re-quotes
-      if (cartMode) showAlert(msg(c));
-      else {
+      // These answers carry `lines`, not a `quote`: follow them, drop the stale totals, re-quote what is left.
+      quote = null;
+      quotes.clear();
+      if (cartMode) {
+        const { clamped, dropped } = syncRows(d.lines);
+        showAlert(msg(c));
+        stickyAlert = true; // the re-quote that follows must not clear it
+        if (clamped || dropped) changed();
+        else render();
+      } else {
+        const l = d.lines?.find((x) => x.variantId === variant?.id);
+        if (l) {
+          variant.max = l.maxQty;
+          variant.ok = l.maxQty > 0;
+          if (l.maxQty > 0 && l.unitPriceDzd != null) variant.price = l.unitPriceDzd;
+        }
+        changed(); // clamps qty to the fresh maxQty and re-quotes
         setErr(qty, c);
         qty.focus();
       }
@@ -519,7 +636,8 @@ function init(f) {
   addEventListener('pageshow', (e) => {
     if (!e.persisted) return;
     if (cartMode) loadRows();
-    key = uuid();
+    keys.clear();
+    setSending(false);
     ts?.reset(); // the previous order spent the Turnstile token too (ORDER-3 review r1 nit)
     busy = false;
     btn.removeAttribute('aria-disabled');
@@ -592,7 +710,7 @@ function init(f) {
       li.append(rm);
       list.append(li);
     }
-    const anyNa = rows.some((r) => !r.ok);
+    const anyNa = rows.some((r) => !r.ok && !r.err);
     const note = $('rows-note');
     note.hidden = !anyNa;
     if (anyNa) text(note, msg('unavailable_note'));
@@ -603,45 +721,24 @@ function init(f) {
     for (const r of rows) if (r.ok && r.priceEl) text(r.priceEl.firstChild, money(r.price * r.q));
   }
 
-  /** Quote answers (200 or 409) carry each line's current price and stock. */
+  /** Follows the server's lines on screen and in the cart. @returns what moved */
   function syncRows(lines) {
-    let drop = false;
-    for (const l of lines || []) {
-      const r = rows.find((x) => x.v === l.variantId);
-      if (!r) continue;
-      r.max = l.maxQty;
-      if (l.maxQty > 0) {
-        if (l.unitPriceDzd != null) r.price = l.unitPriceDzd;
-      } else if (r.ok) {
-        r.ok = false;
-        drop = true;
-      }
-    }
-    if (drop) drawRows();
-  }
-
-  /** After a stock answer: quantities follow the stock, and the cart keeps what was shown. */
-  function settleRows() {
-    let moved = false;
-    for (const r of rows) {
-      if (r.ok && r.q > r.max) {
-        r.q = Math.max(1, r.max);
-        r.maxed = true;
-        moved = true;
-      }
-    }
-    if (moved) {
+    const moved = applyLines(rows, lines);
+    if (moved.clamped) {
       cart.store.write(cart.store.lines().map((l) => {
         const r = rows.find((x) => x.v === l.v);
         return r ? { ...l, q: r.q } : l;
       }));
     }
-    drawRows();
-    changed();
+    if (moved.clamped || moved.dropped) drawRows();
+    return moved.clamped || moved.dropped ? moved : false;
   }
 
   let focusKey = null;
+  let loadTries = 0;
+  let loadTimer = 0;
   function stepRow(r, delta) {
+    if (sending) return;
     customerActed();
     if (delta > 0 && r.q >= r.max) {
       r.maxed = true;
@@ -655,6 +752,7 @@ function init(f) {
     cart.store.write(cart.setQty(cart.store.lines(), r.v, r.q + delta, r.max).lines);
   }
   function removeRow(r) {
+    if (sending) return;
     customerActed();
     focusKey = 'first';
     cart.store.write(cart.removeLine(cart.store.lines(), r.v));
@@ -668,28 +766,7 @@ function init(f) {
   async function loadRows() {
     const lines = cart.store.lines();
     const data = await Promise.all(lines.map((l) => cart.product(l.p).catch(() => 'err')));
-    const prev = new Map(rows.map((r) => [r.v, r]));
-    rows = lines.map((l, i) => {
-      const p = data[i];
-      const v = p && p !== 'err' ? p.variants.find((x) => x.id === l.v) : undefined;
-      const had = prev.get(l.v);
-      const ok = !!v?.ok && v.max > 0 && !(had && !had.ok);
-      const max = had ? Math.min(had.max, v?.max ?? had.max) : v?.max ?? 0;
-      return {
-        p: l.p,
-        v: l.v,
-        q: ok ? Math.min(l.q, max || l.q) : l.q,
-        name: p && p !== 'err' ? p.name : '',
-        label: p && p !== 'err' && p.variants.length > 1 ? v?.label ?? '' : '',
-        price: had && ok ? had.price : v?.price ?? 0,
-        max,
-        ok,
-        img: p && p !== 'err' ? p.img : null,
-        err: p === 'err',
-        maxed: had?.maxed ?? false,
-        priceEl: null,
-      };
-    });
+    rows = buildRows(lines, data, rows);
     const clamped = rows.filter((r, i) => r.ok && r.q !== lines[i].q);
     if (clamped.length) {
       clamped.forEach((r) => (r.maxed = true));
@@ -699,6 +776,10 @@ function init(f) {
       }));
       return;
     }
+    // A product JSON that failed to load is retried a few times, and again on the retry button or on confirm.
+    clearTimeout(loadTimer);
+    if (!rows.some((r) => r.err)) loadTries = 0;
+    else if (loadTries < 3) loadTimer = setTimeout(loadRows, 2000 * ++loadTries);
     const empty = !rows.length;
     $('empty').hidden = !empty;
     f.hidden = empty;
@@ -719,7 +800,12 @@ function init(f) {
         cart.store.sub(() => loadRows());
         return loadRows();
       })
-      .catch(() => showAlert(msg('quote_failed'), true));
+      .catch(() => {
+        // The form is still hidden: say so in the panel that is shown instead of it.
+        const e = $('empty');
+        e.firstElementChild.textContent = msg('load_failed');
+        e.hidden = false;
+      });
   } else {
     clampQty();
     if (wil.value) loadCommunes().then(changed);

@@ -40,7 +40,8 @@ const m = orderFormModel({
 });
 const { t, summary: s } = m;
 const cart = mode === 'cart';
-const unavailable = !m.orderable;
+// One product's stock says nothing about a cart: the checkout borrows a product's form only for wilayas and endpoints.
+const unavailable = !cart && !m.orderable;
 ---
 <section id="order" class="of" aria-labelledby="of-title">
   <h2 id="of-title" class="of-sr">{t('order.title')}</h2>
