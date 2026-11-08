@@ -13,11 +13,13 @@ interface Props {
   class?: string;
   /** Defer the card images past LCP (product page related grid; variant.js promotes them). */
   defer?: boolean;
+  /** Adds an add-to-cart button to each card (homepage, CART-0). */
+  addable?: boolean;
 }
-const { cards, lang, strings, level = 2, class: cls, defer = false } = Astro.props;
+const { cards, lang, strings, level = 2, class: cls, defer = false, addable = false } = Astro.props;
 ---
 <ul class:list={['cat-grid', cls]} role="list">
-  {cards.map((card) => <li><ProductCard card={card} lang={lang} strings={strings} level={level} defer={defer} /></li>)}
+  {cards.map((card) => <li><ProductCard card={card} lang={lang} strings={strings} level={level} defer={defer} addable={addable} /></li>)}
 </ul>
 
 <style is:global>

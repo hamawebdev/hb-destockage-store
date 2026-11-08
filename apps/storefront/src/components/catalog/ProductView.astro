@@ -64,6 +64,7 @@ const askHref = `${layout.contact.whatsappHref}?text=${encodeURIComponent(t(stri
           <div class="cat-ctas">
             <button class="cat-btn cat-cta" type="submit" data-cta-btn>{cta}</button>
             <a class="cat-btn cat-cta" href={ctaHref} data-cta={stepHref} hidden>{cta}</a>
+            <button class="cat-btn cat-cta cat-add-cart" type="button" data-cart-add={product.id} data-form="cat-buy">{t(strings, 'cart.add')}</button>
           </div>
         ) : (
           <a class="cat-btn cat-btn--wa" href={askHref}>{t(strings, 'product.outOfStock.ask')}</a>
@@ -121,6 +122,10 @@ const askHref = `${layout.contact.whatsappHref}?text=${encodeURIComponent(t(stri
   .cat-pdp-summary{margin:0;color:var(--color-text-secondary);font-size:var(--fs-lead);line-height:var(--lh-body);text-wrap:pretty}
   .cat-pdp .cat-ctas{view-timeline:--cat-order block}
   .cat-buy{display:grid;gap:var(--space-5)}
+  .cat-ctas{display:grid;gap:var(--space-2)}
+  .cat-add-cart{background:var(--color-surface);color:var(--color-accent-text);box-shadow:inset 0 0 0 var(--bw-control) var(--color-accent);visibility:hidden}
+  .cart-on .cat-add-cart{visibility:visible}
+  .cat-add-cart:hover{background:var(--color-accent-surface)}
   .cat-cta{inline-size:100%;min-block-size:48px}
   .cat-btn[hidden],.cat-cta[hidden]{display:none}
   .cat-cta[aria-disabled=true]{background:var(--color-border-control);pointer-events:none}
