@@ -68,6 +68,15 @@ describe('publish queue', { timeout: 30_000 }, () => {
     expect(JSON.parse(String((await row(id))!['timings_json']))).toMatchObject({ budgetStaticOnly: 1 });
   });
 
+  test('--budget skip: the run succeeds, budget_ok stays NULL, the log says it did not run', async () => {
+    const id = (await enqueueRun(p.env.DB))!;
+    const [r] = await runPublishQueue(p.env.DB, stages({ budget: async () => ({ ok: true, summary: 'not run', skipped: true }) }), { deployCommand: DEPLOY, now });
+    expect(r).toMatchObject({ status: 'succeeded', error: null, budgetOk: null });
+    const db = (await row(id))!;
+    expect(db).toMatchObject({ status: 'succeeded', budget_ok: null, error: null });
+    expect(String(db['log_tail'])).toContain('budget: SKIPPED: not run');
+  });
+
   test('--budget report: a failing budget is recorded (budget_ok 0) but the run succeeds', async () => {
     const id = (await enqueueRun(p.env.DB))!;
     const [r] = await runPublishQueue(p.env.DB, stages({ budget: async () => ({ ok: false, summary: 'BUDGET FAILED: 1 violations (html-br: 1)', staticOnly: false, reportOnly: true }) }), { deployCommand: DEPLOY, now });

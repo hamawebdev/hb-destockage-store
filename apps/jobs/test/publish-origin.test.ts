@@ -28,10 +28,10 @@ describe('publish --site-origin (pagedata parseSiteOrigin, publish mode)', { tim
     expect(r.stderr).toMatch(/refused: \S/);
   });
 
-  test('--budget accepts only enforce or report', () => {
+  test('--budget accepts only enforce, report or skip', () => {
     const r = spawnSync(process.execPath, ['scripts/publish.ts', '--budget', 'off', '--site-origin', 'https://comptoirdeluxe.com'], { cwd: APP, encoding: 'utf8' });
     expect(r.status).toBe(2);
-    expect(r.stderr).toContain('--budget must be enforce or report');
+    expect(r.stderr).toContain('--budget must be enforce, report or skip');
   });
 
   test('missing origin is refused too', () => {

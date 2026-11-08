@@ -17,6 +17,8 @@ export interface BudgetResult {
   staticOnly?: boolean;
   /** `--budget report` (D-004): the verdict is recorded and printed but never fails the run. */
   reportOnly?: boolean;
+  /** `--budget skip`: the budget did not run; budget_ok stays NULL (nothing was measured). */
+  skipped?: boolean;
 }
 
 export interface PublishStages {
@@ -97,7 +99,7 @@ async function runOne(db: D1Database, id: number, stages: PublishStages, opts: P
     log(`snapshot ${snapshot.sha256.slice(0, 12)}… (${snapshot.productCount} products)`);
     await timed('build', 'buildMs', () => stages.build(snapshot!, log, timings));
     budget = await timed('budget', 'budgetMs', () => stages.budget(snapshot!, log));
-    log(`budget${budget.reportOnly ? ' (report only)' : ''}: ${budget.ok ? 'PASS' : 'FAIL'}: ${budget.summary}`);
+    log(budget.skipped ? `budget: SKIPPED: ${budget.summary}` : `budget${budget.reportOnly ? ' (report only)' : ''}: ${budget.ok ? 'PASS' : 'FAIL'}: ${budget.summary}`);
     if (budget.staticOnly !== undefined) timings['budgetStaticOnly'] = budget.staticOnly ? 1 : 0;
     if (!budget.ok && !budget.reportOnly) error = 'budget';
   } catch (err) {
@@ -116,7 +118,7 @@ async function runOne(db: D1Database, id: number, stages: PublishStages, opts: P
     productCount: snapshot?.productCount ?? null,
     buildMs: timings['totalMs'],
     timings,
-    budgetOk: budget ? budget.ok : null,
+    budgetOk: budget && !budget.skipped ? budget.ok : null,
     error,
     logTail: tail,
   };

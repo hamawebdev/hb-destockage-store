@@ -2,9 +2,10 @@
 //
 //   npm run publish -w @hb/jobs -- --site-origin https://<domain> [--enqueue] [--source d1|seed]
 //                                  [--persist-to <dir>] [--strict-copy] [--image-cache <dir>]
-//                                  [--budget enforce|report]
+//                                  [--budget enforce|report|skip]
 // --budget report (D-004): run the full budget and print it, but never fail the run on it and never
-// write last-good.json. The default, enforce, keeps the D-003 blocking behaviour.
+// write last-good.json. --budget skip (deploy job; budgets run in the CI report job): no budget, no
+// Chrome, no last-good write, budget_ok NULL. The default, enforce, keeps the D-003 blocking behaviour.
 // The validated snapshot stays at <repo>/.wrangler/publish/<runId>/snapshot.json (the CI pipeline
 // reads it: tell `pipeline` and the lead if this path or these flags change).
 // --site-origin (or env HB_SITE_ORIGIN) is required: canonical/hreflang/og URLs and the catalogue
@@ -35,7 +36,7 @@ import { getPlatformProxy } from 'wrangler';
 import { createDb } from '@hb/db';
 import { exportCatalogSnapshot } from '@hb/db/export';
 import { runPublishQueue, StageError, type PublishStages, type SnapshotResult } from '../src/publish/pipeline.ts';
-import { budgetReportOnly, budgetWithMode, type BudgetIo } from '../src/publish/budget-stage.ts';
+import { budgetReportOnly, budgetSkipped, budgetWithMode, type BudgetIo } from '../src/publish/budget-stage.ts';
 import { enqueueRun } from '../src/publish/runs.ts';
 import { budgetVerdict, buildFingerprint, LAST_GOOD_FILE } from './lib/fingerprint.ts';
 import { errorLine } from './lib/output.ts';
@@ -57,8 +58,8 @@ const { values: args } = parseArgs({
     budget: { type: 'string', default: 'enforce' },
   },
 });
-if (args.budget !== 'enforce' && args.budget !== 'report') {
-  console.error('--budget must be enforce or report');
+if (args.budget !== 'enforce' && args.budget !== 'report' && args.budget !== 'skip') {
+  console.error('--budget must be enforce, report or skip');
   process.exit(2);
 }
 if (args.source !== 'd1' && args.source !== 'seed') {
@@ -191,6 +192,7 @@ const stages: PublishStages = {
   },
 
   async budget(snapshot, log) {
+    if (args.budget === 'skip') return budgetSkipped();
     // JOBS-7 (D-003): static-only for content-only changes, full for any image or template/code
     // change, decided from this build's fingerprint vs the last good build's. Both BLOCKING.
     // measure's contract: exit 0 pass, 1 violations, 2 usage/internal error; verdict = last line

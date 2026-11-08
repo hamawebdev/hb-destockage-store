@@ -1,7 +1,7 @@
 // JOBS-7 budget-mode policy (lead's test list) and the budget stage with injected I/O.
 import { describe, expect, test, vi } from 'vitest';
 import { decideBudgetMode, MAX_STATIC_STREAK, nextLastGood, readLastGood, type BuildFingerprint } from '../src/publish/budget-mode.ts';
-import { budgetReportOnly, budgetWithMode, BudgetToolError, type BudgetIo } from '../src/publish/budget-stage.ts';
+import { budgetReportOnly, budgetSkipped, budgetWithMode, BudgetToolError, type BudgetIo } from '../src/publish/budget-stage.ts';
 
 const h = (c: string) => c.repeat(64);
 const fp: BuildFingerprint = { images: h('a'), template: h('b'), dirty: false };
@@ -57,6 +57,12 @@ function io(lastGood: string | null, exitCode: number | null, verdict = 'BUDGET 
     },
   };
 }
+
+describe('budgetSkipped (--budget skip)', () => {
+  test('passes without running anything', () => {
+    expect(budgetSkipped()).toMatchObject({ ok: true, skipped: true });
+  });
+});
 
 describe('budgetReportOnly (--budget report, D-004)', () => {
   test.each([

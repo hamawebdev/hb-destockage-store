@@ -57,3 +57,11 @@ export async function budgetReportOnly(io: Pick<BudgetIo, 'runBudget'>, log: (l:
     return { ok: false, summary: `budget could not run: ${err instanceof Error ? err.message : String(err)}`, ...report };
   }
 }
+
+/**
+ * `--budget skip`: no budget run, no Chrome, no last-good write; the run's outcome cannot depend on
+ * the budget. For the deploy job, whose budgets run in the separate CI report job.
+ */
+export function budgetSkipped(): BudgetResult {
+  return { ok: true, summary: 'not run (--budget skip; budgets run in the CI report job)', skipped: true };
+}
