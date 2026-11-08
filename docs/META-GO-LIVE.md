@@ -41,6 +41,7 @@ Each of these needs the real Pixel ID and token, so none has been run.
 - [ ] **Event Match Quality.** In Events Manager → Overview, about 20 minutes after real orders. Aim for 6.0 or better.
 - [ ] **Pixel Helper.** With the Chrome extension: `PageView` on each page, `ViewContent` on a product, `AddToCart`, `InitiateCheckout` on the order step and checkout, `Purchase` on the confirmation page with `value` and `currency` DZD.
 - [ ] **Content Security Policy.** With the real `fbevents.js`, watch the browser console for CSP violations. The CSP adds `https://connect.facebook.net` (script-src) and `https://www.facebook.com` (img-src, connect-src), which is all that could be checked without Meta's real script. If it needs more, that is a code change in `apps/web/scripts/csp.ts`.
+- [ ] **Prerendered product pages.** In ordinary Chrome with no DevTools open, hover a product link without opening it. In Test Events, confirm that no `ViewContent` arrives for that product. Then open it and confirm that exactly one does. (Automated browsers cannot prerender, Chrome reports `PrerenderingDisabledByDevTools`, so this could not be checked here.)
 - [ ] **Measure weight.** The with-consent Lighthouse numbers saved under `artifacts/META-0/measure/` exclude the real `fbevents.js`, which could not be downloaded here. Re-measure once it can load.
 
 ## Known limits
