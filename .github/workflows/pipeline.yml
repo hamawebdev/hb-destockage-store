@@ -1,0 +1,267 @@
+# CI + production deployment for the HB Destockage store. Docs: docs/DEPLOY.md.
+# Checks run on a clean runner for PRs and pushes; deploy needs them, for the same commit.
+name: pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'deploy = full pipeline; publish = rebuild and redeploy hb-web from current production data, no migrations'
+        type: choice
+        options: [deploy, publish]
+        default: deploy
+      sha:
+        description: 'Full commit SHA on main (empty = current main)'
+        type: string
+        default: ''
+      older_commit:
+        description: 'Go back on purpose: "yes" allows a sha older than main; "with-newer-migrations" also when the database is ahead of it'
+        type: choice
+        options: ['no', 'yes', with-newer-migrations]
+        default: 'no'
+      approve_destructive_migrations:
+        description: 'sha256 printed by the run that halted on destructive migrations'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+# Production runs one at a time, first come first served, for the whole run (checks, export, build,
+# deploy), so a deploy and a publish can never interleave. PR and branch runs are not held back.
+concurrency:
+  group: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && 'production-deploy' || format('ci-{0}', github.run_id) }}
+  cancel-in-progress: false
+  queue: max
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  COMMIT: ${{ inputs.sha || github.sha }}
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund --fetch-retries=6
+      - run: npm run typecheck
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: shared, dir: packages/shared, timeout: 10 }
+          - { name: ui-tokens, dir: packages/ui-tokens, timeout: 10 }
+          - { name: catalog, dir: packages/catalog, timeout: 15 }
+          - { name: db, dir: packages/db, per_file: true, timeout: 30 }
+          - { name: storefront, dir: apps/storefront, timeout: 15 }
+          - { name: web, dir: apps/web, timeout: 15 }
+          - { name: admin, dir: apps/admin, per_file: true, timeout: 30 }
+          - { name: jobs, dir: apps/jobs, timeout: 20 }
+          - { name: measure, dir: tools/measure, timeout: 20 }
+          - { name: repo, dir: ., timeout: 20 }
+    name: test (${{ matrix.name }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund --fetch-retries=6
+      - name: Fonts used by the browser fixtures
+        if: matrix.name == 'measure'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-core=20201225-2
+      - name: Workspace tests, one process per file
+        if: matrix.per_file
+        env:
+          DIR: ${{ matrix.dir }}
+        run: scripts/ci/test-per-file.sh "$DIR"
+      - name: Workspace tests
+        if: ${{ !matrix.per_file && matrix.name != 'repo' }}
+        env:
+          DIR: ${{ matrix.dir }}
+        run: npm test -w "$DIR"
+      - name: Repository scripts and data
+        if: matrix.name == 'repo'
+        run: |
+          npx vitest run --config scripts/vitest.config.ts
+          npm run test:data
+
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund --fetch-retries=6
+      - run: npm run build
+
+  # Production jobs. Trust boundaries are described in docs/DEPLOY.md.
+  # export-catalogue (token): chooses the commit, applies migrations, exports the catalogue.
+  # build-site (no environment, no secrets): runs the build's dependencies on that export.
+  # deploy (token): fresh checkout, install without scripts, treats the built site as data.
+  export-catalogue:
+    needs: [typecheck, test, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: production
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+      before: ${{ steps.prepare.outputs.before }}
+      smoke: ${{ steps.prepare.outputs.smoke }}
+    env:
+      DEPLOY_MODE: ${{ inputs.mode || 'deploy' }}
+      DEPLOY_SHA: ${{ inputs.sha || github.sha }}
+      DEPLOY_SHA_INPUT: ${{ inputs.sha }}
+      DEPLOY_EVENT: ${{ github.event_name }}
+      DEPLOY_REF: ${{ github.ref }}
+      OLDER_COMMIT: ${{ inputs.older_commit || 'no' }}
+      APPROVE_DESTRUCTIVE_MIGRATIONS: ${{ inputs.approve_destructive_migrations }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci --ignore-scripts --no-audit --no-fund --fetch-retries=6
+      - name: Check commit and configuration
+        id: check
+        run: node scripts/deploy/deploy.ts check
+      - name: Export from production
+        id: prepare
+        if: steps.check.outputs.proceed == 'true'
+        timeout-minutes: 15
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/deploy/deploy.ts prepare
+      - name: Pass the catalogue to the build
+        if: steps.check.outputs.proceed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: catalogue
+          path: ${{ runner.temp }}/hb-deploy/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Delete working files
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/hb-deploy"
+
+  build-site:
+    needs: [export-catalogue]
+    if: needs.export-catalogue.outputs.proceed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      DEPLOY_MODE: ${{ inputs.mode || 'deploy' }}
+      DEPLOY_SHA: ${{ inputs.sha || github.sha }}
+      DEPLOY_EVENT: ${{ github.event_name }}
+      DEPLOY_REF: ${{ github.ref }}
+      HB_IMAGE_CACHE: ~/.cache/hb-image-derivatives
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund --fetch-retries=6
+      - name: Restore image derivative cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/hb-image-derivatives
+          key: hb-image-derivatives-v1-${{ github.run_id }}
+          restore-keys: hb-image-derivatives-v1-
+      - name: Fetch the catalogue
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: catalogue
+          path: ${{ runner.temp }}/hb-deploy/
+      - name: Build site
+        run: node scripts/deploy/deploy.ts build
+      - name: Pass the built site to the deploy job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site
+          path: apps/storefront/dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    needs: [export-catalogue, build-site]
+    if: needs.export-catalogue.outputs.proceed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production
+    env:
+      DEPLOY_MODE: ${{ inputs.mode || 'deploy' }}
+      DEPLOY_SHA: ${{ inputs.sha || github.sha }}
+      DEPLOY_EVENT: ${{ github.event_name }}
+      DEPLOY_REF: ${{ github.ref }}
+      DEPLOY_BEFORE: ${{ needs.export-catalogue.outputs.before }}
+      SMOKE_CATALOGUE: ${{ needs.export-catalogue.outputs.smoke }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci --ignore-scripts --no-audit --no-fund --fetch-retries=6
+      - name: Fetch the built site
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site
+          path: ${{ runner.temp }}/hb-deploy/site/
+      - name: Check and install the built site
+        run: node scripts/deploy/deploy.ts import-site
+      - name: Deploy Workers
+        timeout-minutes: 10
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/deploy/deploy.ts deploy
+      - name: Smoke checks
+        timeout-minutes: 8
+        run: node scripts/deploy/deploy.ts smoke
+      - name: Roll back
+        if: failure() || cancelled()
+        timeout-minutes: 5
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/deploy/deploy.ts rollback
+      - name: Delete working files
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/hb-deploy"
