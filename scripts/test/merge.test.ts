@@ -168,7 +168,7 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     approve('WEB-9', 1, 'APPROVED', [c]);
     const r = merge(['team/web', '--dry-run']);
     expect(r.status).toBe(1);
-    expect(r.stderr).toMatch(/conflict-resolution|net-diff/);
+    expect(r.stderr).toMatch(/hand-edited or conflicted|net-diff/);
   });
 
   // ---- attacks (rev-d X1–X8) ----------------------------------------------------------------------
@@ -311,6 +311,108 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     expect(r.stderr).toContain('team/SIGNOFFS.md');
   });
 
+  const exceptions = (line: string) => {
+    const f = join(root, 'team/MERGE-EXCEPTIONS.md');
+    writeFileSync(f, (existsSync(f) ? readFileSync(f, 'utf8') : '# Merge exceptions (lead-only)\n') + line + '\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: merge exception', { HB_ROLE: 'lead' }));
+  };
+  const clearExceptions = () => {
+    const f = join(root, 'team/MERGE-EXCEPTIONS.md');
+    writeFileSync(f, '# Merge exceptions (lead-only)\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: clear merge exceptions', { HB_ROLE: 'lead' }));
+  };
+
+  test('MERGE-EXCEPTIONS message: a legacy message merges only for that exact sha and ID', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/legacy.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-40: legacy', 'What changed:\nmulti-line value\nTesting:\nran it\nRisk tier: low\nRevert:\ngit revert\n', true);
+    approve('WEB-40', 1, 'APPROVED', [c]);
+    expect(merge(['team/web', '--dry-run']).stderr).toContain('message format');
+    exceptions(`${c} message WEB-41 — wrong ID`);
+    expect(merge(['team/web', '--dry-run']).stderr).toContain("'message' line names WEB-41");
+    clearExceptions();
+    exceptions(`${c} message WEB-40 — pre-hook legacy message`);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    clearExceptions();
+  });
+
+  test('MERGE-EXCEPTIONS owner: skips only ownership (net diff accepts that exact version; dumps still refused)', () => {
+    resetBranch();
+    write(wt, 'apps/admin/src/routes/categories/index.tsx', 'export {};\n');
+    const c = commitIn(wt, 'WEB-42: mount placeholder', GOOD_BODY, true);
+    approve('WEB-42', 1, 'APPROVED', [c]);
+    expect(merge(['team/web', '--dry-run']).stderr).toContain('ownership');
+    exceptions(`${c} owner WEB-42 — placeholder route the brief asked for`);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('OK (author *');
+    clearExceptions();
+    resetBranch();
+    write(wt, 'apps/admin/backups/x.json', '{}\n');
+    const d = commitIn(wt, 'WEB-43: dump', GOOD_BODY, true);
+    approve('WEB-43', 1, 'APPROVED', [d]);
+    exceptions(`${d} owner WEB-43 — try to sneak a dump`);
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status).toBe(1);
+    expect(r2.stderr).toContain('dump');
+    clearExceptions();
+  });
+
+  test('MERGE-EXCEPTIONS: a malformed line (bad kind, short sha, CRLF) refuses every merge', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/okx.ts', 'export {};\n');
+    const c = commitIn(wt, 'WEB-44: ok');
+    approve('WEB-44', 1, 'APPROVED', [c]);
+    for (const bad of [`${c} merge WEB-44 — not a kind`, `${c.slice(0, 12)} message WEB-44 — short`, `${c} message WEB-44 — crlf\r`]) {
+      exceptions(bad);
+      const r = merge(['team/web', '--dry-run']);
+      expect(r.status, JSON.stringify(bad)).toBe(1);
+      expect(r.stderr).toContain('MERGE-EXCEPTIONS.md');
+      clearExceptions();
+    }
+    expect(merge(['team/web', '--dry-run']).status).toBe(0);
+  });
+
+  test('a clean octopus merge is accepted automatically (recreated by merge-tree); a hand-edited 2-parent merge is not', () => {
+    resetBranch();
+    write(wt, 'apps/web/src/o0.ts', 'export {};\n');
+    const s0 = commitIn(wt, 'WEB-45: o0');
+    const sides: string[] = [];
+    for (const b of ['oct1', 'oct2']) {
+      ok(git(wt, 'checkout', '-q', '-B', b, 'main'));
+      write(wt, `apps/web/src/${b}.ts`, 'export {};\n');
+      sides.push(commitIn(wt, `WEB-45: ${b}`, GOOD_BODY, true)); // side branches are not team/* (hooks off)
+    }
+    ok(git(wt, 'checkout', '-q', 'team/web'));
+    ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'merge', '-q', '--no-ff', '--no-edit', 'oct1', 'oct2']));
+    approve('WEB-45', 1, 'APPROVED', [s0, ...sides]);
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('OK (clean merge, 3 parents, recreated)');
+
+    resetBranch();
+    write(wt, 'apps/web/src/h0.ts', 'export {};\n');
+    const h0 = commitIn(wt, 'WEB-46: h0');
+    ok(git(wt, 'checkout', '-q', '-B', 'hside', 'main'));
+    write(wt, 'apps/web/src/h1.ts', 'export {};\n');
+    const h1 = commitIn(wt, 'WEB-46: h1', GOOD_BODY, true);
+    ok(git(wt, 'checkout', '-q', 'team/web'));
+    ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'merge', '-q', '--no-ff', '--no-commit', 'hside']));
+    write(wt, 'apps/web/src/h1.ts', 'export const edited = true;\n'); // hand edit inside the merge
+    ok(git(wt, 'add', '-A'));
+    ok(sh(wt, 'git', ['-c', 'core.hooksPath=/dev/null', 'commit', '-q', '-m', 'Merge hside']));
+    const m = ok(git(wt, 'rev-parse', 'HEAD')).stdout.trim();
+    approve('WEB-46', 1, 'APPROVED', [h0, h1]);
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status).toBe(1);
+    expect(r2.stderr).toContain('hand-edited or conflicted');
+    approve('WEB-46', 2, 'APPROVED', [m]); // reviewed → accepted
+    expect(merge(['team/web', '--dry-run']).status).toBe(0);
+  });
+
   test('X5 / X6: merge commits adding a foreign file are refused, octopus explicitly', () => {
     for (const kind of ['octopus', 'two']) {
       resetBranch();
@@ -330,7 +432,7 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
       approve('WEB-13', 1, 'APPROVED', [s0, ...sides]);
       const r = merge(['team/web', '--dry-run']);
       expect(r.status, kind).toBe(1);
-      expect(r.stderr).toContain(kind === 'octopus' ? 'octopus merge' : 'conflict-resolution');
+      expect(r.stderr).toContain('hand-edited or conflicted');
       expect(git(root, 'cat-file', '-e', 'main:packages/db/src/evil.ts').status).not.toBe(0);
     }
   });
@@ -426,7 +528,7 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     approve('WEB-20', 1, 'APPROVED', [c]);
     const r1 = merge(['team/web', '--dry-run']);
     expect(r1.status).toBe(1);
-    expect(r1.stderr).toContain('conflict-resolution');
+    expect(r1.stderr).toContain('hand-edited or conflicted');
     approve('WEB-20', 2, 'APPROVED', [m]);
     const r2 = merge(['team/web', '--dry-run']);
     expect(r2.status, r2.stdout + r2.stderr).toBe(0);

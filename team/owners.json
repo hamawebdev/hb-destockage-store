@@ -25,7 +25,8 @@
     "lead": [
       "team/APPROVALS.md",
       "team/SIGNOFFS.md",
-      "team/BRIEF.md"
+      "team/BRIEF.md",
+      "team/MERGE-EXCEPTIONS.md"
     ]
   },
   "idAreas": {
@@ -252,7 +253,8 @@
         "team/SIGNOFFS.md",
         "docs/**",
         "STACK-REPORT.md",
-        "research-evidence/**"
+        "research-evidence/**",
+        "team/MERGE-EXCEPTIONS.md"
       ],
       "reviewer": null,
       "portBase": 4340

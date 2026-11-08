@@ -130,9 +130,9 @@ export function checkStaged(cfg, name, { lead = false } = {}) {
 }
 
 /** Ownership/size/append rules for one existing commit (merge.sh backstop). Merge commits are not checked here. */
-export function checkCommit(cfg, name, sha) {
+export function checkCommit(cfg, name, sha, { lead = false } = {}) {
   return checkChanges(cfg, name, {
-    lead: false,
+    lead,
     changes: diffChanges([`${sha}^`, sha]),
     before: `${sha}^`,
     after: sha,
@@ -164,7 +164,8 @@ export function checkNet(cfg, author, base, result, attributed) {
     if (mayWrite(cfg, author, p) || (any(p, cfg.appendOnlyForAll) && appendOnly(base, result, p))) continue;
     const want = objs.get(`${result}:${p}`)?.oid ?? '';
     const explained = attributed.some(
-      ({ sha, owner }) => touchedBy.get(sha)?.has(p) && mayWrite(cfg, owner, p) && (objs.get(`${sha}:${p}`)?.oid ?? '') === want,
+      // owner '*' = a commit under a lead 'owner' exception: it explains exactly the version it wrote
+      ({ sha, owner }) => touchedBy.get(sha)?.has(p) && (owner === '*' || mayWrite(cfg, owner, p)) && (objs.get(`${sha}:${p}`)?.oid ?? '') === want,
     );
     if (!explained) {
       problems.push(
@@ -301,8 +302,9 @@ function main(argv) {
     }
     if (cmd === 'check-commit') {
       const [name, sha] = rest;
-      if (!name || !sha) throw new Error('usage: check-commit <name> <sha>');
-      const problems = checkCommit(loadOwners(), name, sha);
+      if (!name || !sha) throw new Error('usage: check-commit <name> <sha> [--lead]');
+      // --lead: ownership skipped, dump/size/append rules still applied (merge.sh 'owner' exception)
+      const problems = checkCommit(loadOwners(), name, sha, { lead: rest.includes('--lead') });
       if (problems.length) {
         process.stderr.write(problems.map((p) => `${p}`).join('\n') + '\n');
         return 1;

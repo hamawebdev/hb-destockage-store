@@ -19,8 +19,13 @@
 #                       a rev-* teammate in owners.json); a malformed ledger line refuses everything
 #                     - effective tier = max(commit's "Risk tier:", tier= of any ledger line for the
 #                       ID); high ⇒ main:team/SIGNOFFS.md has "<ID> <full sha> — signed off …"
-#   merge commit      - exactly 2 parents (octopus refused), and clean (`git show --remerge-diff`
-#                       empty) or listed on a ledger line of an ID whose latest line is APPROVED
+#   merge commit      - accepted automatically when merge.sh's own recreation (git merge-tree from its
+#                       parents, chained for an octopus) yields exactly its tree — a clean merge adds
+#                       nothing, and every parent is either on main or itself checked in this range;
+#                       a hand-edited or conflicted merge is refused unless an APPROVED ledger line lists it
+# Exceptions (lead-only main:team/MERGE-EXCEPTIONS.md, strict, malformed ⇒ every merge refused):
+#   `<40-hex sha> message <ID> — <reason>`  skip ONLY the commit-msg re-check (pre-hook legacy messages)
+#   `<40-hex sha> owner <ID> — <reason>`    skip ONLY the ownership check (dump/size checks still apply)
 # Then: merge --no-ff in a temporary worktree; NET-DIFF ownership on the result (every path it would
 # change on main is the author's, or exactly the version a reviewed commit of that path's owner made —
 # catches reverts and edits hidden in merges); run scripts/gate.sh there (--base = current main),
@@ -74,6 +79,39 @@ cleanup() {
 trap cleanup EXIT
 g show main:team/owners.json >"$owners_tmp" 2>/dev/null || { echo "merge: main has no team/owners.json" >&2; exit 1; }
 g show main:team/SIGNOFFS.md >"$signoffs_tmp" 2>/dev/null || : >"$signoffs_tmp"
+# Lead-only exceptions (see header). Exact full shas; the ID must match the commit's subject ID.
+declare -A exc_message=() exc_owner=()
+exc_errors=()
+lnum=0
+while IFS= read -r line || [[ -n "$line" ]]; do
+  lnum=$((lnum + 1))
+  [[ -z "${line//[[:space:]]/}" || "$line" == '#'* || ( "$line" == '`'* && "$line" == *'<ID>'* ) ]] && continue
+  if [[ "$line" =~ ^([0-9a-f]{40})\ (message|owner)\ ([A-Z]+(-[A-Z]+)?-[0-9]+)\ —\ .+$ && "$line" != *$'\r'* ]]; then
+    if [[ "${BASH_REMATCH[2]}" == message ]]; then exc_message["${BASH_REMATCH[1]}"]="${BASH_REMATCH[3]}"; else exc_owner["${BASH_REMATCH[1]}"]="${BASH_REMATCH[3]}"; fi
+  else
+    exc_errors+=("team/MERGE-EXCEPTIONS.md:$lnum malformed line: $(printf '%q' "$line") — expected '<40-hex sha> message|owner <ID> — <reason>'")
+  fi
+done < <(g show main:team/MERGE-EXCEPTIONS.md 2>/dev/null || true)
+if [[ ${#exc_errors[@]} -gt 0 ]]; then
+  echo "merge: REFUSED — team/MERGE-EXCEPTIONS.md has errors (fix it on main first):" >&2
+  printf '  - %s\n' "${exc_errors[@]}" >&2
+  exit 1
+fi
+# merge_recreates <merge sha>: 0 when git merge-tree, from its parents (chained for an octopus),
+# reproduces exactly its tree (a clean auto-merge); 1 when it conflicts or the tree differs (hand-edited).
+merge_recreates() {
+  local m="$1" acc t i
+  local -a ps
+  read -r -a ps <<<"$(g rev-list --parents -n1 "$m")"
+  ps=("${ps[@]:1}")
+  acc="${ps[0]}"
+  for ((i = 1; i < ${#ps[@]}; i++)); do
+    t="$(g merge-tree --write-tree "$acc" "${ps[$i]}" 2>/dev/null | head -n1)" || return 1
+    [[ -n "$t" ]] || return 1
+    if ((i < ${#ps[@]} - 1)); then acc="$(g commit-tree "$t" -p "$acc" -p "${ps[$i]}" -m 'merge.sh recreation')" || return 1; fi
+  done
+  [[ "$t" == "$(g rev-parse "$m^{tree}")" ]]
+}
 
 # ledger (lead's ruling 2026-11-05: team/APPROVALS.md on main is the only authority) -------------
 ledger_tmp="$(mktemp)"
@@ -159,19 +197,14 @@ printf '%-9s %-10s %-5s %s\n' sha ID tier result
 for c in "${commits[@]}"; do
   short="${c:0:9}"
   parents=$(($(g rev-list --parents -n1 "$c" | wc -w) - 1))
-  if ((parents > 2)); then
-    printf '%-9s %-10s %-5s %s\n' "$short" merge - REFUSED
-    refusals+=("$short octopus merge ($parents parents): not supported; merge one branch at a time")
-    continue
-  fi
-  if ((parents == 2)); then
-    if [[ -z "$(g show --remerge-diff --format= "$c")" ]]; then
-      printf '%-9s %-10s %-5s %s\n' "$short" merge - "OK (clean merge)"
+  if ((parents > 1)); then
+    if merge_recreates "$c"; then
+      printf '%-9s %-10s %-5s %s\n' "$short" merge - "OK (clean merge, $parents parents, recreated)"
     elif merge_covered "$c"; then
-      printf '%-9s %-10s %-5s %s\n' "$short" merge - "OK (resolution reviewed)"
+      printf '%-9s %-10s %-5s %s\n' "$short" merge - "OK (hand-edited, reviewed)"
     else
       printf '%-9s %-10s %-5s %s\n' "$short" merge - REFUSED
-      refusals+=("$short merge commit carries conflict-resolution changes (git show --remerge-diff $short) and no APPROVED ledger line lists it")
+      refusals+=("$short merge commit is hand-edited or conflicted (git merge-tree from its $parents parents does not reproduce its tree) and no APPROVED ledger line lists it")
     fi
     continue
   fi
@@ -192,7 +225,11 @@ for c in "${commits[@]}"; do
   fi
 
   g log -1 --format=%B "$c" >"$msg_tmp"
-  fmt="$(cd "$main_root" && "$here/../../.githooks/commit-msg" "$msg_tmp" 2>&1 | head -n1)" || why+=("message format: $fmt")
+  if [[ -n "${exc_message[$c]:-}" ]]; then
+    [[ "${exc_message[$c]}" == "$id" ]] || why+=("team/MERGE-EXCEPTIONS.md 'message' line names ${exc_message[$c]}, but the subject ID is ${id:-none}")
+  else
+    fmt="$(cd "$main_root" && "$here/../../.githooks/commit-msg" "$msg_tmp" 2>&1 | head -n1)" || why+=("message format: $fmt")
+  fi
 
   # Candidates: the owner of the commit's ID area, plus the merging branch's owner when the commit is
   # on that branch's own first-parent line (BUG-n and other unmapped areas rely on the latter).
@@ -204,11 +241,24 @@ for c in "${commits[@]}"; do
   [[ -n "${on_branch_fp[$c]:-}" && " $cands " != *" $author "* ]] && cands="$cands $author"
   owner_ok=""
   own=""
+  if [[ -n "${exc_owner[$c]:-}" ]]; then
+    # lead exception: ownership skipped, dump/size rules still checked; '*' = any path, this exact version
+    if [[ "${exc_owner[$c]}" != "$id" ]]; then
+      why+=("team/MERGE-EXCEPTIONS.md 'owner' line names ${exc_owner[$c]}, but the subject ID is ${id:-none}")
+    elif out="$(cd "$main_root" && HB_OWNERS_FILE="$owners_tmp" node "$here/../lib/owners.mjs" check-commit lead "$c" --lead 2>&1)"; then
+      owner_ok="*"
+    else
+      why+=("ownership exception, but: ${out//$'\n'/ }")
+    fi
+    cands=""
+  fi
   for o in $cands; do
     if out="$(cd "$main_root" && HB_OWNERS_FILE="$owners_tmp" node "$here/../lib/owners.mjs" check-commit "$o" "$c" 2>&1)"; then owner_ok="$o"; break; fi
     own+="[$o] ${out//$'\n'/ } "
   done
-  if [[ -z "$cands" ]]; then
+  if [[ -n "${exc_owner[$c]:-}" ]]; then
+    :
+  elif [[ -z "$cands" ]]; then
     why+=("ownership: cannot attribute this commit: its ID area '${id%-*}' is not in owners.json idAreas and it is not on $branch's own line")
   elif [[ -z "$owner_ok" ]]; then
     why+=("ownership: $own")
