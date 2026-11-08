@@ -1,0 +1,31 @@
+---
+/** Site header. SHELL-1 skeleton: wordmark, search link, language switch. SHELL-2 adds the
+ *  category nav, icons and the sticky treatment. Owner: shell. */
+import type { LayoutProps } from '@hb/catalog';
+import { t } from '../../lib/strings.ts';
+
+interface Props { layout: LayoutProps }
+const { layout: l } = Astro.props;
+const sw = l.languageSwitch;
+---
+<header class="hd">
+  <div class="wrap hd-bar">
+    <a class="hd-mark" href={l.homeHref}><bdi lang="fr" dir="ltr">{l.storeName}</bdi></a>
+    <nav class="hd-tools" aria-label={t(l.strings, 'chrome.navLabel')}>
+      <a class="hd-link" href={l.searchHref}>{t(l.strings, 'chrome.search')}</a>
+      <a class="hd-link hd-lang" href={sw.href} hreflang={sw.lang} lang={sw.lang}>{sw.label}</a>
+    </nav>
+  </div>
+</header>
+
+<style is:global>
+  @layer components {
+    .hd { border-block-end: var(--bw-hairline) solid var(--color-border); background: var(--color-surface); }
+    .hd-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-block-size: var(--header-h); }
+    .hd-mark { color: var(--color-text); font-weight: var(--fw-emphasis); text-decoration: none; display: inline-flex; align-items: center; min-block-size: var(--tap-min); }
+    .hd-tools { display: flex; align-items: center; gap: var(--space-2); }
+    .hd-link { display: inline-flex; align-items: center; min-block-size: var(--tap-min); padding-inline: var(--space-3); color: var(--color-text); text-decoration: none; border-radius: var(--radius-pill); }
+    /* «العربية» on /fr/ must not trigger the Arabic webfont through unicode-range. */
+    .hd-lang { font-family: var(--font-switcher); }
+  }
+</style>
