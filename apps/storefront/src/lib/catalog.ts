@@ -27,6 +27,7 @@ import type {
   NotFoundProps,
   OrderConfirmationProps,
   ProductProps,
+  OrderStepProps,
   RouteEntry,
   SearchProps,
   StringTable,
@@ -42,6 +43,7 @@ export interface PropsByTemplate {
   home: HomeProps;
   category: CategoryProps;
   product: ProductProps;
+  'order-step': OrderStepProps;
   search: SearchProps;
   content: ContentProps;
   'order-confirmed': OrderConfirmationProps;
@@ -77,6 +79,7 @@ const ctx = createBuildContext(snapshot, { siteUrl: SITE_ORIGIN, strings: await 
 type ParamsByTemplate = {
   category: { path: string }; // c/[...path].astro → "cuisine" | "cuisine/2"
   product: { slug: string }; //  p/[slug].astro     → "tablier-de-cuisine"
+  'order-step': { slug: string }; // order/[slug].astro → "tablier-de-cuisine"
   content: { slug: string }; //  [slug].astro       → "livraison"
 };
 type Multi = keyof ParamsByTemplate;
@@ -88,6 +91,8 @@ function paramsOf<T extends Multi>(template: T, e: RouteEntry): ParamsByTemplate
       return { path: e.param.replace(/^c\//, '') } as ParamsByTemplate[T];
     case 'product':
       return { slug: e.param.replace(/^p\//, '') } as ParamsByTemplate[T];
+    case 'order-step':
+      return { slug: e.param.replace(/^order\//, '') } as ParamsByTemplate[T];
     default:
       return { slug: e.param } as ParamsByTemplate[T];
   }

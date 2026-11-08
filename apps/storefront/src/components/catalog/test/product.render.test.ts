@@ -29,12 +29,12 @@ const render = (p: ProductProps, slots?: Record<string, string>) =>
 const tag = (html: string, re: RegExp) => html.match(re)?.[0] ?? '';
 
 describe.each(['ar', 'fr'] as const)('product page (%s)', (lang) => {
-  it('multi-option picker: opt.<id> radios joined to the order form, default checked, hidden variantId', async () => {
+  it('multi-option picker: opt.<id> radios inside the GET form (no form attribute), default checked, hidden v', async () => {
     const p = product(lang, APRON);
     const html = await render(p);
     for (const o of p.options) expect(html).toContain(`name="opt.${o.id}"`);
-    expect(html.match(/form="order-form"/g)?.length).toBe(p.options.reduce((n, o) => n + o.values.length, 0) + 1);
-    expect(html).toMatch(/<input type="hidden" name="variantId" value="" form="order-form">/);
+    expect(html).not.toContain('form="order-form"');
+    expect(html).toMatch(/<input type="hidden" name="v" value="">/);
     const def = defaultVariant(p.variants)!;
     for (const id of def.optionValueIds) expect(tag(html, new RegExp(`<input[^>]*id="ov-${id}"[^>]*>`))).toContain('checked');
     // One block per variant, keyed by the CAT-1 combination key; the default one is visible without JS.
@@ -115,14 +115,21 @@ describe.each(['ar', 'fr'] as const)('product page (%s)', (lang) => {
     if (lang === 'ar') expect(knives).toContain('<bdi lang="fr" dir="ltr">HB Home</bdi>');
   });
 
-  it('order slot: rendered in the buy box with the sticky #order bar; empty slot ⇒ dev note only, no bar', async () => {
+  it('ORDER-STEP: the picker sits in a GET form to the order step; CTA (button, and a hidden ?v= link for JS) + sticky bar', async () => {
     const p = product(lang, PACK);
-    const withForm = await render(p, { order: '<section id="order"><form id="order-form"></form></section>' });
-    expect(withForm).toContain('<section id="order">');
-    expect(withForm).toContain('href="#order"');
-    const without = await render(p);
-    expect(without).not.toContain('href="#order"');
-    expect(without).not.toContain('<form');
+    const html = await render(p);
+    expect(html).toContain(`<form id="cat-buy" class="cat-buy" method="get" action="${p.orderStepHref}">`);
+    const def = p.variants.find((v) => v.isDefault)!;
+    expect(html).toContain(`<input type="hidden" name="v" value="${def.id}">`);
+    expect(html).toMatch(/<button class="cat-btn cat-cta" type="submit" data-cta-btn>/);
+    expect(html).toContain(`href="${p.orderStepHref}?v=${def.id}" data-cta="${p.orderStepHref}" hidden`);
+    expect(html).toMatch(/<button class="cat-btn cat-buybar-cta" type="submit" form="cat-buy" data-cta-btn>/);
+    expect(html).not.toContain('#order');
+    expect(html).not.toContain('order-form');
+    // The GET carries only v / opt.*: no other named control inside the form.
+    const form = tag(html, /<form id="cat-buy"[\s\S]*?<\/form>/);
+    const names = [...form.matchAll(/\sname="([^"]+)"/g)].map((m) => m[1]);
+    expect(names.every((n) => n === 'v' || n!.startsWith('opt.'))).toBe(true);
   });
 });
 
@@ -153,12 +160,12 @@ function tenSizes(p: ProductProps, defaultAt: number): ProductProps {
 describe('single option with 9+ values (no JS)', () => {
   it('one block per value in radio order; the default block is marked visible wherever it sits', async () => {
     const p = tenSizes(product('fr', APRON), 9);
-    // Slot filled so the sticky buy bar (second .cat-vps) is rendered too, for the browser checks.
-    const html = await render(p, { order: '<section id="order"><form id="order-form"></form></section>' });
+    // Orderable ⇒ the sticky buy bar (second .cat-vps) is rendered too, for the browser checks.
+    const html = await render(p);
     expect(html).toContain('data-mode="single"');
     expect(html.match(/<div class="cat-vp[^"]*"[^>]*data-k="/g)).toHaveLength(10);
     expect(tag(html, /<div class="cat-vp cat-vp-d"[^>]*>/)).toContain('data-v="9009"');
-    expect(tag(html, /<input[^>]*id="ov-909"[^>]*>/)).toMatch(/name="variantId" value="9009"[^>]*checked/);
+    expect(tag(html, /<input[^>]*id="ov-909"[^>]*>/)).toMatch(/name="v" value="9009"[^>]*checked/);
     // The neutral "from" block comes after every positional block, so the :nth-child rules never reach it.
     const box = tag(html, /<div class="cat-vps"[\s\S]*?<div class="cat-picker"/);
     expect(box.lastIndexOf('cat-vp-any')).toBeGreaterThan(box.lastIndexOf('data-k="909"'));

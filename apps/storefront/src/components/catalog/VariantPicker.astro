@@ -9,14 +9,19 @@
  */
 import type { OptionProps, StringTable, VariantProps } from '@hb/catalog';
 import { t } from './lib/i18n.ts';
-import { defaultVariant, pickerMode, radioId, radioName, swatchFill, variantByValue } from './lib/variants.ts';
+import { defaultVariant, pickerMode, radioId, radioName, swatchFill, variantByValue, type VariantField } from './lib/variants.ts';
 
 interface Props {
   options: readonly OptionProps[];
   variants: readonly VariantProps[];
   strings: StringTable;
+  /** Single-variant field name: `v` in the product page's GET form, `variantId` in the order form. */
+  field?: VariantField;
+  /** Form the inputs join from outside it (`order-form` on the order step); null when they sit inside their form. */
+  formId?: string | null;
 }
-const { options, variants, strings } = Astro.props;
+const { options, variants, strings, field = 'variantId', formId = 'order-form' } = Astro.props;
+const formAttr = formId ?? undefined;
 const mode = pickerMode({ options, variants });
 const def = defaultVariant(variants);
 const byValue = variantByValue(variants);
@@ -41,9 +46,9 @@ const checkedIds = new Set(def?.optionValueIds ?? []);
                   class="cat-val-in"
                   type="radio"
                   id={radioId(v.id)}
-                  name={radioName(mode, o.id)}
+                  name={radioName(mode, o.id, field)}
                   value={value}
-                  form="order-form"
+                  form={formAttr}
                   checked={checkedIds.has(v.id)}
                   disabled={disabled && !checkedIds.has(v.id)}
                   data-ov={v.id}
@@ -64,7 +69,7 @@ const checkedIds = new Set(def?.optionValueIds ?? []);
         </div>
       </fieldset>
     ))}
-    {mode === 'multi' && <input type="hidden" name="variantId" value="" form="order-form" />}
+    {mode === 'multi' && <input type="hidden" name={field} value="" form={formAttr} />}
   </div>
 )}
 

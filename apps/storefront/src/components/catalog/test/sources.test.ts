@@ -24,7 +24,8 @@ function walk(dir: string, ext: RegExp): string[] {
 }
 
 const pageDirs = ['ar', 'fr'].flatMap((l) => ['c', 'p', 'search'].map((d) => join(storefront, 'src/pages', l, d)));
-const astroFiles = [...walk(catalogDir, /\.astro$/), ...pageDirs.flatMap((d) => walk(d, /\.astro$/))];
+const orderSteps = ['ar', 'fr'].map((l) => join(storefront, 'src/pages', l, 'order', '[slug].astro'));
+const astroFiles = [...walk(catalogDir, /\.astro$/), ...pageDirs.flatMap((d) => walk(d, /\.astro$/)), ...orderSteps];
 const cssSources = [...astroFiles, ...walk(catalogDir, /\.css$/)];
 
 function table(lang: 'ar' | 'fr'): Record<string, string> {

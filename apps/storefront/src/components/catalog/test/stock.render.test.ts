@@ -69,9 +69,11 @@ describe.each(['ar', 'fr'] as const)('stock states (%s)', (l) => {
   it('product page: sold out ⇒ "épuisé" block, no picker, no order bar; low ⇒ count; untracked ⇒ "disponible"', async () => {
     const pan = product(l, PAN);
     expect(pan.orderForm.orderable).toBe(false);
-    const html = await container.renderToString(ProductView, { props: { ...pan }, slots: { order: '<section id="order"></section>' } });
+    const html = await container.renderToString(ProductView, { props: { ...pan } });
     expect(html).toContain('cat-stock--out_of_stock');
     expect(html).not.toContain('cat-buybar');
+    expect(html).not.toContain('data-cta');
+    expect(html).toContain('href="https://wa.me/'); // sold out: ask on WhatsApp instead
     expect(html).not.toContain('cat-picker');
     expect(await container.renderToString(ProductView, { props: { ...product(l, POT) } })).toContain(s()['stock.low.two']!.replace('{count}', '2'));
     expect(await container.renderToString(ProductView, { props: { ...product(l, KNIVES) } })).toContain(s()['stock.available']!);
