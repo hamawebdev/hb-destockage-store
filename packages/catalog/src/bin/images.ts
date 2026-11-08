@@ -50,6 +50,7 @@ const result = await buildImages(snapshot, {
   threads: Number(a.threads),
   concurrency: Number(a.concurrency),
 });
+for (const w of result.warnings) console.warn(`warning: ${w.message}`);
 const seconds = ((performance.now() - t0) / 1000).toFixed(1);
 
 await mkdir(dirname(resolve(a.manifest)), { recursive: true });

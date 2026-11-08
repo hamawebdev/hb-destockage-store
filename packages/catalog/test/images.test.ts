@@ -95,6 +95,23 @@ describe('buildImages', () => {
     expect(sizesMarkdown(r1)).toMatch(/\| a\/big\.jpg \| 1400×1000/);
   }, 300_000);
 
+  test('BUG-12: with default settings every candidate ≤ 960 w is ≤ 20,000 B', async () => {
+    const { IMAGE_TARGET_BYTES_UP_TO_960 } = await import('../src/types.ts');
+    expect(IMAGE_TARGET_BYTES_UP_TO_960).toBe(20_000);
+    // The noisy 1400 px photo exceeds 20 kB at the top quality, so the search has to work for it.
+    const snap = snapshotWith(['a/big.jpg', 'a/mid.jpg'], { width: 1400, height: 1000 });
+    const r = await buildImages(snap, { outDir: join(root, 'out6'), cacheDir: join(root, 'cache6'), readOriginal: seedOriginalReader(root), ...fast });
+    const within = Object.values(r.manifest).flatMap((e) => e.candidates.filter((c) => c.width <= 960));
+    expect(within.length).toBeGreaterThan(0);
+    for (const c of within) expect(c.bytes, c.url).toBeLessThanOrEqual(20_000);
+    expect(r.report.find((x) => x.key === 'a/big.jpg')!.candidates.some((c) => c.width <= 960 && c.quality < 60)).toBe(true);
+    // Never below the floor: every chosen quality is ≥ 20. Path 1: within target, no warning.
+    for (const row of r.report) for (const c of row.candidates) expect(c.quality).toBeGreaterThanOrEqual(20);
+    expect(r.warnings).toEqual([]);
+    const { IMAGE_MAX_BYTES_UP_TO_960 } = await import('../src/types.ts');
+    expect(IMAGE_MAX_BYTES_UP_TO_960).toBe(25_000);
+  }, 300_000);
+
   test('the hash changes with the encoder settings', async () => {
     const snap = snapshotWith(['a/small.jpg'], { width: 300, height: 200 });
     const base = { outDir: join(root, 'out2'), cacheDir: join(root, 'cache2'), readOriginal: seedOriginalReader(root), ...fast };
@@ -103,12 +120,83 @@ describe('buildImages', () => {
     expect(a.manifest['a/small.jpg']!.hash).not.toBe(b.manifest['a/small.jpg']!.hash);
   }, 120_000);
 
-  test('fails when even the lowest quality exceeds the budget', async () => {
+  test('path 3: fails only when even the hard limit is out of reach at the floor', async () => {
     const snap = snapshotWith(['a/big.jpg'], { width: 1400, height: 1000 });
     await expect(
-      buildImages(snap, { outDir: join(root, 'out3'), cacheDir: join(root, 'cache3'), readOriginal: seedOriginalReader(root), maxBytes: 300, minQuality: 40, ...fast }),
+      buildImages(snap, {
+        outDir: join(root, 'out3'),
+        cacheDir: join(root, 'cache3'),
+        readOriginal: seedOriginalReader(root),
+        maxBytes: 300,
+        hardMaxBytes: 400,
+        minQuality: 40,
+        ...fast,
+      }),
     ).rejects.toThrow(ImageBudgetError);
+    await expect(
+      buildImages(snapshotWith(['a/big.jpg'], { width: 1400, height: 1000 }), {
+        outDir: join(root, 'out3'),
+        cacheDir: join(root, 'cache3'),
+        readOriginal: seedOriginalReader(root),
+        maxBytes: 300,
+        hardMaxBytes: 400,
+        minQuality: 40,
+        ...fast,
+      }),
+    ).rejects.toThrow(/exceeds 400 B even at quality 40/);
   }, 120_000);
+
+  test('path 3 with the default limits: a candidate that stays over 25,000 B at the floor is refused', async () => {
+    // Default target/limit (20,000 / 25,000 B); a high floor (q90) makes the noisy photo unable to
+    // fit, so the refusal must cite exactly the 25,000 B spec limit.
+    const w = 1400, h = 1000;
+    const px = Buffer.alloc(w * h * 3);
+    let x = 12345;
+    for (let i = 0; i < px.length; i++) {
+      x = (Math.imul(x, 1103515245) + 12345) >>> 0;
+      px[i] = x >>> 24;
+    }
+    await writeFile(join(root, 'data/photos/a/noise.png'), await sharp(px, { raw: { width: w, height: h, channels: 3 } }).png().toBuffer());
+    const snap = snapshotWith(['a/noise.png'], { width: w, height: h });
+    await expect(
+      buildImages(snap, {
+        outDir: join(root, 'out8'),
+        cacheDir: join(root, 'cache8'),
+        readOriginal: seedOriginalReader(root),
+        maxQuality: 95,
+        minQuality: 90,
+        ...fast,
+      }),
+    ).rejects.toThrow(/exceeds 25000 B even at quality 90/);
+  }, 300_000);
+
+  test('path 2: target unreachable at the floor ⇒ accepted up to the hard limit with IMAGE_OVER_TARGET', async () => {
+    const snap = snapshotWith(['a/big.jpg'], { width: 1400, height: 1000 });
+    const opts = {
+      outDir: join(root, 'out7'),
+      cacheDir: join(root, 'cache7'),
+      readOriginal: seedOriginalReader(root),
+      maxBytes: 1_000, // unreachable for the noisy photo at q40
+      hardMaxBytes: 1_000_000,
+      minQuality: 40,
+      ...fast,
+    };
+    const r = await buildImages(snap, opts);
+    expect(r.warnings.length).toBeGreaterThan(0);
+    for (const w of r.warnings) {
+      expect(w.code).toBe('IMAGE_OVER_TARGET');
+      expect(w.key).toBe('a/big.jpg');
+      expect(w.width).toBeLessThanOrEqual(960);
+      expect(w.bytes).toBeGreaterThan(1_000);
+      expect(w.bytes).toBeLessThanOrEqual(1_000_000);
+      expect(w.message).toMatch(/^IMAGE_OVER_TARGET a\/big\.jpg: \d+ w is \d+ B at q\d+/);
+    }
+    // Warnings are derived from sizes, so a cached rebuild reports them too.
+    const again = await buildImages(snap, opts);
+    expect(again.report.every((x) => x.cached)).toBe(true);
+    expect(again.warnings).toEqual(r.warnings);
+    expect(sizesMarkdown(r)).toContain('WARNING IMAGE_OVER_TARGET a/big.jpg');
+  }, 300_000);
 
   test('Display P3 originals are converted to sRGB (not just untagged)', async () => {
     // sRGB (200, 60, 40) written with a P3 profile: sharp converts on write, so the file stores

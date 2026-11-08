@@ -66,11 +66,19 @@ import {
 // Context
 // ---------------------------------------------------------------------------------------------
 
-/** `sizes` per slot (agreed defaults; templates may override for other uses). */
+/**
+ * `sizes` per slot, matching pages' real layout (container max 1200 px, gutter ≈ 1rem on phones;
+ * from 1024 px the gallery column is 7/12 of the container minus the column gap, approximated as
+ * (100vw − 64 px) × 0.55 and capped at 664 px from 1240 px; cards 2/3/4 columns at
+ * <768/768–1023/≥1024). Proven against rendered widths by bin/check-sizes.ts (±5 %).
+ * Accurate sizes matter for the critical path: on Lighthouse's 412 px × 1.75 DPR device the
+ * gallery resolves to 380 px × 1.75 = 665 px → the 720 w candidate, not 960 w (pages' measurement
+ * on the real seed). Templates may override `sizes` for other uses (e.g. thumbnails).
+ */
 export const SLOT_SIZES: Readonly<Record<ImageSlot, string>> = {
-  hero: '(min-width: 1024px) 640px, 100vw',
-  gallery: '(min-width: 1024px) 560px, 100vw',
-  card: '(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw',
+  hero: '(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)',
+  gallery: '(min-width: 1240px) 664px, (min-width: 1024px) calc((100vw - 64px) * 0.55), calc(100vw - 2rem)',
+  card: '(min-width: 1240px) 282px, (min-width: 1024px) calc((100vw - 152px) / 4), (min-width: 768px) calc((100vw - 98px) / 3), calc((100vw - 44px) / 2)',
   thumb: '96px',
 };
 
@@ -144,7 +152,7 @@ export function createBuildContext(snapshot: CatalogSnapshot, input: BuildInput)
     const missing = REQUIRED_STRING_KEYS.filter((k) => typeof input.strings[lang][k] !== 'string');
     if (missing.length) throw new BuildError(`strings.${lang}: missing ${missing.join(', ')}`);
   }
-  if (!isSiteOrigin(input.siteUrl.replace(/\/+$/, ''))) throw new BuildError(`siteUrl must be an origin (https://host[:port]): ${input.siteUrl}`);
+  if (!isSiteOrigin(input.siteUrl.replace(/\/+$/, ''))) throw new BuildError(`siteUrl must be a site origin (https://host.tld, or a local dev origin): ${input.siteUrl}`);
   const router = createRouter(snapshot, input.pageSize);
   const categories = publishedCategories(snapshot);
   const products = publishedProducts(snapshot, categories);

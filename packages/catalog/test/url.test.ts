@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { assertSameOriginPath, isContentLinkHref, isImageKey, isSameOriginPath, isSiteOrigin, isSiteUrl, UnsafeUrlError } from '../src/url.ts';
+import { assertSameOriginPath, isContentLinkHref, isImageKey, isPublicSiteOrigin, isSameOriginPath, isSiteOrigin, isSiteUrl, parseSiteOrigin, UnsafeUrlError } from '../src/url.ts';
 
 /** Strings that browsers resolve off-site or to script (CAT-1 r1 Important 1 + lead's list). */
 export const OFF_SITE: readonly string[] = [
@@ -64,17 +64,62 @@ describe('isImageKey', () => {
   );
 });
 
-describe('isSiteOrigin / isSiteUrl', () => {
-  test.each(['https://hbdestockage.dz', 'https://www.hbdestockage.dz', 'https://hb.example:8443', 'http://localhost:4180', 'http://127.0.0.1'])('origin %j', (o) =>
-    expect(isSiteOrigin(o)).toBe(true),
+describe('parseSiteOrigin (publish builds need a public https origin)', () => {
+  test.each([
+    'http://hbdestockagedz.com',
+    'https://127.0.0.1',
+    'https://10.1',
+    'https://192.168.1.10',
+    'https://[::1]',
+    'https://[2001:db8::1]',
+    'https://localhost',
+    'https://shop.localhost',
+    'https://hb.local',
+    'https://hb.internal',
+    'https://hb.test',
+    'https://hbdestockagedz.com:8443',
+    'https://hbdestockagedz.com/shop',
+    'https://hbdestockagedz.com?x=1',
+    'https://hbdestockagedz.com#x',
+    'https://user@hbdestockagedz.com',
+    'https://user:pw@hbdestockagedz.com',
+    'https://hbdestockagedz',
+    'https://HBDESTOCKAGEDZ.COM',
+    'https://-bad.dz',
+    'http://localhost:8787',
+    'http://127.0.0.1:4180',
+    'javascript:alert(1)',
+    '',
+  ])('publish refuses %j', (o) => {
+    const r = parseSiteOrigin(o, { publish: true });
+    expect(r.ok).toBe(false);
+    expect(isPublicSiteOrigin(o)).toBe(false);
+  });
+  test.each(['https://hbdestockagedz.com', 'https://www.hbdestockagedz.com', 'https://hb-destockage.dz', 'https://hbdestockage.example'])(
+    'publish accepts %j',
+    (o) => {
+      expect(parseSiteOrigin(o, { publish: true })).toEqual({ ok: true, origin: o });
+      expect(isSiteOrigin(o)).toBe(true);
+    },
   );
-  test.each(['https://hbdestockage.dz/', 'https://hb.dz/shop', 'http://hbdestockage.dz', 'https://user@evil.example', 'https://evil.example\\@hb.dz', 'javascript:x', 'https://localhost'])(
-    'not an origin %j',
-    (o) => expect(isSiteOrigin(o)).toBe(false),
-  );
-  test('isSiteUrl', () => {
+  test('a trailing slash is normalised', () => {
+    expect(parseSiteOrigin('https://hbdestockagedz.com/', { publish: true })).toEqual({ ok: true, origin: 'https://hbdestockagedz.com' });
+  });
+  test.each(['http://localhost:8787', 'http://localhost', 'http://127.0.0.1', 'http://127.0.0.1:4180'])('non-publish also accepts the local dev origin %j', (o) => {
+    expect(parseSiteOrigin(o, { publish: false }).ok).toBe(true);
+    expect(isSiteOrigin(o)).toBe(true);
+  });
+  test.each(['https://127.0.0.1', 'https://localhost', 'https://hb.test', 'http://hbdestockagedz.com', 'https://hb.dz:8443'])('non-publish still refuses %j', (o) => {
+    expect(parseSiteOrigin(o, { publish: false }).ok).toBe(false);
+    expect(isSiteOrigin(o)).toBe(false);
+  });
+});
+
+describe('isSiteUrl', () => {
+  test('absolute URL on the origin only', () => {
     expect(isSiteUrl('https://hb.dz/ar/p/x/', 'https://hb.dz')).toBe(true);
     expect(isSiteUrl('https://hb.dz//evil.example/', 'https://hb.dz')).toBe(false);
     expect(isSiteUrl('https://hb.dz.evil.example/ar/', 'https://hb.dz')).toBe(false);
+    expect(isSiteUrl('https://127.0.0.1/ar/', 'https://127.0.0.1')).toBe(false);
   });
 });
