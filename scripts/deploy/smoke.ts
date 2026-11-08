@@ -14,6 +14,8 @@ export interface SmokeProduct {
 
 export interface SmokeSnapshot {
   readonly products: readonly SmokeProduct[];
+  /** Wilayas production has a confirmed fee for (up to 3); empty until the client confirms fees. */
+  readonly quoteWilayas: readonly number[];
 }
 
 export interface SmokeTargets {
@@ -24,7 +26,8 @@ export interface SmokeTargets {
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 const UA = 'hb-deploy-smoke/1 (GitHub Actions)';
-const QUOTE_WILAYAS = [16, 31, 25];
+// Any valid wilaya: with no confirmed fee, none of them may be offered.
+const UNCONFIRMED_WILAYA = 16;
 
 const lang = (l: string): { lang: string; dir: string } => ({ lang: l, dir: l === 'ar' ? 'rtl' : 'ltr' });
 
@@ -136,19 +139,27 @@ export async function runSmokeOnce(targets: SmokeTargets, snapshot: SmokeSnapsho
       problems.push('the published catalogue has no sellable variant to quote');
       return;
     }
-    for (const wilayaCode of QUOTE_WILAYAS) {
+    const quote = async (wilayaCode: number): Promise<string[] | 'unavailable'> => {
       const r = await get(`${targets.siteOrigin}/api/quote`, {
         method: 'POST',
         headers: json,
         redirect: 'manual',
         body: JSON.stringify({ items: [{ variantId, qty: 1 }], wilayaCode }),
       });
-      const result = checkQuote(r.status, (await r.json().catch(() => ({}))) as QuoteBody);
-      if (result === 'unavailable') continue;
+      return checkQuote(r.status, (await r.json().catch(() => ({}))) as QuoteBody);
+    };
+    if (snapshot.quoteWilayas.length === 0) {
+      const result = await quote(UNCONFIRMED_WILAYA);
+      if (result === 'unavailable') return; // production correctly refuses unconfirmed fees
       problems.push(...result);
+      if (result.length === 0) problems.push(`/api/quote offered delivery to wilaya ${UNCONFIRMED_WILAYA}, but production has no confirmed fee: an unconfirmed fee is being quoted`);
       return;
     }
-    problems.push(`/api/quote: delivery is not available to any of the wilayas ${QUOTE_WILAYAS.join(', ')} (delivery fees missing?)`);
+    for (const wilayaCode of snapshot.quoteWilayas) {
+      const result = await quote(wilayaCode);
+      if (result === 'unavailable') problems.push(`/api/quote: wilaya ${wilayaCode} has a confirmed fee in production but delivery is not offered`);
+      else problems.push(...result);
+    }
   });
 
   await attempt('/api/order', async () => {

@@ -109,7 +109,7 @@ export interface Io {
   summary(line: string): void;
 }
 
-export interface PublishedSnapshot extends SmokeSnapshot {
+export interface PublishedSnapshot {
   readonly settings?: { readonly turnstileSiteKey?: string | null };
 }
 
@@ -348,6 +348,7 @@ function settingsSql(rows: readonly Record<string, unknown>[]): string {
 export const SMOKE_MAX_BYTES = 32 * 1024;
 const SMOKE_MAX_PRODUCTS = 50;
 const SMOKE_MAX_FEATURED = 20;
+const SMOKE_MAX_WILAYAS = 3;
 
 export interface SmokeRow {
   readonly id: number;
@@ -361,7 +362,8 @@ const sellable = (v: SmokeRow['variants'][number]): boolean => v.priceDzd > 0 &&
  * The few products the smoke checks need: the home page links to the hero and the named featured
  * products, or else to the first products by sort order, and the quote needs one variant on sale.
  */
-export function smokeSample(products: readonly SmokeRow[], home: { heroId: number | null; featuredIds: readonly number[] }): SmokeSnapshot {
+export function smokeSample(products: readonly SmokeRow[], home: { heroId: number | null; featuredIds: readonly number[] }, wilayas: readonly number[]): SmokeSnapshot {
+  const quoteWilayas = wilayas.slice(0, SMOKE_MAX_WILAYAS);
   const byId = new Map(products.map((p) => [p.id, p]));
   const picked = new Map<number, SmokeRow>();
   const add = (p: SmokeRow | undefined): void => {
@@ -377,8 +379,8 @@ export function smokeSample(products: readonly SmokeRow[], home: { heroId: numbe
     slug: p.slug,
     variants: [...p.variants.filter(sellable), ...p.variants.filter((v) => !sellable(v))].slice(0, 2).map((v) => ({ ...v, active: true })),
   }));
-  while (sample.length > 1 && Buffer.byteLength(JSON.stringify({ products: sample })) > SMOKE_MAX_BYTES) sample.pop();
-  return { products: sample };
+  while (sample.length > 1 && Buffer.byteLength(JSON.stringify({ products: sample, quoteWilayas })) > SMOKE_MAX_BYTES) sample.pop();
+  return { products: sample, quoteWilayas };
 }
 
 /** A sample of live products straight from production: the smoke checks never rely on anything the build produced. */
@@ -399,6 +401,9 @@ async function smokeCatalogue(io: Io, settings: readonly Record<string, unknown>
     }
     p.variants.push({ id: Number(r['variant_id']), priceDzd: Number(r['price_dzd']), stock: r['stock'] === null ? null : Number(r['stock']) });
   }
+  // The rule of @hb/db/fees with ENV=production: a row, available, and not a placeholder.
+  const fees = await queryD1(io, REMOTE_CONFIG, ['--remote'], `SELECT wilaya_code FROM delivery_fees WHERE available = 1 AND placeholder = 0 AND wilaya_code BETWEEN 1 AND 69 ORDER BY wilaya_code LIMIT ${SMOKE_MAX_WILAYAS}`);
+  const quoteWilayas = fees.map((f) => Number(f['wilaya_code'])).filter(Number.isInteger);
   const setting = (key: string): unknown => {
     const row = settings.find((s) => s['key'] === key);
     try {
@@ -412,7 +417,7 @@ async function smokeCatalogue(io: Io, settings: readonly Record<string, unknown>
   return smokeSample([...byProduct.values()], {
     heroId: typeof hero === 'number' ? hero : null,
     featuredIds: Array.isArray(featured) ? featured.filter((x): x is number => typeof x === 'number') : [],
-  });
+  }, quoteWilayas);
 }
 
 /** Export job, with the token: versions, migrations, then everything the build needs from production. */
@@ -552,6 +557,7 @@ export async function deployWorkers(cfg: RunConfig, io: Io): Promise<void> {
 /** Deploy job, no token. A failure here triggers the rollback step. */
 export async function smoke(cfg: RunConfig, io: Io): Promise<void> {
   const catalogue = cfg.smokeCatalogue ?? fail('no smoke catalogue from the export job');
+  if (catalogue.quoteWilayas.length === 0) io.summary('Warning: no confirmed delivery fees: customers cannot order yet.');
   const problems = await io.smoke(catalogue, cfg.mode === 'publish' ? 'site' : 'all');
   if (problems.length > 0) fail(`smoke checks failed:\n${problems.join('\n')}`);
   io.summary('Smoke checks: passed.');

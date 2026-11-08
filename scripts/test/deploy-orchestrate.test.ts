@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MigrationFile } from '../deploy/migrations.ts';
-import { sellableVariant } from '../deploy/smoke.ts';
+import { sellableVariant, type SmokeSnapshot } from '../deploy/smoke.ts';
 import { build, CATALOGUE_TABLES, check, DeployHalt, deployWorkers, exportedTables, importSite, preflightProblems, prepare, rollback, siteProblems, smoke, SMOKE_MAX_BYTES, smokeSample, type SmokeRow, type CommandResult, type DeployState, type Io, type PublishedSnapshot, type RunConfig, type WranglerConfig } from '../deploy/orchestrate.ts';
 
 const SHA = 'a'.repeat(40);
@@ -34,6 +34,7 @@ interface Options {
   executeOutput?: string;
   sameVersionAfterDeploy?: boolean;
   settingsRows?: Record<string, unknown>[];
+  feeRows?: Record<string, unknown>[];
 }
 
 const safe: MigrationFile = { name: '0010_add.sql', content: 'ALTER TABLE t ADD c text;' };
@@ -93,6 +94,7 @@ function harness(opts: Options = {}) {
         if (sql.includes('FROM d1_migrations')) return ok(JSON.stringify([{ results: (opts.applied ?? []).map((name) => ({ name })) }]));
         if (sql.includes('count(*)')) return ok(JSON.stringify([{ results: [{ products: opts.products ?? 3, wilayas: 69, store_name: 1 }] }]));
         if (sql.includes('key IN (')) return ok(JSON.stringify([{ results: opts.settingsRows ?? [{ key: 'storeName', value: "{\"fr\":\"L'atelier\"}", updated_at: 5 }] }]));
+        if (sql.includes('delivery_fees')) return ok(JSON.stringify([{ results: opts.feeRows ?? [{ wilaya_code: 16 }] }]));
         if (sql.includes('JOIN variants')) return ok(JSON.stringify([{ results: [{ product_id: 1, slug_ar: 'أ', slug_fr: 'a', variant_id: 9, price_dzd: 100, stock: null }] }]));
         if (sql.includes('updated_by')) return ok(JSON.stringify([{ results: [{ id: 7 }] }]));
         if (sql.includes('r2_key')) return ok(JSON.stringify([{ results: [{ key: 'p/a.jpg' }] }]));
@@ -116,7 +118,7 @@ function harness(opts: Options = {}) {
       steps.push('publish');
       return '/repo/.wrangler/publish/1/snapshot.json';
     },
-    readSnapshot: async () => ({ products: [], settings: { turnstileSiteKey: 'k' } }) satisfies PublishedSnapshot,
+    readSnapshot: async () => ({ settings: { turnstileSiteKey: 'k' } }) satisfies PublishedSnapshot,
     listSite: async () => [{ path: 'ar/index.html', kind: 'file' }, { path: 'fr/index.html', kind: 'file' }],
     installSite: async () => void steps.push('install site'),
     setOutput: (k, v) => void (outputs[k] = v),
@@ -141,7 +143,7 @@ async function run(c: RunConfig, io: Io): Promise<void> {
   await prepare(c, io);
   await build(c, io);
   const out = outputsOf.get(io)!;
-  const next: RunConfig = { ...c, before: JSON.parse(out['before']!) as Record<string, string | null>, smokeCatalogue: JSON.parse(out['smoke']!) as PublishedSnapshot };
+  const next: RunConfig = { ...c, before: JSON.parse(out['before']!) as Record<string, string | null>, smokeCatalogue: JSON.parse(out['smoke']!) as SmokeSnapshot };
   try {
     await importSite(next, io);
     await deployWorkers(next, io);
@@ -450,7 +452,25 @@ describe('catalogue boundary', () => {
   it('smoke data comes from production, not from the build', async () => {
     const h = harness();
     await run(cfg(), h.io);
-    expect(JSON.parse(h.outputs['smoke']!)).toEqual({ products: [{ status: 'active', slug: { ar: 'أ', fr: 'a' }, variants: [{ id: 9, priceDzd: 100, stock: null, active: true }] }] });
+    expect(JSON.parse(h.outputs['smoke']!)).toEqual({ products: [{ status: 'active', slug: { ar: 'أ', fr: 'a' }, variants: [{ id: 9, priceDzd: 100, stock: null, active: true }] }], quoteWilayas: [16] });
+  });
+
+  it('reads the confirmed fees by the rule the Worker applies, without the amounts', async () => {
+    const h = harness({ feeRows: [{ wilaya_code: 16 }, { wilaya_code: 31 }] });
+    await run(cfg(), h.io);
+    expect((JSON.parse(h.outputs['smoke']!) as SmokeSnapshot).quoteWilayas).toEqual([16, 31]);
+    const query = h.calls.flatMap((c) => c).find((a) => a.includes('delivery_fees'))!;
+    expect(query).toMatch(/available = 1 AND placeholder = 0/);
+    expect(query).not.toContain('fee_dzd');
+    expect(h.summary.join()).not.toMatch(/no confirmed delivery fees/);
+  });
+
+  it('warns in the job summary when no fee is confirmed, and still passes', async () => {
+    const h = harness({ feeRows: [] });
+    await run(cfg(), h.io);
+    expect((JSON.parse(h.outputs['smoke']!) as SmokeSnapshot).quoteWilayas).toEqual([]);
+    expect(h.summary.join()).toMatch(/no confirmed delivery fees: customers cannot order yet/);
+    expect(h.steps).toContain('smoke all');
   });
 
   it('older_commit requires the sha input', async () => {
@@ -470,30 +490,31 @@ describe('smokeSample', () => {
   const names = (s: { products: readonly { slug: { fr: string } }[] }): string[] => s.products.map((p) => p.slug.fr);
 
   it('stays far under the 128 KiB limit with thousands of products', () => {
-    const sample = smokeSample(many, { heroId: 4000, featuredIds: Array.from({ length: 300 }, (_, i) => i + 1000) });
+    const sample = smokeSample(many, { heroId: 4000, featuredIds: Array.from({ length: 300 }, (_, i) => i + 1000) }, [1, 2, 3, 4, 5]);
     expect(Buffer.byteLength(JSON.stringify(sample))).toBeLessThanOrEqual(SMOKE_MAX_BYTES);
     expect(SMOKE_MAX_BYTES).toBeLessThan(128 * 1024);
     expect(sample.products.length).toBeGreaterThan(10);
+    expect(sample.quoteWilayas).toEqual([1, 2, 3]);
   });
 
   it('includes the hero and the named featured products, which the home page links to', () => {
-    const sample = smokeSample(many, { heroId: 4000, featuredIds: [4500, 4501] });
+    const sample = smokeSample(many, { heroId: 4000, featuredIds: [4500, 4501] }, []);
     for (const id of [4000, 4500, 4501]) expect(names(sample)).toContain(product(id).slug.fr);
   });
 
   it('includes the first products by sort, the home page fallback', () => {
-    expect(names(smokeSample(many, { heroId: null, featuredIds: [] }))).toContain(product(8).slug.fr);
+    expect(names(smokeSample(many, { heroId: null, featuredIds: [] }, []))).toContain(product(8).slug.fr);
   });
 
   it('always includes a sellable variant, even far down the catalogue', () => {
     const soldOut = Array.from({ length: 5000 }, (_, i) => product(i + 1, 0));
     soldOut[4900] = product(4901);
-    const sample = smokeSample(soldOut, { heroId: null, featuredIds: [] });
+    const sample = smokeSample(soldOut, { heroId: null, featuredIds: [] }, []);
     expect(sellableVariant(sample)).toBe(49010);
   });
 
   it('ignores ids that are not live products', () => {
-    expect(smokeSample([product(1)], { heroId: 99, featuredIds: [98] }).products).toHaveLength(1);
+    expect(smokeSample([product(1)], { heroId: 99, featuredIds: [98] }, []).products).toHaveLength(1);
   });
 });
 
