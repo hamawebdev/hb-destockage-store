@@ -2,7 +2,8 @@
 /**
  * The calm order page's form (ORDER-1, CART-0). Two uses:
  *  - `mode="product"` (default, /{lang}/order/<slug>/): one product, works without JS (POST → Worker review step,
- *    WEB-0 §2.3). `slot="price"` is the no-JS price block of the chosen variant, `slot="picker"` the variant picker.
+ *    WEB-0 §2.3). `slot="price"` is the no-JS price block of the chosen variant, `slot="picker"` the variant picker,
+ *    last in the form so that hiding it (variant.js, when the product page already chose) moves nothing above it.
  *  - `mode="cart"` (/{lang}/checkout/): the cart's lines, rendered by order.js. Hidden until order.js is up: it
  *    needs JS (CheckoutView.astro carries the no-JS message).
  * /js/order.js enhances it after LCP (shell's [data-js] loader). CSP: no script tags, no style attributes, no inline
@@ -121,7 +122,6 @@ const unavailable = !cart && !m.orderable;
           <label for="of-hp">{t('order.honeypot')}</label>
           <input id="of-hp" name={m.honeypotName} type="text" tabindex="-1" autocomplete="off" />
         </div>
-        <slot name="picker" />
       </section>
 
       <section class="of-panel of-sum" id="of-sum" aria-labelledby="of-sum-h">
@@ -157,6 +157,8 @@ const unavailable = !cart && !m.orderable;
           </li>
         </ul>
       </section>
+
+      <slot name="picker" />
     </fieldset>
     <template id="of-ui">{m.uiMessages.map((x) => <p data-k={x.code}>{x.text}</p>)}</template>
   </form>
@@ -171,6 +173,7 @@ const unavailable = !cart && !m.orderable;
   .of-fields { border: 0; margin: 0; padding: 0; min-inline-size: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   .of-fields p { margin: 0; }
   .of-panel { background: var(--color-surface-alt); border-radius: var(--radius-xl); padding: var(--space-5); display: grid; gap: var(--space-4); align-content: start; }
+  .of-fields > .cat-picker { background: var(--color-surface-alt); border-radius: var(--radius-xl); padding: var(--space-5); }
   .of-hp { display: none; }
   .of .error:empty, .of-ts:empty { display: none; }
   .of .error::before { content: "!"; flex: none; display: inline-grid; place-items: center; inline-size: 1.25em; block-size: 1.25em; border-radius: var(--radius-round); background: var(--color-danger); color: var(--color-surface); font-size: .8em; }
@@ -230,6 +233,7 @@ const unavailable = !cart && !m.orderable;
     .of-who { grid-column: 1; grid-row: 1 / -1; align-self: start; }
     .of-lines { grid-column: 2; grid-row: 1; }
     .of-sum { grid-column: 2; grid-row: 2; }
+    .of-fields > .cat-picker { grid-column: 2; grid-row: 3; align-self: start; }
     .of-bar { position: static; padding: 0; box-shadow: none; background: none; max-block-size: none; overflow: visible; }
     .of-confirm { flex-direction: column; align-items: stretch; }
     .of-total { grid-template-columns: 1fr auto; align-items: baseline; }
