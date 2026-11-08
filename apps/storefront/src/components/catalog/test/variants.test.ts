@@ -1,6 +1,7 @@
 import type { OptionProps, PriceProps, VariantProps } from '@hb/catalog';
 import { describe, expect, test } from 'vitest';
-import { defaultVariant, pickerMode, radioName, swatchFill, variantBlocks, variantByValue } from '../lib/variants.ts';
+import { readFileSync } from 'node:fs';
+import { CSS_POSITIONS, defaultVariant, pickerMode, radioName, swatchFill, variantBlocks, variantByValue } from '../lib/variants.ts';
 
 const price = (n: number): PriceProps => ({ amountDzd: n, label: `${n} DA`, compareAtDzd: null, compareAtLabel: null, discountPercent: null, from: false });
 const v = (id: number, ids: number[], stock: number | null, isDefault = false): VariantProps => ({
@@ -44,11 +45,10 @@ describe('variantBlocks', () => {
 });
 
 describe('helpers', () => {
-  test('defaultVariant prefers an orderable isDefault, else the first orderable, never a sold-out default', () => {
+  test('defaultVariant follows CAT-3\'s effective default (isDefault), else the first', () => {
     expect(defaultVariant([v(1, [], 1), v(2, [], 1, true)])?.id).toBe(2);
+    expect(defaultVariant([v(1, [], 0), v(2, [], 4, true)])?.id).toBe(2);
     expect(defaultVariant([v(1, [], 1)])?.id).toBe(1);
-    expect(defaultVariant([v(1, [], 0, true), v(2, [], 0), v(3, [], 4)])?.id).toBe(3);
-    expect(defaultVariant([v(1, [], 0), v(2, [], 0, true)])?.id).toBe(2);
   });
   test('variantByValue maps value ids', () => {
     expect(variantByValue([v(1, [11], 1), v(2, [12], 1)]).get(12)?.id).toBe(2);
@@ -59,5 +59,19 @@ describe('helpers', () => {
     expect(swatchFill('#fff')).toBeNull();
     expect(swatchFill('#000000"/><script>')).toBeNull();
     expect(swatchFill(null)).toBeNull();
+  });
+});
+
+describe('constant positional CSS', () => {
+  const css = readFileSync(new URL('../VariantPicker.astro', import.meta.url), 'utf8');
+  test('covers exactly CSS_POSITIONS values for the price blocks and the legends', () => {
+    expect(css.match(/\.cat-vps>:nth-child\(\d+\)/g)).toHaveLength(CSS_POSITIONS);
+    expect(css.match(/\.cat-curs>:nth-child\(\d+\)/g)).toHaveLength(CSS_POSITIONS);
+    expect(css).toContain(`.cat-vps>:nth-child(${CSS_POSITIONS})`);
+  });
+  test('no JS: changing the value hides the default price; beyond the covered values a neutral block shows', () => {
+    expect(css).toContain('.cat-pdp:has([data-mode=single] .cat-val-in:checked:not([checked])) .cat-vp-d{display:none}');
+    // No-JS only: once variant.js marks the box (.is-js) it shows exactly the chosen variant (BUG-18 r1).
+    expect(css).toContain(`.cat-pdp:has([data-mode=single] .cat-val:nth-child(n+${CSS_POSITIONS + 1})>:checked:not([checked])) .cat-vps:not(.is-js)>.cat-vp-any{display:block}`);
   });
 });

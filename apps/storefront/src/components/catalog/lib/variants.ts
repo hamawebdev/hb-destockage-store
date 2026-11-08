@@ -33,16 +33,12 @@ export function pickerMode({ options, variants }: PickerInput): PickerMode {
 
 /**
  * The variant preselected on the product page (checked radios, visible price/stock block, JSON-LD
- * sku): the default variant when it can be ordered, else the first orderable one; a sold-out
- * default is never preselected. Only when nothing is orderable does it fall back to the default.
+ * sku). CAT-3 marks it: `isDefault` is the effective default (the admin default when it can be
+ * ordered, else the first orderable variant), so a sold-out default is never preselected. Not
+ * re-derived here (rev-c PAGES-2 r1 Nit 1).
  */
 export function defaultVariant(variants: readonly VariantProps[]): VariantProps | undefined {
-  return (
-    variants.find((v) => v.isDefault && v.available) ??
-    variants.find((v) => v.available) ??
-    variants.find((v) => v.isDefault) ??
-    variants[0]
-  );
+  return variants.find((v) => v.isDefault) ?? variants[0];
 }
 
 export function isAvailable(v: VariantProps): boolean {
@@ -82,5 +78,9 @@ export function variantBlocks({ options, variants }: PickerInput): readonly (Var
   return variants;
 }
 
-/** How many values per option the template's positional CSS covers; beyond, variant.js does it. */
-export const CSS_POSITIONS = 12;
+/**
+ * How many values per option the template's positional CSS covers (VariantPicker.astro; a test
+ * keeps them in sync). Without JS, choosing a value beyond it shows a neutral "from <lowest>" block
+ * (ProductView .cat-vp-any), never another variant's price; variant.js covers every value.
+ */
+export const CSS_POSITIONS = 8;

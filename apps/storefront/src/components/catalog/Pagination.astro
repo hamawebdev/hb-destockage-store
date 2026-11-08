@@ -59,6 +59,8 @@ const status = t(strings, 'catalog.pagination.status', { n: formatInt(lang, p.pa
 )}
 
 <style is:global>
+  .cat-chev--start{transform:rotate(-135deg)}
+  [dir="rtl"] .cat-chev--start{transform:rotate(135deg)}
   .cat-pager{display:grid;justify-items:center;gap:var(--space-3);margin-block-start:var(--space-12)}
   .cat-pager-status{margin:0;color:var(--color-text-secondary);font-size:var(--fs-small)}
   .cat-pager ul{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:var(--space-1);margin:0;padding:0;list-style:none}

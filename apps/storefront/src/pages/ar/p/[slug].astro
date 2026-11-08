@@ -1,7 +1,6 @@
 ---
 // Product page (ar). Owner: pages (order form: orderform, src/components/order/).
-// Template body: src/components/catalog/ProductView.astro. variant.js only when there is
-// something to enhance (a picker or several photos).
+// Template body: src/components/catalog/ProductView.astro.
 import Base from '../../../layouts/Base.astro';
 import ProductView from '../../../components/catalog/ProductView.astro';
 import { variantScript } from '../../../components/catalog/lib/assets.ts';
@@ -11,9 +10,11 @@ import { staticPaths, type PropsByTemplate } from '../../../lib/catalog.ts';
 
 export const getStaticPaths = () => staticPaths('product', 'ar');
 const props = Astro.props as PropsByTemplate['product'];
-const scripts = pickerMode(props) !== 'none' || props.images.length > 1 ? [variantScript()] : [];
+// variant.js: picker, gallery, and the images DeferredImg keeps out of the LCP window (BUG-18).
+const deferred = props.images.length > 1 || props.related.length > 0 || props.packItems.length > 0;
+const scripts = pickerMode(props) !== 'none' || deferred ? [variantScript()] : [];
 ---
-<Base layout={props.layout} lcp={props.images[0]?.lcp === true} scripts={scripts}>
+<Base layout={props.layout} lcp={props.images[0]?.lcp === true} kind={props.product.kind} scripts={scripts}>
   <Fragment slot="head"><script type="application/ld+json" is:inline set:html={serializeJsonLd(productJsonLd(props))} /></Fragment>
   <ProductView {...props} />
 </Base>

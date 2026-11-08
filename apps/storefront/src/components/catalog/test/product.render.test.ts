@@ -2,6 +2,7 @@
 import { fixturePages } from '@hb/catalog/fixtures/props';
 import type { ProductProps } from '@hb/catalog';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
+import { writeFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import ProductView from '../ProductView.astro';
 import VariantPicker from '../VariantPicker.astro';
@@ -43,12 +44,10 @@ describe.each(['ar', 'fr'] as const)('product page (%s)', (lang) => {
     expect(html).not.toContain('⟦');
   });
 
-  it('a sold-out default variant is never preselected (first orderable one instead)', async () => {
+  it('preselects CAT-3\'s effective default (isDefault), whichever variant it is', async () => {
     const p = product(lang, APRON);
-    const soldOut = { ...p.variants[0]!, isDefault: true, available: false, stock: { state: 'out_of_stock' as const, qty: 0 }, maxQty: 0 };
-    const rest = p.variants.slice(1).map((v) => ({ ...v, isDefault: false }));
-    const html = await render({ ...p, variants: [soldOut, ...rest] });
-    const pick = rest.find((v) => v.available)!;
+    const pick = p.variants.find((v) => v.available && !v.isDefault)!;
+    const html = await render({ ...p, variants: p.variants.map((v) => ({ ...v, isDefault: v === pick })) });
     for (const id of pick.optionValueIds) expect(tag(html, new RegExp(`<input[^>]*id="ov-${id}"[^>]*>`))).toContain('checked');
     expect(tag(html, /<div class="cat-vp cat-vp-d"[^>]*>/)).toContain(`data-v="${pick.id}"`);
   });
@@ -68,6 +67,34 @@ describe.each(['ar', 'fr'] as const)('product page (%s)', (lang) => {
     expect(first).toContain(`sizes="${p.images[0]!.sizes}"`);
     expect(html).toContain('href="#photo-2"');
     expect(html).toMatch(/<a href="#photo-1"[^>]*>\s*<img[^>]*sizes="72px"[^>]*loading="lazy"/);
+  });
+
+  it('BUG-18: slides 2+ carry no src/srcset outside <noscript> (no request before LCP); each has a <noscript> copy', async () => {
+    const p = product(lang, APRON);
+    const html = await render(p);
+    const track = tag(html, /<div class="cat-gal-track"[\s\S]*?<\/div>/);
+    const slides = track.split('<figure').slice(1);
+    expect(slides).toHaveLength(p.images.length);
+    expect(slides[0]).toContain('fetchpriority="high"');
+    for (const [i, sl] of slides.slice(1).entries()) {
+      const outside = sl.replace(/<noscript>[\s\S]*?<\/noscript>/g, '');
+      expect(outside, `slide ${i + 2}`).not.toMatch(/\s(src|srcset)="/);
+      expect(outside).toContain(`data-srcset="${p.images[i + 1]!.srcset}"`);
+      expect(outside).toMatch(/<img[^>]*hidden/);
+      expect(sl).toMatch(/<noscript>\s*<img[^>]*srcset=/);
+    }
+  });
+
+  it('BUG-18: related cards and pack thumbnails are deferred too; the only requestable image outside <noscript> is the LCP one (+ ≥1024 thumbnails)', async () => {
+    for (const p of [product(lang, PACK), product(lang, APRON)]) {
+      const html = await render(p);
+      const outside = html.replace(/<noscript>[\s\S]*?<\/noscript>/g, '').replace(/<nav class="cat-gal-thumbs"[\s\S]*?<\/nav>/, '');
+      const live = outside.match(/<img\b[^>]*\ssrcset="[^"]*"[^>]*>/g) ?? [];
+      expect(live, p.product.name).toHaveLength(1);
+      expect(live[0]).toContain('fetchpriority="high"');
+      const rel = tag(html, /<section class="cat-sec cat-rel"[\s\S]*?<\/section>/);
+      expect(rel.match(/<noscript>\s*<img/g)?.length).toBe(p.related.filter((r) => r.image).length);
+    }
   });
 
   it('pack: contents listed with quantities; an item without its own page is not a link', async () => {
@@ -113,6 +140,32 @@ describe('single-option picker (no JS: radios post variantId)', () => {
     expect(tag(html, /<input[^>]*id="ov-301"[^>]*>/)).toMatch(/name="variantId" value="1011"[^>]*checked/);
     expect(tag(html, /<input[^>]*id="ov-302"[^>]*>/)).toMatch(/value="1012"[^>]*disabled/);
     expect(html).not.toContain('type="hidden"');
+  });
+});
+
+function tenSizes(p: ProductProps, defaultAt: number): ProductProps {
+  const base = p.variants[0]!;
+  const values = Array.from({ length: 10 }, (_, i) => ({ id: 900 + i, label: `T${i + 1}`, swatchHex: null, available: true, imageIndexes: [] }));
+  const variants = values.map((v, i) => ({ ...base, id: 9000 + i, sku: `T-${i + 1}`, optionValueIds: [v.id], key: String(v.id), label: v.label, isDefault: i === defaultAt, price: { ...base.price, amountDzd: 1000 + i, label: `${1000 + i} DA` } }));
+  return { ...p, options: [{ id: 99, type: 'size', name: 'Taille', values }], variants };
+}
+
+describe('single option with 9+ values (no JS)', () => {
+  it('one block per value in radio order; the default block is marked visible wherever it sits', async () => {
+    const p = tenSizes(product('fr', APRON), 9);
+    // Slot filled so the sticky buy bar (second .cat-vps) is rendered too, for the browser checks.
+    const html = await render(p, { order: '<section id="order"><form id="order-form"></form></section>' });
+    expect(html).toContain('data-mode="single"');
+    expect(html.match(/<div class="cat-vp[^"]*"[^>]*data-k="/g)).toHaveLength(10);
+    expect(tag(html, /<div class="cat-vp cat-vp-d"[^>]*>/)).toContain('data-v="9009"');
+    expect(tag(html, /<input[^>]*id="ov-909"[^>]*>/)).toMatch(/name="variantId" value="9009"[^>]*checked/);
+    // The neutral "from" block comes after every positional block, so the :nth-child rules never reach it.
+    const box = tag(html, /<div class="cat-vps"[\s\S]*?<div class="cat-picker"/);
+    expect(box.lastIndexOf('cat-vp-any')).toBeGreaterThan(box.lastIndexOf('data-k="909"'));
+    expect(box).toMatch(/cat-vp-any[\s\S]*?1000 DA/);
+    // PAGES_RENDER_OUT=<dir>: keep the markup for the no-JS browser check (artifacts/PAGES-5).
+    const out = process.env['PAGES_RENDER_OUT'];
+    if (out) writeFileSync(`${out}/ten-sizes-default-10.html`, html);
   });
 });
 

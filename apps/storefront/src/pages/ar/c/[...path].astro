@@ -7,6 +7,7 @@ import { staticPaths, type PropsByTemplate } from '../../../lib/catalog.ts';
 export const getStaticPaths = () => staticPaths('category', 'ar');
 const props = Astro.props as PropsByTemplate['category'];
 ---
-<Base layout={props.layout} lcp={props.products.some((c) => c.image?.lcp)}>
+{/* kind (MEAS-5): CAT-3 breadcrumbs are Home > ancestors > current, so a parent means a third crumb. */}
+<Base layout={props.layout} lcp={props.products.some((c) => c.image?.lcp)} kind={props.breadcrumbs.length > 2 ? 'sub' : 'top'}>
   <CategoryView {...props} />
 </Base>

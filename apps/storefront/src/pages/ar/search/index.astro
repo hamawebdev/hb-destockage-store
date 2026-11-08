@@ -1,9 +1,12 @@
 ---
-// Search (ar). SHELL-1 stub, owned by `pages` from here on (client: public/js/search*.js).
+// Search (ar). Owner: pages. Template body: src/components/catalog/SearchView.astro; client: public/js/search.js.
 import Base from '../../../layouts/Base.astro';
+import SearchView from '../../../components/catalog/SearchView.astro';
+import { searchScript } from '../../../components/catalog/lib/assets.ts';
 import { pageProps } from '../../../lib/catalog.ts';
+
 const props = pageProps('search', 'ar');
 ---
-<Base layout={props.layout}>
-  <div class="wrap"><h1>{props.layout.title}</h1></div>
+<Base layout={props.layout} scripts={[searchScript()]}>
+  <SearchView {...props} />
 </Base>

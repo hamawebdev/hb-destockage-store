@@ -1,0 +1,7 @@
+/* Listing primitives for the category and search templates only (pages): page padding (width and gutters come from tokens' .container, BUG-10), chips. Not on product pages (BUG-12). */
+.cat-page{padding-block:var(--space-4) var(--section-block)}
+.cat-chip{display:inline-flex;align-items:center;gap:var(--space-2);min-block-size:var(--tap-min);padding-inline:var(--space-4);border-radius:var(--radius-pill);background:var(--color-surface-alt);color:var(--color-text);font-size:var(--fs-small);line-height:var(--lh-ui);text-decoration:none;white-space:nowrap;transition:background-color var(--dur-fast) var(--ease-standard)}
+.cat-chip:hover{background:var(--color-accent-surface)}
+.cat-chip[aria-current]{background:var(--color-text);color:var(--color-surface)}
+.cat-chip-n{color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.cat-chip[aria-current] .cat-chip-n{color:inherit;opacity:.8}

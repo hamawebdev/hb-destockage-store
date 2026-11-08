@@ -1,7 +1,7 @@
 ---
 /** What a pack contains: thumbnail, quantity, name (linked when the item has its own page). */
 import type { Lang, PackItemProps, StringTable } from '@hb/catalog';
-import Picture from '../Picture.astro';
+import DeferredImg from './DeferredImg.astro';
 import { formatInt, latinLang, showDevMarkers, t } from './lib/i18n.ts';
 
 interface Props {
@@ -20,7 +20,7 @@ const dev = showDevMarkers();
       {items.map((it) => (
         <li class="cat-pack-item">
           <span class="cat-pack-thumb">
-            {it.image ? <Picture image={{ ...it.image, alt: '', lcp: false }} sizes="64px" /> : null}
+            {it.image ? <DeferredImg image={{ ...it.image, alt: '', lcp: false }} sizes="64px" /> : null}
           </span>
           <span class="cat-pack-text">
             {it.brandLatin && <span class="cat-pack-brand"><bdi lang={latinLang(lang)} dir="ltr">{it.brandLatin}</bdi></span>}
@@ -39,13 +39,18 @@ const dev = showDevMarkers();
   .cat-pack-intro{margin:0 0 var(--space-4);color:var(--color-text-secondary)}
   .cat-pack-list{display:grid;gap:var(--space-2);margin:0;padding:0;list-style:none}
   @media (min-width:768px){.cat-pack-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  .cat-pack-item{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:var(--space-4);padding:var(--space-3);border-radius:var(--radius-lg);background:var(--color-surface-alt)}
+  .cat-pack-item{position:relative;display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:var(--space-4);padding:var(--space-3);border-radius:var(--radius-lg);background:var(--color-surface-alt)}
   .cat-pack-thumb{inline-size:64px;block-size:64px;overflow:hidden;border-radius:var(--radius-md);background:var(--color-surface)}
+  .cat-pack-thumb img[hidden]{display:none}
   .cat-pack-thumb img{display:block;inline-size:100%;block-size:100%;object-fit:contain}
   .cat-pack-text{display:grid;gap:2px;line-height:var(--lh-ui)}
   .cat-pack-brand{color:var(--color-text-secondary);font-size:var(--fs-caption)}
   .cat-pack-name{color:var(--color-text);font-weight:var(--fw-emphasis)}
-  a.cat-pack-name{display:inline-flex;align-items:center;min-block-size:24px;color:var(--color-accent-text);text-decoration:none}
+  a.cat-pack-name{color:var(--color-accent-text);text-decoration:none}
+  /* The whole row (≥ 88 px) is the link's hit area (BUG-16: ≥ 44 px targets). */
+  a.cat-pack-name::after{content:"";position:absolute;inset:0;border-radius:var(--radius-lg)}
+  a.cat-pack-name:focus-visible{outline:none}
+  a.cat-pack-name:focus-visible::after{outline:var(--focus-width,2px) solid var(--color-focus);outline-offset:var(--focus-offset,2px)}
   a.cat-pack-name:hover{text-decoration:underline}
   .cat-pack-var{color:var(--color-text-secondary);font-size:var(--fs-small)}
   .cat-pack-ph{color:var(--color-warning);font-size:var(--fs-caption)}
