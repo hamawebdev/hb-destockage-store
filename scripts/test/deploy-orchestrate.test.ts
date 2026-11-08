@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MigrationFile } from '../deploy/migrations.ts';
-import { CATALOGUE_TABLES, DeployHalt, preflightProblems, run, type CommandResult, type Io, type PublishedSnapshot, type RunConfig, type WranglerConfig } from '../deploy/orchestrate.ts';
+import { build, CATALOGUE_TABLES, check, DeployHalt, deployWorkers, exportedTables, preflightProblems, prepare, rollback, smoke, type CommandResult, type DeployState, type Io, type PublishedSnapshot, type RunConfig, type WranglerConfig } from '../deploy/orchestrate.ts';
 
 const SHA = 'a'.repeat(40);
 const TIP = 'b'.repeat(40);
@@ -28,6 +28,10 @@ interface Options {
   failOn?: (args: readonly string[]) => boolean;
   rollbackFails?: boolean;
   tip?: string;
+  statusError?: string;
+  exportSql?: string;
+  executeOutput?: string;
+  sameVersionAfterDeploy?: boolean;
 }
 
 const safe: MigrationFile = { name: '0010_add.sql', content: 'ALTER TABLE t ADD c text;' };
@@ -39,16 +43,21 @@ function harness(opts: Options = {}) {
   const steps: string[] = [];
   const summary: string[] = [];
   const logs: string[] = [];
+  const outputs: Record<string, string> = {};
+  const captures: Record<string, boolean> = {};
+  let state: DeployState = {};
   const io: Io = {
-    async wrangler(args) {
+    async wrangler(args, o) {
       calls.push([...args]);
+      captures[args.slice(0, 2).join(' ')] = o?.capture === true;
       if (opts.failOn?.(args)) return { code: 1, stdout: '', stderr: 'boom' };
       const line = args.join(' ');
       if (args[0] === 'deployments') {
         const name = args[args.indexOf('--name') + 1]!;
         const v = opts.versions === undefined ? `old-${name}` : opts.versions[name];
         const deployed = calls.some((c) => c[0] === 'deploy' && c.includes(`apps/${name.replace('hb-', '')}/wrangler.jsonc`));
-        if (deployed) return ok(JSON.stringify({ versions: [{ version_id: `new-${name}`, percentage: 100 }] }));
+        if (opts.statusError !== undefined) return { code: 1, stdout: '', stderr: opts.statusError };
+        if (deployed && !opts.sameVersionAfterDeploy) return ok(JSON.stringify({ versions: [{ version_id: `new-${name}`, percentage: 100 }] }));
         if (v === null) return { code: 1, stdout: '', stderr: 'This Worker does not exist on your account. [code: 10007]' };
         return ok(JSON.stringify({ versions: [{ version_id: v, percentage: 100 }] }));
       }
@@ -73,6 +82,7 @@ function harness(opts: Options = {}) {
         return ok();
       }
       if (line.startsWith('d1 execute')) {
+        if (opts.executeOutput !== undefined && args.includes('--remote')) return ok(opts.executeOutput);
         const sql = args[args.indexOf('--command') + 1] ?? '';
         if (sql.includes('sqlite_master')) return ok(JSON.stringify([{ results: (opts.tables ?? ['d1_migrations', 'products']).map((name) => ({ name })) }]));
         if (sql.includes('FROM d1_migrations')) return ok(JSON.stringify([{ results: (opts.applied ?? []).map((name) => ({ name })) }]));
@@ -90,11 +100,17 @@ function harness(opts: Options = {}) {
     migrationFiles: async () => opts.files ?? [safe],
     readConfig: async (p) => goodConfigs[p]!,
     writeFile: async () => {},
-    loadOriginals: async () => void steps.push('originals'),
+    readFile: async () => opts.exportSql ?? 'PRAGMA defer_foreign_keys=TRUE;\nINSERT INTO "products" ("id") VALUES (1);\n',
+    readState: async () => state,
+    writeState: async (s) => void (state = s),
+    fetchOriginals: async () => void steps.push('fetch originals'),
+    loadOriginals: async () => void steps.push('load originals'),
     publish: async () => {
       steps.push('publish');
-      return { products: [], settings: { turnstileSiteKey: 'k' } } satisfies PublishedSnapshot;
+      return '/repo/.wrangler/publish/1/snapshot.json';
     },
+    readSnapshot: async () => ({ products: [], settings: { turnstileSiteKey: 'k' } }) satisfies PublishedSnapshot,
+    setOutput: (k, v) => void (outputs[k] = v),
     smoke: async (_s, scope) => {
       steps.push(`smoke ${scope}`);
       return opts.smoke ?? [];
@@ -102,19 +118,33 @@ function harness(opts: Options = {}) {
     log: (l) => logs.push(l),
     summary: (l) => summary.push(l),
   };
-  return { io, calls, steps, summary, logs };
+  return { io, calls, steps, summary, logs, outputs, captures, state: () => state };
 }
 
 const cfg = (over: Partial<RunConfig> = {}): RunConfig => ({
-  mode: 'deploy', sha: SHA, event: 'push', ref: 'refs/heads/main', approval: '', repoRoot: '/repo', workDir: '/tmp/w', imageCache: '/tmp/c', ...over,
+  mode: 'deploy', sha: SHA, event: 'push', ref: 'refs/heads/main', approval: '', olderCommit: 'no', repoRoot: '/repo', workDir: '/tmp/w', imageCache: '/tmp/c', ...over,
 });
+
+/** The workflow's steps, in order; the rollback step runs when one fails. */
+async function run(c: RunConfig, io: Io): Promise<void> {
+  if (!(await check(c, io))) return;
+  try {
+    await prepare(c, io);
+    await build(c, io);
+    await deployWorkers(c, io);
+    await smoke(c, io);
+  } catch (err) {
+    await rollback(c, io);
+    throw err;
+  }
+}
 
 describe('deploy order', () => {
   it('restore point, migrations, catalogue, jobs, web, admin, smoke', async () => {
     const h = harness();
     await run(cfg(), h.io);
     expect(h.steps).toEqual([
-      'bookmark', 'migrate remote', 'export', 'migrate local', 'originals', 'publish',
+      'bookmark', 'migrate remote', 'export', 'fetch originals', 'migrate local', 'load originals', 'publish',
       'deploy apps/jobs/wrangler.jsonc', 'deploy apps/web/wrangler.jsonc', 'deploy apps/admin/wrangler.jsonc', 'smoke all',
     ]);
     expect(h.summary.join('\n')).toContain('bm-123');
@@ -167,11 +197,55 @@ describe('commit guard', () => {
     expect(h.calls).toEqual([]);
     expect(h.summary.join()).toMatch(/moved on/);
   });
-  it('a hand-started run may deploy an older commit on main', async () => {
+  it('a push on the tip proceeds and reports it to the workflow', async () => {
+    const h = harness();
+    await run(cfg(), h.io);
+    expect(h.outputs['proceed']).toBe('true');
+  });
+
+  it('tells the workflow to stop when superseded', async () => {
     const h = harness({ tip: TIP });
-    await run(cfg({ event: 'workflow_dispatch' }), h.io);
+    await run(cfg(), h.io);
+    expect(h.outputs['proceed']).toBe('false');
+  });
+
+  it('refuses a hand-started deploy that is no longer the tip', async () => {
+    const h = harness({ tip: TIP });
+    await expect(run(cfg({ event: 'workflow_dispatch' }), h.io)).rejects.toThrow(/overwrite newer code/);
+    expect(h.calls).toEqual([]);
+  });
+
+  it('refuses a publish that is no longer the tip, even with older_commit', async () => {
+    const h = harness({ tip: TIP });
+    await expect(run(cfg({ event: 'workflow_dispatch', mode: 'publish', olderCommit: 'yes' }), h.io)).rejects.toThrow(/publish only runs on main's tip/);
+    expect(h.calls).toEqual([]);
+  });
+
+  it('older_commit does not help a push', async () => {
+    const h = harness({ tip: TIP });
+    await run(cfg({ olderCommit: 'yes' }), h.io);
+    expect(h.calls).toEqual([]);
+  });
+
+  it('with older_commit a hand-started run may deploy an older commit on main', async () => {
+    const h = harness({ tip: TIP });
+    await run(cfg({ event: 'workflow_dispatch', olderCommit: 'yes' }), h.io);
+    expect(h.steps.some((s) => s.startsWith('deploy'))).toBe(true);
+    expect(h.summary.join()).toMatch(/older commit/);
+  });
+
+  it('refuses an older commit when the database is ahead of it', async () => {
+    const h = harness({ tip: TIP, applied: [safe.name, '0099_newer.sql'] });
+    await expect(run(cfg({ event: 'workflow_dispatch', olderCommit: 'yes' }), h.io)).rejects.toThrow(/does not know about/);
+    expect(h.steps).toEqual([]);
+  });
+
+  it('older_commit=with-newer-migrations goes ahead when the database is ahead', async () => {
+    const h = harness({ tip: TIP, applied: [safe.name, '0099_newer.sql'] });
+    await run(cfg({ event: 'workflow_dispatch', olderCommit: 'with-newer-migrations' }), h.io);
     expect(h.steps.some((s) => s.startsWith('deploy'))).toBe(true);
   });
+
   it('refuses a hand-started commit that is not on main', async () => {
     const h = harness({ tip: TIP });
     h.io.git = async (args) => (args[0] === 'merge-base' ? { code: 1, stdout: '', stderr: '' } : ok(`${args[1] === 'HEAD' ? SHA : TIP}\n`));
@@ -243,7 +317,7 @@ describe('rollback', () => {
 
   it('reports a failed rollback', async () => {
     const h = harness({ smoke: ['down'], rollbackFails: true });
-    await expect(run(cfg(), h.io)).rejects.toThrow(/smoke/);
+    await expect(run(cfg(), h.io)).rejects.toThrow(/rollback incomplete/);
     expect(h.summary.join('\n')).toMatch(/Rollback hb-web: FAILED[\s\S]*old-hb-web/);
   });
 });
@@ -252,7 +326,7 @@ describe('publish mode', () => {
   it('rebuilds and redeploys hb-web only, without migrations', async () => {
     const h = harness({ applied: [safe.name] });
     await run(cfg({ mode: 'publish', event: 'workflow_dispatch' }), h.io);
-    expect(h.steps).toEqual(['export', 'migrate local', 'originals', 'publish', 'deploy apps/web/wrangler.jsonc', 'smoke site']);
+    expect(h.steps).toEqual(['export', 'fetch originals', 'migrate local', 'load originals', 'publish', 'deploy apps/web/wrangler.jsonc', 'smoke site']);
   });
 
   it('refuses when migrations are pending', async () => {
@@ -266,6 +340,73 @@ describe('publish mode', () => {
     await expect(run(cfg({ mode: 'publish', event: 'workflow_dispatch' }), h.io)).rejects.toThrow(/smoke/);
     expect(h.steps.filter((s) => s.startsWith('rollback'))).toEqual(['rollback hb-web']);
   });
+});
+
+describe('failing safely', () => {
+  it('an unexpected JSON shape is an error, never an empty database', async () => {
+    const h = harness({ executeOutput: '{"unexpected":true}', files: [destructive], tables: [] });
+    await expect(run(cfg(), h.io)).rejects.toThrow(/unexpected JSON/);
+    expect(h.steps).toEqual([]);
+  });
+
+  it('a missing results array is an error too', async () => {
+    const h = harness({ executeOutput: '[{"success":true}]', files: [destructive] });
+    await expect(run(cfg(), h.io)).rejects.toThrow(/unexpected JSON/);
+    expect(h.steps).toEqual([]);
+  });
+
+  it('non-JSON output is an error', async () => {
+    const h = harness({ executeOutput: 'hello', files: [destructive] });
+    await expect(run(cfg(), h.io)).rejects.toThrow(/did not return JSON/);
+    expect(h.steps).toEqual([]);
+  });
+
+  it('keeps the export output out of the log', async () => {
+    const h = harness();
+    await run(cfg(), h.io);
+    expect(h.captures['d1 export']).toBe(true);
+  });
+
+  it('stops when the export holds a table outside the allowlist', async () => {
+    const h = harness({ exportSql: 'INSERT INTO "products" ("id") VALUES (1);\nINSERT INTO "orders" ("id") VALUES (1);\n' });
+    await expect(run(cfg(), h.io)).rejects.toThrow(/outside the catalogue allowlist: orders/);
+    expect(h.steps.some((s) => s.startsWith('deploy'))).toBe(false);
+  });
+
+  it('a "not found" message does not pass for a first deployment', async () => {
+    const h = harness({ statusError: 'Upstream route not found' });
+    await expect(run(cfg(), h.io)).rejects.toThrow(/cannot read the current version/);
+    expect(h.steps).toEqual([]);
+  });
+
+  it('only the exact missing-Worker answer counts as a first deployment', async () => {
+    const h = harness({ versions: { 'hb-jobs': null, 'hb-web': null, 'hb-admin': null } });
+    await run(cfg(), h.io);
+    expect(h.state().before).toEqual({ 'hb-jobs': null, 'hb-web': null, 'hb-admin': null });
+  });
+
+  it('fails and rolls back when a deploy leaves the same version active', async () => {
+    const h = harness({ sameVersionAfterDeploy: true });
+    await expect(run(cfg(), h.io)).rejects.toThrow(/did not produce a new active version/);
+    expect(h.steps.filter((s) => s.startsWith('rollback'))).toHaveLength(3);
+  });
+
+  it('the rollback step is a no-op when nothing was deployed', async () => {
+    const h = harness();
+    await rollback(cfg(), h.io);
+    expect(h.calls).toEqual([]);
+    expect(h.summary.join()).toMatch(/Nothing to roll back/);
+  });
+
+  it('a failed rollback fails the rollback step', async () => {
+    const h = harness({ rollbackFails: true });
+    await h.io.writeState({ before: { 'hb-web': 'old' }, deployed: ['hb-web'] });
+    await expect(rollback(cfg(), h.io)).rejects.toThrow(/rollback incomplete/);
+  });
+});
+
+it('exportedTables reads the tables of an export', () => {
+  expect(exportedTables('PRAGMA x;\nINSERT INTO "a" ("id") VALUES (1);\nINSERT INTO "a" ("id") VALUES (2);\nINSERT INTO "b" VALUES (1);\n')).toEqual(['a', 'b']);
 });
 
 describe('preflightProblems', () => {

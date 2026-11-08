@@ -2,7 +2,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CATALOGUE_TABLES, PLACEHOLDER_D1_ID } from '../deploy/orchestrate.ts';
+import { parseJsonc } from '../deploy/config.ts';
+import { CATALOGUE_TABLES, PLACEHOLDER_D1_ID, preflightProblems, type WranglerConfig } from '../deploy/orchestrate.ts';
 
 const root = join(import.meta.dirname, '../..');
 const read = (p: string): string => readFileSync(join(root, p), 'utf8');
@@ -47,21 +48,53 @@ describe('workflow security', () => {
     for (const u of uses) expect(u).toMatch(/@[0-9a-f]{40}$/);
   });
 
-  it('reads the Cloudflare secrets in the deploy step only', () => {
+  const deployJob = pipeline.slice(pipeline.indexOf('\n  deploy:'));
+  /** The text of the step named `name` in the deploy job. */
+  const step = (name: string): string => {
+    const start = deployJob.indexOf(`- name: ${name}`);
+    expect(start, name).toBeGreaterThanOrEqual(0);
+    const rest = deployJob.slice(start + 2);
+    const next = rest.search(/\n {6}- /);
+    return next < 0 ? rest : rest.slice(0, next);
+  };
+  const usesSecret = (text: string): boolean => /secrets\.[A-Z]/.test(text);
+
+  it('has the Cloudflare secrets only on the steps that talk to Cloudflare', () => {
     const lines = pipeline.split('\n').filter((l) => /secrets\.[A-Z]/.test(l));
-    expect(lines).toHaveLength(2);
+    expect(lines).toHaveLength(6);
     for (const l of lines) expect(l).toMatch(/CLOUDFLARE_(API_TOKEN|ACCOUNT_ID): \$\{\{ secrets\./);
-    const deployJob = pipeline.slice(pipeline.indexOf('\n  deploy:'));
-    expect(deployJob).toContain('environment: production');
-    expect(deployJob.search(/secrets\.[A-Z]/)).toBeGreaterThan(deployJob.indexOf('name: Deploy'));
     expect(pipeline.search(/secrets\.[A-Z]/)).toBeGreaterThan(pipeline.indexOf('\n  deploy:'));
+    expect(deployJob).toContain('environment: production');
+    for (const name of ['Export from production', 'Deploy Workers', 'Roll back']) expect(usesSecret(step(name)), name).toBe(true);
+    for (const name of ['Check commit and configuration', 'Build site', 'Smoke checks', 'Restore image derivative cache', 'Delete working files']) {
+      expect(usesSecret(step(name)), name).toBe(false);
+    }
+  });
+
+  it('no token-holding process is alive during npm ci or the build', () => {
+    const jobEnv = deployJob.slice(deployJob.indexOf('\n    env:'), deployJob.indexOf('\n    steps:'));
+    expect(usesSecret(jobEnv)).toBe(false);
+    expect(deployJob.indexOf('npm ci')).toBeLessThan(deployJob.indexOf('- name: Export from production'));
+    expect(step('Export from production')).toMatch(/deploy\.ts prepare$/);
+    expect(step('Build site')).toMatch(/deploy\.ts build$/);
+    expect(step('Deploy Workers')).toMatch(/deploy\.ts deploy$/);
+    expect(read('scripts/deploy/deploy.ts')).toMatch(/NEEDS_TOKEN = new Set\(\['prepare', 'deploy', 'rollback'\]\)/);
+    expect(read('scripts/deploy/deploy.ts')).toContain('must run without the Cloudflare token');
+  });
+
+  it('rolls back on failure, cancellation or timeout', () => {
+    expect(step('Roll back')).toMatch(/if: \(failure\(\) \|\| cancelled\(\)\)/);
+    expect(step('Roll back')).toMatch(/deploy\.ts rollback$/);
+  });
+
+  it('never prints the export download URL', () => {
+    expect(read('scripts/deploy/orchestrate.ts')).toMatch(/'-c', REMOTE_CONFIG\], true\);\n\s+const allowed/);
   });
 
   it('deploys only after the checks, one at a time, from main', () => {
-    const deployJob = pipeline.slice(pipeline.indexOf('\n  deploy:'));
     expect(deployJob).toMatch(/needs: \[typecheck, test, build\]/);
     expect(deployJob).toMatch(/if: github\.ref == 'refs\/heads\/main'/);
-    expect(deployJob).toMatch(/concurrency:\n\s+group: production-deploy\n\s+cancel-in-progress: false/);
+    expect(deployJob).toMatch(/concurrency:\n\s+group: production-deploy\n\s+cancel-in-progress: false\n\s+queue: max/);
   });
 
   it('keeps the report job out of the deploy dependencies', () => {
@@ -94,6 +127,18 @@ describe('catalogue allowlist', () => {
   it('contains no customer, order or admin table', () => {
     const forbidden = /order|customer|admin|audit|rum|publish|notification|fee/;
     for (const t of CATALOGUE_TABLES) expect(t).not.toMatch(forbidden);
+  });
+});
+
+describe('the committed Worker configs', () => {
+  const config = (name: string): WranglerConfig => parseJsonc(name, read(`apps/${name}/wrangler.jsonc`)) as WranglerConfig;
+
+  it('are ready for production', () => {
+    expect(preflightProblems({ jobs: config('jobs'), web: config('web'), admin: config('admin') })).toEqual([]);
+  });
+
+  it('publish.ts accepts --budget skip', () => {
+    expect(read('apps/jobs/scripts/publish.ts')).toMatch(/args\.budget !== 'skip'/);
   });
 });
 

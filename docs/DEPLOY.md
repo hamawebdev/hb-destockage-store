@@ -13,19 +13,35 @@ The deployment logic is in [`scripts/deploy/`](../scripts/deploy/).
 | Started by hand (`mode=publish`) | typecheck, tests, build | rebuild and redeploy `hb-web` from current production data, no migrations |
 
 The `report` job (byte budget and Lighthouse) never blocks anything and holds no secrets.
-Only one deployment runs at a time: `deploy` and `publish` share the concurrency group `production-deploy`.
-A push whose commit is no longer the tip of `main` when its turn comes is skipped, so an older commit never overwrites a newer one.
+Only one deployment runs at a time: `deploy` and `publish` share the concurrency group `production-deploy`, and queued runs wait their turn in order (`queue: max`, up to 100 pending).
+
+## Which commit deploys
+
+The rule: **production only moves forward, unless someone deliberately goes back.** When a run's turn comes, it compares its commit with the tip of `main`:
+
+| Run | Commit is `main`'s tip | `main` has moved past it |
+|---|---|---|
+| Push to `main` | deploys | skipped, green, nothing changed: the newer push's run deploys everything, migrations included |
+| Started by hand, `mode=deploy` | deploys | refused, red, nothing changed; start it again |
+| Started by hand, `mode=deploy`, `older_commit=yes`, with `sha` | deploys | deploys that older commit on purpose |
+| Started by hand, `mode=publish` | publishes | refused, red, nothing changed; start it again |
+
+A commit that is not on `main` is always refused. Going back with `older_commit=yes` is also refused if the database already has migrations that commit doesn't know about, because that code may not work with the newer schema. To do it anyway, use `older_commit=with-newer-migrations`. `publish` never accepts an older commit.
 
 ## What a deployment does, in order
 
-1. Refuses anything not on `main`, and checks the Worker configs (real D1 id, routes, `SITE_HOSTS`, Access values). Every problem is listed at once, before anything changes.
+1. Applies the rule above, and checks the Worker configs (real D1 id, routes, `SITE_HOSTS`, Access values). Every problem is listed at once, before anything changes.
 2. Records the current version of each Worker, for rollback.
 3. Classifies the pending migrations. A destructive set stops the run here (see below).
 4. Records a D1 Time Travel bookmark in the job summary: the restore point.
 5. Applies the pending migrations once, in order (`wrangler d1 migrations apply --remote`).
 6. Exports only the catalogue tables from production D1 and rebuilds the storefront from them, with the originals from R2 `hb-media`. An empty or incomplete catalogue stops the run here, before any Worker is deployed.
 7. Deploys `hb-jobs` (queue consumer), then `hb-web`, then `hb-admin`, with wrangler's automatic resource creation turned off (`--no-experimental-provision`): a missing bucket or queue fails the deployment instead of being created.
-8. Runs the smoke checks. If a deploy or a smoke check fails, every Worker deployed in this run goes back to its recorded version and the run goes red.
+8. Checks each Worker now has a new active version, then runs the smoke checks.
+
+If a deploy or a smoke check fails, or the job is cancelled or times out, a final step puts every Worker deployed in this run back on its recorded version, and the run goes red.
+
+The smoke checks prove the live site works; they can't prove which version answered, because the Workers don't report one. The new-version check covers that in part. Behind Cloudflare Access, the admin check confirms the login wall is up, not that the new admin code runs.
 
 Deployed version ids, the bookmark and any rollback are in the run's job summary.
 
@@ -87,6 +103,8 @@ A restore replaces everything written after the target time, **including orders 
 
 ## Secrets and access
 
-- `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` exist only in the GitHub environment `production` (deployment branch policy: `main`), and are given only to the Deploy step. The build runs without them.
+- `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` exist only in the GitHub environment `production` (deployment branch policy: `main`).
+- The token is set only on the steps that talk to Cloudflare: *Export from production*, *Deploy Workers* and *Roll back*. No process holds it during `npm ci`, the site build or the smoke checks, and those phases refuse to run if it is present.
+- *Deploy Workers* still runs `wrangler deploy`, which runs `apps/web`'s `build.command` with the token in its environment. That command is the repository's own `deploy-guard.ts` and `csp.ts`, which import only Node built-ins. The token-holding steps also load wrangler and its dependencies from `node_modules`, installed earlier from the lockfile.
 - Runtime secrets (`TURNSTILE_SECRET`, `ORDER_SIGNING_KEY`, `IP_HASH_KEY`, `CSRF_SECRET`, …) live in Cloudflare. The pipeline never reads or sets them.
 - Catalogue exports stay on the runner and are deleted at the end of the job. Nothing goes into GitHub artifacts except the report job's measurements of the test catalogue.

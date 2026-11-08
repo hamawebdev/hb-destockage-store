@@ -58,16 +58,71 @@ describe('classifyMigration', () => {
     expect(classifyMigration("-- DROP TABLE a\n/* DELETE FROM b */\nINSERT INTO t (x) VALUES ('DROP TABLE c; DELETE FROM d');")).toEqual([]);
   });
 
-  it('keeps trigger bodies whole, including writes and CASE inside them', () => {
+  it('keeps a read-only trigger body whole, CASE included, and still sees the next statement', () => {
     const sql = `CREATE TRIGGER tr AFTER INSERT ON t BEGIN
-      UPDATE u SET n = CASE WHEN NEW.a THEN 1 ELSE 2 END;
-      DELETE FROM v WHERE id = NEW.id;
+      SELECT CASE WHEN NEW.a THEN RAISE(ABORT, 'no') ELSE 2 END;
+      SELECT RAISE(ABORT, 'also no');
     END;
     DROP TABLE after_trigger;`;
     expect(parseStatements(sql)).toHaveLength(2);
     const reasons = classifyMigration(sql);
     expect(reasons).toHaveLength(1);
     expect(reasons[0]).toMatch(/after_trigger/);
+  });
+
+  it.each([
+    ['trigger named begin', 'CREATE TRIGGER begin AFTER INSERT ON x BEGIN SELECT 1; END;\nDROP TABLE orders;'],
+    ['column new.begin in the body', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT new.begin; END;\nDROP TABLE orders;'],
+    ['column new.end in the body', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT new.end; END;\nDROP TABLE orders;'],
+    ['column begin before ON', 'CREATE TRIGGER t AFTER UPDATE OF begin ON x BEGIN SELECT 1; END;\nDROP TABLE orders;'],
+    ['new.begin in the WHEN clause', 'CREATE TRIGGER t AFTER INSERT ON x WHEN new.begin > 0 BEGIN SELECT 1; END;\nDROP TABLE orders;'],
+  ])('%s does not hide the next statement', (_label, sql) => {
+    expect(parseStatements(sql)).toHaveLength(2);
+    const reasons = classifyMigration(sql);
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0]).toMatch(/DROP TABLE orders/);
+  });
+
+  it.each([
+    ['a second BEGIN in the body', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT begin FROM y; END;'],
+    ['text after the final END', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT 1; END garbage;'],
+    ['no final END', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT 1;'],
+    ['no body at all', 'CREATE TRIGGER t AFTER INSERT ON x;'],
+    ['a bare end identifier closing early', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT end FROM y; END;'],
+  ])('fails closed on %s', (_label, sql) => {
+    expect(classifyMigration(sql).length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['DELETE', 'CREATE TRIGGER t AFTER INSERT ON orders BEGIN DELETE FROM customers; END;'],
+    ['UPDATE', `CREATE TRIGGER t AFTER INSERT ON orders BEGIN UPDATE "orders" SET phone=''; END;`],
+    ['INSERT', 'CREATE TRIGGER t AFTER INSERT ON orders BEGIN INSERT INTO log (a) VALUES (1); END;'],
+    ['INSERT OR REPLACE', 'CREATE TRIGGER t AFTER INSERT ON orders BEGIN INSERT OR REPLACE INTO log (a) VALUES (1); END;'],
+    ['REPLACE', 'CREATE TRIGGER t AFTER INSERT ON orders BEGIN REPLACE INTO log (a) VALUES (1); END;'],
+    ['temporary trigger', 'CREATE TEMP TRIGGER t AFTER INSERT ON orders BEGIN DELETE FROM customers; END;'],
+  ])('halts on a trigger body that writes: %s', (_label, sql) => {
+    expect(classifyMigration(sql)[0]).toMatch(/body writes/);
+  });
+
+  it('allows a guard trigger on UPDATE (the event word is not a body write)', () => {
+    expect(classifyMigration("CREATE TRIGGER t BEFORE UPDATE OF a ON x BEGIN SELECT RAISE(ABORT, 'no'); END;")).toEqual([]);
+  });
+
+  it('a column named update inside a guard is not a write', () => {
+    expect(classifyMigration("CREATE TRIGGER t BEFORE INSERT ON x WHEN new.update > 0 BEGIN SELECT RAISE(ABORT, new.delete); END;")).toEqual([]);
+  });
+
+  it('the guard triggers of 0002 are additive', () => {
+    const dir = join(import.meta.dirname, '../../packages/db/migrations');
+    const name = readdirSync(dir).find((n) => n.startsWith('0002_'))!;
+    expect(classifyMigration(readFileSync(join(dir, name), 'utf8'))).toEqual([]);
+  });
+
+  it.each([
+    ['in CREATE TABLE', 'CREATE TABLE t (a text UNIQUE ON CONFLICT REPLACE);'],
+    ['in a primary key', 'CREATE TABLE t (a integer PRIMARY KEY ON CONFLICT REPLACE);'],
+  ])('flags ON CONFLICT REPLACE %s', (_label, sql) => {
+    expect(classifyMigration(sql)[0]).toMatch(/ON CONFLICT REPLACE/);
   });
 
   it('does not hide a statement after a string containing a semicolon', () => {
