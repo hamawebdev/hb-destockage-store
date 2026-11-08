@@ -124,7 +124,9 @@ export default function hbPostbuild(opts) {
         }
         let jsText = '';
         try {
-          for await (const f of walk(join(root, 'js'))) if (f.endsWith('.js')) jsText += await readFile(f, 'utf8');
+          // meta.js styles only its own bar and carries literal fallbacks (D-009): scanning it would change every
+          // page's CSS, and so its hash and bytes, when Meta is configured.
+          for await (const f of walk(join(root, 'js'))) if (f.endsWith('.js') && !f.endsWith(`${sep}meta.js`)) jsText += await readFile(f, 'utf8');
         } catch (e) {
           if (/** @type {NodeJS.ErrnoException} */ (e).code !== 'ENOENT') throw e;
         }

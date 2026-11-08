@@ -263,7 +263,9 @@ async function boot(id, consentRequired) {
     }
     const sheet = new CSSStyleSheet();
     sheet.replaceSync(
-      'html{scroll-padding-block-end:var(--mc-sp,0)}.mc{position:fixed;inset-inline:0;inset-block-end:var(--mc-off,0);z-index:var(--z-sticky);display:grid;gap:var(--space-3);padding:var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));background:var(--color-surface);box-shadow:0 -1px 0 var(--color-border);font-size:var(--fs-small)}.mc p{margin:0}.mc a{color:var(--color-accent-text);display:inline-block;padding-block:calc((var(--tap-min) - 1lh)/2);margin-block:calc((1lh - var(--tap-min))/2)}.mc-a{display:flex;gap:var(--space-2)}.mc-a button{flex:1;min-block-size:var(--tap-min)}',
+      // Every value has a literal fallback: the build does not scan this file when trimming page CSS, so a token
+      // used only here may be absent, and an unconfigured or configured page must carry the same CSS (§6).
+      'html{scroll-padding-block-end:var(--mc-sp,0)}.mc{position:fixed;inset-inline:0;inset-block-end:var(--mc-off,0);z-index:10;display:grid;gap:12px;padding:8px var(--gutter,1rem) calc(8px + env(safe-area-inset-bottom));background:var(--color-surface,#fff);box-shadow:0 -1px 0 var(--color-border,#d2d2d7);font-size:.875rem}.mc p{margin:0}.mc a{color:var(--color-accent-text,#06c);display:inline-block;padding-block:calc((44px - 1lh)/2 + 1px);margin-block:calc((1lh - 44px)/2 - 1px)}.mc-a{display:flex;gap:8px}.mc-a button{flex:1;min-block-size:44px;font:inherit;color:var(--color-text,#1d1d1f);background:var(--color-surface,#fff);border:1px solid var(--color-border-control,#86868b);border-radius:980px}',
     );
     D.adoptedStyleSheets = [...D.adoptedStyleSheets, sheet];
     const el = D.createElement('section');
@@ -286,7 +288,6 @@ async function boot(id, consentRequired) {
     const button = (label) => {
       const b = D.createElement('button');
       b.type = 'button';
-      b.className = 'btn btn-secondary';
       b.textContent = label;
       return b;
     };
