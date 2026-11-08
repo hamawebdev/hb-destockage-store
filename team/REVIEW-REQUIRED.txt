@@ -1,0 +1,29 @@
+# Paths whose commits need a ledger approval in team/APPROVALS.md (lead-only; commit on main as lead).
+# Client rule: review only the order path, totals and fees, and admin login and roles.
+# order path
+apps/web/src/order/**
+apps/web/src/routes/order.ts
+apps/web/src/routes/quote.ts
+apps/web/src/quote.ts
+apps/web/src/fees.ts
+packages/shared/src/order-schema.ts
+packages/shared/src/order-state.ts
+packages/shared/src/phone.ts
+packages/shared/src/money.ts
+packages/shared/src/quote.ts
+packages/shared/src/fees.ts
+packages/shared/src/fee-conformance.ts
+packages/db/src/orders.ts
+packages/db/src/order-contact.ts
+packages/db/src/fees.ts
+apps/storefront/src/components/order/**
+apps/storefront/public/js/order*.js
+# fees
+apps/admin/src/routes/fees/**
+# auth, roles, audit
+apps/admin/src/auth/**
+apps/admin/src/audit/**
+apps/admin/src/routes/users/**
+apps/admin/src/lib/csrf.ts
+# order step route
+apps/storefront/src/pages/*/order/**
