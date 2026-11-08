@@ -2,15 +2,15 @@
 /**
  * Product page body (inside shell's Base layout).
  *
- *   phone:   crumbs · gallery · brand/title/summary · price+stock · picker · order form · delivery
- *            · pack contents · description · related; a sticky "Commander · prix" bar (#order link)
- *            until the form scrolls into view.
+ *   phone:   crumbs · gallery · brand/title/summary · price+stock · picker + "Commander" · delivery
+ *            · pack contents · description · related; a sticky "Commander" bar until the in-page
+ *            CTA scrolls into view.
  *   ≥1024:   gallery (sticky, 7 cols) | buy column (5 cols), then the sections full width.
  *
- * Order form: the page file passes orderform's <OrderForm> into the named slot `order` (it renders
- * section#order > form#order-form). Without it the buy box has no form: development builds show a
- * marked dev placeholder (never a fake form), production builds show nothing and drop the sticky
- * bar, whose only job is to jump to #order.
+ * Ordering (ORDER-STEP, lead-approved plan): the picker and the CTA sit in a plain GET form to the
+ * product's static order step (`orderStepHref`), which carries only `v` / `opt.*`. With JS,
+ * variant.js swaps the submit buttons for links to `…?v=<variant id>` (Speculation Rules prerender
+ * the step on hover/touch). Sold out: no CTA; a WhatsApp link with a prefilled question.
  *
  * The selected variant's price/stock/SKU live in `.cat-vps` blocks (see lib/variants.ts) that
  * constant CSS (single option) or variant.js (several options) switch. The page file puts the
@@ -22,27 +22,22 @@ import Breadcrumbs from './Breadcrumbs.astro';
 import DeliveryInfo from './DeliveryInfo.astro';
 import Gallery from './Gallery.astro';
 import PackContents from './PackContents.astro';
-import Price from './Price.astro';
 import ProductGrid from './ProductGrid.astro';
-import Stock from './Stock.astro';
+import VariantBlocks from './VariantBlocks.astro';
 import VariantPicker from './VariantPicker.astro';
 import { latinLang, showDevMarkers, t } from './lib/i18n.ts';
-import { CSS_POSITIONS, defaultVariant, pickerMode, variantBlocks } from './lib/variants.ts';
+import { priceModel } from './lib/variants.ts';
 
 type Props = ProductProps;
 const p = Astro.props;
 const { layout, product, category, breadcrumbs, images, options, variants, packItems, related, orderForm } = p;
 const { lang, strings } = layout;
-const mode = pickerMode({ options, variants });
-const def = defaultVariant(variants);
-const blocks = mode === 'none' ? [def] : variantBlocks({ options, variants });
-// Single option with more values than the constant CSS covers: a neutral "from" block that the
-// no-JS CSS shows when a value beyond CSS_POSITIONS is chosen (never another variant's price).
-const lowest = variants.reduce<(typeof variants)[number] | undefined>((a, v) => (v.available && (!a || v.price.amountDzd < a.price.amountDzd) ? v : a), undefined) ?? def;
-const anyPrice = mode === 'single' && blocks.length > CSS_POSITIONS && lowest ? { ...lowest.price, from: true, compareAtDzd: null, compareAtLabel: null, discountPercent: null } : null;
+const { mode, def, blocks, anyPrice } = priceModel({ options, variants });
 const ph = showDevMarkers() && (product.placeholder || product.translationPlaceholder);
-const hasForm = Astro.slots.has('order');
-const dev = import.meta.env.DEV;
+const stepHref = p.orderStepHref;
+const ctaHref = def ? `${stepHref}?v=${def.id}` : stepHref;
+const cta = t(strings, 'product.orderCta');
+const askHref = `${layout.contact.whatsappHref}?text=${encodeURIComponent(t(strings, 'product.outOfStock.message', { product: product.name, sku: def?.sku ?? '' }))}`;
 ---
 <div class="container cat-pdp" data-mode={mode}>
   <div class="cat-pdp-crumbs"><Breadcrumbs items={breadcrumbs} strings={strings} /></div>
@@ -60,27 +55,20 @@ const dev = import.meta.env.DEV;
         {product.summary && <p class="cat-pdp-summary">{product.summary}</p>}
       </header>
 
-      <div class="cat-vps" aria-live="polite">
-        {blocks.map((v) =>
-          v ? (
-            <div class:list={['cat-vp', { 'cat-vp-d': v === def }]} data-k={v.key} data-v={v.id} data-p={v.price.amountDzd} data-max={v.maxQty} data-a={v.available ? '1' : '0'} data-img={v.imageIndex ?? undefined}>
-              <Price price={v.price} strings={strings} size="page" />
-              <div class="cat-vp-meta">
-                <Stock stock={v.stock} lang={lang} strings={strings} />
-                <p class="cat-sku">{t(strings, 'product.sku')} <bdi dir="ltr">{v.sku}</bdi></p>
-              </div>
-            </div>
-          ) : (
-            <div class="cat-vp"><p class="cat-vp-none-t">{t(strings, 'product.option.unavailable')}</p></div>
-          ),
+      <VariantBlocks options={options} variants={variants} lang={lang} strings={strings} />
+
+      <form id="cat-buy" class="cat-buy" method="get" action={stepHref}>
+        <VariantPicker options={options} variants={variants} strings={strings} field="v" formId={null} />
+        {mode === 'none' && def && <input type="hidden" name="v" value={def.id} />}
+        {orderForm.orderable ? (
+          <div class="cat-ctas">
+            <button class="cat-btn cat-cta" type="submit" data-cta-btn>{cta}</button>
+            <a class="cat-btn cat-cta" href={ctaHref} data-cta={stepHref} hidden>{cta}</a>
+          </div>
+        ) : (
+          <a class="cat-btn cat-btn--wa" href={askHref}>{t(strings, 'product.outOfStock.ask')}</a>
         )}
-        {mode === 'multi' && <div class="cat-vp cat-vp-none"><p class="cat-vp-none-t">{t(strings, 'product.option.unavailableCombo')}</p></div>}
-        {anyPrice && <div class="cat-vp cat-vp-any"><Price price={anyPrice} strings={strings} size="page" /></div>}
-      </div>
-
-      <VariantPicker options={options} variants={variants} strings={strings} />
-
-      {hasForm ? <slot name="order" /> : dev && <p class="cat-dev-slot">DEV: order form slot is empty (orderform's OrderForm is wired by the page file) [PLACEHOLDER]</p>}
+      </form>
 
       <DeliveryInfo strings={strings} links={layout.footerLinks} />
     </div>
@@ -105,14 +93,15 @@ const dev = import.meta.env.DEV;
     </section>
   )}
 
-  {hasForm && orderForm.orderable && (
+  {orderForm.orderable && (
     <div class="cat-buybar">
       <div class="cat-vps cat-buybar-price">
         {blocks.map((v) => <span class:list={['cat-vp', { 'cat-vp-d': v === def }]} data-k={v?.key}>{v?.price.label}</span>)}
         {mode === 'multi' && <span class="cat-vp cat-vp-none"></span>}
         {anyPrice && <span class="cat-vp cat-vp-any">{anyPrice.label}</span>}
       </div>
-      <a class="cat-btn cat-buybar-cta" href="#order">{t(strings, 'product.orderCta')}</a>
+      <button class="cat-btn cat-buybar-cta" type="submit" form="cat-buy" data-cta-btn>{cta}</button>
+      <a class="cat-btn cat-buybar-cta" href={ctaHref} data-cta={stepHref} hidden>{cta}</a>
     </div>
   )}
 </div>
@@ -130,18 +119,12 @@ const dev = import.meta.env.DEV;
   .cat-pdp-brand{margin:0;color:var(--color-text-secondary);font-size:var(--fs-small);line-height:var(--lh-ui);text-transform:uppercase;letter-spacing:var(--ls-caps)}
   .cat-pdp-ph{margin:0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-warning-surface);color:var(--color-warning);font-size:var(--fs-small)}
   .cat-pdp-summary{margin:0;color:var(--color-text-secondary);font-size:var(--fs-lead);line-height:var(--lh-body);text-wrap:pretty}
-  .cat-vp{display:none}
-  .cat-vp-d{display:block}
-  /* Several options, no JS yet: once the customer changes a radio away from its server default
-     (checked without the checked attribute), the default's price no longer applies; hide it until
-     variant.js (or the Worker's review step) shows the exact one. */
-  .cat-pdp[data-mode=multi]:has(.cat-val-in:checked:not([checked])) .cat-vp-d{display:none}
-  .cat-vps.is-js>.cat-vp{display:none}
-  .cat-vps.is-js>.is-on{display:block}
-  .cat-vp-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-4);margin-block-start:var(--space-2)}
-  .cat-sku{margin:0;color:var(--color-text-secondary);font-size:var(--fs-caption)}
-  .cat-vp-none-t{margin:0;color:var(--color-danger);font-size:var(--fs-small)}
-  .cat-pdp #order{view-timeline:--cat-order block}
+  .cat-pdp .cat-ctas{view-timeline:--cat-order block}
+  .cat-buy{display:grid;gap:var(--space-5)}
+  .cat-cta{inline-size:100%;min-block-size:48px}
+  .cat-btn[hidden],.cat-cta[hidden]{display:none}
+  .cat-cta[aria-disabled=true]{background:var(--color-border-control);pointer-events:none}
+  .cat-btn--wa{inline-size:100%;min-block-size:48px}
   .cat-prose{max-inline-size:var(--measure)}
   .cat-prose p{margin:0 0 var(--space-4);line-height:var(--lh-body)}
   .cat-buybar{position:fixed;inset-inline:0;inset-block-end:0;z-index:var(--z-sticky);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);min-block-size:var(--bottom-bar-h);padding:var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));background:var(--color-surface);box-shadow:0 -1px 0 var(--color-border);animation:cat-bar-out linear both;animation-timeline:--cat-order;animation-range:entry 0% entry 40%}

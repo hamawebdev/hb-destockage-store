@@ -41,12 +41,16 @@ if (track) {
   if (thumbs[0]) thumbs[0].setAttribute('aria-current', 'true');
 }
 
+const ctas = [...document.querySelectorAll('[data-cta]')];
+document.querySelectorAll('[data-cta-btn]').forEach((b) => (b.hidden = true));
+ctas.forEach((a) => (a.hidden = false));
+
 if (picker) {
   const multi = picker.dataset.mode === 'multi';
   const sets = [...picker.querySelectorAll('fieldset')];
   const blocks = [...pdp.querySelectorAll('.cat-pdp-buy .cat-vps > [data-k]')];
   const form = document.getElementById('order-form');
-  const hidden = multi ? picker.querySelector('input[name="variantId"]') : null;
+  const hidden = multi ? picker.querySelector('input[type=hidden]') : null;
   const keyOf = (ids) => ids.map(Number).sort((a, b) => a - b).join('-');
   const find = (key) => blocks.find((b) => b.dataset.k === key);
   const chosen = () => sets.map((f) => (f.querySelector('input:checked') || {}).dataset?.ov);
@@ -85,6 +89,11 @@ if (picker) {
     });
 
     if (hidden) hidden.value = block ? block.dataset.v : '';
+    const ok = !!block && block.dataset.a === '1';
+    for (const a of ctas) {
+      a.href = a.dataset.cta + (ok ? '?v=' + block.dataset.v : '');
+      a.setAttribute('aria-disabled', !ok);
+    }
     if (block && block.dataset.img && !init) show(Number(block.dataset.img), true);
     if (form) {
       form.dispatchEvent(
@@ -93,13 +102,24 @@ if (picker) {
             variantId: block ? Number(block.dataset.v) : null,
             priceDzd: block ? Number(block.dataset.p) : null,
             maxQty: block ? Number(block.dataset.max) : 0,
-            available: !!block && block.dataset.a === '1',
+            available: ok,
           },
         }),
       );
     }
   };
 
+  // Order step: preselect from ?v= (or opt.* without JS on the product page), also when a prerender is shown.
+  const fromQuery = () => {
+    const q = new URLSearchParams(location.search);
+    const b = blocks.find((x) => x.dataset.v === q.get('v'));
+    const ids = b ? b.dataset.k.split('-') : [...q].filter(([k]) => k.startsWith('opt.')).map(([, v]) => v);
+    const hit = find(keyOf(ids));
+    if (!hit || hit.dataset.a !== '1') return;
+    for (const id of ids) document.getElementById('ov-' + id).checked = true;
+  };
   picker.addEventListener('change', () => update(false));
+  document.addEventListener('prerenderingchange', () => (fromQuery(), update(true)));
+  fromQuery();
   update(true);
 }

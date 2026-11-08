@@ -11,7 +11,9 @@ import type { Id, OptionProps, VariantProps } from '@hb/catalog';
  *             `variantId` when it is on.
  *
  * Every radio has `id="ov-<value id>"` (option-value ids are unique across the catalogue) and
- * `form="order-form"`, so the picker sits outside orderform's `<form>`.
+ * `form="order-form"` on the order step (ORDER-STEP), so the picker sits outside orderform's `<form>`. On the
+ * product page the picker sits inside a plain GET form to the order step and the field is `v` (ORDER-STEP §2):
+ * the query carries only `v` / `opt.*`.
  *
  * The CSS is identical on every product page (hash CSP, shell's post-build check), so no
  * per-product rules: without JS, `single` mode switches the price/stock block and the "selected
@@ -53,8 +55,10 @@ export function variantByValue(variants: readonly VariantProps[]): Map<Id, Varia
 }
 
 export const radioId = (valueId: Id): string => `ov-${valueId}`;
-export const radioName = (mode: PickerMode, optionId: Id): string =>
-  mode === 'single' ? 'variantId' : `opt.${optionId}`;
+/** The single-variant field: `v` in the product page's GET to the order step, `variantId` in orderform's form. */
+export type VariantField = 'v' | 'variantId';
+export const radioName = (mode: PickerMode, optionId: Id, field: VariantField = 'variantId'): string =>
+  mode === 'single' ? field : `opt.${optionId}`;
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -84,3 +88,20 @@ export function variantBlocks({ options, variants }: PickerInput): readonly (Var
  * (ProductView .cat-vp-any), never another variant's price; variant.js covers every value.
  */
 export const CSS_POSITIONS = 8;
+
+/**
+ * The selected-variant price model shared by the product page and the order step: the blocks in
+ * `.cat-vps` order, the preselected variant, and, for a single option with more values than the
+ * constant CSS covers, a neutral "from <lowest orderable>" price that the no-JS CSS shows when a
+ * value beyond CSS_POSITIONS is chosen (never another variant's price).
+ */
+export function priceModel({ options, variants }: PickerInput) {
+  const mode = pickerMode({ options, variants });
+  const def = defaultVariant(variants);
+  const blocks = mode === 'none' ? [def] : variantBlocks({ options, variants });
+  const lowest = variants.reduce<VariantProps | undefined>((a, v) => (v.available && (!a || v.price.amountDzd < a.price.amountDzd) ? v : a), undefined) ?? def;
+  const anyPrice = mode === 'single' && blocks.length > CSS_POSITIONS && lowest
+    ? { ...lowest.price, from: true, compareAtDzd: null, compareAtLabel: null, discountPercent: null }
+    : null;
+  return { mode, def, blocks, anyPrice };
+}
