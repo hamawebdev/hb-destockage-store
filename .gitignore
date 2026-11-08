@@ -12,3 +12,11 @@ dist/
 coverage/
 apps/web/.assets/
 apps/web/src/generated/
+# database dumps / backups never go into git (JOBS-1 F5; also refused by pre-commit)
+*.sql.gz
+*.dump
+**/hb-restore-*/
+**/backups/
+d1-export-*
+# storefront build temp/cache dir (shell; rev-e)
+apps/storefront/.hb/

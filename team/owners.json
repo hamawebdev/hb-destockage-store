@@ -21,7 +21,34 @@
       "**/package-lock.json",
       "tsconfig*.json",
       "**/tsconfig*.json"
+    ],
+    "lead": [
+      "team/APPROVALS.md",
+      "team/SIGNOFFS.md",
+      "team/BRIEF.md",
+      "team/MERGE-EXCEPTIONS.md",
+      "team/REVIEW-REQUIRED.txt"
     ]
+  },
+  "idAreas": {
+    "ACAT": "admin-catalog",
+    "ADMIN": "admin-core",
+    "AORD": "admin-orders",
+    "BRAND": "brand",
+    "CAT": "pagedata",
+    "DB": "db",
+    "GEO": "geo",
+    "JOBS": "jobs",
+    "MEAS": "measure",
+    "ORDER": "orderform",
+    "PAGES": "pages",
+    "QA": "qa",
+    "SEED": "seed",
+    "SHARED": "shared",
+    "SHELL": "shell",
+    "TOKENS": "tokens",
+    "TOOL": "tooling",
+    "WEB": "web"
   },
   "owners": {
     "tooling": {
@@ -41,7 +68,9 @@
         "DECISIONS.md",
         ".gitignore",
         ".nvmrc",
-        "vitest.workspace.*"
+        "vitest.workspace.*",
+        ".github/**",
+        "docs/DEPLOY.md"
       ],
       "reviewer": "rev-a",
       "portBase": 4100
@@ -140,7 +169,8 @@
         "apps/storefront/src/pages/{ar,fr}/{c,p,search}/**",
         "apps/storefront/src/components/catalog/**",
         "apps/storefront/public/js/search*.js",
-        "apps/storefront/public/js/variant*.js"
+        "apps/storefront/public/js/variant*.js",
+        "apps/storefront/src/pages/{ar,fr}/order/[[]slug[]].astro"
       ],
       "reviewer": "rev-e",
       "portBase": 4220
@@ -148,7 +178,9 @@
     "orderform": {
       "paths": [
         "apps/storefront/src/components/order/**",
-        "apps/storefront/src/pages/{ar,fr}/order/**",
+        "apps/storefront/src/pages/{ar,fr}/order/confirmation/**",
+        "apps/storefront/src/pages/{ar,fr}/order/review/**",
+        "apps/storefront/src/pages/{ar,fr}/order/form.json.ts",
         "apps/storefront/public/js/order*.js"
       ],
       "reviewer": "rev-e",
@@ -222,14 +254,32 @@
     },
     "lead": {
       "paths": [
+        "team/APPROVALS.md",
         "team/BRIEF.md",
         "team/SIGNOFFS.md",
         "docs/**",
         "STACK-REPORT.md",
-        "research-evidence/**"
+        "research-evidence/**",
+        "team/MERGE-EXCEPTIONS.md",
+        "team/REVIEW-REQUIRED.txt"
       ],
       "reviewer": null,
       "portBase": 4340
     }
+  },
+  "forbiddenGlobs": [
+    "**/*.sql.gz",
+    "**/*.dump",
+    "**/hb-restore-*/**",
+    "**/backups/**",
+    "**/d1-export-*"
+  ],
+  "forbiddenExcept": [
+    "packages/db/migrations/[0-9][0-9][0-9][0-9]_*.sql",
+    "packages/db/migrations/meta/_journal.json",
+    "packages/db/migrations/meta/[0-9][0-9][0-9][0-9]_snapshot.json"
+  ],
+  "maxBytesByGlob": {
+    "apps/jobs/**": 1048576
   }
 }

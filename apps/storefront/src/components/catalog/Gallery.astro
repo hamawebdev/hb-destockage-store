@@ -1,0 +1,85 @@
+---
+/**
+ * Product gallery. No auto-advance, no JS needed: a CSS scroll-snap track (swipe on touch,
+ * scroll/arrow keys once focused) plus thumbnail anchors (#photo-n) from 1024 px.
+ * images[0] is the LCP image (eager, fetchpriority high, preloaded by Base with the same
+ * srcset/sizes — never override its sizes). Thumbnails are display:none below 1024 px, so their
+ * lazy images are not fetched on phones. variant.js (after load) keeps thumbnail jumps inside
+ * the track instead of scrolling the page, and shows a variant's photo when it is picked.
+ *
+ * Slides 2+ (BUG-18): a horizontal scroller puts them inside Chrome's lazy-load distance, so
+ * loading="lazy" would still fetch them during the LCP window. They are DeferredImg: variant.js
+ * promotes them after load (the next slide when idle, all of them on the first touch, scroll,
+ * focus or thumbnail tap); a <noscript> copy keeps every photo without JS.
+ */
+import type { ImageProps, Lang, StringTable } from '@hb/catalog';
+import Picture from '../Picture.astro';
+import DeferredImg from './DeferredImg.astro';
+import { formatInt, showDevMarkers, t } from './lib/i18n.ts';
+
+interface Props {
+  images: readonly ImageProps[];
+  name: string;
+  lang: Lang;
+  strings: StringTable;
+}
+const { images, name, lang, strings } = Astro.props;
+const total = images.length;
+const dev = showDevMarkers();
+const label = (i: number) => t(strings, 'product.gallery.photo', { n: formatInt(lang, i + 1), total: formatInt(lang, total) });
+---
+<section class="cat-gal" aria-label={t(strings, 'product.gallery.label')}>
+  {total === 0 ? (
+    <div class="cat-gal-empty">{dev && <span>{t(strings, 'dev.photoPlaceholder')}</span>}</div>
+  ) : (
+    <div class="cat-gal-track" tabindex={total > 1 ? 0 : undefined} role={total > 1 ? 'group' : undefined} aria-label={total > 1 ? name : undefined}>
+      {images.map((im, i) => (
+        <figure class="cat-gal-slide" id={`photo-${i + 1}`}>
+          {i === 0 ? (
+            <Picture image={im} class="cat-gal-img" />
+          ) : (
+            <DeferredImg image={im} class="cat-gal-img" />
+          )}
+          {total > 1 && <figcaption class="cat-gal-n"><span class="cat-sr">{label(i)}</span><span aria-hidden="true">{formatInt(lang, i + 1)} / {formatInt(lang, total)}</span></figcaption>}
+          {dev && im.placeholder && <span class="cat-gal-ph">{t(strings, 'dev.placeholder')}</span>}
+        </figure>
+      ))}
+    </div>
+  )}
+  {total > 1 && (
+    <nav class="cat-gal-thumbs" aria-label={t(strings, 'product.gallery.thumbs')}>
+      <ol role="list">
+        {images.map((im, i) => (
+          <li>
+            <a href={`#photo-${i + 1}`} aria-label={label(i)} data-i={i}>
+              <Picture image={{ ...im, alt: '', lcp: false }} sizes="72px" />
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )}
+</section>
+
+<style is:global>
+  .cat-gal{min-inline-size:0}
+  .cat-gal-track,.cat-gal-empty{display:flex;overflow-x:auto;scroll-snap-type:inline mandatory;scroll-behavior:smooth;overscroll-behavior-inline:contain;scrollbar-width:none;border-radius:var(--radius-xl);background:var(--color-surface-alt)}
+  .cat-gal-track::-webkit-scrollbar{display:none}
+  .cat-gal-track:focus-visible{outline:var(--focus-width,2px) solid var(--color-focus);outline-offset:var(--focus-offset,2px)}
+  @media (prefers-reduced-motion:reduce){.cat-gal-track{scroll-behavior:auto}}
+  .cat-gal-slide{position:relative;flex:0 0 100%;margin:0;aspect-ratio:1;scroll-snap-align:center;scroll-snap-stop:always}
+  .cat-gal-slide img[hidden]{display:none}
+  .cat-gal-img,.cat-gal-slide img{display:block;inline-size:100%;block-size:100%;object-fit:contain}
+  .cat-gal-n{position:absolute;inset-block-end:var(--space-3);inset-inline-end:var(--space-3);padding:0 var(--space-2);border-radius:var(--radius-pill);background:var(--color-surface);color:var(--color-text);font-size:var(--fs-caption);line-height:1.8;font-variant-numeric:tabular-nums;direction:ltr}
+  .cat-gal-ph{position:absolute;inset-block-start:var(--space-3);inset-inline-start:var(--space-3);padding:0 var(--space-2);border-radius:var(--radius-pill);background:var(--color-warning-surface);color:var(--color-warning);font-size:var(--fs-caption);line-height:1.8}
+  .cat-gal-empty{aspect-ratio:1;align-items:center;justify-content:center;color:var(--color-text-secondary)}
+  .cat-gal-thumbs{display:none}
+  @media (min-width:1024px){
+    .cat-gal-thumbs{display:block;margin-block-start:var(--space-3)}
+    .cat-gal-thumbs ol{display:flex;flex-wrap:wrap;gap:var(--space-2);margin:0;padding:0;list-style:none}
+    .cat-gal-thumbs a{display:block;inline-size:72px;block-size:72px;overflow:hidden;border-radius:var(--radius-md);background:var(--color-surface-alt);box-shadow:inset 0 0 0 1px transparent;transition:box-shadow var(--dur-fast) var(--ease-standard)}
+    .cat-gal-thumbs a:hover{box-shadow:0 0 0 1px var(--color-border-control)}
+    .cat-gal-thumbs a[aria-current]{box-shadow:0 0 0 2px var(--color-accent)}
+    .cat-gal-thumbs img{display:block;inline-size:100%;block-size:100%;object-fit:contain}
+  }
+</style>

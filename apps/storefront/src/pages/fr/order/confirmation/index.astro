@@ -1,0 +1,11 @@
+---
+// Order confirmation (fr). Owner: orderform (ORDER-4). Content: src/components/order/Confirmation.astro.
+// Static; the Worker fills the order ref (WEB-0 §2.4). noindex, no hreflang/canonical (LayoutProps.noindex).
+import Base from '../../../../layouts/Base.astro';
+import Confirmation from '../../../../components/order/Confirmation.astro';
+import { pageProps } from '../../../../lib/catalog.ts';
+const props = pageProps('order-confirmed', 'fr');
+---
+<Base layout={props.layout}>
+  <Confirmation props={props} />
+</Base>

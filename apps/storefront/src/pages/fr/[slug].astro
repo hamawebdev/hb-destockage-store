@@ -1,0 +1,11 @@
+---
+// Content page (fr): about, delivery, returns, contact, privacy, legal. Owner: shell.
+import Base from '../../layouts/Base.astro';
+import ContentView from '../../components/content/ContentView.astro';
+import { staticPaths, type PropsByTemplate } from '../../lib/catalog.ts';
+export const getStaticPaths = () => staticPaths('content', 'fr');
+const props = Astro.props as PropsByTemplate['content'];
+---
+<Base layout={props.layout}>
+  <ContentView props={props} />
+</Base>

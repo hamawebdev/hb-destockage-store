@@ -1,0 +1,1 @@
+Built review templates copied from /mnt/data/ecom website/artifacts/ORDER-5/built (team/orderform ORDER-5 @d1ee05d, astro build 2026-11-06 04:35). Contract fixtures for apps/web/src/order/html.ts; refresh when orderform changes the template.

@@ -1,0 +1,72 @@
+{
+  "id": 217,
+  "kind": "simple",
+  "categoryId": 51,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "mukaabat-tarkib-120",
+    "fr": "blocs-construction-120"
+  },
+  "name": {
+    "ar": "مكعّبات تركيب 120 قطعة",
+    "fr": "Blocs de construction 120 pièces"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "مكعّبات ملوّنة لتنمية الإبداع، من 3 سنوات.",
+    "fr": "Blocs colorés pour la créativité, dès 3 ans."
+  },
+  "description": {
+    "ar": "120 قطعة في علبة تخزين.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "120 pièces avec boîte de rangement.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [],
+  "variants": [
+    {
+      "id": 21701,
+      "sku": "PH-BLK-120",
+      "priceDzd": 2900,
+      "compareAtDzd": 3400,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": []
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2171,
+      "variantId": null,
+      "key": "blocs-construction-120/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: مكعّبات تركيب ملوّنة",
+        "fr": "Image provisoire : blocs de construction colorés"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2172,
+      "variantId": null,
+      "key": "blocs-construction-120/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: علبة المكعّبات",
+        "fr": "Image provisoire : boîte des blocs"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

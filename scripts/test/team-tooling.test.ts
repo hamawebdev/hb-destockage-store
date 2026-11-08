@@ -1,80 +1,13 @@
-// Tests for the team process tooling (TOOL-1): pre-commit, commit-msg, port.sh, gate.sh,
-// TaskCompleted and TeammateIdle hooks. Each test builds a throwaway git repo and runs the real scripts.
+// Tests for the team process tooling (TOOL-1): pre-commit, pre-merge-commit, commit-msg, port.sh,
+// gate.sh, locks, TaskCompleted and TeammateIdle hooks. Each test builds a throwaway git repo.
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { branch, cleanupTmp, commit, git, makeRepo, msg, ok, sh, src, tmpRoots, write } from './helpers.ts';
 
-const src = fileURLToPath(new URL('../..', import.meta.url));
-const tmpRoots: string[] = [];
-afterAll(() => {
-  for (const d of tmpRoots) rmSync(d, { recursive: true, force: true });
-});
-
-const GOOD_BODY = 'What changed: x\nTesting: y\nRisk tier: low\nRevert: git revert\n';
-const msg = (subject: string, body = GOOD_BODY) => `${subject}\n\n${body}`;
-
-type Run = { status: number; stdout: string; stderr: string };
-function sh(cwd: string, cmd: string, args: string[], env: Record<string, string> = {}, input?: string): Run {
-  const r = spawnSync(cmd, args, {
-    cwd,
-    input,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      GIT_AUTHOR_NAME: 't',
-      GIT_AUTHOR_EMAIL: 't@example.com',
-      GIT_COMMITTER_NAME: 't',
-      GIT_COMMITTER_EMAIL: 't@example.com',
-      HB_ROLE: '',
-      ...env,
-    },
-  });
-  return { status: r.status ?? -1, stdout: r.stdout ?? '', stderr: r.stderr ?? '' };
-}
-const git = (cwd: string, ...args: string[]) => sh(cwd, 'git', args);
-const ok = (r: Run) => {
-  if (r.status !== 0) throw new Error(`exit ${r.status}\n${r.stdout}\n${r.stderr}`);
-  return r;
-};
-const write = (root: string, rel: string, body: string | Buffer) => {
-  mkdirSync(dirname(join(root, rel)), { recursive: true });
-  writeFileSync(join(root, rel), body);
-};
-const commit = (cwd: string, subject: string, env: Record<string, string> = {}) =>
-  sh(cwd, 'git', ['commit', '-q', '-F', '-'], env, msg(subject));
-
-/** A repo carrying the real hooks, scripts and owners.json, with an initial lead commit on main. */
-function makeRepo(pkgScripts: Record<string, string> = {}): string {
-  const root = mkdtempSync(join(tmpdir(), 'hb-tooling-test-'));
-  tmpRoots.push(root);
-  ok(git(root, 'init', '-q', '-b', 'main'));
-  cpSync(join(src, '.githooks'), join(root, '.githooks'), { recursive: true });
-  cpSync(join(src, 'scripts/lib'), join(root, 'scripts/lib'), { recursive: true });
-  cpSync(join(src, 'scripts/team'), join(root, 'scripts/team'), { recursive: true });
-  cpSync(join(src, 'scripts/gate.sh'), join(root, 'scripts/gate.sh'));
-  cpSync(join(src, 'team/owners.json'), join(root, 'team/owners.json'));
-  write(root, '.gitignore', 'node_modules/\nartifacts/\n.worktrees/\n');
-  write(
-    root,
-    'package.json',
-    JSON.stringify({ name: 'fixture', private: true, scripts: { typecheck: 'true', test: 'true', build: 'true', ...pkgScripts } }, null, 2),
-  );
-  write(root, 'package-lock.json', '{"lockfileVersion":3}\n');
-  write(root, 'DECISIONS.md', '# Decisions\n\n## D-001 — first\n');
-  write(root, 'apps/web/src/index.ts', 'export {};\n');
-  write(root, 'apps/admin/src/app.ts', 'export const a = 1;\n');
-  ok(git(root, 'config', 'core.hooksPath', '.githooks'));
-  ok(git(root, 'add', '-A'));
-  ok(commit(root, 'BOOT-0: init', { HB_ROLE: 'lead' }));
-  return root;
-}
-
-function branch(root: string, name: string) {
-  ok(git(root, 'checkout', '-q', '-B', name, 'main'));
-}
+afterAll(cleanupTmp);
 
 describe('pre-commit ownership', () => {
   let root: string;
@@ -193,6 +126,161 @@ describe('pre-commit ownership', () => {
     ok(git(root, 'merge', '--abort'));
   });
 
+  test('a merge that keeps our old copy of another owner\'s file (revert) is refused (review F1)', () => {
+    branch(root, 'team/admin-core');
+    write(root, 'apps/admin/src/auth/rev.ts', 'export const v = 1;\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'ADMIN-3: v1'));
+    branch(root, 'team/web');
+    ok(git(root, 'merge', '-q', '--no-edit', 'team/admin-core'));
+    // admin-core moves on
+    ok(git(root, 'checkout', '-q', 'team/admin-core'));
+    write(root, 'apps/admin/src/auth/rev.ts', 'export const v = 2;\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'ADMIN-4: v2'));
+    ok(git(root, 'checkout', '-q', 'team/web'));
+    // variant 1: -s ours (no conflict → pre-merge-commit)
+    const r1 = git(root, 'merge', '-q', '-s', 'ours', '--no-edit', 'team/admin-core');
+    expect(r1.status).not.toBe(0);
+    expect(r1.stderr).toContain('apps/admin/src/auth/rev.ts');
+    if (git(root, 'rev-parse', '-q', '--verify', 'MERGE_HEAD').status === 0) ok(git(root, 'merge', '--abort'));
+    // variant 2: --no-commit, then put our old copy back
+    ok(git(root, 'merge', '-q', '--no-ff', '--no-commit', 'team/admin-core'));
+    ok(git(root, 'checkout', 'HEAD', '--', 'apps/admin/src/auth/rev.ts'));
+    const r2 = sh(root, 'git', ['commit', '-q', '--no-edit']);
+    expect(r2.status).not.toBe(0);
+    expect(r2.stderr).toContain('apps/admin/src/auth/rev.ts');
+    ok(git(root, 'merge', '--abort'));
+    // a plain merge taking their version is fine
+    ok(git(root, 'merge', '-q', '--no-edit', 'team/admin-core'));
+  });
+
+  test('hooks come from the configured hooks dir, not the committing branch (review F5)', () => {
+    const wt = join(root, '.worktrees/stale');
+    ok(git(root, 'worktree', 'add', '-q', '-b', 'team/pages', wt, 'main'));
+    rmSync(join(wt, '.githooks'), { recursive: true, force: true }); // a branch without (or with edited) hooks
+    write(wt, 'apps/admin/src/auth/sneak.ts', 'export {};\n');
+    ok(git(wt, 'add', 'apps/admin/src/auth/sneak.ts'));
+    const r = sh(wt, 'git', ['commit', '-q', '-F', '-'], {}, msg('PAGES-1: sneak'));
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('admin-core');
+    ok(git(root, 'worktree', 'remove', '--force', wt));
+  });
+
+  test('team/APPROVALS.md and team/SIGNOFFS.md: only the lead on main (TOOL-5 ruling)', () => {
+    for (const f of ['team/APPROVALS.md', 'team/SIGNOFFS.md']) {
+      branch(root, 'team/tooling');
+      write(root, f, '# forged\n');
+      ok(git(root, 'add', '-A'));
+      const r = commit(root, 'TOOL-9: forge');
+      expect(r.status, f).not.toBe(0);
+      expect(r.stderr).toContain('owned by lead');
+      ok(git(root, 'reset', '-q', '--hard'));
+      ok(git(root, 'clean', '-qfd'));
+    }
+    branch(root, 'main');
+    write(root, 'team/APPROVALS.md', '# Approvals ledger\n');
+    ok(git(root, 'add', '-A'));
+    expect(commit(root, 'BOOT-9: ledger', { HB_ROLE: 'lead' }).status).toBe(0);
+  });
+
+  test('D1/Drizzle migrations (packages/db/migrations/*.sql) are not dumps: not ignored, and they commit (rev-a TOOL-7)', () => {
+    branch(root, 'team/db');
+    write(root, 'packages/db/migrations/0006_new.sql', 'CREATE TABLE t (id INTEGER);\n');
+    expect(ok(git(root, 'status', '--porcelain', '--untracked-files=all', '--', 'packages/db/migrations')).stdout).toContain('0006_new.sql');
+    ok(git(root, 'add', '--', 'packages/db/migrations/0006_new.sql')); // no -f needed
+    const r = commit(root, 'DB-9: migration');
+    expect(r.status, r.stderr).toBe(0);
+    branch(root, 'main');
+    write(root, 'packages/db/migrations/0007_lead.sql', 'SELECT 1;\n');
+    ok(git(root, 'add', '--', 'packages/db/migrations/0007_lead.sql'));
+    expect(commit(root, 'BOOT-9: migration', { HB_ROLE: 'lead' }).status).toBe(0);
+    // a dump next to them is still refused
+    write(root, 'packages/db/dump.sql.gz', 'x\n');
+    ok(git(root, 'add', '-f', '--', 'packages/db/dump.sql.gz'));
+    const d = commit(root, 'BOOT-9: dump', { HB_ROLE: 'lead' });
+    expect(d.status).not.toBe(0);
+    expect(d.stderr).toContain('dump');
+    ok(git(root, 'reset', '-q', '--hard'));
+    ok(git(root, 'clean', '-qfdx', '--', 'packages/db'));
+  });
+
+  test('rev-a TOOL-7 r1: dumps are refused INSIDE migrations/ and in any letter case; Drizzle files commit', () => {
+    for (const [b, env] of [['team/db', {}], ['main', { HB_ROLE: 'lead' }]] as const) {
+      for (const f of [
+        'packages/db/migrations/prod-2026.sql.gz',
+        'packages/db/migrations/d1-export-2026.sql',
+        'packages/db/migrations/backups/b.sql',
+        'packages/db/migrations/hb-restore-1/x.db',
+        'packages/db/migrations/prod.dump',
+        'packages/db/migrations/0009_not-a-migration.sql.gz',
+        'apps/jobs/BACKUP.SQL.GZ',
+        'D1-EXPORT-2026.json',
+        'packages/db/Backups/x.json',
+        'data/geo/prod.DUMP',
+      ]) {
+        if (b === 'team/db' && !f.startsWith('packages/db/')) continue; // ownership would refuse first
+        branch(root, b);
+        write(root, f, 'x\n');
+        ok(git(root, 'add', '-f', '--', f));
+        const r = commit(root, 'DB-9: dump', env);
+        expect(r.status, `${b} ${f}`).not.toBe(0);
+        expect(r.stderr, f).toContain('dump');
+        ok(git(root, 'reset', '-q', '--hard'));
+        ok(git(root, 'clean', '-qfdx', '--', f.split('/')[0] ?? f));
+      }
+    }
+    branch(root, 'team/db');
+    for (const f of ['packages/db/migrations/0008_x.sql', 'packages/db/migrations/meta/_journal.json', 'packages/db/migrations/meta/0008_snapshot.json']) {
+      write(root, f, '{}\n');
+    }
+    ok(git(root, 'add', '--', 'packages/db/migrations'));
+    expect(commit(root, 'DB-9: drizzle output').status).toBe(0);
+  });
+
+  test('database dumps are refused for everyone, and apps/jobs files over 1 MB (JOBS-1 F5 backstop)', () => {
+    for (const f of ['apps/jobs/x.sql.gz', 'data/geo/a.dump', 'apps/jobs/backups/b.json', 'tmp/hb-restore-1/x.db', 'd1-export-2026.json', 'packages/db/backups/m.sql']) {
+      branch(root, 'main');
+      write(root, f, 'x\n');
+      ok(git(root, 'add', '-f', '--', f));
+      const r = commit(root, 'BOOT-9: dump', { HB_ROLE: 'lead' });
+      expect(r.status, f).not.toBe(0);
+      expect(r.stderr).toContain('dump');
+      ok(git(root, 'reset', '-q', '--hard'));
+      ok(git(root, 'clean', '-qfdx', '--', f.split('/')[0] ?? f));
+    }
+    branch(root, 'team/jobs');
+    write(root, 'apps/jobs/big.json', Buffer.alloc(1024 * 1024 + 1, 1));
+    ok(git(root, 'add', '-A'));
+    const r = commit(root, 'JOBS-9: big');
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('1 MB limit for apps/jobs/**');
+    ok(git(root, 'reset', '-q', '--hard'));
+    ok(git(root, 'clean', '-qfd'));
+  });
+
+  test('ORDER-STEP: pages owns order/[slug].astro; orderform keeps confirmation, review and form.json', () => {
+    const route = 'apps/storefront/src/pages/ar/order/[slug].astro';
+    branch(root, 'team/pages');
+    write(root, route, '<html></html>\n');
+    ok(git(root, 'add', '--', route));
+    expect(commit(root, 'PAGES-9: order route').status).toBe(0);
+    branch(root, 'team/orderform');
+    write(root, route, '<html></html>\n');
+    ok(git(root, 'add', '--', route));
+    const r = commit(root, 'ORDER-9: order route');
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('owned by pages');
+    ok(git(root, 'reset', '-q', '--hard'));
+    ok(git(root, 'clean', '-qfd'));
+    for (const f of ['apps/storefront/src/pages/fr/order/review/index.astro', 'apps/storefront/src/pages/ar/order/confirmation/index.astro', 'apps/storefront/src/pages/ar/order/form.json.ts']) {
+      branch(root, 'team/orderform');
+      write(root, f, 'x\n');
+      ok(git(root, 'add', '--', f));
+      expect(commit(root, 'ORDER-9: keep', {}).status, f).toBe(0);
+    }
+  });
+
   test('pre-commit is fast (< 1 s)', () => {
     branch(root, 'team/web');
     write(root, 'apps/web/src/speed.ts', 'export {};\n');
@@ -226,8 +314,12 @@ describe('commit-msg', () => {
     expect(check('What changed: multi\nline\n'.length ? msg('DB-2: x', 'What changed: a\n  more\nTesting: b\nRisk tier: high\nRevert: c\n') : '').status).toBe(0);
   });
 
-  test('accepts merge commits', () => {
-    expect(check("Merge branch 'main' into team/web\n").status).toBe(0);
+  test('"Merge …" subjects pass only while a merge is in progress; empty values are refused (review N1)', () => {
+    expect(check("Merge branch 'main' into team/web\n").status).not.toBe(0);
+    expect(check('Merge anything I like\n').status).not.toBe(0);
+    const r = check(msg('DB-1: x', 'What changed:\nTesting: y\nRisk tier: low\nRevert: z\n'));
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('has no value');
   });
 
   test('rejects bad subjects and bodies with a template', () => {
@@ -268,6 +360,63 @@ describe('gate.sh', () => {
     write(root, 'node_modules/.hb-lock-hash', `${hash}\n`);
   };
 
+  test('locks: a gate takes a heavy slot shared with `locks.sh heavy`; a full heavy pool blocks both', () => {
+    const root = makeRepo();
+    prepNodeModules(root);
+    const dir = mkdtempSync(join(tmpdir(), 'hb-locks-pool-'));
+    tmpRoots.push(dir);
+    const env = { HB_LOCK_DIR: dir, HB_HEAVY_SLOTS: '1', HB_GATE_WAIT: '2' };
+    const g = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
+    expect(g.status, g.stdout + g.stderr).toBe(0);
+    expect(g.stdout).toContain('heavy slot 1');
+    // hold the only heavy slot from outside (as /tmp/hb-locks/heavy.sh would)
+    const holder = spawnSync('bash', ['-c', `exec 9>"${dir}/heavy-1.lock"; flock -n 9 || exit 9; ` +
+      `"${join(root, 'scripts/lib/locks.sh')}" heavy --wait 1 -- true; a=$?; ` +
+      `"${join(root, 'scripts/gate.sh')}" "${root}" --no-cache >/dev/null 2>&1; b=$?; echo "$a $b"`],
+      { encoding: 'utf8', env: { ...process.env, ...env } });
+    expect(holder.stdout.trim()).toBe('75 1');
+  });
+
+  test('require-catalog: a seed build without data/catalog fails early and clearly; fixture and a present catalogue pass (rev-a TOOL-7 r7)', () => {
+    const root = makeRepo({ build: 'scripts/require-catalog.sh' });
+    prepNodeModules(root);
+    cpSync(join(src, 'scripts/require-catalog.sh'), join(root, 'scripts/require-catalog.sh'));
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-6: guard', { HB_ROLE: 'lead' }));
+    const guard = join(root, 'scripts/require-catalog.sh');
+    const noData = sh(root, guard, []);
+    expect(noData.status).toBe(1);
+    expect(noData.stderr).toContain('data/catalog missing: merge seed or run build:fixture');
+    expect(sh(root, guard, [], { HB_SNAPSHOT: 'fixture' }).status).toBe(0);
+    // a checkout without data/: the gate's default (fixture) builds; an explicit seed gate is RED with the message
+    expect(gate(root, '--no-cache').status).toBe(0);
+    const seed = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], { HB_LOCK_DIR: lockDir, HB_SNAPSHOT: 'seed' });
+    expect(seed.status).toBe(1);
+    expect(seed.stdout).toContain('RED   build');
+    const log = seed.stdout.match(/log: (\S.*\.log)/)?.[1] ?? '';
+    expect(readFileSync(log, 'utf8')).toContain('data/catalog missing: merge seed or run build:fixture');
+    write(root, 'data/catalog/categories.json', '[]\n');
+    expect(sh(root, guard, []).status).toBe(0);
+  });
+
+  test('data/ checks are named steps that can go RED', () => {
+    // the gate's own `test` step skips test:data (HB_SKIP_DATA_TESTS=1) so data tests run once, as named steps
+    const root = makeRepo({ test: 'test "$HB_SKIP_DATA_TESTS" = 1' });
+    prepNodeModules(root);
+    write(root, 'data/geo/test/geo.test.mjs', "import test from 'node:test';\ntest('ok', () => {});\n");
+    write(root, 'data/catalog/validate.mjs', 'process.exit(0);\n');
+    write(root, 'data/catalog/test/cat.test.mjs', "import test from 'node:test';\nimport assert from 'node:assert';\ntest('bad', () => assert.equal(1, 2));\n");
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-6: data', { HB_ROLE: 'lead' }));
+    const r = gate(root, '--no-cache');
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('steps = typecheck test data-geo data-catalog-validate data-catalog-test build');
+    expect(r.stdout).toContain('GREEN data-geo');
+    expect(r.stdout).toContain('GREEN data-catalog-validate');
+    expect(r.stdout).toContain('RED   data-catalog-test');
+    expect(r.stdout).toContain('SKIP  build');
+  });
+
   test('a failing step is RED, exits non-zero, and later steps are skipped', () => {
     const root = makeRepo({ test: 'echo boom >&2; exit 3', build: 'echo SHOULD-NOT-RUN' });
     prepNodeModules(root);
@@ -292,7 +441,7 @@ describe('gate.sh', () => {
     expect(r2.stdout).toContain('GREEN (cached');
   });
 
-  test('real storefront page + stub budget/lh → RED; TOOL-2 placeholder page → not required', () => {
+  test('real storefront page + stub budget/lh → reported, never RED; TOOL-2 placeholder page → not required', () => {
     const root = makeRepo({ budget: "echo 'budget: not wired yet' && exit 0", lh: "echo 'lh: not wired yet' && exit 0" });
     prepNodeModules(root);
     write(root, 'apps/storefront/src/pages/index.astro', '---\n// Placeholder (TOOL-2). Owner: shell.\n---\n<html></html>\n');
@@ -306,20 +455,182 @@ describe('gate.sh', () => {
     ok(git(root, 'add', '-A'));
     ok(commit(root, 'BOOT-2: real page', { HB_ROLE: 'lead' }));
     const r2 = gate(root, '--no-cache', '--full');
-    expect(r2.status).toBe(1);
-    expect(r2.stdout).toContain('RED   budget (script missing or a stub');
+    expect(r2.status, r2.stdout).toBe(0);
+    expect(r2.stdout).toContain('REPORT budget (not wired yet');
+    expect(r2.stdout).toContain('REPORT lh (not wired yet');
   });
 
-  test('lh runs when the diff vs main touches storefront paths', () => {
-    const root = makeRepo({ budget: 'true', lh: 'echo LH-RAN' });
+  test('storefront diff with only the placeholder page and a stub lh → SKIP, not RED', () => {
+    const root = makeRepo({ budget: "echo 'budget: not wired yet' && exit 0", lh: "echo 'lh: not wired yet' && exit 0" });
     prepNodeModules(root);
-    branch(root, 'team/brand');
-    write(root, 'brand/guide.md', '# guide\n');
+    branch(root, 'team/shell');
+    write(root, 'apps/storefront/src/pages/index.astro', '---\n// Placeholder (TOOL-2). Owner: shell.\n---\n<html></html>\n');
     ok(git(root, 'add', '-A'));
-    ok(commit(root, 'BRAND-1: guide'));
+    ok(commit(root, 'SHELL-9: placeholder'));
     const r = gate(root, '--no-cache');
     expect(r.status, r.stdout).toBe(0);
-    expect(r.stdout).toContain('steps = typecheck test build lh');
+    expect(r.stdout).toContain('steps = typecheck test build\n');
+    expect(r.stdout).toContain('gate: GREEN');
+  });
+
+  test('with real pages, lh runs for anything that can affect the storefront and skips only no-effect paths (review F4)', () => {
+    const root = makeRepo({ budget: 'true', axe: 'true', lh: 'test "$HB_GATE" = 1 && echo LH-RAN-IN-GATE-MODE' });
+    prepNodeModules(root);
+    write(root, 'apps/storefront/src/pages/ar/index.astro', '<html lang="ar"></html>\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-1: real page', { HB_ROLE: 'lead' }));
+    const cases: Array<[string, string, string, boolean]> = [
+      ['team/shared', 'packages/shared/src/format.ts', 'SHARED-9', true],
+      ['team/web', 'apps/web/src/index.ts', 'WEB-9', true],
+      ['team/measure', 'tools/measure/src/lh.ts', 'MEAS-9', true],
+      ['team/tooling', 'packages/shared/package.json', 'TOOL-9', true],
+      ['team/brand', 'brand/guide.md', 'BRAND-9', true],
+      ['team/admin-core', 'apps/admin/src/app.ts', 'ADMIN-9', false],
+      ['team/db', 'packages/db/src/schema.ts', 'DB-9', false],
+      ['team/shell', 'apps/storefront/public/js/test/x.js', 'SHELL-9', true], // served file under a test/ dir
+      ['team/web', 'apps/web/test/api.test.ts', 'WEB-8', false],
+    ];
+    for (const [b, file, id, wantLh] of cases) {
+      branch(root, b);
+      write(root, file, `// ${id}\n`);
+      ok(git(root, 'add', '-A'));
+      ok(commit(root, `${id}: change`));
+      const r = gate(root, '--no-cache');
+      expect(r.status, `${file}\n${r.stdout}`).toBe(0);
+      expect(r.stdout.includes('steps = typecheck test build budget axe lh'), file).toBe(wantLh);
+    }
+  });
+
+  test('check-tap runs after build when storefront output can change and the script exists; RED on violations', () => {
+    const root = makeRepo({ budget: 'true', axe: 'true', lh: 'true' });
+    prepNodeModules(root);
+    write(root, 'apps/storefront/src/pages/ar/index.astro', '<html lang="ar"></html>\n');
+    write(root, 'apps/storefront/package.json', JSON.stringify({ name: 's', private: true, scripts: { 'check:tap': 'node scripts/tap-targets.mjs' } }));
+    write(root, 'apps/storefront/scripts/tap-targets.mjs', 'console.error("2 targets < 44px"); process.exit(1);\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-1: page + tap', { HB_ROLE: 'lead' }));
+    branch(root, 'team/shell');
+    write(root, 'apps/storefront/src/pages/fr/index.astro', '<html lang="fr"></html>\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'SHELL-9: fr'));
+    const r = gate(root, '--no-cache');
+    expect(r.stdout).toContain('steps = typecheck test build budget check-tap axe lh');
+    expect(r.status, r.stdout).toBe(0); // report-only
+    expect(r.stdout).toMatch(/REPORT check-tap \(exit 1.*report only, does not block/);
+  });
+
+  test('disk rule: RED at disk when / is below the free-space minimum; TMPDIR moves to the data volume', () => {
+    const root = makeRepo({ test: 'node -e "console.log(\'TMP=\'+require(\'os\').tmpdir())"' });
+    prepNodeModules(root);
+    const vol = mkdtempSync(join(tmpdir(), 'hb-vol-'));
+    tmpRoots.push(vol);
+    // private lock dir: never queue on the machine's real gate/heavy slots
+    const low = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], { HB_LOCK_DIR: lockDir, HB_MIN_ROOT_FREE_GB: '100000' });
+    expect(low.status).toBe(1);
+    expect(low.stdout).toContain('RED at disk');
+    const r = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], { HB_LOCK_DIR: lockDir, HB_TMP_VOLUME: vol, HB_TMP_ROOT: join(vol, 'hb-tmp'), TMPDIR: '/tmp' });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain(`TMPDIR=${join(vol, 'hb-tmp', 'gate-main')}`);
+    const log = r.stdout.match(/log: (\S.*\.log)/)?.[1] ?? '';
+    expect(readFileSync(log, 'utf8')).toContain(`TMP=${join(vol, 'hb-tmp', 'gate-main')}`);
+  });
+
+  test('only typecheck, tests and build can fail: failing budget, axe and lh are reported, gate GREEN', () => {
+    const root = makeRepo({ budget: 'exit 2', axe: 'exit 3', lh: 'exit 4' });
+    prepNodeModules(root);
+    write(root, 'apps/storefront/src/pages/ar/index.astro', '<html lang="ar"></html>\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-1: real page', { HB_ROLE: 'lead' }));
+    const r = gate(root, '--no-cache', '--full');
+    expect(r.status, r.stdout).toBe(0);
+    expect(r.stdout).toContain('REPORT budget (exit 2');
+    expect(r.stdout).toContain('REPORT axe (exit 3');
+    expect(r.stdout).toContain('REPORT lh (exit 4');
+    expect(r.stdout).toContain('gate: GREEN');
+  });
+
+  test('db and admin test files run one per process; a failing file is RED and the others still run', () => {
+    const root = makeRepo();
+    prepNodeModules(root);
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    pkg.workspaces = ['packages/db', 'packages/other'];
+    write(root, 'package.json', JSON.stringify(pkg, null, 2));
+    write(root, 'packages/other/package.json', JSON.stringify({ name: '@x/other', scripts: { test: 'true' } }));
+    write(root, 'packages/db/package.json', JSON.stringify({ name: '@x/db', scripts: { test: 'false' } }));
+    write(root, 'packages/db/test/good.test.ts', 'x\n');
+    write(root, 'packages/db/test/bad.test.ts', 'x\n');
+    const fake = join(root, 'fake-vitest.sh');
+    writeFileSync(fake, '#!/bin/sh\necho "ran $2"\ncase "$2" in *bad*) exit 1;; esac\n', { mode: 0o755 });
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-1: workspaces', { HB_ROLE: 'lead' }));
+    const r = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], { HB_LOCK_DIR: lockDir, HB_VITEST_CMD: fake });
+    expect(r.stdout).toContain('steps = typecheck test test-files:packages/db build');
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('RED   test:db:test/bad.test.ts');
+    expect(r.stdout).toContain('GREEN test:db:test/good.test.ts');
+  });
+
+  test('gate refuses when core.hooksPath is not the absolute main hooks path (review F5)', () => {
+    const root = makeRepo();
+    prepNodeModules(root);
+    ok(git(root, 'config', 'core.hooksPath', '.githooks'));
+    const r = gate(root, '--no-cache');
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('RED at hooks');
+    ok(git(root, 'config', '--unset', 'core.hooksPath'));
+    expect(gate(root, '--no-cache').stdout).toContain('RED at hooks');
+  });
+
+  test('a hung step is killed at HB_STEP_TIMEOUT, goes RED (124) and frees the slot', () => {
+    const mark = `300.${process.pid}${Date.now() % 100000}`;
+    const root = makeRepo({ test: `sleep ${mark}` });
+    prepNodeModules(root);
+    const dir = mkdtempSync(join(tmpdir(), 'hb-locks-hang-'));
+    tmpRoots.push(dir);
+    const env = { HB_LOCK_DIR: dir, HB_GATE_SLOTS: '1', HB_HEAVY_SLOTS: '1', HB_GATE_WAIT: '3', HB_STEP_TIMEOUT: '2' };
+    const t0 = Date.now();
+    const r = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('RED   test (exit 124, TIMED OUT after 2s');
+    expect(Date.now() - t0).toBeLessThan(60_000);
+    expect(spawnSync('pgrep', ['-f', `^sleep ${mark}$`]).status).toBe(1);
+    const free = sh(root, join(root, 'scripts/lib/locks.sh'), ['heavy', '--wait', '2', '--', 'true'], env);
+    expect(free.status, free.stderr).toBe(0); // the slot was released
+  });
+
+  test('a descendant that ignores TERM is KILLed with its group; a TERM-ignoring hung step is TIMED OUT (rev-a TOOL-7 N2)', () => {
+    const m1 = `42.${process.pid}${Date.now() % 100000}`;
+    const root = makeRepo({ test: `(trap "" TERM; sleep ${m1}) & sleep 0.3; true` });
+    prepNodeModules(root);
+    const dir = mkdtempSync(join(tmpdir(), 'hb-locks-kill-'));
+    tmpRoots.push(dir);
+    const env = { HB_LOCK_DIR: dir, HB_KILL_GRACE: '1' };
+    const r1 = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
+    expect(r1.status, r1.stdout + r1.stderr).toBe(0);
+    expect(spawnSync('pgrep', ['-f', `^sleep ${m1}$`]).status).toBe(1);
+
+    const m2 = `43.${process.pid}${Date.now() % 100000}`;
+    const root2 = makeRepo({ test: `trap "" TERM; sleep ${m2}` });
+    prepNodeModules(root2);
+    const t0 = Date.now();
+    const r2 = sh(root2, join(root2, 'scripts/gate.sh'), [root2, '--no-cache'], { ...env, HB_STEP_TIMEOUT: '2' });
+    expect(r2.status).toBe(1);
+    expect(r2.stdout).toMatch(/RED {3}test \(exit \d+, TIMED OUT after 2s/);
+    expect(Date.now() - t0).toBeLessThan(60_000);
+    expect(spawnSync('pgrep', ['-f', `^sleep ${m2}$`]).status).toBe(1);
+  });
+
+  test('a step that leaves an orphan behind neither keeps the slot nor survives the gate (review F3)', () => {
+    const mark = `41.${process.pid}${Date.now() % 100000}`;
+    const root = makeRepo({ test: `(sleep ${mark} &) ; true` });
+    prepNodeModules(root);
+    const dir = mkdtempSync(join(tmpdir(), 'hb-locks-orphan-'));
+    tmpRoots.push(dir);
+    const env = { HB_LOCK_DIR: dir, HB_GATE_SLOTS: '1', HB_HEAVY_SLOTS: '1', HB_GATE_WAIT: '3' };
+    expect(sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env).status).toBe(0);
+    expect(spawnSync('pgrep', ['-f', `^sleep ${mark}$`]).status).toBe(1); // killed with its group
+    const again = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], env);
+    expect(again.status, again.stdout + again.stderr).toBe(0); // the slot was free
   });
 });
 
@@ -392,6 +703,20 @@ describe('TaskCompleted hook', () => {
     const r2 = hook({ task_subject: 'WEB-8: break tests', teammate_name: 'web', cwd: root });
     expect(r2.status).toBe(2);
     expect(r2.stderr).toContain('RED at test');
+  });
+
+  test('build task: a gate that outlasts the hook budget fails closed, then the result is picked up (review F2)', () => {
+    const bin = mkdtempSync(join(tmpdir(), 'hb-slow-gate-'));
+    tmpRoots.push(bin);
+    const slow = join(bin, 'gate.sh');
+    writeFileSync(slow, '#!/bin/sh\nsleep 4\necho "gate: GREEN — log: /tmp/fake.log"\n', { mode: 0o755 });
+    const p = { task_subject: 'WEB-1: x', teammate_name: 'web', cwd: root };
+    const r1 = hook(p, { HB_GATE_CMD: slow, HB_HOOK_BUDGET: '1' });
+    expect(r1.status).toBe(2);
+    expect(r1.stderr).toContain('gate still running');
+    spawnSync('sleep', ['5']);
+    const r2 = hook(p, { HB_GATE_CMD: slow, HB_HOOK_BUDGET: '1' });
+    expect(r2.status, r2.stderr).toBe(0);
   });
 
   test('free-form subjects pass', () => {

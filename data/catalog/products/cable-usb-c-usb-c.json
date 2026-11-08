@@ -1,0 +1,117 @@
+{
+  "id": 204,
+  "kind": "variable",
+  "categoryId": 211,
+  "status": "active",
+  "sort": 20,
+  "slug": {
+    "ar": "kabil-usb-c",
+    "fr": "cable-usb-c-usb-c"
+  },
+  "name": {
+    "ar": "كابل USB-C إلى USB-C",
+    "fr": "Câble USB-C vers USB-C"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "كابل مضفور متين للشحن ونقل البيانات.",
+    "fr": "Câble tressé résistant, charge et données."
+  },
+  "description": {
+    "ar": "يدعم الشحن حتى 60 واط.\n\nمتوفّر بطولين.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Jusqu’à 60 W.\n\nDisponible en deux longueurs.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2041,
+      "type": "other",
+      "name": {
+        "ar": "الطول",
+        "fr": "Longueur"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 204101,
+          "value": {
+            "ar": "1 متر",
+            "fr": "1 m"
+          },
+          "swatchHex": null,
+          "position": 1
+        },
+        {
+          "id": 204102,
+          "value": {
+            "ar": "2 متر",
+            "fr": "2 m"
+          },
+          "swatchHex": null,
+          "position": 2
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 20401,
+      "sku": "PH-CBL-1M",
+      "priceDzd": 600,
+      "compareAtDzd": null,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        204101
+      ]
+    },
+    {
+      "id": 20402,
+      "sku": "PH-CBL-2M",
+      "priceDzd": 800,
+      "compareAtDzd": null,
+      "stock": null,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        204102
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2041,
+      "variantId": null,
+      "key": "cable-usb-c-usb-c/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: كابل USB-C ملفوف",
+        "fr": "Image provisoire : câble USB-C enroulé"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2042,
+      "variantId": null,
+      "key": "cable-usb-c-usb-c/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: الكابل عن قرب",
+        "fr": "Image provisoire : vue rapprochée du câble"
+      },
+      "position": 2,
+      "placeholder": true
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+---
+/**
+ * The selected variant's price, stock and SKU blocks (`.cat-vps`), shared by the product page and
+ * the order step. Constant CSS (one option) or variant.js (several) switches them; see lib/variants.ts.
+ */
+import type { Lang, OptionProps, StringTable, VariantProps } from '@hb/catalog';
+import Price from './Price.astro';
+import Stock from './Stock.astro';
+import { t } from './lib/i18n.ts';
+import { priceModel } from './lib/variants.ts';
+
+interface Props {
+  options: readonly OptionProps[];
+  variants: readonly VariantProps[];
+  lang: Lang;
+  strings: StringTable;
+}
+const { options, variants, lang, strings } = Astro.props;
+const { mode, def, blocks, anyPrice } = priceModel({ options, variants });
+---
+<div class="cat-vps" aria-live="polite">
+  {blocks.map((v) =>
+    v ? (
+      <div class:list={['cat-vp', { 'cat-vp-d': v === def }]} data-k={v.key} data-v={v.id} data-p={v.price.amountDzd} data-max={v.maxQty} data-a={v.available ? '1' : '0'} data-img={v.imageIndex ?? undefined}>
+        <Price price={v.price} strings={strings} size="page" />
+        <div class="cat-vp-meta">
+          <Stock stock={v.stock} lang={lang} strings={strings} />
+          <p class="cat-sku">{t(strings, 'product.sku')} <bdi dir="ltr">{v.sku}</bdi></p>
+        </div>
+      </div>
+    ) : (
+      <div class="cat-vp"><p class="cat-vp-none-t">{t(strings, 'product.option.unavailable')}</p></div>
+    ),
+  )}
+  {mode === 'multi' && <div class="cat-vp cat-vp-none"><p class="cat-vp-none-t">{t(strings, 'product.option.unavailableCombo')}</p></div>}
+  {anyPrice && <div class="cat-vp cat-vp-any"><Price price={anyPrice} strings={strings} size="page" /></div>}
+</div>
+
+<style is:global>
+  .cat-vp{display:none}
+  .cat-vp-d{display:block}
+  /* Several options, no JS yet: once the customer changes a radio away from its server default
+     (checked without the checked attribute), the default's price no longer applies; hide it until
+     variant.js (or the Worker's review step) shows the exact one. */
+  .cat-pdp[data-mode=multi]:has(.cat-val-in:checked:not([checked])) .cat-vp-d{display:none}
+  .cat-vps.is-js>.cat-vp{display:none}
+  .cat-vps.is-js>.is-on{display:block}
+  .cat-vp-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-4);margin-block-start:var(--space-2)}
+  .cat-sku{margin:0;color:var(--color-text-secondary);font-size:var(--fs-caption)}
+  .cat-vp-none-t{margin:0;color:var(--color-danger);font-size:var(--fs-small)}
+</style>

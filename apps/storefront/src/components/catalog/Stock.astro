@@ -1,0 +1,38 @@
+---
+/**
+ * Stock state as text + dot (never colour alone).
+ *  - in_stock, tracked:   "En stock"            (success)
+ *  - in_stock, untracked: "Disponible"          (success) — qty null, always orderable
+ *  - low_stock:           "Plus que 3 en stock" (warning, plural)
+ *  - out_of_stock:        "Épuisé"              (danger)
+ * `quiet` (cards): in-stock states render nothing, so the grid stays calm and only exceptions show.
+ */
+import type { Lang, StockProps, StringTable } from '@hb/catalog';
+import { t, tp } from './lib/i18n.ts';
+
+interface Props {
+  stock: StockProps;
+  lang: Lang;
+  strings: StringTable;
+  quiet?: boolean;
+}
+const { stock, lang, strings, quiet = false } = Astro.props;
+const label =
+  stock.state === 'out_of_stock'
+    ? t(strings, 'stock.out')
+    : stock.state === 'low_stock'
+      ? tp(strings, lang, 'stock.low', stock.qty ?? 0)
+      : stock.qty === null
+        ? t(strings, 'stock.available')
+        : t(strings, 'stock.in');
+const show = !quiet || stock.state !== 'in_stock';
+---
+{show && <p class={`cat-stock cat-stock--${stock.state}`}>{label}</p>}
+
+<style is:global>
+  .cat-stock{display:flex;align-items:center;gap:var(--space-2);margin:0;font-size:var(--fs-small);line-height:var(--lh-ui)}
+  .cat-stock::before{content:"";flex:none;inline-size:8px;block-size:8px;border-radius:var(--radius-round);background:currentColor}
+  .cat-stock--in_stock{color:var(--color-success)}
+  .cat-stock--low_stock{color:var(--color-warning)}
+  .cat-stock--out_of_stock{color:var(--color-danger)}
+</style>

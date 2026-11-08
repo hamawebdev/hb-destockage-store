@@ -1,0 +1,9 @@
+# Generated (owner shell). dist/.astro are ignored at the root.
+/.hb/
+# Written by pagedata's pre-build (packages/catalog/src/bin/catalog.ts --out apps/storefront/public):
+/.catalog/
+/public/img/
+/public/search/
+/public/geo/
+/public/sitemap.xml
+/public/robots.txt

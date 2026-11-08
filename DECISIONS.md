@@ -53,6 +53,17 @@ Rules:
   to be measured by `web` in WEB-2 and linked here as an appended note entry.
 - Status: active
 
+## D-002 addendum — `/api/quote` latency and no fee cache (WEB-2)
+- Date: 2026-11-05 · Author: web · Task: WEB-2
+- Report says: §2 "Data" — D1 latency 22–28 ms p50 per read from Marseille to Paris.
+- We do instead: `/api/quote` makes 2 sequential D1 round trips (variants + commune `batch()`, then the
+  `delivery_fees` read through the FeeProvider) with **no in-isolate cache**, so a fee, price or stock edit applies
+  to the next quote. Expected production server time ≈ 50–60 ms p50; quotes run after LCP on user input.
+- Why: a cache would save one round trip (≈ 25 ms p50, below user perception off the LCP path) at the cost of up to
+  60 s of stale fees; `/api/order` recomputes from D1 anyway and answers `total_changed` on drift.
+- Evidence: artifacts/WEB-2/latency.md (local p50/p90 with load average), research-evidence/team-reports/research_backend.md row 6.
+- Status: active
+
 ## D-003 — Content-only publishes run the static byte budget; the runtime pass runs on image/template changes, every 20th publish and nightly
 - Date: 2026-11-07 · Author: jobs (lead ruling on JOBS-3 timing) · Task: JOBS-7
 - Report says: CLAUDE.md "Storefront budgets (blocking — enforced by `npm run budget` …)"; report §2
@@ -93,3 +104,42 @@ Rules:
   mapping and dependency manifests), plus the publish pipeline itself (apps/jobs/scripts/publish.ts,
   apps/jobs/scripts/lib, apps/jobs/src/publish). A pass on a dirty tree is never recorded as last
   good, so a later clean build of that commit still gets its own full (runtime) pass.
+
+## D-004 — Lighter process: only typecheck, tests and build block; narrow review
+- Date: 2026-11-08 · Author: lead (client instruction) · Task: BOOT-0
+- Report says: CLAUDE.md budgets were blocking (Lighthouse 100, byte budgets); REVIEW.md required seven review passes,
+  a second-reviewer confirmation on Important findings, and client sign-off on high-risk changes.
+- We do instead: a task is done when typecheck, tests and build pass. Lighthouse, byte budgets, axe and tap targets still
+  run but only report. Review is one pass, bugs and security only, only for the order path, totals and fees, and admin
+  login and roles (`team/REVIEW-REQUIRED.txt`); everything else merges once green. No second-reviewer confirmation. No
+  client sign-off except for deploying, which stays out of scope.
+- Why: client decision; the goal is a working store on main.
+- Evidence: client instruction, 2026-11-08; CLAUDE.md and REVIEW.md updated to match.
+- Status: active
+
+## D-005 — The order form lives on a separate static order step
+- Date: 2026-11-08 · Author: lead · Task: ORDER-STEP
+- Report says: §2 Navigation: "prerender from the product page to the order step"; CLAUDE.md product-page budgets.
+- We do instead: one static, noindex order page per product and language at `/{lang}/order/<slug>/`; the product page
+  carries the picker and a GET button to it. Prerendering the step is deferred.
+- Why: the form inline on the product page projected 14,370 B HTML (limit 14,336) and 44,930 B critical path on the
+  worst /ar/ pack page. Without JavaScript the customer confirms the size again on the order step.
+- Evidence: artifacts/PAGES-2/wire/checks.log, artifacts/ORDER-STEP/plan.md.
+- Status: active
+
+## D-006 — Rulings recorded during the build
+- Date: 2026-11-08 · Author: lead · Task: BOOT-0
+- Report says: the budgets and data plan in CLAUDE.md / STACK-REPORT.md.
+- We do instead / why, one line each (evidence in the named artifacts folders):
+  - Never upscale photos: an original narrower than 1200 px gets the standard widths up to its own width, plus its own
+    width (artifacts/CAT-4/upscale.md).
+  - AVIF candidates up to 960 w target 20 KB, hard ceiling 25,000 B (artifacts/BUG-12/).
+  - The French "no webfont" rule is checked at runtime as zero font requests, not by a static @font-face check (BUG-2).
+  - axe runs its default rules, best-practice included (artifacts/MEAS-3/).
+  - Only the LCP image is eager; every other image stays lazy, even in the first viewport (BUG-17), and images below the
+    fold on product pages are deferred until after load (artifacts/BUG-18/).
+  - Product-page HTML target 10 KiB brotli; measured about 12.3 KiB on the worst /ar/ pack page, under the 14 KiB limit
+    (artifacts/BUG-18/qa/summary.md).
+  - Geo data: the Algeria-Cities dataset pinned, then wilaya and commune names verified against the Journal Officiel
+    scans (artifacts/GEO-1/, GEO-6/, GEO-7/).
+- Status: active

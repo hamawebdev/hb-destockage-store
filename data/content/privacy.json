@@ -1,0 +1,186 @@
+{
+  "id": 5,
+  "key": "privacy",
+  "slug": {
+    "ar": "al-khususiya",
+    "fr": "confidentialite"
+  },
+  "title": {
+    "ar": "سياسة الخصوصية",
+    "fr": "Politique de confidentialité"
+  },
+  "summary": {
+    "ar": "ما هي المعلومات التي نجمعها عند الطلب، ولماذا، ومع من نتقاسمها، وما هي حقوقك.",
+    "fr": "Les informations que nous collectons lors d'une commande, pourquoi, avec qui nous les partageons et vos droits."
+  },
+  "body": {
+    "ar": [
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER: نص قانوني يحرّره ويصادق عليه المستشار القانوني لـ HB Destockage، طبقاً للقانون رقم 18-07 المؤرخ في 10 جوان 2018 المتعلق بحماية الأشخاص الطبيعيين في مجال معالجة المعطيات ذات الطابع الشخصي، المعدّل والمتمّم بالقانون رقم 25-11. النص أدناه ملخص بلغة بسيطة لما يفعله الموقع فعلاً.]"
+      },
+      {
+        "type": "h2",
+        "text": "المعلومات التي نجمعها"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "الاسم واللقب.",
+          "رقم الهاتف المحمول.",
+          "ولاية وبلدية التوصيل.",
+          "المنتجات المطلوبة والكمية.",
+          "معلومات تقنية محدودة لمكافحة الطلبات المزيفة، منها بصمة لا يمكن عكسها لعنوان IP (لا نحتفظ بالعنوان نفسه).",
+          "عند تصفّح كل صفحة، قياسات أداء مجهولة الهوية (سرعة العرض، نوع الشبكة)، دون كوكيز ودون أي معرّف."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "لماذا نجمعها"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "لمعالجة طلبك وتوصيله.",
+          "للاتصال بك وتأكيد الطلب.",
+          "لمنع الطلبات المزيفة.",
+          "لاحترام التزاماتنا القانونية."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "ما لا نفعله"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "لا نستعمل ملفات تعريف الارتباط (كوكيز).",
+          "لا نستعمل أدوات إعلانية أو أدوات تتبّع من جهات أخرى.",
+          "لا نبيع معلوماتك."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "مع من نتقاسمها"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "شركة التوصيل: الاسم ورقم الهاتف والبلدية، لتوصيل طردك. [PLACEHOLDER: اسم شركة التوصيل]",
+          "Cloudflare: يستضيف الموقع، ويقدّم تحققاً أمنياً تلقائياً (Turnstile) لا يُحمَّل إلا عندما تبدأ بملء استمارة الطلب."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "مدة الاحتفاظ"
+      },
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER: مدة الاحتفاظ بالمعلومات، يحدّدها المستشار القانوني]"
+      },
+      {
+        "type": "h2",
+        "text": "حقوقك"
+      },
+      {
+        "type": "p",
+        "text": "يمكنك أن تطلب الاطلاع على معلوماتك أو تصحيحها أو حذفها، أو أن تعترض على معالجتها. يمكنك أيضاً اللجوء إلى السلطة الوطنية لحماية المعطيات ذات الطابع الشخصي. [PLACEHOLDER: صياغة الحقوق والإجراءات من طرف المستشار القانوني]"
+      },
+      {
+        "type": "p",
+        "text": "لممارسة حقوقك، اتصل بنا:"
+      },
+      {
+        "type": "link",
+        "text": "0560 41 74 03",
+        "href": "tel:+213560417403"
+      }
+    ],
+    "fr": [
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER : texte juridique à rédiger et valider par le conseil juridique de HB Destockage, conformément à la loi n° 18-07 du 10 juin 2018 relative à la protection des personnes physiques dans le traitement des données à caractère personnel, modifiée et complétée par la loi n° 25-11. Le texte ci-dessous résume en langage simple ce que fait réellement le site.]"
+      },
+      {
+        "type": "h2",
+        "text": "Les informations que nous collectons"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "Votre nom et prénom.",
+          "Votre numéro de téléphone mobile.",
+          "La wilaya et la commune de livraison.",
+          "Les produits commandés et leur quantité.",
+          "Des données techniques limitées pour lutter contre les fausses commandes, dont une empreinte non réversible de l'adresse IP (l'adresse elle-même n'est pas conservée).",
+          "Pour chaque page vue, des mesures de performance anonymes (vitesse d'affichage, type de réseau), sans cookie ni identifiant."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "Pourquoi"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "Traiter et livrer votre commande.",
+          "Vous appeler pour la confirmer.",
+          "Empêcher les fausses commandes.",
+          "Respecter nos obligations légales."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "Ce que nous ne faisons pas"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "Aucun cookie.",
+          "Aucun outil publicitaire ni de suivi tiers.",
+          "Nous ne vendons pas vos données."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "Avec qui nous les partageons"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "Le transporteur : nom, téléphone et commune, pour livrer votre colis. [PLACEHOLDER : nom du transporteur]",
+          "Cloudflare : hébergement du site et vérification de sécurité automatique (Turnstile), chargée seulement quand vous commencez à remplir le formulaire de commande."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "Durée de conservation"
+      },
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER : durée de conservation, fixée par le conseil juridique]"
+      },
+      {
+        "type": "h2",
+        "text": "Vos droits"
+      },
+      {
+        "type": "p",
+        "text": "Vous pouvez demander l'accès à vos données, leur rectification ou leur suppression, ou vous opposer à leur traitement. Vous pouvez aussi saisir l'Autorité nationale de protection des données à caractère personnel. [PLACEHOLDER : rédaction des droits et des démarches par le conseil juridique]"
+      },
+      {
+        "type": "p",
+        "text": "Pour exercer vos droits, appelez-nous :"
+      },
+      {
+        "type": "link",
+        "text": "0560 41 74 03",
+        "href": "tel:+213560417403"
+      }
+    ]
+  },
+  "sort": 50,
+  "active": true,
+  "placeholder": true,
+  "updatedAt": 1793750400000
+}

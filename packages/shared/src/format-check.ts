@@ -17,9 +17,9 @@ export interface FormatCase {
   readonly expected: string;
 }
 
-const RLM = '‏';
-const NBSP = ' ';
-const NNBSP = ' ';
+const RLM = '\u200f';
+const NBSP = '\u00a0';
+const NNBSP = '\u202f';
 const AR_MONTHS = ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 const FR_MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 

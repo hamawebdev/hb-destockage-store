@@ -1,0 +1,56 @@
+---
+/**
+ * A UI string from brand/copy that may still be a placeholder fact (opening hours, delays, …).
+ * Dev builds: the text without its "[PLACEHOLDER]" marker, plus a visible dev pill that takes the
+ * page's direction (marker isolated LTR first, then the note isolated: SHELL-4 r1 N2)
+ * (dev.placeholder) and data-placeholder on the wrapper, so QA and screenshots show it.
+ * Production (HB_STRICT_COPY=1): t() refuses the placeholder and the build fails, as on content pages.
+ * Use it for every chrome string sourced from a fact the client must confirm (QA-2 BUG-11), and for
+ * content-page text (`text` instead of `k`). Owner: shell.
+ */
+import type { StringTable } from '@hb/catalog';
+import { PLACEHOLDER_RE, placeholderParts, t } from '../lib/strings.ts';
+
+interface Props {
+  strings: StringTable;
+  /** A brand/copy key… */
+  k?: string;
+  /** …or literal text (content-page blocks). */
+  text?: string;
+  class?: string;
+}
+const { strings, k, text: literal, class: cls } = Astro.props;
+if ((k === undefined) === (literal === undefined)) throw new Error('Copy: pass exactly one of `k` or `text`');
+const raw = k !== undefined ? t(strings, k) : (literal as string);
+if (literal !== undefined && process.env['HB_STRICT_COPY'] === '1' && PLACEHOLDER_RE.test(raw)) {
+  throw new Error(`content text is a placeholder: "${raw.slice(0, 60)}"`);
+}
+const parts = placeholderParts(raw);
+const placeholder = parts.some((x) => 'note' in x);
+const pill = placeholder ? t(strings, 'dev.placeholder') : '';
+---
+<span class={cls} data-placeholder={placeholder ? (k ?? 'text') : undefined}>{
+  parts.map((x, i) =>
+    'text' in x ? (
+      x.text
+    ) : (
+      <>{i > 0 && ' '}<span class="dev-ph"><bdi dir="ltr">{pill}</bdi>{x.note && <>: <bdi>{x.note}</bdi></>}</span>{i < parts.length - 1 && ' '}</>
+    ),
+  )
+}</span>
+
+<style is:global>
+  @layer components {
+    .dev-ph {
+      /* Default slice decoration: no padding where a long pill wraps, so a fragment can never stick
+         out of the line box (box-decoration-break: clone overflowed 5 px at 360 px in RTL). */
+      display: inline;
+      padding-inline: var(--space-2);
+      border-radius: var(--radius-pill);
+      background: var(--color-warning-surface);
+      color: var(--color-warning);
+      font-size: var(--fs-caption);
+      font-weight: var(--fw-emphasis);
+    }
+  }
+</style>

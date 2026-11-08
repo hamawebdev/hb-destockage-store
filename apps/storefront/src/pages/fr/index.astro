@@ -1,0 +1,11 @@
+---
+// Home (fr). Body: components/home/HomeView.astro (type-led hero, no LCP image → no `lcp`).
+// og:image: brand's default, not the hero product photo (burned-in prices; data/photos/README.md). Owner: shell.
+import Base from '../../layouts/Base.astro';
+import HomeView from '../../components/home/HomeView.astro';
+import { pageProps } from '../../lib/catalog.ts';
+const props = pageProps('home', 'fr');
+---
+<Base layout={{ ...props.layout, ogImage: null }}>
+  <HomeView props={props} />
+</Base>

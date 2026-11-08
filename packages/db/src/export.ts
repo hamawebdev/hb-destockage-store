@@ -72,7 +72,7 @@ function image(i: Image): SnapshotImage {
   };
 }
 
-/** Only CAT-1's storefront keys (STOREFRONT_SETTINGS_KEYS); internal keys (jobs.*, seed.owned) are never read. */
+/** Exports only CAT-1's storefront keys (STOREFRONT_SETTINGS_KEYS); internal keys (jobs.*, seed.owned) are read with the table but never exported. */
 function readSettings(rows: readonly { key: string; value: unknown }[]): SnapshotSettings {
   const m = new Map(rows.map((r) => [r.key, r.value]));
   const need = (k: string): unknown => {

@@ -25,7 +25,7 @@ Check, citing file:line:
   `unsafe-inline`, no nonces; security headers present in `_headers`.
 Try the attacks you suspect against `wrangler dev` on your ports and record them.
 
-## Output (return this as your final message; the reviewer merges it into artifacts/<ID>/review-r<n>.md)
+## Output (return this as your final message; the reviewer merges it into /mnt/data/ecom website/artifacts/<ID>/review-r<n>.md)
 
 ```
 Pass: Security — <green | findings | n/a — reason>
@@ -36,12 +36,18 @@ Evidence: <commands run / artifact paths>
 ```
 
 Rules:
-- Every finding cites **file:line** or an **artifact path** under `artifacts/<ID>/`. Open the file;
+- Every finding cites **file:line** or an **artifact path** under `/mnt/data/ecom website/artifacts/<ID>/`. Open the file;
   never infer from a name.
 - Tag each **Important**, **Nit** or **Pre-existing** (REVIEW.md §4). Drop findings that are only
   about style or cleanup.
 - Only this lens. Other passes are run by other agents.
 - If nothing is wrong, say "Nothing to fix." If the pass cannot apply, return `n/a — <reason>`.
-- You did not write this change and must not edit source files. Write only under `artifacts/<ID>/`.
+- You did not write this change and must not edit source files. Write evidence only to the shared
+  **`/mnt/data/ecom website/artifacts/<ID>/`** (absolute path, the main checkout), never to a
+  relative `artifacts/` inside the reviewer's worktree.
+- A script that prints "not wired yet" (or is otherwise a stub), exits 0 without measuring, or is
+  missing means the check was **NOT RUN** — never green. Say so in your `Pass:` line
+  (`NOT RUN — npm run lh is a stub`); if real storefront pages exist, that is an Important finding
+  (the gate treats a stub budget/lh as RED once real pages exist).
 - Run servers only on the ports given in your prompt (the reviewer's `scripts/team/port.sh <name>`
   block). Never run Lighthouse outside `npm run lh`. Stop every server you start.

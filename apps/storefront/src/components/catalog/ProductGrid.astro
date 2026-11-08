@@ -1,0 +1,27 @@
+---
+/**
+ * Responsive card grid: 2 columns from 360 px, 3 from 768, 4 from 1024.
+ */
+import type { Lang, ProductCard as Card, StringTable } from '@hb/catalog';
+import ProductCard from './ProductCard.astro';
+
+interface Props {
+  cards: readonly Card[];
+  lang: Lang;
+  strings: StringTable;
+  level?: 2 | 3;
+  class?: string;
+  /** Defer the card images past LCP (product page related grid; variant.js promotes them). */
+  defer?: boolean;
+}
+const { cards, lang, strings, level = 2, class: cls, defer = false } = Astro.props;
+---
+<ul class:list={['cat-grid', cls]} role="list">
+  {cards.map((card) => <li><ProductCard card={card} lang={lang} strings={strings} level={level} defer={defer} /></li>)}
+</ul>
+
+<style is:global>
+  .cat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-8) var(--grid-gap);margin:0;padding:0;list-style:none}
+  @media (min-width:768px){.cat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (min-width:1024px){.cat-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>

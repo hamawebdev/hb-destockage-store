@@ -1,0 +1,24 @@
+/* The storefront's single sheet (both directions), inlined into every page by Astro +
+   integrations/hb-postbuild.mjs. Foundations come from @hb/ui-tokens (tokens, Arabic @font-face —
+   stripped from /fr/ pages by hb-postbuild —, base: reset, typography, .container/.stack/.cluster/
+   .grid, .btn, .icon, .skip-link, view transitions, reduced motion). Component CSS lives in each
+   component's <style is:global> with a short class prefix; physical properties fail the build.
+   Owner: shell. */
+@layer reset, tokens, base, layout, components, utilities;
+@import "@hb/ui-tokens/tokens.css";
+@import "@hb/ui-tokens/font-face.css";
+@import "@hb/ui-tokens/base.css";
+
+@layer base {
+  /* Every page leaves room for the sticky header when jumping to an anchor or focusing a field. */
+  html { scroll-padding-block-start: var(--scroll-pad-start); }
+  main:focus { outline: none; }
+  /* Footer sits at the viewport bottom on short pages (base.css gives body min-block-size: 100dvh). */
+  body { display: flex; flex-direction: column; }
+  main { flex: 1 0 auto; }
+}
+
+@layer components {
+  /* CLAUDE.md: every tap target >= 44 x 44 (tokens' .skip-link alone renders 40–43 px tall). */
+  .skip-link { display: inline-flex; align-items: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
+}

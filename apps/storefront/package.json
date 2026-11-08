@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "astro check",
+    "typecheck": "HB_SNAPSHOT=fixture astro check",
     "test": "vitest run",
     "build": "astro build",
-    "dev": "astro dev --port ${PORT:-4150} --host 127.0.0.1"
+    "dev": "HB_SNAPSHOT=fixture astro dev --port ${PORT:-4150} --host 127.0.0.1",
+    "build:fixture": "HB_SNAPSHOT=fixture astro build",
+    "check:tap": "HB_SNAPSHOT=${HB_SNAPSHOT:-fixture} node scripts/tap-targets.mjs"
   },
   "dependencies": {
     "@hb/catalog": "*",

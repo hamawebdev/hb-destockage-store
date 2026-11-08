@@ -1,0 +1,136 @@
+---
+/**
+ * Product page body (inside shell's Base layout).
+ *
+ *   phone:   crumbs · gallery · brand/title/summary · price+stock · picker + "Commander" · delivery
+ *            · pack contents · description · related; a sticky "Commander" bar until the in-page
+ *            CTA scrolls into view.
+ *   ≥1024:   gallery (sticky, 7 cols) | buy column (5 cols), then the sections full width.
+ *
+ * Ordering (ORDER-STEP, lead-approved plan): the picker and the CTA sit in a plain GET form to the
+ * product's static order step (`orderStepHref`), which carries only `v` / `opt.*`. With JS,
+ * variant.js swaps the submit buttons for links to `…?v=<variant id>` (Speculation Rules prerender
+ * the step on hover/touch). Sold out: no CTA; a WhatsApp link with a prefilled question.
+ *
+ * The selected variant's price/stock/SKU live in `.cat-vps` blocks (see lib/variants.ts) that
+ * constant CSS (single option) or variant.js (several options) switch. The page file puts the
+ * JSON-LD (lib/jsonld.ts) into Base's head slot.
+ */
+import './catalog.css';
+import type { ProductProps } from '@hb/catalog';
+import Breadcrumbs from './Breadcrumbs.astro';
+import DeliveryInfo from './DeliveryInfo.astro';
+import Gallery from './Gallery.astro';
+import PackContents from './PackContents.astro';
+import ProductGrid from './ProductGrid.astro';
+import VariantBlocks from './VariantBlocks.astro';
+import VariantPicker from './VariantPicker.astro';
+import { latinLang, showDevMarkers, t } from './lib/i18n.ts';
+import { priceModel } from './lib/variants.ts';
+
+type Props = ProductProps;
+const p = Astro.props;
+const { layout, product, category, breadcrumbs, images, options, variants, packItems, related, orderForm } = p;
+const { lang, strings } = layout;
+const { mode, def, blocks, anyPrice } = priceModel({ options, variants });
+const ph = showDevMarkers() && (product.placeholder || product.translationPlaceholder);
+const stepHref = p.orderStepHref;
+const ctaHref = def ? `${stepHref}?v=${def.id}` : stepHref;
+const cta = t(strings, 'product.orderCta');
+const askHref = `${layout.contact.whatsappHref}?text=${encodeURIComponent(t(strings, 'product.outOfStock.message', { product: product.name, sku: def?.sku ?? '' }))}`;
+---
+<div class="container cat-pdp" data-mode={mode}>
+  <div class="cat-pdp-crumbs"><Breadcrumbs items={breadcrumbs} strings={strings} /></div>
+
+  <div class="cat-pdp-top">
+    <div class="cat-pdp-media">
+      <Gallery images={images} name={product.name} lang={lang} strings={strings} />
+    </div>
+
+    <div class="cat-pdp-buy">
+      <header class="cat-pdp-head">
+        {product.brandLatin && <p class="cat-pdp-brand"><bdi lang={latinLang(lang)} dir="ltr">{product.brandLatin}</bdi></p>}
+        <h1 class="cat-title">{product.name}</h1>
+        {ph && <p class="cat-pdp-ph">{t(strings, 'dev.placeholderBanner')}</p>}
+        {product.summary && <p class="cat-pdp-summary">{product.summary}</p>}
+      </header>
+
+      <VariantBlocks options={options} variants={variants} lang={lang} strings={strings} />
+
+      <form id="cat-buy" class="cat-buy" method="get" action={stepHref}>
+        <VariantPicker options={options} variants={variants} strings={strings} field="v" formId={null} />
+        {mode === 'none' && def && <input type="hidden" name="v" value={def.id} />}
+        {orderForm.orderable ? (
+          <div class="cat-ctas">
+            <button class="cat-btn cat-cta" type="submit" data-cta-btn>{cta}</button>
+            <a class="cat-btn cat-cta" href={ctaHref} data-cta={stepHref} hidden>{cta}</a>
+          </div>
+        ) : (
+          <a class="cat-btn cat-btn--wa" href={askHref}>{t(strings, 'product.outOfStock.ask')}</a>
+        )}
+      </form>
+
+      <DeliveryInfo strings={strings} links={layout.footerLinks} />
+    </div>
+  </div>
+
+  <PackContents items={packItems} lang={lang} strings={strings} />
+
+  {product.description.length > 0 && (
+    <section class="cat-sec cat-desc-sec" aria-labelledby="cat-desc-h">
+      <h2 id="cat-desc-h" class="cat-sec-h">{t(strings, 'product.description.title')}</h2>
+      <div class="cat-prose">{product.description.map((para) => <p>{para}</p>)}</div>
+    </section>
+  )}
+
+  {related.length > 0 && (
+    <section class="cat-sec cat-rel" aria-labelledby="cat-rel-h">
+      <div class="cat-sec-bar">
+        <h2 id="cat-rel-h" class="cat-sec-h">{t(strings, 'product.related.title')}</h2>
+        <a class="cat-more" href={category.href}>{t(strings, 'product.category.more', { category: category.name })}<span class="cat-chev cat-chev--end" aria-hidden="true"></span></a>
+      </div>
+      <ProductGrid cards={related} lang={lang} strings={strings} level={3} defer />
+    </section>
+  )}
+
+  {orderForm.orderable && (
+    <div class="cat-buybar">
+      <div class="cat-vps cat-buybar-price">
+        {blocks.map((v) => <span class:list={['cat-vp', { 'cat-vp-d': v === def }]} data-k={v?.key}>{v?.price.label}</span>)}
+        {mode === 'multi' && <span class="cat-vp cat-vp-none"></span>}
+        {anyPrice && <span class="cat-vp cat-vp-any">{anyPrice.label}</span>}
+      </div>
+      <button class="cat-btn cat-buybar-cta" type="submit" form="cat-buy" data-cta-btn>{cta}</button>
+      <a class="cat-btn cat-buybar-cta" href={ctaHref} data-cta={stepHref} hidden>{cta}</a>
+    </div>
+  )}
+</div>
+
+<style is:global>
+  .cat-pdp{padding-block:var(--space-2) var(--section-block);timeline-scope:--cat-order}
+  .cat-pdp-crumbs{margin-block-end:var(--space-3)}
+  .cat-pdp-top{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-6)}
+  @media (min-width:1024px){
+    .cat-pdp-top{grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:var(--space-16);align-items:start}
+    .cat-pdp-media{position:sticky;inset-block-start:calc(var(--header-h) + var(--space-6))}
+  }
+  .cat-pdp-buy{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-6);min-inline-size:0}
+  .cat-pdp-head{display:grid;gap:var(--space-2)}
+  .cat-pdp-brand{margin:0;color:var(--color-text-secondary);font-size:var(--fs-small);line-height:var(--lh-ui);text-transform:uppercase;letter-spacing:var(--ls-caps)}
+  .cat-pdp-ph{margin:0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-warning-surface);color:var(--color-warning);font-size:var(--fs-small)}
+  .cat-pdp-summary{margin:0;color:var(--color-text-secondary);font-size:var(--fs-lead);line-height:var(--lh-body);text-wrap:pretty}
+  .cat-pdp .cat-ctas{view-timeline:--cat-order block}
+  .cat-buy{display:grid;gap:var(--space-5)}
+  .cat-cta{inline-size:100%;min-block-size:48px}
+  .cat-btn[hidden],.cat-cta[hidden]{display:none}
+  .cat-cta[aria-disabled=true]{background:var(--color-border-control);pointer-events:none}
+  .cat-btn--wa{inline-size:100%;min-block-size:48px}
+  .cat-prose{max-inline-size:var(--measure)}
+  .cat-prose p{margin:0 0 var(--space-4);line-height:var(--lh-body)}
+  .cat-buybar{position:fixed;inset-inline:0;inset-block-end:0;z-index:var(--z-sticky);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);min-block-size:var(--bottom-bar-h);padding:var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));background:var(--color-surface);box-shadow:0 -1px 0 var(--color-border);animation:cat-bar-out linear both;animation-timeline:--cat-order;animation-range:entry 0% entry 40%}
+  .cat-buybar-price{font-weight:var(--fw-emphasis);font-variant-numeric:tabular-nums}
+  .cat-buybar-cta{flex:none}
+  @keyframes cat-bar-out{to{opacity:0;visibility:hidden;translate:0 100%}}
+  @media (min-width:1024px){.cat-buybar{display:none}}
+  @media (max-width:1023.98px){.cat-pdp{padding-block-end:calc(var(--section-block) + var(--bottom-bar-h))}}
+</style>

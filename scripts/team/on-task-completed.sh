@@ -78,11 +78,47 @@ has_commit() { git -C "$wt" log --format=%s "$@" 2>/dev/null | awk -v p="$id: " 
 has_commit main..HEAD || has_commit main \
   || refuse "no commit with subject starting '$id: ' in main..HEAD of $wt or on main"
 
-out="$("$here/../gate.sh" "$wt" 2>&1)"
-rc=$?
-if [[ $rc -ne 0 ]]; then
-  printf '%s\n' "$out" | tail -n 15 >&2
-  refuse "scripts/gate.sh is RED for $wt (see the summary and log path above)"
+# --- gate: detached, fail closed ------------------------------------------------------------
+# The hook has a hard timeout (.claude/settings.json); a hook killed at its timeout renders no
+# decision and the task would complete. So the gate runs detached (its own session) and this hook
+# waits at most HB_HOOK_BUDGET seconds (default 1500, under the 1800 s timeout). Still running ⇒
+# exit 2 "gate still running"; the next completion attempt for the same tree picks up the result.
+gate_cmd="${HB_GATE_CMD:-$here/../gate.sh}"
+# Disk rule: the detached gate and everything it starts keep temp files on /mnt/data.
+# shellcheck source=../lib/locks.sh
+. "$here/../lib/locks.sh"
+hb_use_data_tmp "hook-$(basename "$wt")" || refuse "cannot create a temp dir under ${HB_TMP_ROOT:-/mnt/data/hb-tmp}"
+budget="${HB_HOOK_BUDGET:-1500}"
+tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
+runs="$main_root/artifacts/gate/runs"
+mkdir -p "$runs"
+run="$runs/$tree"
+
+alive() { [[ -f "$run.pid" ]] && kill -0 "$(cat "$run.pid")" 2>/dev/null; }
+
+if [[ ! -f "$run.result" ]] && ! alive; then
+  rm -f "$run.out"
+  setsid bash -c '"$1" "$2" >"$3.out" 2>&1; echo $? >"$3.result.tmp"; mv "$3.result.tmp" "$3.result"' \
+    hb-gate "$gate_cmd" "$wt" "$run" </dev/null >/dev/null 2>&1 &
+  echo $! >"$run.pid"
 fi
-printf '%s\n' "$out" | tail -n 1
+
+deadline=$((SECONDS + budget))
+while [[ ! -f "$run.result" ]] && alive && ((SECONDS < deadline)); do sleep 2; done
+
+gate_log="$(sed -n 's/.*log: \(.*\.log\)$/\1/p' "$run.out" 2>/dev/null | tail -n1)"
+if [[ ! -f "$run.result" ]]; then
+  if alive; then
+    refuse "gate still running for $wt (tree ${tree:0:12}) — log ${gate_log:-$run.out}. Complete the task again when it has finished; the result is picked up then."
+  fi
+  refuse "gate stopped without a result for $wt — output $run.out"
+fi
+
+rc="$(cat "$run.result")"
+rm -f "$run.result" "$run.pid"
+if [[ "$rc" != 0 ]]; then
+  tail -n 15 "$run.out" >&2
+  refuse "scripts/gate.sh is RED for $wt — log ${gate_log:-$run.out}"
+fi
+tail -n 1 "$run.out"
 exit 0

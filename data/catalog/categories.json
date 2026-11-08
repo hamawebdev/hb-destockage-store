@@ -1,0 +1,462 @@
+[
+  {
+    "id": 1,
+    "parentId": null,
+    "slug": {
+      "ar": "al-hammam",
+      "fr": "salle-de-bain"
+    },
+    "name": {
+      "ar": "الحمّام",
+      "fr": "Salle de bain"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] كل ما يلزم لحمّام عصري: أطقم الاستحمام والخلّاطات والحنفيات.",
+      "fr": "[PLACEHOLDER] Tout pour une salle de bain moderne : packs de douche, mitigeurs et robinetterie."
+    },
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 11,
+    "parentId": 1,
+    "slug": {
+      "ar": "atqum-al-hammam",
+      "fr": "packs-salle-de-bain"
+    },
+    "name": {
+      "ar": "أطقم الحمّام",
+      "fr": "Packs salle de bain"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] أطقم كاملة: عمود استحمام وخلّاط مغسلة وحنفية مرحاض بسعر واحد.",
+      "fr": "[PLACEHOLDER] Packs complets : colonne de douche, mitigeur de lavabo et robinet de toilette à prix unique."
+    },
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 12,
+    "parentId": 1,
+    "slug": {
+      "ar": "al-hanafiyat",
+      "fr": "robinetterie"
+    },
+    "name": {
+      "ar": "الحنفيات والخلّاطات",
+      "fr": "Robinetterie"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] القطع الموجودة في الأطقم. غير معروضة للبيع منفردة حاليًا.",
+      "fr": "[PLACEHOLDER] Les pièces contenues dans les packs. Pas encore vendues à l’unité."
+    },
+    "sort": 20,
+    "active": false,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 2,
+    "parentId": null,
+    "slug": {
+      "ar": "al-iliktruniyat",
+      "fr": "electronique-accessoires"
+    },
+    "name": {
+      "ar": "الإلكترونيات والإكسسوارات",
+      "fr": "Électronique & accessoires"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم تجريبي: هواتف وملحقاتها وصوتيات.",
+      "fr": "[PLACEHOLDER] Rayon de démonstration : téléphonie et audio."
+    },
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 21,
+    "parentId": 2,
+    "slug": {
+      "ar": "al-hawatif",
+      "fr": "telephonie"
+    },
+    "name": {
+      "ar": "الهواتف وملحقاتها",
+      "fr": "Téléphonie"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الهواتف وملحقاتها.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Téléphonie."
+    },
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 211,
+    "parentId": 21,
+    "slug": {
+      "ar": "al-shawahin-wal-kawabil",
+      "fr": "chargeurs-cables"
+    },
+    "name": {
+      "ar": "الشواحن والكوابل",
+      "fr": "Chargeurs & câbles"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الشواحن والكوابل.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Chargeurs & câbles."
+    },
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 212,
+    "parentId": 21,
+    "slug": {
+      "ar": "al-aghtiya-wal-himaya",
+      "fr": "coques-protections"
+    },
+    "name": {
+      "ar": "الأغطية والحماية",
+      "fr": "Coques & protections"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الأغطية والحماية.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Coques & protections."
+    },
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 22,
+    "parentId": 2,
+    "slug": {
+      "ar": "al-sawtiyat",
+      "fr": "audio"
+    },
+    "name": {
+      "ar": "الصوتيات",
+      "fr": "Audio"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الصوتيات.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Audio."
+    },
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 3,
+    "parentId": null,
+    "slug": {
+      "ar": "al-moda",
+      "fr": "mode"
+    },
+    "name": {
+      "ar": "الموضة",
+      "fr": "Mode"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم تجريبي: ملابس رجالية ونسائية وأحذية.",
+      "fr": "[PLACEHOLDER] Rayon de démonstration : homme, femme et chaussures."
+    },
+    "sort": 30,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 31,
+    "parentId": 3,
+    "slug": {
+      "ar": "rijal",
+      "fr": "homme"
+    },
+    "name": {
+      "ar": "رجال",
+      "fr": "Homme"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: رجال.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Homme."
+    },
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 32,
+    "parentId": 3,
+    "slug": {
+      "ar": "nisaa",
+      "fr": "femme"
+    },
+    "name": {
+      "ar": "نساء",
+      "fr": "Femme"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: نساء.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Femme."
+    },
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 33,
+    "parentId": 3,
+    "slug": {
+      "ar": "ahdhiya",
+      "fr": "chaussures"
+    },
+    "name": {
+      "ar": "أحذية",
+      "fr": "Chaussures"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: أحذية.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Chaussures."
+    },
+    "sort": 30,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 4,
+    "parentId": null,
+    "slug": {
+      "ar": "al-jamal-wal-inaya",
+      "fr": "beaute-soins"
+    },
+    "name": {
+      "ar": "الجمال والعناية",
+      "fr": "Beauté & soins"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم تجريبي: العناية بالوجه والشعر وعلب الهدايا.",
+      "fr": "[PLACEHOLDER] Rayon de démonstration : visage, cheveux et coffrets."
+    },
+    "sort": 40,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 41,
+    "parentId": 4,
+    "slug": {
+      "ar": "al-inaya-bil-wajh",
+      "fr": "soins-visage"
+    },
+    "name": {
+      "ar": "العناية بالوجه",
+      "fr": "Soins du visage"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: العناية بالوجه.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Soins du visage."
+    },
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 42,
+    "parentId": 4,
+    "slug": {
+      "ar": "al-inaya-bil-shaar",
+      "fr": "soins-cheveux"
+    },
+    "name": {
+      "ar": "العناية بالشعر",
+      "fr": "Soins des cheveux"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: العناية بالشعر.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Soins des cheveux."
+    },
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 43,
+    "parentId": 4,
+    "slug": {
+      "ar": "al-ulab",
+      "fr": "coffrets"
+    },
+    "name": {
+      "ar": "العلب والأطقم",
+      "fr": "Coffrets"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: العلب والأطقم.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Coffrets."
+    },
+    "sort": 30,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 5,
+    "parentId": null,
+    "slug": {
+      "ar": "al-alab-wal-atfal",
+      "fr": "jouets-enfants"
+    },
+    "name": {
+      "ar": "الألعاب والأطفال",
+      "fr": "Jouets & enfants"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم تجريبي: ألعاب التركيب والدمى والمركبات.",
+      "fr": "[PLACEHOLDER] Rayon de démonstration : construction, peluches et véhicules."
+    },
+    "sort": 50,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 51,
+    "parentId": 5,
+    "slug": {
+      "ar": "alab-al-tarkib",
+      "fr": "jeux-construction"
+    },
+    "name": {
+      "ar": "ألعاب التركيب",
+      "fr": "Jeux de construction"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: ألعاب التركيب.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Jeux de construction."
+    },
+    "sort": 10,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 52,
+    "parentId": 5,
+    "slug": {
+      "ar": "al-duma-al-mahshuwwa",
+      "fr": "peluches"
+    },
+    "name": {
+      "ar": "الدمى المحشوّة",
+      "fr": "Peluches"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: الدمى المحشوّة.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Peluches."
+    },
+    "sort": 20,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  },
+  {
+    "id": 53,
+    "parentId": 5,
+    "slug": {
+      "ar": "al-markabat",
+      "fr": "vehicules"
+    },
+    "name": {
+      "ar": "المركبات",
+      "fr": "Véhicules"
+    },
+    "description": {
+      "ar": "[PLACEHOLDER] قسم فرعي تجريبي: المركبات.",
+      "fr": "[PLACEHOLDER] Sous-rayon de démonstration : Véhicules."
+    },
+    "sort": 30,
+    "active": true,
+    "placeholder": true,
+    "translationPlaceholder": [
+      "ar",
+      "fr"
+    ]
+  }
+]

@@ -1,0 +1,152 @@
+{
+  "id": 205,
+  "kind": "variable",
+  "categoryId": 212,
+  "status": "active",
+  "sort": 10,
+  "slug": {
+    "ar": "ghitaa-silikon",
+    "fr": "coque-silicone-smartphone"
+  },
+  "name": {
+    "ar": "غطاء سيليكون للهاتف",
+    "fr": "Coque silicone pour smartphone"
+  },
+  "brandLatin": null,
+  "summary": {
+    "ar": "غطاء ناعم يحمي من الصدمات والخدوش.",
+    "fr": "Coque douce qui protège des chocs et des rayures."
+  },
+  "description": {
+    "ar": "سيليكون مرن مع بطانة من الألياف الدقيقة.\n\n[PLACEHOLDER] منتج تجريبي وهمي: النص والسعر والمخزون والصور للاستبدال.",
+    "fr": "Silicone souple, doublure microfibre.\n\n[PLACEHOLDER] Produit fictif de démonstration : texte, prix, stock et photos à remplacer."
+  },
+  "placeholder": true,
+  "translationPlaceholder": [
+    "ar",
+    "fr"
+  ],
+  "options": [
+    {
+      "id": 2051,
+      "type": "colour",
+      "name": {
+        "ar": "اللون",
+        "fr": "Couleur"
+      },
+      "position": 1,
+      "values": [
+        {
+          "id": 205101,
+          "value": {
+            "ar": "أسود",
+            "fr": "Noir"
+          },
+          "swatchHex": "#1f1f1f",
+          "position": 1
+        },
+        {
+          "id": 205102,
+          "value": {
+            "ar": "وردي فاتح",
+            "fr": "Rose poudré"
+          },
+          "swatchHex": "#e8b4b8",
+          "position": 2
+        },
+        {
+          "id": 205103,
+          "value": {
+            "ar": "أزرق سماوي",
+            "fr": "Bleu ciel"
+          },
+          "swatchHex": "#9cc3e4",
+          "position": 3
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": 20501,
+      "sku": "PH-CASE-NOIR",
+      "priceDzd": 900,
+      "compareAtDzd": null,
+      "stock": 30,
+      "weightG": null,
+      "active": true,
+      "isDefault": true,
+      "optionValueIds": [
+        205101
+      ]
+    },
+    {
+      "id": 20502,
+      "sku": "PH-CASE-ROSE",
+      "priceDzd": 900,
+      "compareAtDzd": null,
+      "stock": 18,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        205102
+      ]
+    },
+    {
+      "id": 20503,
+      "sku": "PH-CASE-CIEL",
+      "priceDzd": 900,
+      "compareAtDzd": null,
+      "stock": 9,
+      "weightG": null,
+      "active": true,
+      "isDefault": false,
+      "optionValueIds": [
+        205103
+      ]
+    }
+  ],
+  "packItems": [],
+  "images": [
+    {
+      "id": 2051,
+      "variantId": null,
+      "key": "coque-silicone-smartphone/1.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: غطاء هاتف أسود",
+        "fr": "Image provisoire : coque de téléphone noire"
+      },
+      "position": 1,
+      "placeholder": true
+    },
+    {
+      "id": 2052,
+      "variantId": 20502,
+      "key": "coque-silicone-smartphone/2.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: غطاء الهاتف، اللون الوردي",
+        "fr": "Image provisoire : coque, coloris rose poudré"
+      },
+      "position": 2,
+      "placeholder": true
+    },
+    {
+      "id": 2053,
+      "variantId": 20503,
+      "key": "coque-silicone-smartphone/3.jpg",
+      "width": 1200,
+      "height": 1200,
+      "alt": {
+        "ar": "صورة مؤقتة: غطاء الهاتف، اللون الأزرق السماوي",
+        "fr": "Image provisoire : coque, coloris bleu ciel"
+      },
+      "position": 3,
+      "placeholder": true
+    }
+  ]
+}

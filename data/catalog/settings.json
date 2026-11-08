@@ -1,0 +1,16 @@
+{
+  "storeName": {
+    "ar": "HB Destockage",
+    "fr": "HB Destockage"
+  },
+  "contactPhone": "0560417403",
+  "whatsapp": "213779942022",
+  "contactEmail": null,
+  "homeFeaturedProductIds": [
+    101,
+    103,
+    102
+  ],
+  "homeHeroProductId": null,
+  "turnstileSiteKey": null
+}

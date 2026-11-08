@@ -1,0 +1,15 @@
+---
+// Order step (fr, ORDER-STEP). Owner: pages; the form is orderform's OrderForm, rendered by OrderStepView.
+import Base from '../../../layouts/Base.astro';
+import OrderStepView from '../../../components/catalog/OrderStepView.astro';
+import { variantScript } from '../../../components/catalog/lib/assets.ts';
+import { pickerMode } from '../../../components/catalog/lib/variants.ts';
+import { staticPaths, type PropsByTemplate } from '../../../lib/catalog.ts';
+
+export const getStaticPaths = () => staticPaths('order-step', 'fr');
+const props = Astro.props as PropsByTemplate['order-step'];
+const scripts = pickerMode(props) !== 'none' ? [variantScript()] : [];
+---
+<Base layout={props.layout} scripts={scripts}>
+  <OrderStepView {...props} />
+</Base>

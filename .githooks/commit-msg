@@ -10,13 +10,16 @@
 # Merge commits are allowed as they are.
 set -euo pipefail
 msg_file="$1"
-gitdir="$(git rev-parse --git-dir)"
-[[ -f "$gitdir/MERGE_HEAD" ]] && exit 0
+# A merge: MERGE_HEAD after a conflict; during `git merge` itself git has not written it yet but sets
+# GIT_REFLOG_ACTION to "merge …" (or "pull …").
+merging=0
+[[ -f "$(git rev-parse --git-path MERGE_HEAD)" || "${GIT_REFLOG_ACTION:-}" =~ ^(merge|pull)( |$) ]] && merging=1
 
 # Drop comment lines (git's default cleanup) and trailing blank lines.
 mapfile -t lines < <(grep -v '^#' "$msg_file" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
 subject="${lines[0]:-}"
-[[ "$subject" =~ ^Merge\  ]] && exit 0
+# A merge in progress may keep git's "Merge …" subject; anything else must follow the format.
+[[ $merging -eq 1 && "$subject" =~ ^Merge\  ]] && exit 0
 
 fail() {
   cat >&2 <<MSG
@@ -44,6 +47,7 @@ for ((i = 2; i < ${#lines[@]}; i++)); do
   for ((k = 0; k < ${#want[@]}; k++)); do
     if [[ "$l" == "${want[$k]}"* ]]; then
       (( k == next )) || fail "\"${want[$k]}\" is out of order (expected \"${want[$next]}\" next)"
+      [[ "${l#"${want[$k]}"}" =~ [^[:space:]] ]] || fail "\"${want[$k]}\" has no value (write it on the same line)"
       if [[ "${want[$k]}" == "Risk tier:" ]]; then
         [[ "$l" =~ ^Risk\ tier:\ (low|high)[[:space:]]*$ ]] || fail "Risk tier must be exactly \"low\" or \"high\" (got \"$l\")"
       fi

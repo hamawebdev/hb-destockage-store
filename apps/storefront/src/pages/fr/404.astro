@@ -1,0 +1,10 @@
+---
+// Not found (fr). Built to /fr/404.html (hb-postbuild) for Workers static assets 404-page. Owner: shell.
+import Base from '../../layouts/Base.astro';
+import NotFoundView from '../../components/notfound/NotFoundView.astro';
+import { pageProps } from '../../lib/catalog.ts';
+const props = pageProps('not-found', 'fr');
+---
+<Base layout={props.layout}>
+  <NotFoundView props={props} />
+</Base>
