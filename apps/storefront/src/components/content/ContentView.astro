@@ -6,11 +6,14 @@
  * stripped, dev pill; HB_STRICT_COPY=1 refuses it), and a page marked placeholder shows the dev
  * banner (dev.placeholderBanner) in non-strict builds only. Links: same-origin paths, tel: and
  * https://wa.me/ (plain links; validated by @hb/catalog). Owner: shell.
+ * Privacy page, when Meta is configured (D-009): a section from brand copy, at the top of the body, because the page's
+ * own text comes from D1 and cannot change at build time. It is marked as awaiting legal review.
  */
 import type { ContentBlock, ContentProps } from '@hb/catalog';
 import Breadcrumbs from '../catalog/Breadcrumbs.astro';
 import Copy from '../Copy.astro';
 import { t } from '../../lib/strings.ts';
+import { metaConfig } from '../../lib/meta.mjs';
 
 interface Props {
   props: ContentProps;
@@ -21,6 +24,7 @@ const strict = process.env['HB_STRICT_COPY'] === '1';
 const date = new Intl.DateTimeFormat(l.lang === 'ar' ? 'ar-DZ' : 'fr-DZ', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Algiers' }).format(new Date(p.page.updatedAt));
 const isExternal = (href: string) => href.startsWith('https://');
 const blocks: readonly ContentBlock[] = p.page.blocks;
+const metaSection = p.page.key === 'privacy' && metaConfig() !== null;
 ---
 <article class="container ct">
   <Breadcrumbs items={p.breadcrumbs} strings={l.strings} />
@@ -30,6 +34,16 @@ const blocks: readonly ContentBlock[] = p.page.blocks;
     <p class="ct-date">{t(l.strings, 'content.lastUpdated', { date })}</p>
   </header>
   <div class="ct-body reading">
+    {metaSection && (
+      <Fragment>
+        <h2><Copy strings={l.strings} k="privacy.meta.title" /></h2>
+        <p><Copy strings={l.strings} k="privacy.meta.body1" /></p>
+        <p><Copy strings={l.strings} k="privacy.meta.body2" /></p>
+        <p><Copy strings={l.strings} k="privacy.meta.body3" /></p>
+        <p><Copy strings={l.strings} k="privacy.meta.body4" /></p>
+        <p><button type="button" class="btn btn-secondary" data-meta-reset hidden>{t(l.strings, 'consent.change')}</button></p>
+      </Fragment>
+    )}
     {
       blocks.map((b) => {
         switch (b.type) {

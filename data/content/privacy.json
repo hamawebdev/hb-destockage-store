@@ -54,8 +54,8 @@
       {
         "type": "ul",
         "items": [
-          "لا نستعمل ملفات تعريف الارتباط (كوكيز).",
-          "لا نستعمل أدوات إعلانية أو أدوات تتبّع من جهات أخرى.",
+          "لا نستعمل ملفات تعريف الارتباط (كوكيز)، إلا ملفات ميتا إذا قبلت ذلك صراحة.",
+          "لا نستعمل أدوات إعلانية أو أدوات تتبّع من جهات أخرى، إلا قياس ميتا إذا قبلت ذلك صراحة.",
           "لا نبيع معلوماتك."
         ]
       },
@@ -136,8 +136,8 @@
       {
         "type": "ul",
         "items": [
-          "Aucun cookie.",
-          "Aucun outil publicitaire ni de suivi tiers.",
+          "Aucun cookie, sauf ceux de Meta si vous l'acceptez expressément.",
+          "Aucun outil publicitaire ni de suivi tiers, sauf la mesure Meta si vous l'acceptez expressément.",
           "Nous ne vendons pas vos données."
         ]
       },
