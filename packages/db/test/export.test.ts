@@ -1,6 +1,7 @@
 // DB-5 (second half): exportCatalogSnapshot on workerd D1.
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { fixtureSnapshot, parseSnapshot, type CatalogSnapshot } from '@hb/catalog';
 import { exportCatalogSnapshot } from '../src/export.ts';
@@ -75,15 +76,17 @@ describe('exportCatalogSnapshot', () => {
   });
 });
 
-const root = process.env.HB_SEED_ROOT;
-describe.skipIf(!root || !existsSync(join(root, 'data', 'catalog', 'validate.mjs')))('exportCatalogSnapshot on the real seed', () => {
+// Real data: HB_SEED_ROOT, else the repo itself once data/ is there, so it runs in npm test and the gate.
+const repoRoot = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
+const root = process.env.HB_SEED_ROOT ?? repoRoot;
+describe.skipIf(!existsSync(join(root, 'data', 'catalog', 'validate.mjs')))('exportCatalogSnapshot on the real seed', () => {
   test('seeded D1 exports a snapshot that passes full CAT-1 validation (69 wilayas)', async () => {
-    const { input } = await loadSeedInput(root!);
+    const { input } = await loadSeedInput(root);
     await load(input);
     const out = await exportCatalogSnapshot(db, { publishRunId: 7 });
     expect(out.wilayas).toHaveLength(69);
     expect(out.products).toHaveLength(input.products.length);
     expect(out.meta.publishRunId).toBe(7);
     expect(() => parseSnapshot(JSON.parse(JSON.stringify(out)), 'json round trip')).not.toThrow();
-  });
+  }, 900_000); // seeding ~2,300 statements one by one over the local proxy: slow on a loaded machine
 });
