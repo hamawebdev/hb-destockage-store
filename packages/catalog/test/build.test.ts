@@ -345,3 +345,19 @@ describe('home hero (lead ruling: no implicit hero)', () => {
     expect(buildHomeProps(ctxWith(104), 'fr').hero.product?.id).toBe(104);
   });
 });
+
+test('SLOT_SIZES describe the rendered slot width (lead: never under-resolve)', async () => {
+  const { SLOT_SIZES } = await import('../src/build.ts');
+  const { IMAGE_WIDTHS } = await import('../src/types.ts');
+  // Browser choice: the smallest candidate ≥ slot width × DPR (else the largest).
+  const pick = (cssPx: number, dpr: number): number => IMAGE_WIDTHS.find((w) => w >= cssPx * dpr) ?? 1200;
+  // Phones: the gallery is the container, 100vw minus a 1rem gutter on each side.
+  expect(SLOT_SIZES.gallery.endsWith('calc(100vw - 2rem)')).toBe(true);
+  expect(pick(360 - 32, 2.625)).toBe(960); // 360 px phone at DPR 2.625 still gets 960 w
+  expect(pick(412 - 32, 1.75)).toBe(720); // Lighthouse's 412 px × 1.75 slot really is 380 px
+  // Cards: 2 columns below 768 px (gutters 2 × 1rem + 12 px gap).
+  expect(SLOT_SIZES.card.endsWith('calc((100vw - 44px) / 2)')).toBe(true);
+  const p = buildProductProps(ctx, 'fr', 101);
+  expect(p.images[0]!.sizes).toBe(SLOT_SIZES.gallery);
+  expect(p.layout.lcpImage!.sizes).toBe(SLOT_SIZES.gallery);
+});
