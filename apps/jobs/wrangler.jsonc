@@ -1,21 +1,22 @@
 // hb-jobs: scheduled jobs + order-notification Queue consumer. Owner: jobs.
-// Local only (no deploy from this project): `npx wrangler dev --test-scheduled` (port 4120).
+// Local: `npx wrangler dev --test-scheduled` (port 4120). Production deploys go through .github/workflows/pipeline.yml.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "hb-jobs",
   "main": "src/index.ts",
+  "workers_dev": false,
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
   // 02:00 UTC = 03:00 Algiers: daily backup. 09:00 UTC: backup health check (JOBS-1).
   // 02:30 UTC: RUM rollup + 90-day purge (JOBS-5).
   "triggers": { "crons": ["0 2 * * *", "0 9 * * *", "30 2 * * *"] },
   "d1_databases": [
-    // Shared D1, repo convention (packages/db/wrangler.jsonc): local placeholder id, local state
-    // under ../../.wrangler/hb-local (`--persist-to`). The client sets the real id at deploy.
+    // Shared D1 (production id; preview_database_id keeps local dev on ../../.wrangler/hb-local).
     {
       "binding": "DB",
       "database_name": "hb-destockage",
-      "database_id": "00000000-0000-4000-8000-000000000d1b",
+      "database_id": "caa72d86-5488-425a-8031-3d3fbc47a248",
+      "preview_database_id": "00000000-0000-4000-8000-000000000d1b",
       "migrations_dir": "../../packages/db/migrations"
     }
   ],

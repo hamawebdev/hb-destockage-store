@@ -40,3 +40,28 @@ export async function budgetWithMode(io: BudgetIo, log: (l: string) => void, run
   }
   return { ok, summary: r.verdict, staticOnly: d.mode === 'static' };
 }
+
+/**
+ * `--budget report` (D-004: budgets report, they do not block). Runs the full budget and returns
+ * its true verdict, but can never fail the run, not even when the tool itself errors, and never
+ * touches last-good.json: a build nobody gated must not become the baseline for static-only runs.
+ */
+export async function budgetReportOnly(io: Pick<BudgetIo, 'runBudget'>, log: (l: string) => void): Promise<BudgetResult> {
+  log('budget mode: REPORT ONLY (full pass; never fails the run; last good build not updated)');
+  const report = { staticOnly: false, reportOnly: true };
+  try {
+    const r = await io.runBudget(false);
+    if (r.exitCode === 0 || r.exitCode === 1) return { ok: r.exitCode === 0, summary: r.verdict, ...report };
+    return { ok: false, summary: `budget could not run (exit ${r.exitCode}): ${r.verdict}`, ...report };
+  } catch (err) {
+    return { ok: false, summary: `budget could not run: ${err instanceof Error ? err.message : String(err)}`, ...report };
+  }
+}
+
+/**
+ * `--budget skip`: no budget run, no Chrome, no last-good write; the run's outcome cannot depend on
+ * the budget. For the deploy job, whose budgets run in the separate CI report job.
+ */
+export function budgetSkipped(): BudgetResult {
+  return { ok: true, summary: 'not run (--budget skip; budgets run in the CI report job)', skipped: true };
+}

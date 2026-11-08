@@ -143,3 +143,14 @@ Rules:
   - Geo data: the Algeria-Cities dataset pinned, then wilaya and commune names verified against the Journal Officiel
     scans (artifacts/GEO-1/, GEO-6/, GEO-7/).
 - Status: active
+
+## D-007 — Production deploys go through the GitHub Actions pipeline
+- Date: 2026-11-08 · Author: lead (client instruction) · Task: TOOL-8
+- Report says: CLAUDE.md "no deploy to the client's Cloudflare account and no Cloudflare login".
+- We do instead: the client signed off production deployment and lifted that rule for it. Every production deploy goes
+  through `.github/workflows/pipeline.yml`, with the token held in the protected GitHub environment. The Cloudflare
+  resources (database, buckets, queues, Access, Turnstile, runtime secrets) and the first catalogue load were one-time
+  setup from the CLI. Production account: 78a79deed8832af7d1b4378ef361fb81; domain comptoirdeluxe.com.
+- Why: client decision.
+- Evidence: client instruction, 2026-11-08; docs/DEPLOY.md.
+- Status: active

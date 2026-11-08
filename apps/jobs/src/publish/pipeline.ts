@@ -15,13 +15,21 @@ export interface BudgetResult {
   summary: string;
   /** JOBS-7: true when only the static pass ran (content-only change); recorded in timings_json. */
   staticOnly?: boolean;
+  /** `--budget report` (D-004): the verdict is recorded and printed but never fails the run. */
+  reportOnly?: boolean;
+  /** `--budget skip`: the budget did not run; budget_ok stays NULL (nothing was measured). */
+  skipped?: boolean;
 }
 
 export interface PublishStages {
   /** D1 → snapshot JSON file (db's exportCatalogSnapshot + catalog's fromExport validation). */
   exportSnapshot(runId: number, log: (line: string) => void): Promise<SnapshotResult>;
   /** Snapshot → catalogue assets + static site (pagedata + astro build). */
-  build(snapshot: SnapshotResult, log: (line: string) => void): Promise<Record<string, number> | void>;
+  /**
+   * Snapshot → site. Sub-stage timings are written into `timings` as they complete, so they are
+   * kept on the run even when a later sub-stage fails (JOBS-8).
+   */
+  build(snapshot: SnapshotResult, log: (line: string) => void, timings: Record<string, number>): Promise<void>;
   /** `npm run budget` (report kept next to the snapshot). */
   budget(snapshot: SnapshotResult, log: (line: string) => void): Promise<BudgetResult>;
 }
@@ -89,12 +97,11 @@ async function runOne(db: D1Database, id: number, stages: PublishStages, opts: P
   try {
     snapshot = await timed('export', 'exportMs', () => stages.exportSnapshot(id, log));
     log(`snapshot ${snapshot.sha256.slice(0, 12)}… (${snapshot.productCount} products)`);
-    const sub = await timed('build', 'buildMs', () => stages.build(snapshot!, log));
-    if (sub) Object.assign(timings, sub);
+    await timed('build', 'buildMs', () => stages.build(snapshot!, log, timings));
     budget = await timed('budget', 'budgetMs', () => stages.budget(snapshot!, log));
-    log(`budget: ${budget.ok ? 'PASS' : 'FAIL'}: ${budget.summary}`);
+    log(budget.skipped ? `budget: SKIPPED: ${budget.summary}` : `budget${budget.reportOnly ? ' (report only)' : ''}: ${budget.ok ? 'PASS' : 'FAIL'}: ${budget.summary}`);
     if (budget.staticOnly !== undefined) timings['budgetStaticOnly'] = budget.staticOnly ? 1 : 0;
-    if (!budget.ok) error = 'budget';
+    if (!budget.ok && !budget.reportOnly) error = 'budget';
   } catch (err) {
     error = `${stage}: ${oneLine(err instanceof Error ? err.message : String(err), 240)}`;
     log(`FAILED at ${stage}`);
@@ -111,7 +118,7 @@ async function runOne(db: D1Database, id: number, stages: PublishStages, opts: P
     productCount: snapshot?.productCount ?? null,
     buildMs: timings['totalMs'],
     timings,
-    budgetOk: budget ? budget.ok : null,
+    budgetOk: budget && !budget.skipped ? budget.ok : null,
     error,
     logTail: tail,
   };

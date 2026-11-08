@@ -12,16 +12,16 @@
   "preview_urls": false,
   "vars": {
     "ENV": "production",
-    // [PLACEHOLDER] the client's Zero Trust team domain and the Access application AUD tag.
-    "ACCESS_TEAM_DOMAIN": "https://placeholder.cloudflareaccess.com",
-    "ACCESS_AUD": "[PLACEHOLDER]"
+    "ACCESS_TEAM_DOMAIN": "https://delicate-band-95d7.cloudflareaccess.com",
+    "ACCESS_AUD": "a503a97b7a91ca1bc9a03e4f44ec7163d28bcb510951815d1db0157f211cc74a"
   },
   // Shared local D1 convention: packages/db/wrangler.jsonc.
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "hb-destockage",
-      "database_id": "00000000-0000-4000-8000-000000000d1b",
+      "database_id": "caa72d86-5488-425a-8031-3d3fbc47a248",
+      "preview_database_id": "00000000-0000-4000-8000-000000000d1b",
       "migrations_dir": "../../packages/db/migrations"
     }
   ],
@@ -29,7 +29,6 @@
   // Every request, including static files, goes through the Worker (auth + headers).
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
   "observability": { "enabled": true },
-  "dev": { "port": 4240, "ip": "127.0.0.1" }
-  // Production route ([PLACEHOLDER], no deploy in this project):
-  // "routes": [{ "pattern": "admin.<domain>", "custom_domain": true }]
+  "dev": { "port": 4240, "ip": "127.0.0.1" },
+  "routes": [{ "pattern": "admin.comptoirdeluxe.com", "custom_domain": true }]
 }

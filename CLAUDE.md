@@ -46,6 +46,6 @@ Any deviation from it needs a measurement or a cited source, recorded in [DECISI
 - Outputs in `artifacts/<ID>/` (main checkout); report paths. Heavy jobs (build, vitest, wrangler dev, Chrome) via `scripts/lib/locks.sh heavy -- <cmd>` (3 slots; a gate holds one, max 2 gates); Lighthouse exclusive; ports: `scripts/team/port.sh <name>`.
 
 ## Non-goals
-- No deploy to the client's Cloudflare account and no Cloudflare login. Measure with local Wrangler and `wrangler deploy --temporary` only.
+- Production deploys go only through the GitHub Actions pipeline (`.github/workflows/pipeline.yml`, how-to in `docs/DEPLOY.md`), under the client's sign-off of 2026-11-08 (D-007). Never run `wrangler deploy`, `wrangler d1 … --remote` or any other command that reaches the production account by hand, except the one-time first setup recorded in D-007. Never run seed data against production.
 - No Law 18-05 hosting/.dz analysis (client accepted Cloudflare). No Rust, no CMS (Payload etc.), no SPA, no KV catalogue, no page rendering from D1.
 - No SMS provider integration beyond a disabled stub (OTP only for flagged orders, later). Courier API integration, **including the 58-wilaya courier codes**, comes later (D-001).
