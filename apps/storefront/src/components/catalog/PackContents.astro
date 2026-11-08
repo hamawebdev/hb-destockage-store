@@ -1,0 +1,53 @@
+---
+/** What a pack contains: thumbnail, quantity, name (linked when the item has its own page). */
+import type { Lang, PackItemProps, StringTable } from '@hb/catalog';
+import Picture from '../Picture.astro';
+import { formatInt, latinLang, showDevMarkers, t } from './lib/i18n.ts';
+
+interface Props {
+  items: readonly PackItemProps[];
+  lang: Lang;
+  strings: StringTable;
+}
+const { items, lang, strings } = Astro.props;
+const dev = showDevMarkers();
+---
+{items.length > 0 && (
+  <section class="cat-sec cat-pack" aria-labelledby="cat-pack-h">
+    <h2 id="cat-pack-h" class="cat-sec-h">{t(strings, 'product.pack.title')}</h2>
+    <p class="cat-pack-intro">{t(strings, 'product.pack.intro')}</p>
+    <ul class="cat-pack-list" role="list">
+      {items.map((it) => (
+        <li class="cat-pack-item">
+          <span class="cat-pack-thumb">
+            {it.image ? <Picture image={{ ...it.image, alt: '', lcp: false }} sizes="64px" /> : null}
+          </span>
+          <span class="cat-pack-text">
+            {it.brandLatin && <span class="cat-pack-brand"><bdi lang={latinLang(lang)} dir="ltr">{it.brandLatin}</bdi></span>}
+            {it.href ? <a href={it.href} class="cat-pack-name">{it.name}</a> : <span class="cat-pack-name">{it.name}</span>}
+            {it.variantLabel && <span class="cat-pack-var">{it.variantLabel}</span>}
+            {dev && it.placeholder && <span class="cat-pack-ph">{t(strings, 'dev.placeholder')}</span>}
+          </span>
+          <span class="cat-pack-qty">{t(strings, 'product.pack.qty', { qty: formatInt(lang, it.qty) })}</span>
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+<style is:global>
+  .cat-pack-intro{margin:0 0 var(--space-4);color:var(--color-text-secondary)}
+  .cat-pack-list{display:grid;gap:var(--space-2);margin:0;padding:0;list-style:none}
+  @media (min-width:768px){.cat-pack-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .cat-pack-item{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:var(--space-4);padding:var(--space-3);border-radius:var(--radius-lg);background:var(--color-surface-alt)}
+  .cat-pack-thumb{inline-size:64px;block-size:64px;overflow:hidden;border-radius:var(--radius-md);background:var(--color-surface)}
+  .cat-pack-thumb img{display:block;inline-size:100%;block-size:100%;object-fit:contain}
+  .cat-pack-text{display:grid;gap:2px;line-height:var(--lh-ui)}
+  .cat-pack-brand{color:var(--color-text-secondary);font-size:var(--fs-caption)}
+  .cat-pack-name{color:var(--color-text);font-weight:var(--fw-emphasis)}
+  a.cat-pack-name{display:inline-flex;align-items:center;min-block-size:24px;color:var(--color-accent-text);text-decoration:none}
+  a.cat-pack-name:hover{text-decoration:underline}
+  .cat-pack-var{color:var(--color-text-secondary);font-size:var(--fs-small)}
+  .cat-pack-ph{color:var(--color-warning);font-size:var(--fs-caption)}
+  .cat-pack-qty{padding:0 var(--space-3);border-radius:var(--radius-pill);background:var(--color-surface);font-variant-numeric:tabular-nums;font-size:var(--fs-small);line-height:2}
+</style>

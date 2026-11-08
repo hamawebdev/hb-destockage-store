@@ -3,6 +3,11 @@
  * Base layout for every storefront page. Contract (SHELL-1):
  *   <Base layout={props.layout} scripts={['/js/x.js']}> …page content… <Fragment slot="head">…</Fragment></Base>
  * - `layout`: CAT-1 LayoutProps (lang, dir, SEO, nav, contact, strings, lcpImage, preloadArabicFont).
+ * - `lcp`: set it when the page renders <Picture image={layout.lcpImage}> above the fold; only then
+ *   is the LCP image preloaded (imagesrcset/imagesizes identical to the <img>). hb-postbuild fails
+ *   the build on an image preload that matches no <img>/<source> srcset on the page.
+ * - `kind`: template variant for measure's registry (MEAS-5) → <html data-tpl-kind>. Product:
+ *   simple|variable|pack (product.kind); category: top|sub. Any other value or template fails the build.
  * - `scripts`: same-origin /js/*.js modules (optional ?v=<hash>), imported after `load` (or on first
  *   focusin/pointerdown) by the constant inline LOADER. Components may also carry their own data-js.
  * - default slot: rendered inside <main id="main">.
@@ -14,38 +19,77 @@ import type { LayoutProps } from '@hb/catalog';
 import '../styles/global.css';
 import Header from '../components/chrome/Header.astro';
 import Footer from '../components/chrome/Footer.astro';
-import { LOADER } from '../lib/inline-scripts.mjs';
-import { t } from '../lib/strings.ts';
+import { LOADER, SPECULATION_RULES } from '../lib/inline-scripts.mjs';
+import { PLACEHOLDER_RE, t } from '../lib/strings.ts';
 import arabicFontUrl from '@hb/ui-tokens/fonts/noto-sans-arabic-400.woff2?url';
+import { SITE_ORIGIN } from '../lib/site.mjs';
 
 interface Props {
   layout: LayoutProps;
+  /** The page renders layout.lcpImage with <Picture>: preload it. */
+  lcp?: boolean;
+  /** Template variant (MEAS-5): product simple|variable|pack, category top|sub. */
+  kind?: string;
   scripts?: readonly string[];
 }
-const { layout: l, scripts = [] } = Astro.props;
+const { layout: l, lcp = false, kind, scripts = [] } = Astro.props;
+
+const KINDS: Readonly<Record<string, readonly string[]>> = { product: ['simple', 'variable', 'pack'], category: ['top', 'sub'] };
+if (kind !== undefined && !(KINDS[l.template] ?? []).includes(kind)) {
+  throw new Error(`Base: kind "${kind}" is not valid for template "${l.template}" (allowed: ${(KINDS[l.template] ?? []).join('|') || 'none'})`);
+}
 
 for (const s of scripts) {
   if (!/^\/js\/[\w.-]+\.js(\?v=[\w-]+)?$/.test(s)) throw new Error(`Base: script "${s}" must be a same-origin /js/*.js path`);
 }
 
+// <title> and meta description carry no dev pill: a production build (HB_STRICT_COPY=1) refuses a
+// placeholder marker there, as everywhere else (SHELL-4 r1 N1, class-wide for every template).
+if (process.env['HB_STRICT_COPY'] === '1') {
+  for (const [what, v] of [['title', l.title], ['description', l.description]] as const) {
+    if (PLACEHOLDER_RE.test(v)) throw new Error(`Base: page ${what} is a placeholder (${l.path}): "${v.slice(0, 60)}"`);
+  }
+}
+
 // Same file as the @font-face in @hb/ui-tokens/font-face.css → same hashed URL for the preload.
-const img = l.lcpImage;
+const img = lcp ? l.lcpImage : null;
+const abs = (path: string) => new URL(path, SITE_ORIGIN).href;
+// Link previews (WhatsApp/Facebook) don't read AVIF: product JPEG from CAT-4, else brand's default.
+const og = l.ogImage ?? { url: `/og-default-${l.lang}.jpg`, width: 1200, height: 630, alt: t(l.strings, 'meta.ogImageAlt') };
+const locale = (lang: string) => (lang === 'ar' ? 'ar_DZ' : 'fr_DZ');
 ---
 <!doctype html>
-<html lang={l.lang} dir={l.dir} data-tpl={l.template}>
+<html lang={l.lang} dir={l.dir} data-tpl={l.template} data-tpl-kind={kind}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{l.title}</title>
+    {l.preloadArabicFont && <link rel="preload" href={arabicFontUrl} as="font" type="font/woff2" crossorigin />}
+    {img && <link rel="preload" as="image" type={img.type} imagesrcset={img.srcset} imagesizes={img.sizes} fetchpriority="high" />}
+    <script type="speculationrules" is:inline set:html={SPECULATION_RULES} />
     <meta name="description" content={l.description} />
     {l.noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={l.canonicalUrl} />}
     {l.alternates.map((a) => <link rel="alternate" hreflang={a.hreflang} href={a.href} />)}
-    {l.preloadArabicFont && <link rel="preload" href={arabicFontUrl} as="font" type="font/woff2" crossorigin />}
-    {img && <link rel="preload" as="image" type={img.type} imagesrcset={img.srcset} imagesizes={img.sizes} fetchpriority="high" />}
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content={l.template === 'product' ? 'product' : 'website'} />
+    <meta property="og:site_name" content={l.storeName} />
+    <meta property="og:title" content={l.title} />
+    <meta property="og:description" content={l.description} />
+    {!l.noindex && <meta property="og:url" content={l.canonicalUrl} />}
+    <meta property="og:locale" content={locale(l.lang)} />
+    <meta property="og:locale:alternate" content={locale(l.languageSwitch.lang)} />
+    <meta property="og:image" content={abs(og.url)} />
+    <meta property="og:image:width" content={String(og.width)} />
+    <meta property="og:image:height" content={String(og.height)} />
+    <meta property="og:image:alt" content={og.alt} />
+    <meta name="twitter:card" content="summary_large_image" />
     <slot name="head" />
   </head>
   <body data-js={scripts.length ? scripts.join(' ') : undefined}>
-    <a class="skip" href="#main">{t(l.strings, 'chrome.skip')}</a>
+    <a class="skip-link" href="#main">{t(l.strings, 'chrome.skip')}</a>
     <Header layout={l} />
     <main id="main" tabindex="-1">
       <slot />
@@ -54,23 +98,3 @@ const img = l.lcpImage;
     <script is:inline set:html={LOADER} />
   </body>
 </html>
-
-<style is:global>
-  @layer components {
-    .skip {
-      position: absolute;
-      inset-inline-start: var(--space-2);
-      inset-block-start: calc(-1 * var(--tap-min) - var(--space-4));
-      z-index: var(--z-skip);
-      display: inline-flex;
-      align-items: center;
-      min-block-size: var(--tap-min);
-      padding-inline: var(--space-4);
-      background: var(--color-surface-inverse);
-      color: var(--color-text-inverse);
-      border-radius: var(--radius-pill);
-    }
-    .skip:focus { inset-block-start: var(--space-2); }
-    main:focus { outline: none; }
-  }
-</style>

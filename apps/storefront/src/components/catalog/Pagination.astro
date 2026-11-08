@@ -1,0 +1,71 @@
+---
+/**
+ * Static pagination (one pre-rendered page per n). Numbers are windowed around the current page
+ * when there are more than 7. Prev/next chevrons mirror in RTL.
+ */
+import type { Lang, PaginationProps, StringTable } from '@hb/catalog';
+import { formatInt, t } from './lib/i18n.ts';
+
+interface Props {
+  pagination: PaginationProps;
+  lang: Lang;
+  strings: StringTable;
+}
+const { pagination: p, lang, strings } = Astro.props;
+
+type Slot = { n: number; href: string; current: boolean } | 'gap';
+function windowed(): Slot[] {
+  if (p.pages.length <= 7) return [...p.pages];
+  const keep = new Set([1, p.pageCount, p.page - 1, p.page, p.page + 1]);
+  const out: Slot[] = [];
+  for (const pg of p.pages) {
+    if (keep.has(pg.n)) out.push(pg);
+    else if (out[out.length - 1] !== 'gap') out.push('gap');
+  }
+  return out;
+}
+const slots = windowed();
+const status = t(strings, 'catalog.pagination.status', { n: formatInt(lang, p.page), total: formatInt(lang, p.pageCount) });
+---
+{p.pageCount > 1 && (
+  <nav class="cat-pager" aria-label={t(strings, 'catalog.pagination.label')}>
+    <p class="cat-pager-status">{status}</p>
+    <ul role="list">
+      <li>
+        {p.prevHref ? (
+          <a class="cat-pager-step" href={p.prevHref} rel="prev"><span class="cat-chev cat-chev--start" aria-hidden="true"></span><span>{t(strings, 'catalog.pagination.prev')}</span></a>
+        ) : (
+          <span class="cat-pager-step" aria-disabled="true"><span class="cat-chev cat-chev--start" aria-hidden="true"></span><span>{t(strings, 'catalog.pagination.prev')}</span></span>
+        )}
+      </li>
+      {slots.map((s) =>
+        s === 'gap' ? (
+          <li class="cat-pager-gap" aria-hidden="true">…</li>
+        ) : (
+          <li class="cat-pager-n">
+            <a href={s.href} aria-current={s.current ? 'page' : undefined} aria-label={t(strings, 'catalog.pagination.page', { n: formatInt(lang, s.n) })}>{formatInt(lang, s.n)}</a>
+          </li>
+        ),
+      )}
+      <li>
+        {p.nextHref ? (
+          <a class="cat-pager-step" href={p.nextHref} rel="next"><span>{t(strings, 'catalog.pagination.next')}</span><span class="cat-chev cat-chev--end" aria-hidden="true"></span></a>
+        ) : (
+          <span class="cat-pager-step" aria-disabled="true"><span>{t(strings, 'catalog.pagination.next')}</span><span class="cat-chev cat-chev--end" aria-hidden="true"></span></span>
+        )}
+      </li>
+    </ul>
+  </nav>
+)}
+
+<style is:global>
+  .cat-pager{display:grid;justify-items:center;gap:var(--space-3);margin-block-start:var(--space-12)}
+  .cat-pager-status{margin:0;color:var(--color-text-secondary);font-size:var(--fs-small)}
+  .cat-pager ul{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:var(--space-1);margin:0;padding:0;list-style:none}
+  .cat-pager a,.cat-pager-step{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);min-inline-size:var(--tap-min);min-block-size:var(--tap-min);padding-inline:var(--space-3);border-radius:var(--radius-pill);color:var(--color-accent-text);text-decoration:none;font-variant-numeric:tabular-nums}
+  .cat-pager a:hover{background:var(--color-surface-alt)}
+  .cat-pager a[aria-current]{background:var(--color-text);color:var(--color-surface)}
+  .cat-pager-step[aria-disabled]{color:var(--color-text-secondary)}
+  .cat-pager-gap{min-inline-size:var(--space-6);text-align:center;color:var(--color-text-secondary)}
+  @media (max-width:767.98px){.cat-pager-step span:not(.cat-chev){position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+</style>

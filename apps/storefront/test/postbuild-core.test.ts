@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { checkPage, findPhysicalProperty, mergeStyles, pruneCustomProperties, removeEmptyRules } from '../integrations/postbuild-core.mjs';
-import { ALLOWED_INLINE_SCRIPTS, LOADER } from '../src/lib/inline-scripts.mjs';
+import { checkPage, findPhysicalProperty, mergeStyles, orphanImagePreload, pruneCustomProperties, removeEmptyRules } from '../integrations/postbuild-core.mjs';
+import { ALLOWED_INLINE_SCRIPTS, LOADER, SPECULATION_RULES } from '../src/lib/inline-scripts.mjs';
 
 const page = (head: string, body = '', html = '<html lang="fr" dir="ltr">') =>
   `<!doctype html>${html}<head><meta charset="utf-8">${head}</head><body>${body}<script>${LOADER}</script></body></html>`;
@@ -74,6 +74,11 @@ describe('checkPage', () => {
     expect(ok(page('<style>p{}</style><script type="application/ld+json">{"a":1}</script>'))).toEqual([]);
     expect(ok(page('<style>p{}</style><script type="application/ld+json">{"a":"<script"}</script>')).join()).toMatch(/ld\+json/);
   });
+  test('an image preload must match an <img>/<source> srcset', () => {
+    const pre = '<link rel="preload" as="image" imagesrcset="/a-360.avif 360w" imagesizes="100vw">';
+    expect(ok(page(`<style>p{}</style>${pre}`)).join()).toMatch(/image preload matches no/);
+    expect(ok(page(`<style>p{}</style>${pre}`, '<img srcset="/a-360.avif 360w" src="/a-360.avif" alt="">'))).toEqual([]);
+  });
   test('no cross-origin resource in <head>', () => {
     expect(ok(page('<style>p{}</style><link rel="preconnect" href="https://challenges.cloudflare.com">')).join()).toMatch(/cross-origin/);
     expect(ok(page('<style>p{}</style><link rel="alternate" hreflang="ar" href="https://x.dz/ar/">'))).toEqual([]);
@@ -81,8 +86,8 @@ describe('checkPage', () => {
 });
 
 describe('LOADER', () => {
-  test('is the only allowed inline script and only accepts same-origin /js/*.js', () => {
-    expect(ALLOWED_INLINE_SCRIPTS).toEqual([LOADER]);
+  test('is allow-listed and only accepts same-origin /js/*.js', () => {
+    expect(ALLOWED_INLINE_SCRIPTS).toEqual([LOADER, SPECULATION_RULES]);
     const re = /if\(\/(.+?)\/\.test\(u\)\)/.exec(LOADER)?.[1];
     expect(re).toBeDefined();
     const rx = new RegExp(re as string);
@@ -93,4 +98,41 @@ describe('LOADER', () => {
     expect(rx.test('https://evil.example/js/a.js')).toBe(false);
     expect(rx.test('//evil.example/js/a.js')).toBe(false);
   });
+});
+
+describe('orphanImagePreload', () => {
+  const pre = '<link rel="preload" as="image" imagesrcset="/a-360.avif 360w" imagesizes="100vw">';
+  test('matched by an <img srcset>', () => expect(orphanImagePreload(`${pre}<img srcset="/a-360.avif 360w">`)).toBeNull());
+  test("the preload's own imagesrcset does not count", () => expect(orphanImagePreload(pre)).toBe('/a-360.avif 360w'));
+  test('a different srcset does not count', () => expect(orphanImagePreload(`${pre}<img srcset="/b-360.avif 360w">`)).toBe('/a-360.avif 360w'));
+  test('font preloads are ignored', () => expect(orphanImagePreload('<link rel="preload" as="font" href="/f.woff2">')).toBeNull());
+});
+
+describe('trimUnusedRules (guarded)', async () => {
+  const { trimUnusedRules, selectorMayMatch, classesIn } = await import('../integrations/postbuild-core.mjs');
+  const known = (c: string) => ['used', 'a', 'b', 'js-added'].includes(c);
+  test('drops a plain rule whose class is unused, keeps used ones', () => {
+    expect(trimUnusedRules('.used{c:1}.gone{c:2}', known)).toBe('.used{c:1}');
+  });
+  test('keeps a rule if ANY selector in the list may match', () => {
+    expect(trimUnusedRules('.gone,.used{c:1}', known)).toBe('.gone,.used{c:1}');
+  });
+  test('keeps attribute/state selectors and :has/:dir/:lang/:is/:where/:not', () => {
+    for (const sel of ['.gone[open]', '.gone[aria-current]', '.gone:has(.x)', '.gone:dir(rtl)', ':lang(ar) .gone', ':is(.gone)', ':where(.gone)', '.used:not(.gone)']) {
+      expect(selectorMayMatch(sel, known), sel).toBe(true);
+    }
+  });
+  test('keeps type, universal and pseudo-element-only selectors', () => {
+    expect(trimUnusedRules('p{c:1}*{c:2}::view-transition-group(root){c:3}', known)).toBe('p{c:1}*{c:2}::view-transition-group(root){c:3}');
+  });
+  test('recurses into @layer/@media/@supports/@starting-style and drops them when empty', () => {
+    expect(trimUnusedRules('@layer x{.gone{c:1}.used{c:2}}@media (min-width:1px){.gone{c:3}}@starting-style{.gone{c:4}}', known)).toBe('@layer x{.used{c:2}}');
+  });
+  test('never touches @font-face, @keyframes or statement at-rules', () => {
+    const css = '@layer a,b;@font-face{font-family:F;src:url(x)}@keyframes k{0%{opacity:0}}';
+    expect(trimUnusedRules(css, known)).toBe(css);
+  });
+  test('a class referenced only by client JS is known through the caller', () => expect(trimUnusedRules('.js-added{c:1}', known)).toBe('.js-added{c:1}'));
+  test('strings with braces are not split', () => expect(trimUnusedRules('.used::after{content:"}{"}', known)).toBe('.used::after{content:"}{"}'));
+  test('classesIn reads class attributes', () => expect([...classesIn('<a class="x  y"><b class="z">')]).toEqual(['x', 'y', 'z']));
 });

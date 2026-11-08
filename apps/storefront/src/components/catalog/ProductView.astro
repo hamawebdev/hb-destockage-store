@@ -1,0 +1,145 @@
+---
+/**
+ * Product page body (inside shell's Base layout).
+ *
+ *   phone:   crumbs · gallery · brand/title/summary · price+stock · picker · order form · delivery
+ *            · pack contents · description · related; a sticky "Commander · prix" bar (#order link)
+ *            until the form scrolls into view.
+ *   ≥1024:   gallery (sticky, 7 cols) | buy column (5 cols), then the sections full width.
+ *
+ * Order form: the page file passes orderform's <OrderForm> into the named slot `order` (it renders
+ * section#order > form#order-form). Without it the buy box has no form: development builds show a
+ * marked dev placeholder (never a fake form), production builds show nothing and drop the sticky
+ * bar, whose only job is to jump to #order.
+ *
+ * The selected variant's price/stock/SKU live in `.cat-vps` blocks (see lib/variants.ts) that
+ * constant CSS (single option) or variant.js (several options) switch. The page file puts the
+ * JSON-LD (lib/jsonld.ts) into Base's head slot.
+ */
+import './catalog.css';
+import type { ProductProps } from '@hb/catalog';
+import Breadcrumbs from './Breadcrumbs.astro';
+import DeliveryInfo from './DeliveryInfo.astro';
+import Gallery from './Gallery.astro';
+import PackContents from './PackContents.astro';
+import Price from './Price.astro';
+import ProductGrid from './ProductGrid.astro';
+import Stock from './Stock.astro';
+import VariantPicker from './VariantPicker.astro';
+import { latinLang, showDevMarkers, t } from './lib/i18n.ts';
+import { defaultVariant, pickerMode, variantBlocks } from './lib/variants.ts';
+
+type Props = ProductProps;
+const p = Astro.props;
+const { layout, product, category, breadcrumbs, images, options, variants, packItems, related, orderForm } = p;
+const { lang, strings } = layout;
+const mode = pickerMode({ options, variants });
+const def = defaultVariant(variants);
+const blocks = mode === 'none' ? [def] : variantBlocks({ options, variants });
+const ph = showDevMarkers() && (product.placeholder || product.translationPlaceholder);
+const hasForm = Astro.slots.has('order');
+const dev = import.meta.env.DEV;
+---
+<div class="cat-pdp" data-mode={mode}>
+  <div class="cat-pdp-crumbs"><Breadcrumbs items={breadcrumbs} strings={strings} /></div>
+
+  <div class="cat-pdp-top">
+    <div class="cat-pdp-media">
+      <Gallery images={images} name={product.name} lang={lang} strings={strings} />
+    </div>
+
+    <div class="cat-pdp-buy">
+      <header class="cat-pdp-head">
+        {product.brandLatin && <p class="cat-pdp-brand"><bdi lang={latinLang(lang)} dir="ltr">{product.brandLatin}</bdi></p>}
+        <h1 class="cat-pdp-title">{product.name}</h1>
+        {ph && <p class="cat-pdp-ph">{t(strings, 'dev.placeholderBanner')}</p>}
+        {product.summary && <p class="cat-pdp-summary">{product.summary}</p>}
+      </header>
+
+      <div class="cat-vps" aria-live="polite">
+        {blocks.map((v) =>
+          v ? (
+            <div class:list={['cat-vp', { 'cat-vp-d': v === def }]} data-k={v.key} data-v={v.id} data-p={v.price.amountDzd} data-max={v.maxQty} data-a={v.available ? '1' : '0'} data-img={v.imageIndex ?? undefined}>
+              <Price price={v.price} strings={strings} size="page" />
+              <div class="cat-vp-meta">
+                <Stock stock={v.stock} lang={lang} strings={strings} />
+                <p class="cat-sku">{t(strings, 'product.sku')} <bdi dir="ltr">{v.sku}</bdi></p>
+              </div>
+            </div>
+          ) : (
+            <div class="cat-vp"><p class="cat-vp-none-t">{t(strings, 'product.option.unavailable')}</p></div>
+          ),
+        )}
+        {mode === 'multi' && <div class="cat-vp cat-vp-none"><p class="cat-vp-none-t">{t(strings, 'product.option.unavailableCombo')}</p></div>}
+      </div>
+
+      <VariantPicker options={options} variants={variants} strings={strings} />
+
+      {hasForm ? <slot name="order" /> : dev && <p class="cat-dev-slot">DEV: order form slot is empty (orderform's OrderForm is wired by the page file) [PLACEHOLDER]</p>}
+
+      <DeliveryInfo strings={strings} links={layout.footerLinks} />
+    </div>
+  </div>
+
+  <PackContents items={packItems} lang={lang} strings={strings} />
+
+  {product.description.length > 0 && (
+    <section class="cat-sec cat-desc-sec" aria-labelledby="cat-desc-h">
+      <h2 id="cat-desc-h" class="cat-sec-h">{t(strings, 'product.description.title')}</h2>
+      <div class="cat-prose">{product.description.map((para) => <p>{para}</p>)}</div>
+    </section>
+  )}
+
+  {related.length > 0 && (
+    <section class="cat-sec cat-rel" aria-labelledby="cat-rel-h">
+      <div class="cat-sec-bar">
+        <h2 id="cat-rel-h" class="cat-sec-h">{t(strings, 'product.related.title')}</h2>
+        <a class="cat-more" href={category.href}>{t(strings, 'product.category.more', { category: category.name })}<span class="cat-chev cat-chev--end" aria-hidden="true"></span></a>
+      </div>
+      <ProductGrid cards={related} lang={lang} strings={strings} level={3} />
+    </section>
+  )}
+
+  {hasForm && orderForm.orderable && (
+    <div class="cat-buybar">
+      <div class="cat-vps cat-buybar-price">
+        {blocks.map((v) => <span class:list={['cat-vp', { 'cat-vp-d': v === def }]} data-k={v?.key}>{v?.price.label}</span>)}
+        {mode === 'multi' && <span class="cat-vp cat-vp-none"></span>}
+      </div>
+      <a class="cat-btn cat-buybar-cta" href="#order">{t(strings, 'product.orderCta')}</a>
+    </div>
+  )}
+</div>
+
+<style is:global>
+  .cat-pdp{inline-size:min(100% - 2 * var(--gutter), var(--container-max));margin-inline:auto;padding-block:var(--space-2) var(--section-block);timeline-scope:--cat-order}
+  .cat-pdp-crumbs{margin-block-end:var(--space-3)}
+  .cat-dev-slot{margin:0;padding:var(--space-4);border:1px dashed var(--color-warning);border-radius:var(--radius-md);color:var(--color-warning);font-size:var(--fs-small)}
+  .cat-pdp-top{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-6)}
+  @media (min-width:1024px){
+    .cat-pdp-top{grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:var(--space-16);align-items:start}
+    .cat-pdp-media{position:sticky;inset-block-start:calc(var(--header-h) + var(--space-6))}
+  }
+  .cat-pdp-buy{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-6);min-inline-size:0}
+  .cat-pdp-head{display:grid;gap:var(--space-2)}
+  .cat-pdp-brand{margin:0;color:var(--color-text-secondary);font-size:var(--fs-small);line-height:var(--lh-ui);text-transform:uppercase;letter-spacing:var(--ls-caps)}
+  .cat-pdp-title{margin:0;font-size:var(--fs-h1);font-weight:var(--fw-emphasis);line-height:var(--lh-heading);letter-spacing:var(--ls-display);text-wrap:balance}
+  .cat-pdp-ph{margin:0;padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);background:var(--color-warning-surface);color:var(--color-warning);font-size:var(--fs-small)}
+  .cat-pdp-summary{margin:0;color:var(--color-text-secondary);font-size:var(--fs-lead);line-height:var(--lh-body);text-wrap:pretty}
+  .cat-vp{display:none}
+  .cat-vp-d{display:block}
+  .cat-vps.is-js>.cat-vp{display:none}
+  .cat-vps.is-js>.is-on{display:block}
+  .cat-vp-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-4);margin-block-start:var(--space-2)}
+  .cat-sku{margin:0;color:var(--color-text-secondary);font-size:var(--fs-caption)}
+  .cat-vp-none-t{margin:0;color:var(--color-danger);font-size:var(--fs-small)}
+  .cat-pdp #order{view-timeline:--cat-order block}
+  .cat-prose{max-inline-size:var(--measure)}
+  .cat-prose p{margin:0 0 var(--space-4);line-height:var(--lh-body)}
+  .cat-buybar{position:fixed;inset-inline:0;inset-block-end:0;z-index:var(--z-sticky);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);min-block-size:var(--bottom-bar-h);padding:var(--space-2) var(--gutter) calc(var(--space-2) + env(safe-area-inset-bottom));background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 -1px 0 rgba(0,0,0,.08);animation:cat-bar-out linear both;animation-timeline:--cat-order;animation-range:entry 0% entry 40%}
+  .cat-buybar-price{font-weight:var(--fw-emphasis);font-variant-numeric:tabular-nums}
+  .cat-buybar-cta{flex:none}
+  @keyframes cat-bar-out{to{opacity:0;visibility:hidden;translate:0 100%}}
+  @media (min-width:1024px){.cat-buybar{display:none}}
+  @media (max-width:1023.98px){.cat-pdp{padding-block-end:calc(var(--section-block) + var(--bottom-bar-h))}}
+</style>

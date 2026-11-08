@@ -1,0 +1,77 @@
+---
+/**
+ * Content page (about, delivery, returns, contact, privacy, legal) from CAT-1 ContentProps.
+ * Structured blocks only (h2, p, ul, ol, link): no HTML in data, everything escaped by Astro.
+ * Placeholder handling (CLAUDE.md, BUG-11 class-wide): each text goes through <Copy> (marker
+ * stripped, dev pill; HB_STRICT_COPY=1 refuses it), and a page marked placeholder shows the dev
+ * banner (dev.placeholderBanner) in non-strict builds only. Links: same-origin paths, tel: and
+ * https://wa.me/ (plain links; validated by @hb/catalog). Owner: shell.
+ */
+import type { ContentBlock, ContentProps } from '@hb/catalog';
+import Breadcrumbs from '../catalog/Breadcrumbs.astro';
+import Copy from '../Copy.astro';
+import { t } from '../../lib/strings.ts';
+
+interface Props {
+  props: ContentProps;
+}
+const { props: p } = Astro.props;
+const l = p.layout;
+const strict = process.env['HB_STRICT_COPY'] === '1';
+const date = new Intl.DateTimeFormat(l.lang === 'ar' ? 'ar-DZ' : 'fr-DZ', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Algiers' }).format(new Date(p.page.updatedAt));
+const isExternal = (href: string) => href.startsWith('https://');
+const blocks: readonly ContentBlock[] = p.page.blocks;
+---
+<article class="container ct">
+  <Breadcrumbs items={p.breadcrumbs} strings={l.strings} />
+  {!strict && p.page.placeholder && <p class="ct-banner" role="note">{t(l.strings, 'dev.placeholderBanner')}</p>}
+  <header class="ct-head">
+    <h1 class="ct-title"><Copy strings={l.strings} text={p.page.title} /></h1>
+    <p class="ct-date">{t(l.strings, 'content.lastUpdated', { date })}</p>
+  </header>
+  <div class="ct-body reading">
+    {
+      blocks.map((b) => {
+        switch (b.type) {
+          case 'h2':
+            return <h2><Copy strings={l.strings} text={b.text} /></h2>;
+          case 'p':
+            return <p><Copy strings={l.strings} text={b.text} /></p>;
+          case 'ul':
+            return <ul>{b.items.map((x) => <li><Copy strings={l.strings} text={x} /></li>)}</ul>;
+          case 'ol':
+            return <ol>{b.items.map((x) => <li><Copy strings={l.strings} text={x} /></li>)}</ol>;
+          case 'link':
+            return (
+              <p class="ct-link">
+                <a href={b.href} rel={isExternal(b.href) ? 'noopener' : undefined}>
+                  {b.href.startsWith('tel:') ? <bdi dir="ltr">{b.text}</bdi> : <Copy strings={l.strings} text={b.text} />}
+                </a>
+              </p>
+            );
+        }
+      })
+    }
+  </div>
+</article>
+
+<style is:global>
+  @layer components {
+    .ct { padding-block: var(--space-6) var(--section-block); }
+    .ct-banner {
+      margin-block: var(--space-4);
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-md);
+      background: var(--color-warning-surface);
+      color: var(--color-warning);
+      font-size: var(--fs-small);
+    }
+    .ct-head { margin-block: var(--space-6) var(--space-8); }
+    .ct-title { font-size: var(--fs-h1); }
+    .ct-date { margin-block-start: var(--space-2); color: var(--color-text-secondary); font-size: var(--fs-small); }
+    .ct-body { display: flex; flex-direction: column; gap: var(--space-4); }
+    .ct-body h2 { margin-block-start: var(--space-6); font-size: var(--fs-h3); }
+    .ct-body ul, .ct-body ol { display: flex; flex-direction: column; gap: var(--space-2); padding-inline-start: var(--space-6); }
+    .ct-link a { display: inline-flex; align-items: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
+  }
+</style>

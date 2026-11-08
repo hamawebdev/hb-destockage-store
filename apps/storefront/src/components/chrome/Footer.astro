@@ -1,28 +1,130 @@
 ---
-/** Site footer. SHELL-1 skeleton: content links, phone, WhatsApp (plain link). SHELL-2 styles it.
- *  Owner: shell. */
+/**
+ * Site footer on the surface-alt band. Columns: brand and contact full width with shop + help side
+ * by side at 360 and 768, four columns from 1024:
+ * brand + tagline · shop (top categories) · help (content pages) · contact (phone, WhatsApp, hours).
+ * Phone and WhatsApp are plain links (tel:, https://wa.me/…), numbers isolated with <bdi dir="ltr">.
+ * Never a chat widget. Owner: shell.
+ */
 import type { LayoutProps } from '@hb/catalog';
-import { t } from '../../lib/strings.ts';
+import Icon from '../Icon.astro';
+import Copy from '../Copy.astro';
+import { groupPhone, t } from '../../lib/strings.ts';
+import { buildYear } from '../../lib/build-env.mjs';
 
-interface Props { layout: LayoutProps }
+interface Props {
+  layout: LayoutProps;
+}
 const { layout: l } = Astro.props;
+const s = (key: string, vars?: Record<string, string | number>) => t(l.strings, key, vars);
 const c = l.contact;
+const legalKeys = new Set(['privacy', 'legal']);
+const help = l.footerLinks.filter((f) => !legalKeys.has(f.key));
+const legal = l.footerLinks.filter((f) => legalKeys.has(f.key));
 ---
 <footer class="ft">
-  <div class="wrap ft-in">
-    <ul class="ft-links">
-      {l.footerLinks.map((f) => <li><a href={f.href}>{f.label}</a></li>)}
-    </ul>
-    <p>{t(l.strings, 'footer.phone')}: <a href={c.phoneHref}><bdi dir="ltr">{c.phoneDisplay}</bdi></a></p>
-    <p>{t(l.strings, 'footer.whatsapp')}: <a href={c.whatsappHref} rel="noopener"><bdi dir="ltr">{c.whatsappDisplay}</bdi></a></p>
+  <div class="container">
+    <div class="ft-grid">
+      <div class="ft-brand">
+        <p class="ft-name"><bdi lang="fr" dir="ltr">{l.storeName}</bdi></p>
+        <p class="ft-tag">{s('footer.tagline')}</p>
+      </div>
+
+      <nav aria-labelledby="ft-shop">
+        <h2 id="ft-shop" class="ft-h">{s('footer.shop')}</h2>
+        <ul role="list">
+          {l.nav.map((n) => <li><a href={n.href}>{n.name}</a></li>)}
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="ft-help">
+        <h2 id="ft-help" class="ft-h">{s('footer.help')}</h2>
+        <ul role="list">
+          {help.map((f) => <li><a href={f.href}>{f.label}</a></li>)}
+        </ul>
+      </nav>
+
+      <section aria-labelledby="ft-contact">
+        <h2 id="ft-contact" class="ft-h">{s('footer.contact')}</h2>
+        <ul role="list">
+          <li>
+            <a class="ft-ct" href={c.phoneHref}>
+              <Icon name="phone" /><span class="visually-hidden">{s('footer.phone')}</span>
+              <bdi dir="ltr" class="nums">{groupPhone(c.phoneDisplay)}</bdi>
+            </a>
+          </li>
+          <li>
+            <a class="ft-ct" href={c.whatsappHref}>
+              <Icon name="whatsapp" /><span class="visually-hidden">{s('footer.whatsapp')}</span>
+              <bdi dir="ltr" class="nums">{c.whatsappDisplay}</bdi>
+            </a>
+          </li>
+        </ul>
+        <p class="ft-hours"><Copy strings={l.strings} k="footer.hours" /></p>
+      </section>
+    </div>
+
+    <div class="ft-legal">
+      <p><bdi dir="ltr">{s('footer.copyright', { year: buildYear(process.env) })}</bdi></p>
+      {
+        legal.length > 0 && (
+          <ul role="list" aria-label={s('footer.legal')}>
+            {legal.map((f) => <li><a href={f.href}>{f.label}</a></li>)}
+          </ul>
+        )
+      }
+    </div>
   </div>
 </footer>
 
 <style is:global>
   @layer components {
-    .ft { margin-block-start: var(--section-block); padding-block: var(--space-10); background: var(--color-surface-alt); color: var(--color-text-secondary); font-size: var(--fs-small); }
-    .ft-in { display: grid; gap: var(--space-3); }
-    .ft-links { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); padding: 0; list-style: none; }
-    .ft a { display: inline-flex; align-items: center; min-block-size: var(--tap-min); color: var(--color-accent-text); }
+    .ft {
+      margin-block-start: var(--section-block);
+      padding-block: var(--space-12) var(--space-8);
+      background: var(--color-surface-alt);
+      color: var(--color-text-secondary);
+      font-size: var(--fs-small);
+    }
+    .ft-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8) var(--space-4); }
+    .ft-brand, .ft-grid > section { grid-column: 1 / -1; }
+    @media (min-width: 1024px) {
+      .ft-grid { grid-template-columns: 1.4fr 1fr 1fr 1.2fr; gap: var(--space-10); }
+      .ft-brand, .ft-grid > section { grid-column: auto; }
+    }
+    .ft-name { color: var(--color-text); font-weight: var(--fw-emphasis); font-size: var(--fs-body); }
+    .ft-tag { margin-block-start: var(--space-2); max-inline-size: 34ch; }
+    .ft-h {
+      margin-block-end: var(--space-2);
+      color: var(--color-text);
+      font-size: var(--fs-small);
+      font-weight: var(--fw-emphasis);
+      line-height: var(--lh-ui);
+      letter-spacing: 0;
+    }
+    .ft ul { padding: 0; }
+    .ft a {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-block-size: var(--tap-min);
+      min-inline-size: var(--tap-min); /* short labels (المطبخ) stay >= 44 px wide */
+      color: var(--color-text-secondary);
+      text-decoration: none;
+    }
+    .ft a:hover { color: var(--color-text); text-decoration: underline; }
+    .ft-ct { color: var(--color-text); }
+    .ft-hours { margin-block-start: var(--space-1); }
+    .ft-legal {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2) var(--space-6);
+      margin-block-start: var(--space-10);
+      padding-block-start: var(--space-4);
+      border-block-start: var(--bw-hairline) solid var(--color-border);
+    }
+    .ft-legal ul { display: flex; flex-wrap: wrap; gap: 0 var(--space-6); }
   }
 </style>

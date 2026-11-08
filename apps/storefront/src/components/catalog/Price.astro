@@ -1,0 +1,38 @@
+---
+/**
+ * Price line: current price, struck compare-at, discount badge. Labels are already `Intl`
+ * formatted by pagedata (`ar-DZ` / `fr-DZ`); this component never formats money.
+ * The struck price carries a visually-hidden "instead of" label: screen readers do not
+ * announce `<s>`.
+ */
+import './card.css';
+import type { PriceProps, StringTable } from '@hb/catalog';
+import { parts, t } from './lib/i18n.ts';
+
+interface Props {
+  price: PriceProps;
+  strings: StringTable;
+  size?: 'card' | 'page';
+}
+const { price, strings, size = 'card' } = Astro.props;
+const from = price.from ? parts(strings, 'price.from', 'price') : null;
+const was = { before: `${t(strings, 'price.was')} `, after: '' };
+---
+<p class:list={['cat-price', `cat-price--${size}`]}>
+  <span class="cat-price-now">{from && from.before}{price.label}{from && from.after}</span>
+  {price.compareAtLabel && (
+    <span class="cat-price-was"><span class="cat-sr">{was.before}</span><s>{price.compareAtLabel}</s><span class="cat-sr">{was.after}</span></span>
+  )}
+  {price.discountPercent !== null && price.discountPercent > 0 && (
+    <span class="cat-price-off">{t(strings, 'price.discount', { percent: price.discountPercent })}</span>
+  )}
+</p>
+
+<style is:global>
+  .cat-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-1) var(--space-2);margin:0;font-variant-numeric:tabular-nums;line-height:var(--lh-ui)}
+  .cat-price-now{color:var(--color-price);font-weight:var(--fw-emphasis)}
+  .cat-price--page .cat-price-now{font-size:var(--fs-lead)}
+  .cat-price-was{color:var(--color-text-secondary);font-size:var(--fs-small)}
+  .cat-price-off{color:var(--color-sale);background:var(--color-sale-surface);border-radius:var(--radius-pill);padding:0 var(--space-2);font-size:var(--fs-caption);line-height:1.6}
+  .cat-price:has(.cat-price-was) .cat-price-now{color:var(--color-sale)}
+</style>

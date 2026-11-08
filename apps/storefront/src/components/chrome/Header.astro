@@ -1,31 +1,171 @@
 ---
-/** Site header. SHELL-1 skeleton: wordmark, search link, language switch. SHELL-2 adds the
- *  category nav, icons and the sticky treatment. Owner: shell. */
+/**
+ * Sticky site header (52px, --header-h). Start → end: wordmark (home), category nav (≥1024),
+ * search, language switch, menu button (<1024) opening a native popover sheet (no JS).
+ * The language switch is a plain link to the same page in the other language; its label is in
+ * the system font (--font-switcher) so /fr/ never fetches the Arabic webfont. Below 768 it shows
+ * the short label (FR / ع) with the full name kept as its accessible name.
+ * Owner: shell. Plan: artifacts/SHELL-0/plan.md §9.
+ */
 import type { LayoutProps } from '@hb/catalog';
+import Icon from '../Icon.astro';
+import Wordmark from './Wordmark.astro';
 import { t } from '../../lib/strings.ts';
 
-interface Props { layout: LayoutProps }
+interface Props {
+  layout: LayoutProps;
+}
 const { layout: l } = Astro.props;
+const s = (key: string) => t(l.strings, key);
 const sw = l.languageSwitch;
+const short = sw.lang === 'ar' ? 'ع' : 'FR';
+// aria-current: "page" on the exact page, "true" on an ancestor section (e.g. category page 2).
+const current = (href: string) => (l.path === href ? 'page' : l.path.startsWith(href) ? 'true' : undefined);
 ---
 <header class="hd">
-  <div class="wrap hd-bar">
-    <a class="hd-mark" href={l.homeHref}><bdi lang="fr" dir="ltr">{l.storeName}</bdi></a>
-    <nav class="hd-tools" aria-label={t(l.strings, 'chrome.navLabel')}>
-      <a class="hd-link" href={l.searchHref}>{t(l.strings, 'chrome.search')}</a>
-      <a class="hd-link hd-lang" href={sw.href} hreflang={sw.lang} lang={sw.lang}>{sw.label}</a>
+  <div class="container hd-bar">
+    <a class="hd-mark" href={l.homeHref} aria-label={s('chrome.homeLink')}><Wordmark /></a>
+
+    <nav class="hd-nav" aria-label={s('chrome.navLabel')}>
+      <ul role="list">
+        {l.nav.map((c) => <li><a href={c.href} aria-current={current(c.href)}>{c.name}</a></li>)}
+      </ul>
+    </nav>
+
+    <div class="hd-tools">
+      <a class="hd-tool" href={l.searchHref} aria-current={current(l.searchHref)}>
+        <Icon name="search" /><span class="hd-tl">{s('chrome.search')}</span>
+      </a>
+      <a class="hd-tool hd-lang" href={sw.href} hreflang={sw.lang} lang={sw.lang}>
+        <span class="hd-tl">{sw.label}</span><span class="hd-ts" aria-hidden="true">{short}</span>
+      </a>
+      <button class="hd-tool hd-menu-btn" type="button" popovertarget="hd-menu" aria-label={s('chrome.menuOpen')}>
+        <Icon name="menu" />
+      </button>
+    </div>
+  </div>
+
+  <div id="hd-menu" class="hd-sheet" popover>
+    <div class="container hd-sheet-bar">
+      <p class="hd-sheet-t">{s('chrome.menu')}</p>
+      <button class="hd-tool" type="button" popovertarget="hd-menu" popovertargetaction="hide" aria-label={s('chrome.menuClose')}>
+        <Icon name="close" />
+      </button>
+    </div>
+    <nav class="container" aria-label={s('chrome.categories')}>
+      <ul role="list" class="hd-sheet-list">
+        {
+          l.nav.map((c) => (
+            <li>
+              <a href={c.href} aria-current={current(c.href)}>{c.name}</a>
+              {c.children.length > 0 && (
+                <ul role="list" class="hd-sheet-sub">
+                  {c.children.map((k) => <li><a href={k.href} aria-current={current(k.href)}>{k.name}</a></li>)}
+                </ul>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+      <ul role="list" class="hd-sheet-more">
+        {l.footerLinks.map((f) => <li><a href={f.href}>{f.label}</a></li>)}
+        <li><a class="hd-lang" href={sw.href} hreflang={sw.lang} lang={sw.lang}>{sw.label}</a></li>
+      </ul>
     </nav>
   </div>
 </header>
 
 <style is:global>
   @layer components {
-    .hd { border-block-end: var(--bw-hairline) solid var(--color-border); background: var(--color-surface); }
-    .hd-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-block-size: var(--header-h); }
-    .hd-mark { color: var(--color-text); font-weight: var(--fw-emphasis); text-decoration: none; display: inline-flex; align-items: center; min-block-size: var(--tap-min); }
-    .hd-tools { display: flex; align-items: center; gap: var(--space-2); }
-    .hd-link { display: inline-flex; align-items: center; min-block-size: var(--tap-min); padding-inline: var(--space-3); color: var(--color-text); text-decoration: none; border-radius: var(--radius-pill); }
-    /* «العربية» on /fr/ must not trigger the Arabic webfont through unicode-range. */
+    .hd {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: var(--z-sticky);
+      background: var(--color-surface);
+      box-shadow: var(--shadow-sticky);
+      view-transition-name: hd;
+    }
+    /* Translucent glass only on larger screens: blur is GPU work low-end phones don't need. */
+    @media (min-width: 768px) {
+      @supports (backdrop-filter: blur(1px)) {
+        .hd { background: color-mix(in srgb, var(--color-surface) 80%, transparent); backdrop-filter: saturate(180%) blur(20px); }
+      }
+    }
+    .hd-bar { display: flex; align-items: center; gap: var(--space-2); min-block-size: var(--header-h); }
+    .hd-mark { display: inline-flex; align-items: center; min-block-size: var(--tap-min); color: var(--color-text); margin-inline-end: auto; }
+    .hd-nav { display: none; }
+    .hd-nav ul { display: flex; gap: var(--space-1); padding: 0; }
+    .hd-nav a, .hd-tool {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      min-block-size: var(--tap-min);
+      min-inline-size: var(--tap-min);
+      padding-inline: var(--space-2);
+      border-radius: var(--radius-pill);
+      color: var(--color-text);
+      font-size: var(--fs-small);
+      line-height: var(--lh-ui);
+      text-decoration: none;
+      transition: background-color var(--dur-fast) var(--ease-standard);
+    }
+    .hd-nav a:hover, .hd-tool:hover { background: var(--color-surface-alt); }
+    .hd-nav a[aria-current] { font-weight: var(--fw-emphasis); }
+    .hd-tools { display: flex; align-items: center; }
+    /* «العربية» on /fr/: system font, never the webfont (beats tokens' zero-specificity :where rule). */
     .hd-lang { font-family: var(--font-switcher); }
+    .hd-tl { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .hd-ts { font-weight: var(--fw-emphasis); }
+    @media (min-width: 768px) {
+      .hd-tools { gap: var(--space-1); }
+      .hd-tool { padding-inline: var(--space-3); }
+      .hd-tl { position: static; inline-size: auto; block-size: auto; overflow: visible; clip-path: none; }
+      .hd-ts { display: none; }
+    }
+    @media (min-width: 1024px) {
+      .hd-nav { display: block; overflow-x: auto; }
+      .hd-menu-btn { display: none; }
+    }
+
+    /* Mobile menu: full-screen sheet in the top layer (native popover, light dismiss, Esc). */
+    .hd-sheet {
+      inset: 0;
+      inline-size: 100%;
+      max-inline-size: none;
+      block-size: 100dvh;
+      max-block-size: none;
+      margin: 0;
+      padding: 0 0 var(--space-12);
+      border: 0;
+      background: var(--color-surface);
+      color: var(--color-text);
+      overflow-y: auto;
+    }
+    .hd-sheet-bar { display: flex; align-items: center; justify-content: space-between; min-block-size: var(--header-h); }
+    .hd-sheet-t { font-size: var(--fs-small); color: var(--color-text-secondary); }
+    .hd-sheet-list, .hd-sheet-more { padding: 0; }
+    .hd-sheet-list > li > a {
+      display: flex;
+      align-items: center;
+      min-block-size: var(--tap-min);
+      padding-block: var(--space-2);
+      font-size: var(--fs-h3);
+      font-weight: var(--fw-emphasis);
+      line-height: var(--lh-heading);
+      color: var(--color-text);
+      text-decoration: none;
+    }
+    .hd-sheet-sub { padding-inline-start: var(--space-4); padding-block-end: var(--space-2); }
+    .hd-sheet-sub a, .hd-sheet-more a {
+      display: flex;
+      align-items: center;
+      min-block-size: var(--tap-min);
+      color: var(--color-text);
+      text-decoration: none;
+    }
+    .hd-sheet-more { margin-block-start: var(--space-8); padding-block-start: var(--space-4); border-block-start: var(--bw-hairline) solid var(--color-border); }
+    .hd-sheet-more a { color: var(--color-text-secondary); font-size: var(--fs-small); }
+    .hd-sheet [aria-current] { color: var(--color-accent-text); }
   }
 </style>
