@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { checkAdmin, checkOrderRefusal, checkQuote, checkStorefront, runSmoke, runSmokeOnce, sellableVariant, type Fetcher, type SmokeSnapshot } from '../deploy/smoke.ts';
 
 const snapshot: SmokeSnapshot = {
+  quoteWilayas: [16, 31, 25],
+  refusedWilaya: null,
   products: [
     { status: 'draft', slug: { ar: 'مسودة', fr: 'brouillon' }, variants: [{ id: 1, priceDzd: 100, stock: 5, active: true }] },
     { status: 'active', slug: { ar: 'طقم', fr: 'pack-luxe' }, variants: [{ id: 2, priceDzd: 0, stock: 5, active: true }, { id: 3, priceDzd: 14600, stock: null, active: true }] },
@@ -27,7 +29,13 @@ describe('checkQuote', () => {
   it('fails a wrong subtotal', () => expect(checkQuote(200, { ...good, subtotalDzd: 14000, totalDzd: 14400 })).toHaveLength(1));
   it('fails fractional amounts', () => expect(checkQuote(200, { ...good, feeDzd: 0.5 })).toHaveLength(1));
   it('fails an error status', () => expect((checkQuote(503, { code: 'server_error' }) as string[])[0]).toMatch(/503/));
-  it('reports an unserved wilaya', () => expect(checkQuote(200, { ok: true, available: false })).toBe('unavailable'));
+  it('reports an unserved wilaya', () => expect(checkQuote(200, { ok: true, available: false, feeDzd: null, totalDzd: null })).toBe('unavailable'));
+  it.each([
+    ['no available field', { ok: true }],
+    ['available null', { ok: true, available: null }],
+  ])('fails %s', (_label, body) => expect(checkQuote(200, body as never)).toHaveLength(1));
+  it('fails a refusal that still carries a fee', () => expect(checkQuote(200, { ok: true, available: false, feeDzd: 400, totalDzd: null })).toHaveLength(1));
+  it('fails a refusal that still carries a total', () => expect(checkQuote(200, { ok: true, available: false, feeDzd: null, totalDzd: 1000 })).toHaveLength(1));
 });
 
 describe('checkOrderRefusal', () => {
@@ -44,13 +52,13 @@ describe('checkAdmin', () => {
   it('rejects a server error', () => expect(checkAdmin(500, null)).toHaveLength(1));
 });
 
-function fetcher(overrides: Record<string, () => Response> = {}): { get: Fetcher; calls: { url: string; init: RequestInit | undefined }[] } {
+function fetcher(overrides: Record<string, (init: RequestInit | undefined) => Response> = {}): { get: Fetcher; calls: { url: string; init: RequestInit | undefined }[] } {
   const calls: { url: string; init: RequestInit | undefined }[] = [];
   const get: Fetcher = async (url, init) => {
     calls.push({ url, init });
     const path = url.replace(/^https:\/\/[^/]+/, '');
     const key = url.startsWith(targets.adminOrigin) ? 'admin' : path;
-    if (overrides[key]) return overrides[key]();
+    if (overrides[key]) return overrides[key](init);
     if (key === '/ar/') return new Response(page('ar', 'rtl', '/ar/p/طقم/'));
     if (key === '/fr/') return new Response(page('fr', 'ltr', '/fr/p/pack-luxe/'));
     if (key === '/api/quote') return Response.json({ ok: true, available: true, lines: [{ lineTotalDzd: 14600 }], subtotalDzd: 14600, feeDzd: 400, totalDzd: 15000 });
@@ -75,11 +83,70 @@ describe('runSmokeOnce', () => {
     expect(calls.some((c) => c.url.startsWith(targets.adminOrigin))).toBe(false);
   });
 
-  it('tries another wilaya, then reports missing fees', async () => {
-    const { get, calls } = fetcher({ '/api/quote': () => Response.json({ ok: true, available: false }) });
+  const good = { ok: true, available: true, lines: [{ lineTotalDzd: 14600 }], subtotalDzd: 14600, feeDzd: 400, totalDzd: 15000 };
+  const quoted = (calls: { url: string; init: RequestInit | undefined }[]): number[] =>
+    calls.filter((c) => c.url.endsWith('/api/quote')).map((c) => (JSON.parse(String(c.init?.body)) as { wilayaCode: number }).wilayaCode);
+
+  it('confirmed fees: every listed wilaya is quoted and passes', async () => {
+    const { get, calls } = fetcher({ '/api/quote': () => Response.json(good) });
+    expect(await runSmokeOnce(targets, snapshot, get, 'site')).toEqual([]);
+    expect(quoted(calls)).toEqual([16, 31, 25]);
+  });
+
+  it('confirmed fees: one wilaya answering unavailable fails', async () => {
+    let n = 0;
+    const { get } = fetcher({ '/api/quote': () => (++n === 2 ? Response.json({ ok: true, available: false, feeDzd: null, totalDzd: null }) : Response.json(good)) });
     const problems = await runSmokeOnce(targets, snapshot, get, 'site');
-    expect(calls.filter((c) => c.url.endsWith('/api/quote')).length).toBe(3);
-    expect(problems.join()).toMatch(/not available/);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/wilaya 31 has a confirmed fee/);
+  });
+
+  it('confirmed fees: a wrong total fails', async () => {
+    const { get } = fetcher({ '/api/quote': () => Response.json({ ...good, totalDzd: 1 }) });
+    expect((await runSmokeOnce(targets, snapshot, get, 'site')).join()).toMatch(/total/);
+  });
+
+  const refusal = { ok: true, available: false, lines: [{ lineTotalDzd: 14600 }], subtotalDzd: 14600, feeDzd: null, totalDzd: null, feeSource: 'table' };
+  const wilayaOf = (init: RequestInit | undefined): number => (JSON.parse(String(init?.body)) as { wilayaCode: number }).wilayaCode;
+  const noFees: SmokeSnapshot = { ...snapshot, quoteWilayas: [], refusedWilaya: 7 };
+
+  it('no confirmed fee: passes only when the refused wilaya is refused, on one call', async () => {
+    const { get, calls } = fetcher({ '/api/quote': () => Response.json(refusal) });
+    expect(await runSmokeOnce(targets, noFees, get, 'site')).toEqual([]);
+    expect(quoted(calls)).toEqual([7]);
+  });
+
+  it('no confirmed fee: being offered delivery is a failure', async () => {
+    const { get } = fetcher({ '/api/quote': () => Response.json(good) });
+    expect((await runSmokeOnce(targets, noFees, get, 'site')).join()).toMatch(/unconfirmed fee is being quoted/);
+  });
+
+  it('no confirmed fee: an answer that is merely not available:true fails', async () => {
+    const { get } = fetcher({ '/api/quote': () => Response.json({ ok: true }) });
+    expect((await runSmokeOnce(targets, noFees, get, 'site')).join()).toMatch(/neither available/);
+  });
+
+  it('no confirmed fee: a server error is still a failure', async () => {
+    const { get } = fetcher({ '/api/quote': () => Response.json({ code: 'server_error' }, { status: 503 }) });
+    expect((await runSmokeOnce(targets, noFees, get, 'site')).join()).toMatch(/503/);
+  });
+
+  it('no confirmed fee and nothing to probe is a failure', async () => {
+    const { get } = fetcher({ '/api/quote': () => Response.json(refusal) });
+    expect((await runSmokeOnce(targets, { ...snapshot, quoteWilayas: [], refusedWilaya: null }, get, 'site')).join()).toMatch(/neither a confirmed fee nor a wilaya/);
+  });
+
+  const mixed: SmokeSnapshot = { ...snapshot, quoteWilayas: [16], refusedWilaya: 31 };
+
+  it('some fees confirmed: a placeholder wilaya must be refused too', async () => {
+    const { get, calls } = fetcher({ '/api/quote': (init) => Response.json(wilayaOf(init) === 31 ? refusal : good) });
+    expect(await runSmokeOnce(targets, mixed, get, 'site')).toEqual([]);
+    expect(quoted(calls)).toEqual([16, 31]);
+  });
+
+  it('some fees confirmed: a placeholder wilaya being offered fails', async () => {
+    const { get } = fetcher({ '/api/quote': () => Response.json(good) });
+    expect((await runSmokeOnce(targets, mixed, get, 'site')).join()).toMatch(/wilaya 31, which has no confirmed fee/);
   });
 
   it('reports a thrown network error as a problem', async () => {

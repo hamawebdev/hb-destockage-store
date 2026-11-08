@@ -47,6 +47,8 @@ A commit that is not on `main` is always refused. Going back with `older_commit=
 
 If a deploy or a smoke check fails, or the job is cancelled or times out, a final step puts every Worker deployed in this run back on its recorded version, and the run goes red.
 
+The quote check asks production which wilayas have a confirmed delivery fee (available and not a placeholder), and each must be offered with correct totals. A wilaya with a placeholder fee must be refused. Until the client confirms fees there are none to offer: the check then requires delivery to be refused, and the job summary warns "no confirmed delivery fees: customers cannot order yet". The deployment still passes.
+
 The smoke checks prove the live site works; they can't prove which version answered, because the Workers don't report one. The new-version check covers that in part. Behind Cloudflare Access, the admin check confirms the login wall is up, not that the new admin code runs.
 
 Deployed version ids, the bookmark and any rollback are in the run's job summary.

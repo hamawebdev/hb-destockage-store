@@ -135,11 +135,13 @@ export function parseStatements(sql: string): Statement[] {
       push(number, false, i);
       onOtherToken();
       i += number.length;
-    } else if (/[A-Za-z_\u0080-\uffff]/.test(c)) {
-      // Like SQLite: anything above ASCII is an identifier character, so `écase` is one word.
+    } else if (/[A-Za-z_\u0080-\ufefe\uff00-\uffff]/.test(c)) {
+      // Like SQLite's tokenizer: anything above ASCII is an identifier character, so `écase` is one
+      // word, except U+FEFF at the start of a token, which is whitespace (the \s branch below).
+      // Keywords fold ASCII only: toUpperCase would turn the identifier `caſe` into CASE.
       let j = i + 1;
       while (j < sql.length && /[\w$\u0080-\uffff]/.test(sql[j]!)) j++;
-      const word = sql.slice(i, j).toUpperCase();
+      const word = sql.slice(i, j).replace(/[a-z]/g, (l) => l.toUpperCase());
       const prev = tokens.at(-1);
       const afterDot = prev !== undefined && !prev.quoted && prev.text === '.';
       push(word, false, i);
