@@ -18,7 +18,7 @@ import { requirePerm } from '../../auth/require-role.ts';
 import type { AppEnv } from '../../env.ts';
 import { vOptionalInt, vPicklist, validateForm, readForm } from '../../lib/forms.ts';
 import { useUi } from '../../ui/context.ts';
-import { Bdi, Money } from '../../ui/format.tsx';
+import { Money, Code } from '../../ui/format.tsx';
 import { ErrorSummary, Form, NumberInput, Select, Submit, type FieldErrors } from '../../ui/form.tsx';
 import { withFlash } from '../../ui/flash.tsx';
 import { fieldMessages } from './lib/field-messages.ts';
@@ -140,7 +140,7 @@ export function PackSection(props: { agg: ProductAggregate; lines: readonly Pack
                     {variantLabel(l, lang)}
                     {l.active ? null : <> ({tm('pack.inactive')})</>}
                   </th>
-                  <td><Bdi ltr>{l.sku}</Bdi></td>
+                  <td><Code>{l.sku}</Code></td>
                   <td class="num"><Money dzd={l.priceDzd} /></td>
                   <td>
                     <Form action={`/products/${id}/pack/update`} class="inline-form">

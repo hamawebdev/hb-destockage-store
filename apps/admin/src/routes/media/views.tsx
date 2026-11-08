@@ -4,7 +4,7 @@
 import type { Image } from '@hb/db';
 import { useUi } from '../../ui/context.ts';
 import { StatusBadge } from '../../ui/badge.tsx';
-import { Bdi } from '../../ui/format.tsx';
+import { Code } from '../../ui/format.tsx';
 import { Checkbox, ErrorSummary, Form, FormActions, LocalizedField, Select, Submit, type FieldErrors } from '../../ui/form.tsx';
 import { fieldMessages } from '../products/lib/field-messages.ts';
 import type { BindChoices, Owner } from './data.ts';
@@ -49,7 +49,7 @@ export function PhotosSection(props: { owner: Owner; images: readonly Image[]; c
             <li role="group" aria-label={groupLabel}>
               <Thumb img={img} alt={lang === 'ar' ? img.altAr : img.altFr} />
               <p class="muted">
-                {tm('size', { width: img.width, height: img.height })} · <Bdi ltr>{img.r2Key}</Bdi>
+                {tm('size', { width: img.width, height: img.height })} · <Code>{img.r2Key}</Code>
                 {img.placeholder ? <> <StatusBadge tone="warning" label={tf('common.placeholder')} /></> : null}
               </p>
               {img.width < RECOMMENDED_WIDTH ? <p class="field__hint"><strong>⚠ </strong>{tm('warn.small')}</p> : null}
@@ -118,7 +118,7 @@ export function RecentList(props: { images: readonly Image[] }) {
           <Thumb img={img} alt={lang === 'ar' ? img.altAr : img.altFr} />
           <p>
             <a href={img.productId !== null ? `/products/${img.productId}#sec-photos` : `/categories/${img.categoryId}#sec-photos`}>
-              <Bdi ltr>{img.r2Key}</Bdi>
+              <Code>{img.r2Key}</Code>
             </a>
           </p>
         </li>

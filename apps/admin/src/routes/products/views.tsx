@@ -3,7 +3,7 @@ import type { Category } from '@hb/db';
 import { productPath } from '@hb/catalog';
 import { useUi } from '../../ui/context.ts';
 import { StatusBadge, type Tone } from '../../ui/badge.tsx';
-import { Bdi, Money, Num } from '../../ui/format.tsx';
+import { Bdi, Money, Num, Code } from '../../ui/format.tsx';
 import {
   Checkbox,
   ErrorSummary,
@@ -414,7 +414,7 @@ export function VariantGrid(props: { agg: ProductAggregate; values: FormValues; 
           return (
             <fieldset class="localized">
               <legend class="localized__legend">
-                {combo ?? tm('var.single')} · <Bdi ltr>{x.sku}</Bdi>
+                {combo ?? tm('var.single')} · <Code>{x.sku}</Code>
               </legend>
               <input type="hidden" name={`ver_${x.id}`} value={props.values[`ver_${x.id}`] ?? ''} />
               <input type="hidden" name={`stockwas_${x.id}`} value={props.values[`stockwas_${x.id}`] ?? ''} />
@@ -508,7 +508,7 @@ export function ProductReadonly(props: { agg: ProductAggregate; categoryName: st
         rows={props.agg.variants}
         columns={[
           { key: 'combo', header: tm('var.combination'), cell: (x) => (x.links.length === 0 ? '—' : x.links.map((l) => valueName.get(l.valueId) ?? '?').join(' / ')) },
-          { key: 'sku', header: 'SKU', cell: (x) => <Bdi ltr>{x.sku}</Bdi> },
+          { key: 'sku', header: 'SKU', cell: (x) => <Code>{x.sku}</Code> },
           { key: 'price', header: tm('field.price'), numeric: true, cell: (x) => <Money dzd={x.priceDzd} /> },
           { key: 'stock', header: tm('field.stock'), numeric: true, cell: (x) => (x.stock === null ? t('common.none') : <Num value={x.stock} />) },
           { key: 'active', header: tm('var.active'), cell: (x) => (x.active ? t('common.yes') : t('common.no')) },

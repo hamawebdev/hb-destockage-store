@@ -248,18 +248,21 @@ describe('tracking vs order cancellation (DB-4 stock_taken)', () => {
   });
 });
 
-describe('accessibility of repeated cards (rev-f a7c5393 F1)', () => {
-  test('stock cards: no repeated id, every label points inside its own card', async () => {
+describe('accessibility of repeated rows (rev-f a7c5393 F1)', () => {
+  test('stock rows: no repeated id, every label points inside its own row and names its SKU', async () => {
     await h.db.prepare("insert into variants (product_id, sku, price_dzd, stock) values (?, 'HB-2', 1, 4), (?, 'HB-3', 1, 6)").bind(pid, pid).run();
     for (const user of [USERS.logistics, USERS.ownerAr]) {
       const html = await (await h.as(user, '/products/stock')).text();
-      expect(html.match(/<li class="panel"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
-      expect(idAndLabelProblems(html, /<li class="panel"[^>]*>[\s\S]*?<\/li>/)).toEqual([]);
-      // Each card is a group named by its own heading (rev-f nit: no identical anonymous controls).
-      for (const m of html.matchAll(/<li class="panel" role="group" aria-labelledby="([^"]+)">([\s\S]*?)<\/li>/g)) {
-        expect(m[2]).toContain(`<h3 id="${m[1]}">`);
+      // A stacking table (cards below 600 px): one row per variant.
+      const rows = [...html.matchAll(/<tr data-key="(\d+)">([\s\S]*?)<\/tr>/g)];
+      expect(rows.length).toBeGreaterThanOrEqual(3);
+      expect(idAndLabelProblems(html, /<tr data-key="\d+">[\s\S]*?<\/tr>/)).toEqual([]);
+      // Each row's field labels name its own SKU (rev-f nit: no identical accessible names).
+      for (const [, , body] of rows) {
+        const sku = /<bdi dir="ltr" class="code">([^<]+)<\/bdi>/.exec(body!)?.[1];
+        if (!body!.includes('name="stock"')) continue;
+        expect(body).toContain(`(\u2066${sku}\u2069)`);
       }
-      expect(html.match(/role="group" aria-labelledby="card-/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
     }
   });
 

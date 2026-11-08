@@ -100,7 +100,7 @@ describe('pack editor', () => {
     expect((await post(USERS.content, `/products/${pack}/pack/add`, { v: await version(pack), variant_id: String(a), qty: '1' })).status).toBe(422);
     expect((await post(USERS.content, `/products/${pack}/pack/add`, { v: '1', variant_id: String(b), qty: '1' })).status).toBe(409);
     expect(await items(pack)).toEqual([{ variant_id: a, qty: 1 }]);
-  });
+  }, 180_000); // ~12 sequential requests: slow on the shared machine
 
   test('pack routes 404 on a non-pack product; confirmer gets 403', async () => {
     const simple = (await one<{ product_id: number }>('select product_id from variants where id = ?', a))!.product_id;

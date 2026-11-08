@@ -17,7 +17,8 @@ import type { AppEnv } from '../../env.ts';
 import { parseForm, vCheckbox, vOptionalInt, vOptionalText, vPicklist } from '../../lib/forms.ts';
 import { DEFAULT_PAGE_SIZE, offsetOf, pageCount, parsePage } from '../../lib/pagination.ts';
 import { useUi } from '../../ui/context.ts';
-import { Bdi, Num } from '../../ui/format.tsx';
+import { Code, Num } from '../../ui/format.tsx';
+import { Table } from '../../ui/table.tsx';
 import { ErrorSummary, Form, FormActions, NumberInput, Select, Submit, TextInput, type FieldErrors } from '../../ui/form.tsx';
 import { withFlash } from '../../ui/flash.tsx';
 import { Pagination } from '../../ui/pagination.tsx';
@@ -141,6 +142,9 @@ const stockIs = (c: Ctx, id: number, expected: number | null) =>
 // Views
 // ---------------------------------------------------------------------------------------------
 
+/** "Fixer à (HB-P)": the SKU in an LTR isolate (LRI…PDI), so each row's fields have a distinct name. */
+const withSku = (text: string, sku: string): string => `${text} (\u2066${sku}\u2069)`;
+
 const label = (r: StockRow, lang: 'fr' | 'ar') => {
   const name = lang === 'ar' ? r.productNameAr : r.productNameFr;
   const values = lang === 'ar' ? r.labelAr : r.labelFr;
@@ -174,49 +178,68 @@ function StockPage(props: {
       {props.rows.length === 0 ? (
         <p class="empty">{tm('empty')}</p>
       ) : (
-        // One card per variant (not a table): at 360 px every control stays on screen.
-        <ol class="stock-list" aria-label={tm('stock.caption')}>
-          {props.rows.map((r) => (
-            <li class="panel" role="group" aria-labelledby={`card-${r.variantId}`}>
-              <h3 id={`card-${r.variantId}`}>
-                <a href={`/products/${r.productId}`}>{label(r, lang)}</a>
-                {r.status !== 'active' ? <> ({tm(`status.${r.status}` as 'status.draft')})</> : null}
-              </h3>
-              <p>
-                <Bdi ltr>{r.sku}</Bdi> · {tm('col.stock')}{lang === 'ar' ? ': ' : ' : '}
-                <strong>{r.stock === null ? tm('stock.untracked') : <Num value={r.stock} />}</strong>
-              </p>
-              {r.stock !== null ? (
+        // A table from 600 px, label/value cards below (kit Table `stack`, CSS only): every control
+        // stays on screen at 360 px. Field labels carry the SKU (LTR-isolated), so N rows never share
+        // an accessible name; ids carry the variant id (idSuffix).
+        <Table
+          stack
+          caption={tm('stock.caption')}
+          rows={props.rows}
+          rowKey={(r) => r.variantId}
+          columns={[
+            {
+              key: 'product',
+              header: tm('col.name'),
+              cell: (r) => (
                 <>
+                  <a href={`/products/${r.productId}`}>{label(r, lang)}</a>
+                  {r.status !== 'active' ? <> ({tm(`status.${r.status}` as 'status.draft')})</> : null}
+                  <br />
+                  <Code>{r.sku}</Code>
+                </>
+              ),
+            },
+            { key: 'stock', header: tm('col.stock'), numeric: true, cell: (r) => (r.stock === null ? tm('stock.untracked') : <Num value={r.stock} />) },
+            {
+              key: 'set',
+              header: tm('stock.set'),
+              cell: (r) =>
+                r.stock === null ? null : (
                   <Form action="/products/stock/set">
                     <input type="hidden" name="variant_id" value={String(r.variantId)} />
                     <input type="hidden" name="was" value={String(r.stock)} />
                     <input type="hidden" name="back" value={props.back} />
-                    <NumberInput name="stock" idSuffix={r.variantId} label={tm('stock.set')} value={String(r.stock)} />
-                    <FormActions>
-                      <Submit variant="secondary">{tm('stock.setButton')}</Submit>
-                    </FormActions>
+                    <NumberInput name="stock" idSuffix={r.variantId} label={withSku(tm('stock.set'), r.sku)} value={String(r.stock)} />
+                    <Submit variant="secondary">{tm('stock.setButton')}</Submit>
                   </Form>
+                ),
+            },
+            {
+              key: 'adjust',
+              header: tm('stock.adjust'),
+              cell: (r) =>
+                r.stock === null ? null : (
                   <Form action="/products/stock/adjust">
                     <input type="hidden" name="variant_id" value={String(r.variantId)} />
                     <input type="hidden" name="back" value={props.back} />
-                    <NumberInput name="delta" idSuffix={r.variantId} label={tm('stock.delta')} hint={tm('stock.deltaHint')} />
-                    <Select name="reason" idSuffix={r.variantId} label={tm('stock.reason')} options={ADJUST_REASONS.map((x) => ({ value: x, label: tm(`stock.reason.${x}`) }))} />
-                    <TextInput name="note" idSuffix={r.variantId} label={tm('stock.note')} maxlength={200} />
-                    <FormActions>
-                      <Submit variant="secondary">{tm('stock.adjustButton')}</Submit>
-                    </FormActions>
+                    <NumberInput name="delta" idSuffix={r.variantId} label={withSku(tm('stock.delta'), r.sku)} hint={tm('stock.deltaHint')} />
+                    <Select name="reason" idSuffix={r.variantId} label={withSku(tm('stock.reason'), r.sku)} options={ADJUST_REASONS.map((x) => ({ value: x, label: tm(`stock.reason.${x}`) }))} />
+                    <TextInput name="note" idSuffix={r.variantId} label={withSku(tm('stock.note'), r.sku)} maxlength={200} />
+                    <Submit variant="secondary">{tm('stock.adjustButton')}</Submit>
                   </Form>
-                </>
-              ) : null}
-              <p>
+                ),
+            },
+            {
+              key: 'track',
+              header: tm('stock.tracking'),
+              cell: (r) => (
                 <a class="btn btn--quiet" href={`/products/stock/track?variant=${r.variantId}&back=${encodeURIComponent(props.back)}`}>
                   {r.stock === null ? tm('stock.track') : tm('stock.untrack')}
                 </a>
-              </p>
-            </li>
-          ))}
-        </ol>
+              ),
+            },
+          ]}
+        />
       )}
       <Pagination page={props.page} pages={props.pages} baseUrl={props.baseUrl} />
     </>
@@ -232,7 +255,7 @@ function TrackPage(props: { row: StockRow; back: string; errors?: FieldErrors | 
     <Form action="/products/stock/track">
       <ErrorSummary errors={props.errors} />
       <p>
-        <strong>{label(r, lang)}</strong> <Bdi ltr>({r.sku})</Bdi>
+        <strong>{label(r, lang)}</strong> <Code>({r.sku})</Code>
       </p>
       <div class="callout callout--warning">
         <p><strong>{tracking ? tm('stock.track.title') : tm('stock.untrack.title')}</strong></p>
