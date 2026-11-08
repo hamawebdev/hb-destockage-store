@@ -24,6 +24,14 @@ describe('siteOriginFromEnv (lead ruling on CAT-6 r1: one origin source)', () =>
     expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'https://127.0.0.1' })).toThrow(/IP literal/);
     expect(siteOriginFromEnv({ HB_SNAPSHOT: '/x/export.json', HB_SITE_ORIGIN: 'https://hbdestockagedz.com' })).toBe('https://hbdestockagedz.com');
   });
+  test('CAT-6 r3: a publish build never falls back to the fixture origin or catalogue', async () => {
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'fixture', HB_PUBLISH: '1' })).toThrow(/publish build needs the real public origin/);
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: '/x/export.json' })).toThrow(/publish build needs/);
+    expect(siteOriginFromEnv({ HB_SNAPSHOT: 'fixture' })).toBe(FIXTURE_ORIGIN);
+    const { loadSnapshot } = await import('../src/sources.ts');
+    await expect(loadSnapshot({ env: { HB_SNAPSHOT: 'fixture', HB_PUBLISH: '1' } })).rejects.toThrow(/cannot be published/);
+    expect((await loadSnapshot({ env: { HB_SNAPSHOT: 'fixture' } })).meta.source).toBe('fixture');
+  });
   test('isPublishBuild', () => {
     expect(isPublishBuild({ HB_SNAPSHOT: 'seed' })).toBe(false);
     expect(isPublishBuild({ HB_SNAPSHOT: 'fixture' })).toBe(false);

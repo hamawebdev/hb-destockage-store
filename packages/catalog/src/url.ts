@@ -31,6 +31,12 @@ const LABEL = '[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?';
 const PUBLIC_ORIGIN = new RegExp(`^https://(${LABEL}(?:\\.${LABEL})+)$`);
 /** Names that never resolve to the public site (RFC 6761/6762, common internal suffixes). */
 const NON_PUBLIC_HOST = /(?:^|\.)(?:localhost|local|internal|test)$/;
+/**
+ * RFC 2606/6761 names for documentation and invalid use: `.example`, `.invalid`, `example.com|net|org`
+ * (and subdomains). Never a real site: refused for publish builds; non-publish builds keep them
+ * (the fixture's origin is https://hbdestockage.example).
+ */
+const RESERVED_DOC_HOST = /(?:^|\.)(?:example|invalid|example\.com|example\.net|example\.org)$/;
 /** Local development origin: plain http on loopback, optional port (non-publish builds only). */
 const LOCAL_DEV_ORIGIN = /^http:\/\/(?:localhost|127\.0\.0\.1)(?::[0-9]{1,5})?$/;
 
@@ -45,7 +51,8 @@ export type SiteOriginResult = { readonly ok: true; readonly origin: string } | 
  * The one site-origin rule (canonical, hreflang, og:url, sitemap, robots). A trailing `/` is
  * dropped. Publish builds (`publish: true`) accept only a public origin: `https://` + a dotted
  * hostname, refusing IPv4/IPv6 literals, `localhost`, `*.localhost`, `*.local`, `*.internal`,
- * `*.test`, ports, paths, queries and credentials. Non-publish builds also accept a local dev
+ * `*.test`, the RFC 2606/6761 names `*.example`, `*.invalid`, `example.com|net|org`, ports, paths,
+ * queries and credentials. Non-publish builds also accept a local dev
  * origin (`http://localhost[:port]`, `http://127.0.0.1[:port]`). Pure; jobs' publish script and
  * `siteOriginFromEnv` both call it.
  */
@@ -59,6 +66,7 @@ export function parseSiteOrigin(input: string, opts: { readonly publish: boolean
   // All-numeric last label ⇒ an IP literal (127.0.0.1, 10.1); IPv6 literals ([…]) never match LABEL.
   if (/^[0-9]+$/.test(host.split('.').at(-1)!)) return { ok: false, reason: `IP literal not allowed: ${host}` };
   if (NON_PUBLIC_HOST.test(host)) return { ok: false, reason: `non-public hostname: ${host}` };
+  if (opts.publish && RESERVED_DOC_HOST.test(host)) return { ok: false, reason: `reserved documentation/invalid hostname (RFC 2606/6761): ${host}` };
   return { ok: true, origin: s };
 }
 

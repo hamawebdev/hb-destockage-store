@@ -77,6 +77,11 @@ describe('parseSiteOrigin (publish builds need a public https origin)', () => {
     'https://hb.local',
     'https://hb.internal',
     'https://hb.test',
+    'https://hbdestockage.example',
+    'https://hb.invalid',
+    'https://example.com',
+    'https://www.example.org',
+    'https://shop.example.net',
     'https://hbdestockagedz.com:8443',
     'https://hbdestockagedz.com/shop',
     'https://hbdestockagedz.com?x=1',
@@ -95,7 +100,7 @@ describe('parseSiteOrigin (publish builds need a public https origin)', () => {
     expect(r.ok).toBe(false);
     expect(isPublicSiteOrigin(o)).toBe(false);
   });
-  test.each(['https://hbdestockagedz.com', 'https://www.hbdestockagedz.com', 'https://hb-destockage.dz', 'https://hbdestockage.example'])(
+  test.each(['https://hbdestockagedz.com', 'https://www.hbdestockagedz.com', 'https://hb-destockage.dz', 'https://myexample.com'])(
     'publish accepts %j',
     (o) => {
       expect(parseSiteOrigin(o, { publish: true })).toEqual({ ok: true, origin: o });
@@ -105,9 +110,21 @@ describe('parseSiteOrigin (publish builds need a public https origin)', () => {
   test('a trailing slash is normalised', () => {
     expect(parseSiteOrigin('https://hbdestockagedz.com/', { publish: true })).toEqual({ ok: true, origin: 'https://hbdestockagedz.com' });
   });
-  test.each(['http://localhost:8787', 'http://localhost', 'http://127.0.0.1', 'http://127.0.0.1:4180'])('non-publish also accepts the local dev origin %j', (o) => {
-    expect(parseSiteOrigin(o, { publish: false }).ok).toBe(true);
-    expect(isSiteOrigin(o)).toBe(true);
+  test.each(['http://localhost:8787', 'http://localhost', 'http://127.0.0.1', 'http://127.0.0.1:4180', 'https://hbdestockage.example'])(
+    'non-publish also accepts %j (local dev origin; the fixture origin)',
+    (o) => {
+      expect(parseSiteOrigin(o, { publish: false }).ok).toBe(true);
+      expect(isSiteOrigin(o)).toBe(true);
+    },
+  );
+  test('publish refusal of reserved names cites RFC 2606/6761; fixture mode keeps its .example origin', async () => {
+    expect(parseSiteOrigin('https://hbdestockage.example', { publish: true })).toEqual({
+      ok: false,
+      reason: 'reserved documentation/invalid hostname (RFC 2606/6761): hbdestockage.example',
+    });
+    const { siteOriginFromEnv, FIXTURE_ORIGIN } = await import('../src/sources.ts');
+    expect(siteOriginFromEnv({ HB_SNAPSHOT: 'fixture' })).toBe(FIXTURE_ORIGIN);
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_PUBLISH: '1', HB_SITE_ORIGIN: FIXTURE_ORIGIN })).toThrow(/RFC 2606/);
   });
   test.each(['https://127.0.0.1', 'https://localhost', 'https://hb.test', 'http://hbdestockagedz.com', 'https://hb.dz:8443'])('non-publish still refuses %j', (o) => {
     expect(parseSiteOrigin(o, { publish: false }).ok).toBe(false);
