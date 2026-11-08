@@ -119,6 +119,29 @@ async function runSeedValidation(repoRoot: string): Promise<void> {
   throw new SnapshotError(issues, 'data/catalog/validate.mjs');
 }
 
+/** `data/photos/manifest.json` (BUG-14): prices printed on each photo, by image key. Absent file = nothing recorded. */
+async function loadPrintedPrices(file: string): Promise<ReadonlyMap<string, readonly number[]>> {
+  if (!existsSync(file)) return new Map();
+  const raw = await readJson(file);
+  const photos = isRecord(raw) ? raw['photos'] : undefined;
+  if (!Array.isArray(photos)) return new Map();
+  const out = new Map<string, readonly number[]>();
+  for (const p of photos) if (isRecord(p) && typeof p['key'] === 'string' && Array.isArray(p['printedPrices'])) out.set(p['key'], p['printedPrices'] as number[]);
+  return out;
+}
+
+/** Copies a photo's printed prices from the manifest onto each of the product's images (only when there are some). */
+function withPrintedPrices(product: unknown, printed: ReadonlyMap<string, readonly number[]>): unknown {
+  if (!isRecord(product) || !Array.isArray(product['images'])) return product;
+  return {
+    ...product,
+    images: product['images'].map((img: unknown) => {
+      const prices = isRecord(img) && typeof img['key'] === 'string' ? printed.get(img['key']) : undefined;
+      return prices && prices.length ? { ...(img as Record<string, unknown>), printedPricesDzd: prices } : img;
+    }),
+  };
+}
+
 export async function fromSeed(repoRoot: string, opts: SeedOptions = {}): Promise<CatalogSnapshot> {
   const root = resolve(repoRoot);
   const at = (p: string): string => join(root, p);
@@ -127,7 +150,8 @@ export async function fromSeed(repoRoot: string, opts: SeedOptions = {}): Promis
   const categories = await readJson(at('data/catalog/categories.json'));
   const settings = await readJson(at('data/catalog/settings.json'));
   const productFiles = await jsonFilesIn(at('data/catalog/products'));
-  const products = await Promise.all(productFiles.map(readJson));
+  const printed = await loadPrintedPrices(at('data/photos/manifest.json'));
+  const products = (await Promise.all(productFiles.map(readJson))).map((p) => withPrintedPrices(p, printed));
 
   const contentDir = at('data/content');
   const wilayas = toSnapshotWilayas(await loadGeoWilayas(root));

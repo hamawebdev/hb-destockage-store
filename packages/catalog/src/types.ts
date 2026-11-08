@@ -190,6 +190,10 @@ export interface SnapshotImage {
   readonly alt: Localized<string>;
   readonly position: number;
   readonly placeholder: boolean;
+  /** Prices (integer DZD) printed on the photo (DB-8 `images.printed_prices_dzd`). Absent or `[]` = none
+   *  recorded. A photo with a printed price is allowed on its own product page (BUG-14) but never
+   *  appears on the homepage (HOME-0). */
+  readonly printedPricesDzd?: readonly number[];
 }
 
 /** DB-1 `content_pages`. */
@@ -241,7 +245,8 @@ export interface SnapshotSettings {
   /**
    * Product whose main image is the home hero (LCP). Null or unpublished ⇒ no hero product and no
    * hero image: the home page uses a type-led hero (no fallback to a featured product, whose photo
-   * may carry burned-in prices). Only set it for photography fit to be a hero.
+   * may carry burned-in prices). Only set it for photography fit to be a hero. A photo with a
+   * printed price is skipped (no hero image if none is clean), like every homepage image.
    */
   readonly homeHeroProductId: Id | null;
   /** Public Turnstile site key; null ⇒ the form does not load Turnstile (orders are flagged). */
@@ -807,6 +812,8 @@ export interface OrderStepProps {
    * Render loading="eager" without fetchpriority and without a preload. Null when the product has no image.
    */
   readonly image: ImageProps | null;
+  /** Same photo slot for the cart (sheet and checkout): the first photo with no printed price, because the sheet opens on the homepage (HOME-0). Null when the product has none. */
+  readonly cartImage: ImageProps | null;
   /** The effective default variant's price (same object as ProductProps.price). */
   readonly price: PriceProps;
   /** Same objects as ProductProps.options / .variants. */
