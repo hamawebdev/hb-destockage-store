@@ -53,6 +53,15 @@ export const FEATURES: Record<Feature, () => string | null> = {
     return hasCta ? null : 'no product page with the #cat-buy order CTA in the build (ORDER-STEP product page)';
   },
   geoFiles: () => (existsSync(path.join(DIST, 'geo/communes/ar/1.json')) ? null : 'per-wilaya commune JSON not in the build (CAT-5 /geo/communes/<lang>/<code>.json)'),
+  homeChoice: () => {
+    // CART-0's choice view needs a homepage card whose product has options. The seed features only packs,
+    // so this spec runs on a scratch build that features a variable product (homeFeaturedProductIds).
+    const home = path.join(DIST, 'fr/index.html');
+    if (!existsSync(home)) return 'storefront not built';
+    const ids = [...readFileSync(home, 'utf8').matchAll(/data-cart-add="(\d+)"/g)].map((m) => m[1]);
+    const opts = ids.some((id) => (JSON.parse(readFileSync(path.join(DIST, `fr/cart/items/${id}.json`), 'utf8')) as { options: unknown[] }).options.length > 0);
+    return opts ? null : 'no homepage card has a product with options in this build (feature a variable product via homeFeaturedProductIds)';
+  },
   adminAuth: () => (has('apps/admin/src/auth/dev-routes.tsx') ? null : 'admin auth (ADMIN-1 dev login + Access JWT) not in this checkout'),
   adminOrders: () => (ORDER_ROUTES().some(([m, p]) => m === 'GET' && p === '/:ref') ? null : 'admin order list and detail not in this checkout (admin-orders route table: GET /:ref)'),
   adminTransitions: () => {
@@ -61,7 +70,7 @@ export const FEATURES: Record<Feature, () => string | null> = {
     return want.length ? `admin order actions not in this checkout (admin-orders route table: ${want.join(', ')})` : null;
   },
 };
-export type Feature = 'storefront' | 'seed' | 'webOrder' | 'webQuote' | 'orderForm' | 'geoFiles' | 'adminAuth' | 'adminOrders' | 'adminTransitions';
+export type Feature = 'storefront' | 'seed' | 'webOrder' | 'webQuote' | 'orderForm' | 'geoFiles' | 'adminAuth' | 'adminOrders' | 'adminTransitions' | 'homeChoice';
 
 /**
  * admin-orders' route table: the `//   GET  /:ref   …` header of apps/admin/src/routes/orders/index.tsx
@@ -220,6 +229,19 @@ export async function startWorker(name: 'web' | 'admin', logDir: string): Promis
   const cwd = path.join(REPO, 'apps', name);
   const args = ['dev', '--env=', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(port + 1),
     '--persist-to', PERSIST, '--log-level', 'warn', '--show-interactive-dev-session=false'];
+  // The admin's custom-domain route (BOOT-0) makes `wrangler dev` hand the Worker that hostname for every request, so its
+  // dev-only login (dev-gate.ts: loopback hostnames only) would answer 404. Serve a copy of the config without `routes`:
+  // requests then keep the Host they were sent with, which the admin-auth spec relies on. Local runs only.
+  let tempConfig: string | null = null;
+  if (name === 'admin') {
+    const real = readFileSync(path.join(cwd, 'wrangler.jsonc'), 'utf8');
+    const stripped = real.replace(/^\s*"routes"\s*:.*\n/m, '');
+    if (stripped !== real) {
+      tempConfig = path.join(cwd, '.wrangler-e2e.jsonc');
+      writeFileSync(tempConfig, stripped);
+      args.push('--config', tempConfig);
+    }
+  }
   for (const [k, v] of Object.entries(testSecrets(name))) args.push('--var', `${k}:${v}`);
   const child = spawn(WRANGLER, args, { cwd, detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' } });
   let log = '';
@@ -230,6 +252,7 @@ export async function startWorker(name: 'web' | 'admin', logDir: string): Promis
   const stop = async (): Promise<void> => {
     mkdirSync(logDir, { recursive: true });
     writeFileSync(path.join(logDir, `${name}.log`), log);
+    if (tempConfig) rmSync(tempConfig, { force: true });
     if (child.exitCode !== null || child.pid === undefined) return;
     try { process.kill(-child.pid, 'SIGTERM'); } catch { /* gone */ }
     await new Promise((ok) => setTimeout(ok, 1500));

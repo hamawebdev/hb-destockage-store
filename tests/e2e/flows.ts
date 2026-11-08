@@ -17,7 +17,7 @@
  *    urlencoded, Origin + Sec-Fetch-Site: same-origin, `_csrf` (here read from the rendered page,
  *    like its `csrfFrom`) and the form's `version`.
  */
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type CDPSession, type Page } from 'playwright';
 import { d1, integersIn, testPhone } from './harness.ts';
 
 export const CHROME = '/usr/bin/google-chrome';
@@ -176,9 +176,14 @@ export async function adminLogin(admin: string, email = 'owner@dev.local'): Prom
 
 /** GET an admin page as a session; anything but 200 throws (a 403/404 fails the spec). */
 export async function adminPage(admin: string, cookie: string, p: string): Promise<string> {
-  const r = await fetch(`${admin}${p}`, { headers: { cookie }, redirect: 'manual' });
-  if (r.status !== 200) throw new Error(`GET ${p}: HTTP ${r.status}`);
-  return r.text();
+  // A 500 can be SQLITE_BUSY: both Workers and this harness share one local SQLite file while the web Worker's queue
+  // consumer writes after an order (rehearsal-1, and the admin log of the CART-0 runs). Retried 3 times, then a 500 fails the spec.
+  for (let attempt = 1; ; attempt++) {
+    const r = await fetch(`${admin}${p}`, { headers: { cookie }, redirect: 'manual' });
+    if (r.status === 200) return r.text();
+    if (r.status !== 500 || attempt >= 4) throw new Error(`GET ${p}: HTTP ${r.status}`);
+    await new Promise((ok) => setTimeout(ok, 250 * attempt));
+  }
 }
 
 /** The CSRF token rendered in an admin page (admin-core test helpers' csrfFrom). */
@@ -226,4 +231,97 @@ export async function orderAction(admin: string, cookie: string, ref: string, ac
   if (version === undefined) throw new Error(`the ${action} form has no version field`);
   const r = await postAs(admin, cookie, path, { _csrf: csrfFrom(html), version, ...data });
   if (r.status !== 303) throw new Error(`POST ${path} ${JSON.stringify(data)}: HTTP ${r.status} (expected 303)`);
+}
+
+// ---------------------------------------------------------------------------------------------
+// cart (CART-0, artifacts/CART-0/plan.md)
+// ---------------------------------------------------------------------------------------------
+
+/** The cart's key in localStorage (CART-0: `{ v: 1, lines: [{ p, v, q }] }`). */
+export const CART_KEY = 'hb.cart.v1';
+export interface CartLine { p: number; v: number; q: number }
+
+const cdp = new WeakMap<Page, Promise<CDPSession>>();
+/**
+ * Evaluate in the page through CDP. The site's CSP (correctly) forbids eval, and Playwright's own evaluate goes
+ * through it, so reading localStorage or sampling the sheet stays out of the page's script policy this way.
+ */
+export async function ev<T = unknown>(page: Page, expression: string): Promise<T> {
+  let s = cdp.get(page);
+  if (!s) { s = page.context().newCDPSession(page); cdp.set(page, s); }
+  const r = await (await s).send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+  if (r.exceptionDetails) throw new Error(`in-page evaluation failed: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}: ${expression}`);
+  return r.result.value as T;
+}
+
+/** The exact string stored under the cart key (null when absent). */
+export const cartRaw = (page: Page): Promise<string | null> => ev<string | null>(page, `localStorage.getItem(${JSON.stringify(CART_KEY)})`);
+export const cartLines = async (page: Page): Promise<CartLine[]> => (JSON.parse((await cartRaw(page)) ?? '{"lines":[]}') as { lines: CartLine[] }).lines;
+
+/** Open a storefront page and wait until cart.js is up (it adds `html.cart-on` after LCP). */
+export async function gotoCart(page: Page, url: string): Promise<void> {
+  const res = await page.goto(url, { waitUntil: 'load' });
+  if (res?.status() !== 200) throw new Error(`${url}: HTTP ${res?.status()}`);
+  await page.locator('html.cart-on').waitFor({ state: 'attached', timeout: 20_000 });
+}
+
+/** Replace the cart in localStorage, then reload so cart.js reads it. */
+export async function seedCart(page: Page, lines: CartLine[]): Promise<void> {
+  await ev(page, `localStorage.setItem(${JSON.stringify(CART_KEY)}, ${JSON.stringify(JSON.stringify({ v: 1, lines }))})`);
+  await page.reload({ waitUntil: 'load' });
+  await page.locator('html.cart-on').waitFor({ state: 'attached', timeout: 20_000 });
+}
+
+export const sheet = (page: Page) => page.locator('dialog.cs');
+export const sheetOpen = (page: Page) => page.locator('dialog.cs[open]');
+export async function waitSheetOpen(page: Page, lines?: number): Promise<void> {
+  await sheetOpen(page).waitFor({ state: 'attached', timeout: 20_000 });
+  if (lines !== undefined) {
+    const end = Date.now() + 15_000;
+    while ((await sheet(page).locator('.cs-i').count()) !== lines) {
+      if (Date.now() > end) throw new Error(`the sheet shows ${await sheet(page).locator('.cs-i').count()} lines, expected ${lines}`);
+      await page.waitForTimeout(100);
+    }
+  }
+}
+/** Close with Escape and wait until the exit transition ended (display: none again). */
+export async function closeSheet(page: Page): Promise<void> {
+  await page.keyboard.press('Escape');
+  await sheet(page).waitFor({ state: 'hidden', timeout: 5_000 });
+}
+
+export interface ItemJson { id: number; name: string; options: Array<{ id: number; name: string; values: Array<{ id: number; label: string }> }>; variants: Array<{ id: number; label: string; price: number; max: number; ok: boolean; ovs: number[] }> }
+export async function itemJson(web: string, lang: string, id: number): Promise<ItemJson> {
+  const r = await fetch(`${web}/${lang}/cart/items/${id}.json`);
+  if (r.status !== 200) throw new Error(`/${lang}/cart/items/${id}.json: HTTP ${r.status}`);
+  return (await r.json()) as ItemJson;
+}
+
+export interface HomeCard { index: number; item: ItemJson; variantId: number; price: number; sku: string }
+/** Homepage add buttons with their product JSON; the price is the D1 one (the authority), not the page's. */
+export async function homeCards(page: Page, web: string, lang: string): Promise<Array<Omit<HomeCard, 'variantId' | 'price' | 'sku'>>> {
+  const buttons = page.locator('[data-cart-add]');
+  const out: Array<Omit<HomeCard, 'variantId' | 'price' | 'sku'>> = [];
+  for (let index = 0; index < (await buttons.count()); index++) {
+    out.push({ index, item: await itemJson(web, lang, Number(await buttons.nth(index).getAttribute('data-cart-add'))) });
+  }
+  return out;
+}
+/** The first homepage card whose product has no choice to make (one sellable variant, no option group). */
+export async function firstPlainCard(page: Page, web: string, lang: string): Promise<HomeCard> {
+  const card = (await homeCards(page, web, lang)).find((c) => c.item.options.length === 0 && c.item.variants.length === 1 && c.item.variants[0]!.ok);
+  if (!card) throw new Error('no homepage card without options');
+  const row = d1<{ id: number; price: number; sku: string }>(`SELECT id, price_dzd AS price, sku FROM variants WHERE product_id = ${card.item.id} AND active = 1`)[0];
+  if (!row) throw new Error(`no active variant for product ${card.item.id}`);
+  return { ...card, variantId: row.id, price: row.price, sku: row.sku };
+}
+
+/** Distinct sellable variants of distinct products, away from `excludeProductIds`, for filling a cart in storage. */
+export function sellableVariants(n: number, excludeProductIds: number[] = []): Array<CartLine & { stock: number | null; price: number }> {
+  const rows = d1<{ p: number; v: number; stock: number | null; price: number }>(
+    `SELECT p.id AS p, MIN(v.id) AS v, v.stock AS stock, v.price_dzd AS price FROM products p JOIN variants v ON v.product_id = p.id
+     WHERE p.status = 'active' AND v.active = 1 AND (v.stock IS NULL OR v.stock >= 2)${excludeProductIds.length ? ` AND p.id NOT IN (${excludeProductIds.join(',')})` : ''}
+     GROUP BY p.id ORDER BY p.id LIMIT ${n}`);
+  if (rows.length < n) throw new Error(`only ${rows.length} sellable products in the seed, need ${n}`);
+  return rows.map((r) => ({ p: r.p, v: r.v, q: 1, stock: r.stock, price: r.price }));
 }
