@@ -87,7 +87,7 @@ const morePacks = p.packs.filter((c) => !featuredIds.has(c.id));
     <section id="hm-featured" class="container hm-sec" aria-labelledby="hm-feat">
       <h2 id="hm-feat" class="hm-h2">{s('home.featuredTitle')}</h2>
       <p class="hm-sub">{s('home.featuredLead')}</p>
-      <ProductGrid cards={[...p.featured, ...morePacks]} lang={l.lang} strings={l.strings} level={3} />
+      <ProductGrid cards={[...p.featured, ...morePacks]} lang={l.lang} strings={l.strings} level={3} addable />
     </section>
   )
 }

@@ -32,13 +32,16 @@ const VAR_RE = /var\(\s*--([A-Za-z0-9_-]+)/g;
  * Drop custom-property declarations that nothing on the page reads through var(), iterating
  * until no more can be dropped (tokens reference tokens). Empty rules left behind are removed.
  * @param {string} css minified CSS
+ * @param {string} [extra] other text that reads tokens through var() (the client JS: the cart sheet's constructable
+ *   stylesheet); those tokens are kept, otherwise a token only the sheet uses would be missing from the page.
  * @returns {string}
  */
-export function pruneCustomProperties(css) {
+export function pruneCustomProperties(css, extra = '') {
   let cur = css;
   for (let i = 0; i < 20; i++) {
     // References = var(--x) in everything except the declarations of x itself.
     const used = new Set();
+    for (const m of extra.matchAll(VAR_RE)) used.add(m[1]);
     for (const m of cur.matchAll(VAR_RE)) used.add(m[1]);
     let changed = false;
     const next = cur.replace(DECL_RE, (all, name) => {

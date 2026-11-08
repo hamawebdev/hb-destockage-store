@@ -35,7 +35,10 @@ export default defineConfig({
       siteOrigin: SITE_ORIGIN,
       routes: async () => (await import('./src/lib/catalog.ts')).allRoutes(),
       // orderform's Worker-filled review template (not in the route map).
-      extraGroups: [{ pattern: /^\/(ar|fr)\/order\/review\/index\.html$/, template: 'order-review' }],
+      extraGroups: [
+        { pattern: /^\/(ar|fr)\/order\/review\/index\.html$/, template: 'order-review' },
+        { pattern: /^\/(ar|fr)\/checkout\/index\.html$/, template: 'checkout' },
+      ],
       // brand/assets/README.md: favicons and per-language default og:image (WhatsApp/Facebook read JPEG, not AVIF).
       copy: ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'og-default-ar.jpg', 'og-default-fr.jpg'].map((f) => ({
         from: fileURLToPath(new URL(`../../brand/assets/${f}`, import.meta.url)),

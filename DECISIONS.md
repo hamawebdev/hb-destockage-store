@@ -154,3 +154,11 @@ Rules:
 - Why: client decision.
 - Evidence: client instruction, 2026-11-08; docs/DEPLOY.md.
 - Status: active
+
+## D-008 — Cart orders use one order page and one fee; the sheet's CSS is not inlined
+- Date: 2026-11-08 · Author: shell (for lead) · Task: CART-0
+- Report says: one stylesheet for both directions, inlined; D-005 one order page per product.
+- We do instead: (1) the cart orders through one page, `/{lang}/checkout/`, and becomes one order with one delivery fee via `items[]` in `/api/quote` and `/api/order`; D-005's one-page-per-product stays for direct orders. (2) The cart sheet's CSS travels in `public/js/cart-sheet.js` as a constructable stylesheet, loaded after LCP on first use of a cart control, instead of being inlined. hb-postbuild keeps the tokens the sheet reads (`pruneCustomProperties` also scans the client JS).
+- Why: client request, 2026-11-08 (artifacts/CART-0/plan.md): first paint must not pay for a sheet most visitors never open. A constructable stylesheet needs no change to the hash-based `style-src`; a `<link>` would have needed `'self'`.
+- Evidence: measured on the seed build of this commit: sheet CSS 5,544 B raw, 1,318 B brotli (inside cart-sheet.js, 3,978 B brotli in all); cart.js 1,431 B brotli on every page after LCP. The sheet is tested in Chrome under the served CSP (no violations). Per-template byte and Lighthouse deltas are in the CART proof run.
+- Status: active

@@ -1,0 +1,24 @@
+---
+// The cart's order page, /ar/checkout/ (CART-0, D-008). One order, one delivery fee. noindex. The form is orderform's
+// component in cart mode; the page's own props come from the first product's order form (wilayas and endpoints are
+// the same for every product).
+import Base from '../../../layouts/Base.astro';
+import CheckoutView from '../../../components/order/CheckoutView.astro';
+import { pageProps, staticPaths } from '../../../lib/catalog.ts';
+import { str } from '../../../components/order/str.ts';
+const { layout } = pageProps('order-confirmed', 'ar');
+const first = staticPaths('order-step', 'ar')[0];
+if (!first) throw new Error('checkout: the catalogue has no products');
+const page = {
+  ...layout,
+  title: `${str(layout.strings, 'cart.title')} · ${layout.storeName}`,
+  description: str(layout.strings, 'meta.cart.description'),
+  path: '/ar/checkout/',
+  noindex: true,
+  alternates: [],
+  languageSwitch: { ...layout.languageSwitch, href: '/fr/checkout/' },
+};
+---
+<Base layout={page} chrome="minimal" tpl="checkout">
+  <CheckoutView lang="ar" layout={page} form={first.props.orderForm} />
+</Base>
