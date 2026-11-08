@@ -1,0 +1,60 @@
+// Locates the brand token source. brand/tokens.json is the source of truth; until BRAND-1 is on
+// main this package carries a verbatim copy of brand's committed file (provisional.tokens.json).
+// Once brand/tokens.json exists in the checkout the provisional copy is ignored (and deleted).
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { FontInput } from './build-font.ts';
+import type { IconFile } from './build-icons.ts';
+import type { BrandTokens } from './build-tokens.ts';
+
+export const PKG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+export const REPO_DIR = join(PKG_DIR, '..', '..');
+export const BRAND_PATH = join(REPO_DIR, 'brand', 'tokens.json');
+export const PROVISIONAL_PATH = join(PKG_DIR, 'src', 'gen', 'provisional.tokens.json');
+export const CSS_OUT = join(PKG_DIR, 'tokens.css');
+export const TS_OUT = join(PKG_DIR, 'src', 'tokens.generated.ts');
+export const FONT_CSS_OUT = join(PKG_DIR, 'font-face.css');
+export const FONT_TS_OUT = join(PKG_DIR, 'src', 'font.generated.ts');
+export const ICONS_DIR = join(PKG_DIR, 'icons');
+export const ICONS_MANIFEST_OUT = join(ICONS_DIR, 'manifest.json');
+export const ICONS_TS_OUT = join(PKG_DIR, 'src', 'icons.generated.ts');
+export const SPECIMEN_DIR = join(PKG_DIR, 'specimen');
+export const SUBSET_CONFIG = join(PKG_DIR, 'fonts', 'subset.json');
+
+export interface Source {
+  tokens: BrandTokens;
+  sourcePath: string;
+  sourceSha256: string;
+}
+
+export function readSource(path: string): Source {
+  const bytes = readFileSync(path);
+  return {
+    tokens: JSON.parse(bytes.toString('utf8')) as BrandTokens,
+    sourcePath: relative(REPO_DIR, path).split('\\').join('/'),
+    sourceSha256: createHash('sha256').update(bytes).digest('hex'),
+  };
+}
+
+export function resolveSource(): Source {
+  return readSource(existsSync(BRAND_PATH) ? BRAND_PATH : PROVISIONAL_PATH);
+}
+
+export function readFontInput(src: Source): FontInput {
+  const cfg = JSON.parse(readFileSync(SUBSET_CONFIG, 'utf8')) as { output: string; source: { release: string } };
+  const file = `fonts/${cfg.output}`;
+  return {
+    woff2: readFileSync(join(PKG_DIR, file)),
+    file,
+    arabicStack: String(src.tokens.font.family.arabic.$value),
+    release: cfg.source.release,
+  };
+}
+
+export function readIconFiles(): IconFile[] {
+  return readdirSync(ICONS_DIR)
+    .filter((f) => f.endsWith('.svg'))
+    .map((f) => ({ name: f.slice(0, -4), svg: readFileSync(join(ICONS_DIR, f), 'utf8') }));
+}

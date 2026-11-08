@@ -1,0 +1,29 @@
+{
+  "$description": "Pinned input and options for fonts/subset.py. Change a value here, re-run the script, regenerate (node src/gen/cli.ts), commit all outputs together.",
+  "source": {
+    "release": "NotoSansArabic-v2.013",
+    "url": "https://github.com/notofonts/arabic/releases/download/NotoSansArabic-v2.013/NotoSansArabic-v2.013.zip",
+    "zipSha256": "1301aceaea84c501cf2e6dcfb3182e2328c8eae5725817fcb239672bda7154f1",
+    "member": "NotoSansArabic/unhinted/ttf/NotoSansArabic-Regular.ttf",
+    "memberSha256": "bd86ca02f087d7f3c3788ba458fb6b73744c7639ed276b8d870dba6def6c40d0",
+    "license": "OFL.txt"
+  },
+  "toolchain": { "fonttools": "4.46.0", "brotli": "1.1.0" },
+  "unicodes": [
+    { "range": "U+0020-0040", "why": "space, ASCII digits and the punctuation the font has (! , - . :); the rest of U+0020-0040 is absent from the font and falls back to the system font" },
+    { "range": "U+00A0", "why": "no-break space" },
+    { "range": "U+00AB,U+00BB", "why": "« » guillemets used in brand copy" },
+    { "range": "U+060C,U+061B,U+061F", "why": "Arabic comma, semicolon, question mark" },
+    { "range": "U+0621-063A", "why": "Arabic letters hamza … ghain" },
+    { "range": "U+0640-0655", "why": "tatweel, letters feh … yeh, harakat, madda/hamza marks" },
+    { "range": "U+0660-066D", "why": "Arabic-Indic digits (typed by users), percent/decimal/thousands signs" },
+    { "range": "U+0670", "why": "superscript alef" },
+    { "range": "U+06A2,U+06A7,U+06A8", "why": "Maghrebi feh ڢ, qaf ڧ, Algerian gaf ڨ (STACK-REPORT §5)" },
+    { "range": "U+06A4", "why": "veh ڤ, used in Algerian transliterations of brand names (V)" },
+    { "range": "U+200C-200F", "why": "ZWNJ, ZWJ, LRM, RLM (Intl ar-DZ prices contain RLM)" },
+    { "range": "U+FD3E-FD3F", "why": "ornate parentheses" }
+  ],
+  "layoutFeatures": "fontTools defaults (keeps ccmp init medi fina liga locl rlig kern mark mkmk). Digits 0-9 and U+0660-0669 are tabular by default (all 572 units), so font-variant-numeric: tabular-nums needs no tnum lookup.",
+  "output": "noto-sans-arabic-400.woff2",
+  "budgetBytes": 12288
+}
