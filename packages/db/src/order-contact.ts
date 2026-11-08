@@ -7,6 +7,7 @@
 //   - every statement is guarded by `orders.id = :id AND version = :v`, the version bump last.
 import { and, eq, sql } from 'drizzle-orm';
 import { buildQuote, normalizePhone, type AdminRole, type FeeProvider, type OrderStatus } from '@hb/shared';
+import { normalizeName } from '@hb/shared/name';
 import { communes, customers, orderEvents, orderItems, orders, variants } from './schema.ts';
 import { guardedInsertSelect, orderGuard, type OrderBatchItem } from './orders.ts';
 import type { Db } from './index.ts';
@@ -31,6 +32,8 @@ export type UpdateOrderContactResult =
         | 'forbidden'
         | 'not_editable'
         | 'phone_invalid'
+        | 'name_required'
+        | 'name_invalid'
         | 'commune_invalid'
         | 'area_unavailable'
         | 'order_total_out_of_range'
@@ -94,7 +97,16 @@ export async function updateOrderContact(
     phoneE164 = p.e164;
   }
   const phoneChanged = phoneE164 !== cur.phoneE164;
-  const name = patch.name !== undefined ? patch.name.trim() : cur.name;
+  let name = cur.name;
+  if (patch.name !== undefined) {
+    // The one order-name rule (@hb/shared normalizeName, SHARED-7): the same as the storefront's
+    // NameSchema, so an edited order dedups and displays exactly like a new one (DB-6 r2).
+    const n = normalizeName(patch.name);
+    if (!n.ok) return { ok: false, code: n.code };
+    name = n.value;
+  }
+  // A blank address is no address.
+  const address = patch.address === undefined ? undefined : patch.address === null || patch.address.trim() === '' ? null : patch.address.trim();
 
   // Area + re-quote
   const wilayaCode = patch.wilayaCode ?? cur.wilayaCode;
@@ -116,7 +128,12 @@ export async function updateOrderContact(
     // @hb/shared buildQuote (SHARED-3 contract for any re-pricing): computeTotals plus the
     // MAX_ORDER_TOTAL_DZD ceiling. stock: null, since this order's stock was taken at creation.
     const q = buildQuote(lines.map((l) => ({ variantId: l.variantId, qty: l.qty, unitPriceDzd: l.unitPriceDzd, stock: null })), fee);
-    if (!q.ok) return { ok: false, code: q.code === 'order_total_out_of_range' ? 'order_total_out_of_range' : 'area_unavailable' };
+    if (!q.ok) {
+      if (q.code === 'order_total_out_of_range') return { ok: false, code: 'order_total_out_of_range' };
+      // Any other code (e.g. out_of_stock for a line above MAX_QTY_PER_LINE) cannot happen without
+      // line editing; never report it as "area unavailable" (DB-6 r1 nit).
+      throw new Error(`updateOrderContact: buildQuote refused the stored lines (${q.code})`);
+    }
     if (!q.available) return { ok: false, code: 'area_unavailable' };
     if (q.subtotalDzd !== cur.subtotalDzd) throw new Error(`updateOrderContact: stored subtotal ${cur.subtotalDzd} ≠ items ${q.subtotalDzd}`);
     feeDzd = q.feeDzd;
@@ -127,7 +144,7 @@ export async function updateOrderContact(
   const changed = [
     patch.name !== undefined && name !== cur.name ? 'name' : null,
     phoneChanged ? 'phone' : null,
-    patch.address !== undefined && patch.address !== cur.address ? 'address' : null,
+    address !== undefined && address !== cur.address ? 'address' : null,
     areaChanged ? 'area' : null,
     areaChanged && (feeDzd !== cur.feeDzd || feeSource !== cur.feeSource) ? 'fee' : null,
   ].filter((x): x is string => x !== null);
@@ -165,7 +182,7 @@ export async function updateOrderContact(
         name,
         phoneE164,
         customerId: phoneChanged ? sql`(SELECT id FROM customers WHERE phone_e164 = ${phoneE164})` : cur.customerId,
-        ...(patch.address !== undefined ? { address: patch.address } : {}),
+        ...(address !== undefined ? { address } : {}),
         wilayaCode,
         communeId,
         feeDzd,

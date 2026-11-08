@@ -18,6 +18,7 @@ import { WILAYA_CODE_MAX, WILAYA_CODE_MIN } from './ids.ts';
 import { LANGS, type Lang } from './lang.ts';
 import { MAX_ORDER_LINES, MAX_QTY_PER_LINE, type Dzd } from './money.ts';
 import type { OrderStatus } from './order-state.ts';
+import { normalizeName } from './name.ts';
 import { normalizePhone, toAsciiDigits, type PhoneE164 } from './phone.ts';
 
 // ---------------------------------------------------------------------------------------------
@@ -144,8 +145,7 @@ export interface OrderFieldError {
 /** Name of the honeypot input. Hidden from humans; any non-empty value flags the order. */
 export const HONEYPOT_FIELD = 'website';
 
-export const NAME_MIN_LENGTH = 2;
-export const NAME_MAX_LENGTH = 80;
+export { NAME_MAX_LENGTH, NAME_MIN_LENGTH } from './name.ts';
 /** Upper bound for `fillMs` (24 h); larger or malformed values count as missing. */
 export const MAX_FILL_MS = 86_400_000;
 
@@ -162,27 +162,19 @@ function intField(code: OrderErrorCode, min: number, max: number) {
   );
 }
 
-// Bidi marks, embeddings, overrides, isolates, zero-width space, word joiner and BOM: invisible,
-// never part of a name. ZWNJ/ZWJ (U+200C/U+200D) are kept: they shape Arabic-script text.
-const INVISIBLE_RE = /[\u200B\u200E\u200F\u061C\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g;
-// Anything still left that is a control, surrogate, private-use or other format character.
-const FORBIDDEN_IN_NAME_RE = /[\p{Cc}\p{Cs}\p{Co}]|(?![\u200C\u200D])\p{Cf}/u;
-
 export const LangSchema = /* @__PURE__ */ v.picklist(LANGS, 'lang_invalid');
 
-/**
- * NFC, invisible marks removed, whitespace collapsed; 2–80 characters with at least one letter;
- * no remaining control/format characters except ZWNJ/ZWJ.
- */
+/** The order-name rule of `normalizeName` (name.ts), as a Valibot schema; output is the normalised name. */
 export const NameSchema = /* @__PURE__ */ v.pipe(
   v.string('name_required'),
-  v.normalize('NFC'),
-  v.transform((s) => s.replace(INVISIBLE_RE, '').replace(/\s+/gu, ' ').trim()),
-  v.nonEmpty('name_required'),
-  v.check((s) => !FORBIDDEN_IN_NAME_RE.test(s), 'name_invalid'),
-  v.regex(/\p{L}/u, 'name_invalid'),
-  v.minLength(NAME_MIN_LENGTH, 'name_invalid'),
-  v.maxLength(NAME_MAX_LENGTH, 'name_invalid'),
+  v.rawTransform(({ dataset, addIssue, NEVER }) => {
+    const r = normalizeName(dataset.value);
+    if (!r.ok) {
+      addIssue({ message: r.code });
+      return NEVER;
+    }
+    return r.value;
+  }),
 );
 
 /** Validates and normalises an Algerian mobile; output `{ e164, national }`. */
@@ -389,10 +381,14 @@ function toFieldErrors(issues: readonly v.BaseIssue<unknown>[]): OrderFieldError
   for (const issue of issues) {
     const rootKey = issue.path?.[0]?.key;
     const field = fieldOf(rootKey);
+    const lastKey = issue.path?.at(-1)?.key;
     let code: OrderErrorCode;
-    if (isOrderErrorCode(issue.message)) code = issue.message;
+    // Any issue on a `qty` key (including a missing one inside an item) is a quantity error.
+    if (lastKey === 'qty') code = 'qty_invalid';
+    // A missing key is reported by the object schema with the object's message
+    // (`invalid_request`); on a known field it means "not filled in", i.e. the field's own code.
+    else if (isOrderErrorCode(issue.message) && !(issue.message === 'invalid_request' && field !== 'form')) code = issue.message;
     else if (field === 'form') code = 'invalid_request';
-    else if (rootKey === 'qty') code = 'qty_invalid';
     else code = FIELD_DEFAULT_CODE[field];
     const idx = rootKey === 'items' ? issue.path?.[1]?.key : undefined;
     const index = typeof idx === 'number' ? idx : undefined;
@@ -537,9 +533,13 @@ export interface OrderSuccess {
   /** `new` for a fresh order; the stored status when an existing order is returned. */
   readonly status: OrderStatus;
   /**
-   * True when the existing order for the same phone + variant (within DUPLICATE_WINDOW_MS) is
-   * returned instead of creating one. An idempotent replay returns the original body unchanged.
-   * HTTP 201 for a new order, 200 for a replay or a duplicate.
+   * True only for a genuine double submit: same phone + variant within DUPLICATE_WINDOW_MS AND the
+   * same name (NFC, case- and whitespace-insensitive), wilaya and commune; the existing order is
+   * returned instead of creating one. Any other phone + variant match creates a new order flagged
+   * `duplicate`, and its response never carries another order's ref or totals. An idempotent
+   * replay returns the original body unchanged.
+   * HTTP status is always 201 (new order, replay and double submit alike), so a client replaying
+   * its key cannot tell a sunk decoy from a real order (lead ruling, WEB-3).
    */
   readonly duplicate: boolean;
   readonly subtotalDzd: Dzd;
@@ -588,7 +588,10 @@ export const ORDER_FLAGS = [
   'turnstile_missing',
   /** siteverify said no, wrong hostname/action, or siteverify failed (`orders.turnstile` keeps the precise verdict). */
   'turnstile_invalid',
-  /** Same phone + variant within DUPLICATE_WINDOW_MS of an existing order. */
+  /**
+   * Same phone + variant within DUPLICATE_WINDOW_MS of an existing order, but not a genuine double
+   * submit (different name, wilaya or commune): a new order is created and flagged.
+   */
   'duplicate',
   /** Soft limits: IP secondary limit or per-phone 24 h velocity. The hard phone limit answers error `rate_limited`. */
   'rate_limited',

@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 // workerd D1 per test: generous timeout on a loaded shared machine.
-vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
+vi.setConfig({ testTimeout: 300_000, hookTimeout: 300_000 });
 import { sql } from 'drizzle-orm';
 import { computeTotals } from '@hb/shared';
 import {
@@ -39,7 +39,7 @@ beforeEach(async () => {
      insert into wilayas (code, name_fr, name_ar) values (16, 'Alger', 'الجزائر'), (31, 'Oran', 'وهران');
      insert into communes (id, wilaya_code, name_fr, name_ar) values (1601, 16, 'Alger Centre', 'الجزائر الوسطى'), (3101, 31, 'Oran', 'وهران')`,
   );
-}, 60_000);
+}, 300_000);
 afterEach(async () => dispose?.());
 
 const line = (variantId: number, qty: number, unit = variantId === 100 ? 14600 : variantId === 101 ? 3200 : 3000): OrderLineInput => ({

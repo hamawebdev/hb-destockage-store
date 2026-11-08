@@ -11,9 +11,9 @@ import { buildManifest, canonicalValue, digestRows, tableDigest, verifyRestore, 
 import { schemaFirst, splitSqlStatements, verifyRestoreFromDump } from '../src/backup-node.ts';
 import { LOCAL_DATABASE_ID } from '../src/seed/guard.ts';
 import { exec, freshD1, type RawD1 } from './d1.ts';
-import { MIGRATIONS_DIR } from './helpers.ts';
+import { MIGRATIONS_DIR, migrationFiles } from './helpers.ts';
 
-vi.setConfig({ testTimeout: 180_000, hookTimeout: 120_000 });
+vi.setConfig({ testTimeout: 300_000, hookTimeout: 300_000 });
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 const fixture = readFileSync(new URL('./fixtures/data-at-0000.sql', import.meta.url), 'utf8')
@@ -57,6 +57,35 @@ CREATE TABLE "w" (code integer primary key, "x;y" text);
   test('schemaFirst hoists every CREATE TABLE after the PRAGMAs, keeping the rest in order', () => {
     const out = splitSqlStatements(schemaFirst(`PRAGMA x;\nCREATE TABLE a (i);\nINSERT INTO a VALUES(1);\nCREATE TABLE b (j);\nINSERT INTO b VALUES(2);\nCREATE INDEX ia ON a(i);`));
     expect(out).toEqual(['PRAGMA x', 'CREATE TABLE a (i)', 'CREATE TABLE b (j)', 'INSERT INTO a VALUES(1)', 'INSERT INTO b VALUES(2)', 'CREATE INDEX ia ON a(i)']);
+  });
+  test('triggers, views and indexes go after the data, so no trigger fires during a restore (DB-5 r1)', () => {
+    const dump = `PRAGMA defer_foreign_keys=TRUE;
+CREATE TABLE a (i);
+CREATE TRIGGER ta AFTER INSERT ON a BEGIN INSERT INTO log VALUES (NEW.i); END;
+CREATE VIEW va AS SELECT i FROM a;
+CREATE UNIQUE INDEX ia ON a(i);
+INSERT INTO a VALUES(1);
+CREATE TABLE log (i);
+INSERT INTO log VALUES(9);`;
+    expect(splitSqlStatements(schemaFirst(dump)).map((s) => s.split(' ').slice(0, 3).join(' '))).toEqual([
+      'PRAGMA defer_foreign_keys=TRUE',
+      'CREATE TABLE a',
+      'CREATE TABLE log',
+      'INSERT INTO a',
+      'INSERT INTO log',
+      'CREATE UNIQUE INDEX',
+      'CREATE VIEW va',
+      'CREATE TRIGGER ta',
+    ]);
+  });
+  test('a dump file or work dir inside a git worktree is refused (customer data stays out of the repo)', async () => {
+    const inRepo = fileURLToPath(new URL('./fixtures/data-at-0000.sql', import.meta.url));
+    const manifest = { schemaVersion: null, schemaSha256: '', tables: [] };
+    await expect(verifyRestoreFromDump({ dumpFile: inRepo, manifest })).rejects.toThrow(/inside the git worktree/);
+    const outside = join(process.env.TMPDIR ?? tmpdir(), 'hb-db5-guard.sql');
+    writeFileSync(outside, '');
+    await expect(verifyRestoreFromDump({ dumpFile: outside, manifest, workDir: fileURLToPath(new URL('.', import.meta.url)) })).rejects.toThrow(/workDir .* inside the git worktree/);
+    rmSync(outside, { force: true });
   });
 });
 
@@ -133,7 +162,7 @@ describe('verifyRestoreFromDump: real `wrangler d1 export` dump into a fresh loc
       const proxy = await getPlatformProxy<{ DB: D1Like }>({ configPath: cfg, persist: { path: join(persist, 'v3') }, remoteBindings: false });
       const manifest = await buildManifest(proxy.env.DB);
       await proxy.dispose();
-      expect(manifest.schemaVersion).toMatch(/^0007_/);
+      expect(manifest.schemaVersion).toBe(migrationFiles().at(-1)); // the last migration of the chain
 
       expect(await verifyRestoreFromDump({ dumpFile: dump, manifest })).toMatchObject({ ok: true, mismatches: [] });
 

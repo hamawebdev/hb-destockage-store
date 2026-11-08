@@ -101,7 +101,10 @@ describe('DB-1 migrations', () => {
     for (const t of tables) {
       const name = getTableConfig(t).name;
       const cols = sqlite.prepare('select name, type from pragma_table_info(?)').all(name) as { name: string; type: string }[];
-      for (const c of cols.filter((c) => c.name.endsWith('_dzd'))) expect(c.type.toLowerCase(), `${name}.${c.name}`).toBe('integer');
+      // images.printed_prices_dzd (DB-8) is a JSON array of integer DZD, guarded by triggers.
+      for (const c of cols.filter((c) => c.name.endsWith('_dzd') && `${name}.${c.name}` !== 'images.printed_prices_dzd')) {
+        expect(c.type.toLowerCase(), `${name}.${c.name}`).toBe('integer');
+      }
     }
   });
 });

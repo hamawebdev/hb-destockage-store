@@ -57,3 +57,29 @@ export type RumRating = (typeof RUM_RATINGS)[number];
 /** `dead` (DB-7, JOBS-6): the queue dead-lettered the message; the admin shows it. */
 export const DELIVERY_STATUSES = ['sending', 'sent', 'dead'] as const;
 export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
+
+/**
+ * Settings key registry (`settings` is key → JSON). Only the storefront keys (CAT-1
+ * SnapshotSettings) are exported in the catalogue snapshot (`@hb/db/export`); every other key is
+ * internal and never leaves the database through the export.
+ */
+export const STOREFRONT_SETTINGS_KEYS = [
+  'storeName',
+  'contactPhone',
+  'whatsapp',
+  'contactEmail',
+  'homeFeaturedProductIds',
+  'homeHeroProductId',
+  'turnstileSiteKey',
+] as const;
+
+export const INTERNAL_SETTINGS_KEYS = {
+  /** jobs (JOBS-1): backup health mirror {lastSuccess, lastFailure, retention, health}; read by the admin dashboard. */
+  'jobs.backup_status': 'jobs',
+  /** jobs (JOBS-6): malformed notification messages {count, lastAt}. */
+  'jobs.notify_invalid': 'jobs',
+  /** jobs (JOBS-7, D-003): nightly full byte-budget pass {at, ok, summary, publishRunId, fingerprint}; read by the admin tile. */
+  'jobs.runtime_budget': 'jobs',
+  /** db seed (DB-3 r4): ids the local seed owns {products, categories}. Local only. */
+  'seed.owned': 'db',
+} as const;

@@ -277,15 +277,23 @@ export function splitSqlStatements(sql: string): string[] {
 /**
  * A `wrangler d1 export` dump writes each table's CREATE TABLE followed by its INSERTs, in
  * sqlite_master order. Restored into a fresh D1 (foreign keys on), a child table's INSERT then fails
- * with "no such table: main.<parent>" when the parent table comes later. Hoisting every CREATE TABLE
- * to the top (original order otherwise kept) makes the dump restorable; PRAGMAs stay first.
+ * with "no such table: main.<parent>" when the parent table comes later. Reordered for a restore:
+ *   PRAGMAs → every CREATE TABLE → the data (INSERTs and anything else, original order)
+ *   → CREATE INDEX → CREATE VIEW → CREATE TRIGGER
+ * Triggers last (DB-5 r1, rev-a): no trigger can fire while the rows are being restored.
  */
 export function schemaFirst(sql: string): string {
-  const stmts = splitSqlStatements(sql);
-  const pragma = stmts.filter((s) => /^PRAGMA\b/i.test(s));
-  const tables = stmts.filter((s) => /^CREATE\s+TABLE\b/i.test(s));
-  const rest = stmts.filter((s) => !/^PRAGMA\b/i.test(s) && !/^CREATE\s+TABLE\b/i.test(s));
-  return [...pragma, ...tables, ...rest].map((s) => `${s};`).join('\n') + '\n';
+  const kind = (s: string): number => {
+    if (/^PRAGMA\b/i.test(s)) return 0;
+    if (/^CREATE\s+(TEMP\s+|TEMPORARY\s+)?TABLE\b/i.test(s)) return 1;
+    if (/^CREATE\s+(UNIQUE\s+)?INDEX\b/i.test(s)) return 3;
+    if (/^CREATE\s+(TEMP\s+|TEMPORARY\s+)?VIEW\b/i.test(s)) return 4;
+    if (/^(?:(?:--[^\n]*\n|\/\*[\s\S]*?\*\/|\s)*)CREATE\s+(TEMP\s+|TEMPORARY\s+)?TRIGGER\b/i.test(s)) return 5;
+    return 2;
+  };
+  const stmts = splitSqlStatements(sql).map((s, i) => ({ s, i, k: kind(s) }));
+  stmts.sort((a, b) => a.k - b.k || a.i - b.i);
+  return stmts.map((x) => `${x.s};`).join('\n') + '\n';
 }
 
 /** Public name (lead): reorder a D1 dump so it restores into a fresh database. Same as schemaFirst. */
