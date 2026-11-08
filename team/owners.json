@@ -68,7 +68,9 @@
         "DECISIONS.md",
         ".gitignore",
         ".nvmrc",
-        "vitest.workspace.*"
+        "vitest.workspace.*",
+        ".github/**",
+        "docs/DEPLOY.md"
       ],
       "reviewer": "rev-a",
       "portBase": 4100
