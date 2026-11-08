@@ -103,11 +103,25 @@ export const STRICT = process.env['HB_E2E_STRICT'] === '1';
 // local D1
 // ---------------------------------------------------------------------------------------------
 
-/** Run SQL against the shared local D1 (read-only use in specs). */
+/** SQLite busy: a running Worker holds the write lock on the shared local D1 file. */
+const BUSY = /SQLITE_BUSY|database is locked/;
+const D1_ATTEMPTS = 8;
+
+/**
+ * Run SQL against the shared local D1 (read-only use in specs). The Workers write the same SQLite
+ * file (an order, its events, the admin's audit rows), so a read can meet SQLITE_BUSY: retry it
+ * with backoff (8 attempts, ~5 s in total) instead of failing the spec (rehearsal-1 finding).
+ */
 export function d1<T = Record<string, unknown>>(sql: string): T[] {
-  const r = spawnSync(WRANGLER, ['d1', 'execute', 'hb-destockage', '--local', '--persist-to', PERSIST, '--json', '--command', sql], {
+  let r = spawnSync(WRANGLER, ['d1', 'execute', 'hb-destockage', '--local', '--persist-to', PERSIST, '--json', '--command', sql], {
     cwd: path.join(REPO, 'packages/db'), encoding: 'utf8', env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' },
   });
+  for (let attempt = 1; r.status !== 0 && attempt < D1_ATTEMPTS && BUSY.test(`${r.stdout}${r.stderr}`); attempt++) {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 150 * attempt); // synchronous backoff
+    r = spawnSync(WRANGLER, ['d1', 'execute', 'hb-destockage', '--local', '--persist-to', PERSIST, '--json', '--command', sql], {
+      cwd: path.join(REPO, 'packages/db'), encoding: 'utf8', env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' },
+    });
+  }
   if (r.status !== 0) throw new Error(`d1 query failed (${r.status}): ${sql}\n${r.stderr.slice(-1500)}`);
   const out = JSON.parse(r.stdout.slice(r.stdout.indexOf('['))) as Array<{ results: T[] }>;
   return out[0]?.results ?? [];
