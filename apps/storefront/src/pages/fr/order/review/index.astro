@@ -1,0 +1,24 @@
+---
+// No-JS review step template (fr). Owner: orderform (ORDER-6). Never linked; filled by web's Worker (HTMLRewriter,
+// artifacts/WEB-3/review-slots.md) and served as the answer to the product form's POST. noindex.
+// Layout = the confirmation page's (same chrome, noindex) with this page's title; the language switch goes to the
+// other language's home, because a filled review page is a POST answer with no static equivalent.
+import Base from '../../../../layouts/Base.astro';
+import Review from '../../../../components/order/Review.astro';
+import { pageProps } from '../../../../lib/catalog.ts';
+import { str } from '../../../../components/order/str.ts';
+const { layout } = pageProps('order-confirmed', 'fr');
+const title = str(layout.strings, 'order.review.title');
+const page = {
+  ...layout,
+  title: `${title} · ${layout.storeName}`,
+  description: str(layout.strings, 'order.review.intro'),
+  path: '/fr/order/review/',
+  noindex: true,
+  alternates: [],
+  languageSwitch: { ...layout.languageSwitch, href: '/ar/' },
+};
+---
+<Base layout={page}>
+  <Review lang="fr" strings={layout.strings} contact={layout.contact} />
+</Base>
