@@ -54,11 +54,27 @@ describe('good site', () => {
     expect(byUrl('/ar/')?.metrics.js.totalBr).toBe(0);
   });
 
+  it('BUG-19: deferred <img data-src data-srcset hidden> + its <noscript> copy pass, and add nothing to the critical path', () => {
+    const d = freshSite();
+    const crit = (rep: SiteReport, u: string) => rep.pages.find((p) => p.url === u)?.metrics.critical;
+    const before0 = crit(checkSite(d), '/fr/p/pack-cuisine/');
+    edit(d, FR_P, (s) => s.replace('</main>', `${deferred(srcset('c1'))}</main>`));
+    // before the LCP element and NOT lazy: still requests nothing, so not a pre-LCP image
+    edit(d, AR_P, (s) => s.replace('<main id="main">', `<main id="main">${deferred(srcset('c1')).replace(' loading="lazy" decoding', ' decoding')}`));
+    const r2 = checkSite(d);
+    expect(dump(r2)).toBe('[]');
+    // same requests (the HTML itself grows, so compare what is fetched, not the bytes)
+    expect(crit(r2, '/fr/p/pack-cuisine/')?.requests.map((c) => c.url)).toEqual(before0?.requests.map((c) => c.url));
+    expect(crit(r2, '/ar/p/pack-cuisine/')?.requests.map((c) => c.kind)).toEqual(['html', 'preload font', 'preload image']);
+  });
+
   it('uses the larger of the measured brotli sizes', () => {
     const p = byUrl('/fr/');
     expect(p?.metrics.htmlBrGate).toBe(Math.max(...Object.values(p?.metrics.htmlBr ?? {})));
   });
 });
+
+const deferred = (set: string, src = '/img/c1-720.avif'): string => `<img class="cat-card-img" data-src="${src}" data-srcset="${set}" sizes="(min-width: 768px) 25vw, 50vw" width="360" height="360" alt="Carte" loading="lazy" decoding="async" hidden><noscript><img src="/img/c1-720.avif" srcset="${srcset('c1')}" sizes="(min-width: 768px) 25vw, 50vw" width="360" height="360" alt="Carte" loading="lazy"></noscript>`;
 
 interface Case { name: string; rule: RuleId; allow?: RuleId[]; mutate: (dir: string) => void }
 
@@ -229,6 +245,11 @@ const CASES: Case[] = [
     name: '<picture> without an AVIF source', rule: 'avif',
     mutate: (d) => { put(d, 'img/h.webp', noise(9000, 23)); edit(d, FR_P, (s) => s.replace('<source type="image/avif"', '<source type="image/webp" srcset="/img/h.webp 720w"><source type="image/x-none"')); },
   },
+  // BUG-19: a deferred <img> (data-srcset) is checked as the srcset it becomes
+  { name: 'deferred <img> whose data-srcset is a JPEG (BUG-19)', rule: 'avif', mutate: (d) => { put(d, 'img/c.jpg', noise(3000, 26)); edit(d, FR_P, (s) => s.replace('</main>', `${deferred('/img/c.jpg 360w', '/img/c.jpg')}</main>`)); } },
+  { name: 'deferred <img> whose data-srcset lacks 480w (BUG-19)', rule: 'avif', mutate: (d) => edit(d, FR_P, (s) => s.replace('</main>', `${deferred(srcset('c1', [360, 720, 960, 1200]))}</main>`)) },
+  { name: 'bare <img> with no src, srcset or data-srcset (BUG-19 ruling)', rule: 'avif', mutate: (d) => edit(d, FR_P, (s) => s.replace('</main>', '<img alt="" width="10" height="10"></main>')) },
+  { name: 'deferred <img> with data-src only (BUG-19)', rule: 'avif', mutate: (d) => edit(d, FR_P, (s) => s.replace('</main>', '<img data-src="/img/c1-720.avif" alt="" hidden></main>')) },
   { name: 'plain <img src> card image without srcset', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', '<img src="/img/c1-360.avif" loading="lazy" width="360" height="360" alt=""></main>')) },
   { name: 'PNG card image', rule: 'avif', mutate: (d) => { put(d, 'img/c.png', noise(3000, 24)); edit(d, FR_H, (s) => s.replace('</main>', '<img src="/img/c.png" loading="lazy" width="10" height="10" alt=""></main>')); } },
   { name: 'raster data: URI image', rule: 'avif', mutate: (d) => edit(d, FR_H, (s) => s.replace('</main>', `<img src="data:image/png;base64,${noise(300, 25).toString('base64')}" alt=""></main>`)) },

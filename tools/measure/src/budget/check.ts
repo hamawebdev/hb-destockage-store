@@ -583,6 +583,24 @@ function checkPage(ctx: Ctx, rel: string): PageResult {
   for (const t of scanned) {
     if (t.name === 'img') {
       const src = attr(t, 'src');
+      // BUG-19: a deferred <img> (pages' DeferredImg: data-src/data-srcset, no src or srcset)
+      // requests nothing until a script promotes data-* to src/srcset, so it is checked as
+      // what it becomes: data-srcset under the same AVIF rules (a deferred JPEG still fails).
+      // Its <noscript> copy is scanned as a normal <img>. A bare <img> (no src, srcset or
+      // data-*) still fails below ("has no srcset"; lead ruling on BUG-19). A deferred <img>
+      // adds nothing to the critical path (no src/srcset to fetch before a script runs).
+      if (!has(t, 'src') && !has(t, 'srcset') && (has(t, 'data-src') || has(t, 'data-srcset'))) {
+        const dsrc = attr(t, 'data-src');
+        const dset = attr(t, 'data-srcset');
+        const where = `<img data-src="${dsrc.slice(0, 60)}"> (deferred)`;
+        const dOwn = parseSrcset(dset);
+        if ([...dOwn.map((c) => c.url), dsrc].filter(Boolean).every((u) => isVector(u))) continue;
+        if (dOwn.length && dOwn.some((c) => /\.avif(?:$|\?)/i.test(c.url) || (() => { const p = samePath(c.url); const b = p ? read(p) : null; return !!b && isAvif(b); })())) checkAvifSet(dset, `${where} data-srcset`);
+        else if (dOwn.length) imgV(`${where}: data-srcset is not AVIF (photos must be an AVIF srcset)`);
+        else imgV(`${where} has no data-srcset (photos must be an AVIF srcset at ${budgets.avifWidths.join('/')} w)`);
+        checkLoose(dsrc, undefined, where);
+        continue;
+      }
       const own = parseSrcset(attr(t, 'srcset'));
       const all = [...own.map((c) => c.url), src].filter(Boolean);
       if (all.length && all.every((u) => isVector(u))) continue; // SVG logo / icon

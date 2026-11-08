@@ -88,7 +88,13 @@ For every `<img>` (also inside `<noscript>` and declarative shadow DOM):
 - every candidate the browser could pick, **in any format** (AVIF set, other `<source>`s, the
   `<img>`'s own `srcset` and `src`), at ≤ 960 w or of unknown width must be ≤ 25,000 B;
 - failures by escape route: `<img src>` without `srcset`, a non-AVIF `srcset`, `<picture>`
-  without an AVIF `<source>`, raster `data:` URIs.
+  without an AVIF `<source>`, raster `data:` URIs, and a bare `<img>` with nothing to load;
+- **deferred images** (BUG-19, lead ruling; pages' `<img data-src data-srcset hidden>` plus a
+  `<noscript>` copy): an `<img>` with neither `src` nor `srcset` but with `data-srcset`/`data-src`
+  is checked as what a script will make of it. Its `data-srcset` gets the same AVIF-set rules
+  (format, widths, byte ceilings), `data-src` the candidate checks, and the `<noscript>` copy is
+  checked as a normal `<img>`. It requests nothing before a script runs, so it is never a pre-LCP
+  request in the critical path.
 Also failing: `<link rel=preload as=image>` without `imagesrcset` (its `imagesrcset` gets the same
 AVIF-set check); raster images in CSS (`url()`, `image-set()`, in `<style>` or `style=""`),
 `<video poster>`, `<input type=image>`, SVG `<image>`, `background=""`. Use an `<img>` with an AVIF
