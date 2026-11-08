@@ -584,12 +584,16 @@ function init(f) {
       expectedTotalDzd: quote.totalDzd,
       website: el.website.value,
     };
+    const extra = { meta: null }; // a listener may add to the request (meta.js, when configured)
+    D.dispatchEvent(new CustomEvent('hb:order-sending', { detail: extra }));
+    if (extra.meta) body.meta = extra.meta;
     if (started) body.fillMs = Math.round(performance.now() - started);
     // Same key on the retry: if the first attempt reached the server, this returns that order.
     const r = await postRetrying(f.action, body, () => (ts ? ts.token(3000).catch(() => '') : ''));
     const d = r.body || {};
     if (d.ok && d.ref) {
       if (cartMode) cart.store.write(cart.removeVariants(cart.store.lines(), body.items.map((i) => i.variantId)));
+      D.dispatchEvent(new CustomEvent('hb:order-placed', { detail: { ref: d.ref, totalDzd: d.totalDzd, items: body.items, duplicate: !!d.duplicate, honeypot: !!body.website } }));
       location.assign(d.confirmationUrl || `${cfg.confirm}?ref=${encodeURIComponent(d.ref)}`);
       return;
     }

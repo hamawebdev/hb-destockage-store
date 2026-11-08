@@ -329,6 +329,11 @@
   "cart.noJs": "تحتاج السلة إلى تفعيل جافاسكريبت. يمكنك طلب كل منتج مباشرة من صفحته.",
   "meta.cart.description": "راجع سلتك وأكّد طلبك، والدفع عند الاستلام.",
   "order.summary.totalShort": "المجموع",
+  "consent.text": "هل تقبل أن نقيس فعالية إعلاناتنا مع ميتا (فيسبوك، إنستغرام)؟ إذا قبلت، تتلقى ميتا معلومات عن زيارتك، وعند الطلب رقم هاتفك في صيغة مشفّرة لا يمكن عكسها.",
+  "consent.accept": "أقبل",
+  "consent.decline": "أرفض",
+  "consent.more": "اعرف المزيد",
+  "consent.change": "تغيير اختياري",
   "dev.placeholder": "[PLACEHOLDER]",
   "dev.placeholderBanner": "محتوى مؤقت في انتظار موافقة HB Destockage. [PLACEHOLDER]",
   "dev.photoPlaceholder": "صورة مؤقتة [PLACEHOLDER]"
