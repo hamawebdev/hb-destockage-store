@@ -397,7 +397,9 @@ node tools/measure/src/timings/cli.ts --base-url https://hb-x.<acct>.workers.dev
 **The API series writes real orders** (stock, staff notifications), so it runs only against the
 Worker the harness started, a loopback host (`127.0.0.1`, `::1`, `localhost`), or a
 `*.workers.dev` host named exactly by `--allow-write-host` (our `wrangler deploy --temporary`
-measurements; that host also needs `--variant/--wilaya/--commune` from its own D1). Any other host
+measurements; that host also needs `--variant/--wilaya/--commune` from its own D1). **Name only
+a temporary deploy's host there**: production may also answer on a `*.workers.dev` host (web's
+config does not set `workers_dev`), and naming it would place real orders (rev-a, MEAS-5 r2). Any other host
 (the live site): the API series is refused with the reason in `timings.txt`, and the pages are
 still timed with GET only.
 
