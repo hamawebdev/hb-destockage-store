@@ -8,9 +8,9 @@
  *   6  fresh D1 reads: prices, stock, status, commune ∈ wilaya, fee; phone history (dedup, velocity, blocked)
  *      ⇒ 422 commune / 409 variant_unavailable | out_of_stock | delivery_unavailable | total_changed (shared checkOrderQuote)
  *   sink: honeypot AND fill-time signal ⇒ decoy success, nothing written
- *   7  dedup (same phone + variant, 30 min): a genuine double submit (same name, wilaya, commune too)
- *      ⇒ the existing order, flagged `duplicate`; otherwise a NEW order flagged `duplicate` (never
- *      another order's ref or totals: lead ruling on WEB-3 r1)
+ *   7  dedup (same phone + overlapping variant, 30 min): a genuine double submit (same name, wilaya,
+ *      commune and exactly the same lines) ⇒ the existing order, flagged `duplicate`; otherwise a NEW
+ *      order flagged `duplicate` (never another order's ref or totals: lead ruling on WEB-3 r1)
  *   8–9 velocity / blocked ⇒ flags
  *   write: createOrder batch (customer upsert, order, items, stock decrement, created event)
  *
@@ -30,7 +30,7 @@ import {
 import type { PricingReads } from '../catalog-reads.ts';
 import { quoteFromReads } from '../quote.ts';
 import { assess, shouldSink } from './risk.ts';
-import type { ExistingOrder, OrderStore } from './store.ts';
+import type { ExistingOrder, OrderLineQty, OrderStore } from './store.ts';
 
 export const PHONE_LIMIT_RETRY_AFTER_S = 60;
 
@@ -78,6 +78,12 @@ export function sameName(a: string, b: string): boolean {
 /** A genuine double submit: same person and delivery address as the recent order. */
 export function sameSubmitter(o: ExistingOrder, input: Pick<OrderInput, 'name' | 'wilayaCode' | 'communeId'>): boolean {
   return sameName(o.name, input.name) && o.wilayaCode === input.wilayaCode && o.communeId === input.communeId;
+}
+
+/** The same variants at the same quantities, in any order. */
+export function sameLines(a: readonly OrderLineQty[], b: readonly OrderLineQty[]): boolean {
+  const key = (lines: readonly OrderLineQty[]) => lines.map((l) => `${l.variantId}x${l.qty}`).sort().join();
+  return key(a) === key(b);
 }
 
 function existingBody(o: ExistingOrder, duplicate: boolean): OrderSuccess {
@@ -148,9 +154,11 @@ export async function placeOrder(req: PlaceRequest, deps: PlaceDeps): Promise<Pl
     };
   }
 
-  // 7. Dedup. Only a genuine double submit (same phone + variant within the window AND the same
-  // name, wilaya and commune) gets the existing order back; anything else is a new order, flagged.
-  const same = history.recent.find((o) => sameSubmitter(o, input));
+  // 7. Dedup. Only a genuine double submit (same phone within the window AND the same name, wilaya,
+  // commune and exactly the same lines) gets the existing order back: sharing a variant is not
+  // enough, or a cart that adds to an earlier order would lose its new lines. Anything else is a
+  // new order, flagged. Every recent order is checked, so the match may be older than the newest.
+  const same = history.recent.find((o) => sameSubmitter(o, input) && sameLines(o.lines, input.items));
   if (same !== undefined) {
     await deps.store.markDuplicate(same.id, { items: input.items, wilayaCode: input.wilayaCode, communeId: input.communeId }, now);
     return { kind: 'duplicate', status: 201, body: existingBody(same, true) };

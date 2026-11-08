@@ -109,16 +109,38 @@ describe('JSON order, real D1', () => {
 
   test('genuine double submit (same phone, variant, name, wilaya, commune; new key) → existing order, 201, flagged, no new row', async () => {
     const phone = freshPhone();
-    const first = await send(order({ phone }));
+    const first = await send(order({ phone, items: [{ variantId: 11, qty: 2 }], expectedTotalDzd: 29800 }));
     const second = await send(order({ phone, name: ' محمد   أمين', items: [{ variantId: 11, qty: 2 }], expectedTotalDzd: 29800 }));
     expect(second.status).toBe(201);
-    expect(second.json).toMatchObject({ ref: first.json['ref'], duplicate: true, totalDzd: 15200 });
+    expect(second.json).toMatchObject({ ref: first.json['ref'], duplicate: true, totalDzd: 29800 });
     expect(await count(`select count(*) n from orders where phone_e164 = ?`, e164(phone))).toBe(1);
     const o = await one<{ flags: string; id: number }>(`select id, flags from orders where ref = ?`, first.json['ref']);
     expect(JSON.parse(o!.flags)).toContain('duplicate');
     expect(await one(`select note from order_events where order_id = ? and outcome = 'duplicate_submit'`, o!.id)).toEqual({
       note: 'duplicate submit: items=11x2 wilaya=16 commune=1601',
     });
+  });
+
+  test('a cart that adds to a recent order is a NEW order with every line; resubmitting that cart in another order is a duplicate', async () => {
+    const phone = freshPhone();
+    const single = await send(order({ phone }));
+    const items = [{ variantId: 11, qty: 1 }, { variantId: 21, qty: 1 }];
+    const total = 14600 + 15500 + 600;
+    const cart = await send(order({ phone, items, expectedTotalDzd: total }));
+    expect(cart.status).toBe(201);
+    expect(cart.json['ref']).not.toBe(single.json['ref']);
+    expect(cart.json).toMatchObject({ duplicate: false, totalDzd: total });
+    const stored = await h.env.DB.prepare(
+      `select variant_id, qty from order_items where order_id = (select id from orders where ref = ?) order by variant_id`,
+    ).bind(cart.json['ref']).all();
+    expect(stored.results).toEqual([{ variant_id: 11, qty: 1 }, { variant_id: 21, qty: 1 }]);
+
+    const again = await send(order({ phone, items: [...items].reverse(), expectedTotalDzd: total }));
+    expect(again.json).toMatchObject({ ref: cart.json['ref'], duplicate: true, totalDzd: total });
+    // The single-line order is still the older exact match for a resubmission of itself.
+    const firstAgain = await send(order({ phone }));
+    expect(firstAgain.json).toMatchObject({ ref: single.json['ref'], duplicate: true });
+    expect(await count(`select count(*) n from orders where phone_e164 = ?`, e164(phone))).toBe(2);
   });
 
   test('same phone + variant but another name → a NEW order flagged duplicate; the first order is never disclosed', async () => {
