@@ -1,9 +1,58 @@
-// Placeholder (TOOL-2). Owner: jobs.
+// hb-jobs: scheduled jobs + order-notification Queue consumer. Owner: jobs.
+// Local only (no deploy from this project): `npx wrangler dev --test-scheduled` (port 4120).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "hb-jobs",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
-  "triggers": { "crons": ["0 2 * * *"] },
+  "compatibility_flags": ["nodejs_compat"],
+  // 02:00 UTC = 03:00 Algiers: daily backup. 09:00 UTC: backup health check (JOBS-1).
+  // 02:30 UTC: RUM rollup + 90-day purge (JOBS-5).
+  "triggers": { "crons": ["0 2 * * *", "0 9 * * *", "30 2 * * *"] },
+  "d1_databases": [
+    // Shared D1, repo convention (packages/db/wrangler.jsonc): local placeholder id, local state
+    // under ../../.wrangler/hb-local (`--persist-to`). The client sets the real id at deploy.
+    {
+      "binding": "DB",
+      "database_name": "hb-destockage",
+      "database_id": "00000000-0000-4000-8000-000000000d1b",
+      "migrations_dir": "../../packages/db/migrations"
+    }
+  ],
+  "r2_buckets": [
+    // PRIVATE backup bucket (JOBS-1): no r2.dev URL, no custom domain, not the media bucket.
+    // Holds customer personal data (orders); see RESTORE.md for who may access it.
+    { "binding": "BACKUPS", "bucket_name": "hb-backups" }
+  ],
+  "queues": {
+    "consumers": [
+      {
+        "queue": "hb-order-notifications",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        // Per-message retries use explicit exponential backoff (src/notify/consumer.ts);
+        // after this many attempts Cloudflare moves the message to the DLQ.
+        "max_retries": 10,
+        "dead_letter_queue": "hb-order-notifications-dlq"
+      },
+      {
+        // JOBS-6: dead letters become status 'dead' in notification_deliveries (admin tile).
+        // No DLQ of its own; D1 errors retry with backoff up to max_retries.
+        "queue": "hb-order-notifications-dlq",
+        "max_batch_size": 50,
+        "max_batch_timeout": 30,
+        "max_retries": 10
+      }
+    ],
+    "producers": [
+      // Permanent failures and malformed messages are forwarded here explicitly.
+      { "binding": "ORDER_NOTIFICATIONS_DLQ", "queue": "hb-order-notifications-dlq" }
+    ]
+  },
+  // Email notifications are off unless NOTIFY_EMAIL_FROM and NOTIFY_EMAIL_TO are also set
+  // (vars/secrets). Destination must be verified in Email Routing.
+  "send_email": [{ "name": "NOTIFY_EMAIL" }],
+  // TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID: `wrangler secret put` (or .dev.vars locally). Unset = disabled.
+  "observability": { "enabled": true },
   "dev": { "port": 4120 }
 }

@@ -63,3 +63,44 @@ Rules:
   60 s of stale fees; `/api/order` recomputes from D1 anyway and answers `total_changed` on drift.
 - Evidence: artifacts/WEB-2/latency.md (local p50/p90 with load average), research-evidence/team-reports/research_backend.md row 6.
 - Status: active
+
+## D-003 — Content-only publishes run the static byte budget; the runtime pass runs on image/template changes, every 20th publish and nightly
+- Date: 2026-11-07 · Author: jobs (lead ruling on JOBS-3 timing) · Task: JOBS-7
+- Report says: CLAUDE.md "Storefront budgets (blocking — enforced by `npm run budget` …)"; report §2
+  "Publishing" (admin save → rebuild and redeploy; if too slow, fall back to Workers Cache with tag
+  purge) and §11 (publish-to-live never measured).
+- We do instead: the publish pipeline (`apps/jobs/scripts/publish.ts`) decides the budget mode
+  from the build's own fingerprint against the last good build's (`.wrangler/publish/last-good.json`
+  at the repo root on the build machine, gitignored; never an admin flag). The fingerprint is the image-manifest
+  digest plus a hash of the git blob ids of apps/storefront, apps/web, packages/catalog/src,
+  packages/ui-tokens, packages/shared/src, brand, tools/measure (budget config and thresholds) and
+  the root package.json/package-lock.json.
+  - **Content-only** (text, price, stock, settings) → measure's **static pass only**, still
+    **blocking**: HTML ≤ 14 KiB br, critical path bytes and requests, AVIF ceilings, third-party
+    origins in markup. The Chrome runtime pass is skipped.
+  - **Any image or template/code/budget-config change**, a dirty tree, an absent, unreadable or
+    malformed last-good, a fingerprint schema change, or **20 static-only publishes in a row** →
+    the **full** budget, static + runtime, blocking, as before. The reason is logged on the run.
+  - **Nightly** (`apps/jobs/scripts/budget-nightly.ts`, started by the build machine's scheduler,
+    because a Worker cron cannot launch Chrome): the full budget on the last good build. Its result
+    goes to D1 `settings['jobs.runtime_budget']` = {at, ok, summary, publishRunId, fingerprint} for
+    the ADMIN-5 tile (red when `ok` is false or `at` is older than 26 h). Only jobs writes it; the
+    admin settings form writes a fixed key list. It never deploys and never touches last-good.
+  - The report's fallback (Workers Cache + tag purge) stays off.
+- Why: a warm (content-only) publish took 801 s on the shared machine, 640 s of it the Chrome
+  runtime pass, too slow for "fix a price and see it live". Content-only changes cannot change
+  fonts, scripts or third-party requests, which are what the runtime pass checks. They can only move
+  HTML size, which the static pass still blocks. Prices and stock are re-checked by `/api/order`
+  and `/api/quote` regardless.
+- Evidence: `artifacts/JOBS-3/timing.md` (cold 926 s / warm 801 s at 1-min load 4–15; budget 80 %;
+  shas and slot waits recorded). Open items:
+  1. Re-measure a warm and a cold publish when the 1-min load is ≤ 4, and append the result here
+     as a note entry.
+  2. Measure on the real build machine. Not available to the team; to be done by the client's
+     operator.
+- Status: active
+- Amended (JOBS-7 review r1, 2026-11-07): the fingerprint also covers packages/db/src and the
+  package.json files of packages/db, packages/catalog and packages/shared (the D1 → snapshot
+  mapping and dependency manifests), plus the publish pipeline itself (apps/jobs/scripts/publish.ts,
+  apps/jobs/scripts/lib, apps/jobs/src/publish). A pass on a dirty tree is never recorded as last
+  good, so a later clean build of that commit still gets its own full (runtime) pass.
