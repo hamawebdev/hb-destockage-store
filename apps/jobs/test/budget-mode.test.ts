@@ -1,7 +1,7 @@
 // JOBS-7 budget-mode policy (lead's test list) and the budget stage with injected I/O.
 import { describe, expect, test, vi } from 'vitest';
 import { decideBudgetMode, MAX_STATIC_STREAK, nextLastGood, readLastGood, type BuildFingerprint } from '../src/publish/budget-mode.ts';
-import { budgetWithMode, BudgetToolError, type BudgetIo } from '../src/publish/budget-stage.ts';
+import { budgetReportOnly, budgetSkipped, budgetWithMode, BudgetToolError, type BudgetIo } from '../src/publish/budget-stage.ts';
 
 const h = (c: string) => c.repeat(64);
 const fp: BuildFingerprint = { images: h('a'), template: h('b'), dirty: false };
@@ -57,6 +57,32 @@ function io(lastGood: string | null, exitCode: number | null, verdict = 'BUDGET 
     },
   };
 }
+
+describe('budgetSkipped (--budget skip)', () => {
+  test('passes without running anything', () => {
+    expect(budgetSkipped()).toMatchObject({ ok: true, skipped: true });
+  });
+});
+
+describe('budgetReportOnly (--budget report, D-004)', () => {
+  test.each([
+    [0, true, 'BUDGET OK: 105 pages, 16 rules'],
+    [1, false, 'BUDGET FAILED: 2 violations (html-br: 2)'],
+  ])('exit %i: the true verdict, full pass, reportOnly, last good untouched', async (exitCode, ok, verdict) => {
+    const x = io(good(), exitCode, verdict);
+    expect(await budgetReportOnly(x, () => {})).toEqual({ ok, summary: verdict, staticOnly: false, reportOnly: true });
+    expect(x.staticFlags).toEqual([false]);
+    expect(x.written).toEqual([]);
+  });
+  test('the tool erroring or throwing never fails the run', async () => {
+    expect(await budgetReportOnly(io(good(), 2, 'usage'), () => {})).toMatchObject({ ok: false, reportOnly: true, summary: 'budget could not run (exit 2): usage' });
+    const x = io(good(), 0);
+    x.runBudget = async () => {
+      throw new Error('spawn npm ENOENT');
+    };
+    expect(await budgetReportOnly(x, () => {})).toMatchObject({ ok: false, reportOnly: true, summary: 'budget could not run: spawn npm ENOENT' });
+  });
+});
 
 describe('budgetWithMode', () => {
   test('content-only: runs --static-only, passes, records the new last good build (streak + 1)', async () => {

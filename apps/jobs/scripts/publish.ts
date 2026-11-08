@@ -2,14 +2,19 @@
 //
 //   npm run publish -w @hb/jobs -- --site-origin https://<domain> [--enqueue] [--source d1|seed]
 //                                  [--persist-to <dir>] [--strict-copy] [--image-cache <dir>]
+//                                  [--budget enforce|report|skip]
+// --budget report (D-004): run the full budget and print it, but never fail the run on it and never
+// write last-good.json. --budget skip (deploy job; budgets run in the CI report job): no budget, no
+// Chrome, no last-good write, budget_ok NULL. The default, enforce, keeps the D-003 blocking behaviour.
+// The validated snapshot stays at <repo>/.wrangler/publish/<runId>/snapshot.json (the CI pipeline
+// reads it: tell `pipeline` and the lead if this path or these flags change).
 // --site-origin (or env HB_SITE_ORIGIN) is required: canonical/hreflang/og URLs and the catalogue
 // build need the absolute origin.
 //
 // Picks queued publish_runs from the local D1 (as the admin's Publish button leaves them) and,
 // for each one:
 //   export    D1 → snapshot JSON (@hb/db/export exportCatalogSnapshot, DB-5), validated by
-//             @hb/catalog/sources fromExport. `--source seed` uses fromSeed(data/) instead, until
-//             DB-5 lands (the run is still claimed/recorded in D1).
+//             @hb/catalog/sources fromExport. `--source seed` (development) uses fromSeed(data/).
 //   originals copy each image original the snapshot references from local R2 MEDIA (fallback
 //             data/photos) into a temp dir, by key.
 //   catalog   pagedata's pre-build (CAT-4/5, packages/catalog/src/bin/catalog.ts): AVIF variants +
@@ -17,7 +22,7 @@
 //   astro     npm run build -w @hb/storefront, HB_SNAPSHOT=<snapshot>.
 //   budget    npm run budget: static-only for content-only changes, full otherwise (JOBS-7, D-003).
 // Then records status, timings_json, budget_ok, error and log_tail on the run and prints the
-// deploy command it would run. Heavy: run it under /tmp/hb-locks/heavy.sh on the shared machine.
+// deploy command it would run. CPU-heavy: on a shared machine, run it through that machine's limiter.
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -26,11 +31,15 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { parseSiteOrigin } from '@hb/catalog/url';
 import { getPlatformProxy } from 'wrangler';
+import { createDb } from '@hb/db';
+import { exportCatalogSnapshot } from '@hb/db/export';
 import { runPublishQueue, StageError, type PublishStages, type SnapshotResult } from '../src/publish/pipeline.ts';
-import { budgetWithMode } from '../src/publish/budget-stage.ts';
+import { budgetReportOnly, budgetSkipped, budgetWithMode, type BudgetIo } from '../src/publish/budget-stage.ts';
 import { enqueueRun } from '../src/publish/runs.ts';
 import { budgetVerdict, buildFingerprint, LAST_GOOD_FILE } from './lib/fingerprint.ts';
+import { errorLine } from './lib/output.ts';
 import { containedPath } from './lib/private-dir.ts';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -46,17 +55,26 @@ const { values: args } = parseArgs({
     'strict-copy': { type: 'boolean', default: false },
     'image-cache': { type: 'string' },
     'skip-catalog': { type: 'boolean', default: false },
+    budget: { type: 'string', default: 'enforce' },
   },
 });
+if (args.budget !== 'enforce' && args.budget !== 'report' && args.budget !== 'skip') {
+  console.error('--budget must be enforce, report or skip');
+  process.exit(2);
+}
 if (args.source !== 'd1' && args.source !== 'seed') {
   console.error('--source must be d1 or seed');
   process.exit(2);
 }
-const siteOrigin = args['site-origin'] ?? process.env['HB_SITE_ORIGIN'];
-if (!siteOrigin || !/^https:\/\/[a-z0-9.-]+$/i.test(siteOrigin)) {
-  console.error('--site-origin https://<domain> (or HB_SITE_ORIGIN) is required, absolute, no trailing slash');
+// The catalogue's own rule (pagedata): https + a dotted public hostname only; no IP literals,
+// localhost/*.local/*.internal/*.test, port, path, query, fragment, credentials or uppercase.
+const originInput = args['site-origin'] ?? process.env['HB_SITE_ORIGIN'];
+const originCheck = originInput ? parseSiteOrigin(originInput, { publish: true }) : ({ ok: false, reason: 'missing' } as const);
+if (!originCheck.ok) {
+  console.error(`--site-origin https://<domain> (or HB_SITE_ORIGIN) refused: ${originCheck.reason}`);
   process.exit(2);
 }
+const siteOrigin = originCheck.origin;
 
 /** A command that exited non-zero: its exit code and last output line (never the command line). */
 class CommandError extends StageError {
@@ -80,7 +98,7 @@ function run(stage: string, cmd: string, argv: string[], env: Record<string, str
     child.stdout.on('data', onData);
     child.stderr.on('data', onData);
     child.on('error', (e) => fail(new StageError(stage, e.message)));
-    child.on('close', (code) => (code === 0 ? ok(out) : fail(new CommandError(stage, code, lastLine(out)))));
+    child.on('close', (code) => (code === 0 ? ok(out) : fail(new CommandError(stage, code, errorLine(out)))));
   });
 }
 
@@ -114,16 +132,16 @@ const stages: PublishStages = {
     const dir = join(workRoot, String(runId));
     await mkdir(dir, { recursive: true });
     const file = join(dir, 'snapshot.json');
-    let snapshot: { products: unknown[] };
+    let snapshot: { products: readonly unknown[] };
     if (args.source === 'seed') {
       log('source: seed (data/) — D1 export arrives with DB-5');
-      const { fromSeed } = await contract<{ fromSeed: (root: string) => Promise<{ products: unknown[] }> }>('@hb/catalog/sources', 'CAT-2');
+      const { fromSeed } = await contract<{ fromSeed: (root: string) => Promise<{ products: readonly unknown[] }> }>('@hb/catalog/sources', 'CAT-2');
       snapshot = await fromSeed(REPO);
     } else {
-      const { exportCatalogSnapshot } = await contract<{
-        exportCatalogSnapshot: (db: D1Database, o: { publishRunId: number }) => Promise<{ products: unknown[] }>;
-      }>('@hb/db/export', 'DB-5');
-      snapshot = await exportCatalogSnapshot(proxy.env.DB, { publishRunId: runId });
+      // DB-5 part 2: one D1 batch, validated with parseSnapshot (throws SnapshotError listing every
+      // issue). Every product status is exported; the catalogue builders filter. Only the 7
+      // storefront settings keys are read, never jobs.* or customer data.
+      snapshot = await exportCatalogSnapshot(createDb(proxy.env.DB), { publishRunId: runId, generatedAt: Date.now() });
     }
     const text = JSON.stringify(snapshot);
     await writeFile(file, text);
@@ -132,9 +150,10 @@ const stages: PublishStages = {
     return { file, sha256: createHash('sha256').update(text).digest('hex'), productCount: snapshot.products.length };
   },
 
-  async build(snapshot, log) {
-    const timings: Record<string, number> = {};
-    const env: Record<string, string> = { HB_SNAPSHOT: snapshot.file, HB_SITE_ORIGIN: siteOrigin };
+  async build(snapshot, log, timings) {
+    // HB_PUBLISH=1: the catalogue pre-build and astro build apply publish-mode rules (strict origin,
+    // no fixture); an export-path HB_SNAPSHOT implies it too, set explicitly (pagedata).
+    const env: Record<string, string> = { HB_SNAPSHOT: snapshot.file, HB_SITE_ORIGIN: siteOrigin, HB_PUBLISH: '1' };
     if (args['strict-copy']) env['HB_STRICT_COPY'] = '1';
 
     if (!args['skip-catalog']) {
@@ -165,20 +184,22 @@ const stages: PublishStages = {
       }
     }
     const t = Date.now();
-    await run('astro', 'npm', ['run', 'build', '-w', '@hb/storefront'], env, log);
+    // The pipeline ran the catalogue pre-build itself just above (with originals, cache and its
+    // own timing), so shell's in-build pre-build is skipped: HB_PREBUILD=0 is for exactly this,
+    // "a second build of the same snapshot" (apps/storefront/integrations/hb-prebuild.mjs).
+    await run('astro', 'npm', ['run', 'build', '-w', '@hb/storefront'], args['skip-catalog'] ? env : { ...env, HB_PREBUILD: '0' }, log);
     timings['astroMs'] = Date.now() - t;
-    return timings;
   },
 
   async budget(snapshot, log) {
+    if (args.budget === 'skip') return budgetSkipped();
     // JOBS-7 (D-003): static-only for content-only changes, full for any image or template/code
     // change, decided from this build's fingerprint vs the last good build's. Both BLOCKING.
     // measure's contract: exit 0 pass, 1 violations, 2 usage/internal error; verdict = last line
     // of <out>/budget.txt.
     const out = join(dirname(snapshot.file), 'budget');
     const runId = Number(dirname(snapshot.file).split('/').at(-1));
-    return budgetWithMode(
-      {
+    const io: BudgetIo = {
         readLastGood: async () => (existsSync(LAST_GOOD_FILE) ? readFile(LAST_GOOD_FILE, 'utf8') : null),
         writeLastGood: async (text) => {
           await mkdir(dirname(LAST_GOOD_FILE), { recursive: true });
@@ -198,17 +219,12 @@ const stages: PublishStages = {
           const verdict = existsSync(join(out, 'budget.txt')) ? budgetVerdict(await readFile(join(out, 'budget.txt'), 'utf8')) : '(no budget.txt)';
           return { exitCode, verdict };
         },
-      },
-      log,
-      runId,
-      Date.now,
-    );
+    };
+    return args.budget === 'report' ? budgetReportOnly(io, log) : budgetWithMode(io, log, runId, Date.now);
   },
 };
 
-function lastLine(s: string): string {
-  return s.trim().split('\n').filter(Boolean).at(-1) ?? '';
-}
+
 
 /** Copies every image original the snapshot references (by key) from local R2, else data/photos. */
 async function copyOriginals(snapshotFile: string, dir: string, log: (l: string) => void): Promise<number> {
