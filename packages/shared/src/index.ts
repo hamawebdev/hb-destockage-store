@@ -15,3 +15,4 @@ export * from './search.ts';
 export * from './quote.ts';
 export * from './fee-conformance.ts';
 export * from './responses.ts';
+export * from './meta.ts';
