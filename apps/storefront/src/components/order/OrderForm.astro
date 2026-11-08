@@ -174,7 +174,8 @@ const unavailable = !cart && !m.orderable;
   .of-hp { display: none; }
   .of .error:empty, .of-ts:empty { display: none; }
   .of .error::before { content: "!"; flex: none; display: inline-grid; place-items: center; inline-size: 1.25em; block-size: 1.25em; border-radius: var(--radius-round); background: var(--color-danger); color: var(--color-surface); font-size: .8em; }
-  .of-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); align-items: start; }
+  /* Side by side only when each select can show a whole name; below that, one above the other. */
+  .of-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--space-32) * 2 + var(--space-4))), 1fr)); gap: var(--space-3); align-items: start; }
   .of .field { min-inline-size: 0; }
   .of :is(input:not([type=hidden]), select) { min-block-size: var(--tap-min); }
 
@@ -184,14 +185,16 @@ const unavailable = !cart && !m.orderable;
   .of-th { display: block; inline-size: var(--space-16); block-size: var(--space-16); border-radius: var(--radius-md); background: var(--color-surface); object-fit: contain; }
   .of-l-d { display: grid; gap: var(--space-1); min-inline-size: 0; }
   .of-l-n { font-size: var(--fs-small); font-weight: var(--fw-emphasis); line-height: var(--lh-ui); }
-  .of-l-v { color: var(--color-text-secondary); font-size: var(--fs-caption); line-height: var(--lh-ui); }
-  .of-l-p { font-variant-numeric: tabular-nums; font-size: var(--fs-small); }
+  /* The variant line keeps its height before JS and while no variant is chosen, so enhancing the page shifts nothing. */
+  .of-l-v { color: var(--color-text-secondary); font-size: var(--fs-caption); line-height: var(--lh-ui); min-block-size: calc(1em * var(--lh-ui)); }
+  .of-l-p { font-variant-numeric: tabular-nums; font-size: var(--fs-small); line-height: var(--lh-ui); }
   .of-row.is-na { color: var(--color-text-secondary); }
   .of-note { color: var(--color-text-secondary); font-size: var(--fs-caption); line-height: var(--lh-ui); }
   /* No-JS price: the picker's positional CSS shows the block; with JS order.js owns #of-s-unit. */
-  .of-form:not(.of-js) .of-l-p, .of-form:not(.of-js) #of-s-var { display: none; }
+  .of-form:not(.of-js) .of-l-p { display: none; }
+  .of-form:not(.of-js) #of-s-var { visibility: hidden; }
   .of-form.of-js .of-l-vps { display: none; }
-  .of-line .of-l-vps .cat-price-now { font-size: var(--fs-small); }
+  .of-line .of-l-vps .cat-price, .of-line .of-l-vps .cat-price-now { font-size: var(--fs-small); line-height: var(--lh-ui); }
   .of-line .of-l-vps :is(.cat-price-was, .cat-price-off, .cat-vp-meta) { display: none; }
 
   .of-q { display: inline-flex; align-items: center; justify-self: start; margin-block-start: var(--space-1); border-radius: var(--radius-pill); box-shadow: inset 0 0 0 var(--bw-control) var(--color-border); background: var(--color-surface); }
