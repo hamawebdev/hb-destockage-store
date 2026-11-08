@@ -2,8 +2,9 @@
 
 Owner: `apps/jobs` (JOBS-1). Audience: whoever operates the client's Cloudflare account.
 The local procedure is tested (`apps/jobs/test/backup.d1.test.ts`,
-`artifacts/JOBS-1/local-scheduled-e2e.log`). The `--remote` variants run the same wrangler
-commands, but this project never logs in to Cloudflare, so they have **not** been exercised here.
+`artifacts/JOBS-1/local-scheduled-e2e.log`). The commands that act on Cloudflare (`--remote`, and
+`d1 time-travel`, which is always remote) have **not** been run: this project does not run commands
+against the client's account.
 
 ## What is backed up
 
@@ -82,14 +83,15 @@ cd <project root>                                   # e.g. the checkout used to 
 W=./node_modules/.bin/wrangler
 P="$(mktemp -d)" && chmod 700 "$P"                  # private folder OUTSIDE the project; holds customer data
 
+# `d1 time-travel` has no --remote flag: it ALWAYS acts on the real Cloudflare database.
 # 1. Undo point: write down the bookmark of the database as it is NOW.
-$W d1 time-travel info hb-destockage --remote                     # → bookmark <NOW_BOOKMARK>
+$W d1 time-travel info hb-destockage                              # → bookmark <NOW_BOOKMARK>
 
 # 2. Save what the restore would erase: a full copy of the current database.
 $W d1 export hb-destockage --remote --output "$P/pre-restore.sql"
 
 # 3. Restore to the target time (wrangler also prints the previous bookmark: keep it with step 1's).
-$W d1 time-travel restore hb-destockage --remote --timestamp 2026-11-04T08:00:00Z
+$W d1 time-travel restore hb-destockage --timestamp 2026-11-04T08:00:00Z
 
 # 4. List the orders placed after the target time, complete (customer, wilaya, commune, address,
 #    items, totals), from the copy of step 2. The script loads the copy into a throw-away local
@@ -97,7 +99,7 @@ $W d1 time-travel restore hb-destockage --remote --timestamp 2026-11-04T08:00:00
 node apps/jobs/scripts/restore.ts --orders-since 2026-11-04T08:00:00Z --from-sql "$P/pre-restore.sql" > "$P/orders-to-reenter.txt"
 
 # 5. Undo, only if the restore was wrong:
-#    $W d1 time-travel restore hb-destockage --remote --bookmark <NOW_BOOKMARK>
+#    $W d1 time-travel restore hb-destockage --bookmark <NOW_BOOKMARK>
 
 # 6. When every listed order is re-entered:
 rm -rf "$P"
@@ -106,9 +108,10 @@ rm -rf "$P"
 Staff re-enter each order listed in `orders-to-reenter.txt` in the admin, or call the customer
 back. The file holds personal data: print it, don't email it.
 The `bookmark` in each backup manifest is the D1 bookmark at the time of that backup.
-Rehearsed end to end on a local database: `artifacts/JOBS-1/runbook-s2-transcript.txt`. The
-`--remote` lines are the same commands against Cloudflare; they were not run, because this project
-never logs in.
+Rehearsed end to end on a local database: `artifacts/JOBS-1/runbook-s2-transcript.txt`. The `d1
+time-travel` steps have no local equivalent, and the `--remote` export is the local rehearsal's
+command against Cloudflare; neither was run, because this project does not run commands against the
+client's account.
 
 ## 3. Restore from an R2 backup into a new database
 
