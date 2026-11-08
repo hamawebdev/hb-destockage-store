@@ -183,15 +183,50 @@ function commonDirPrefix(paths: readonly string[]): string {
 export interface Group {
   readonly key: string;
   readonly patterns: readonly string[];
+  /** True when the group is one `<dir>*` rule (constant rule count however many pages it has). */
+  readonly wildcard: boolean;
   readonly csp: string;
   readonly pages: readonly string[];
   readonly styleHashes: number;
 }
 
+function isNotFound(p: PageScan): boolean {
+  return p.template === '404' || p.template === 'not-found' || /(^|\/)404\.html$/.test(p.path);
+}
+
+/** Path depth of a wildcard prefix: `/ar/p/` = 2. A wildcard needs ≥ 2 (never `/*` or `/{lang}/*`). */
+function depth(prefix: string): number {
+  return prefix.split('/').filter((x) => x !== '').length;
+}
+
 /**
- * One group per (lang, template). A group's pattern is its pages' common directory + `*` when that
- * pattern matches no page of another group; otherwise one exact rule per page. Each page must end
- * up matched by exactly one group pattern, or the build fails.
+ * Which group's CSP a path ends up with: Workers static assets apply every matching rule in file
+ * order and each group rule detaches the CSP set before it, so **the last matching group rule wins**.
+ */
+export function effectiveGroup(groups: readonly Group[], path: string): Group | undefined {
+  let owner: Group | undefined;
+  for (const g of orderGroups(groups)) for (const pat of rulePatterns(g)) if (patternMatches(pat, path)) owner = g;
+  return owner;
+}
+
+/** Emission order: wildcard groups broad → narrow (ties: larger first), then every exact rule. */
+function orderGroups(groups: readonly Group[]): Group[] {
+  const wild = groups.filter((g) => g.wildcard).sort((a, b) => a.patterns[0]!.length - b.patterns[0]!.length || b.pages.length - a.pages.length || a.key.localeCompare(b.key));
+  return [...wild, ...groups.filter((g) => !g.wildcard)];
+}
+function rulePatterns(g: Group): readonly string[] {
+  return g.patterns;
+}
+
+/**
+ * One group per (lang, template). A group with several pages is one `<common dir>*` rule when that
+ * directory is at least two segments deep (`/ar/p/*`, `/ar/order/*`); other groups get one exact
+ * rule per page. Wildcards are emitted broad → narrow and exact rules last, so a narrower or exact
+ * rule overrides a wildcard for its own pages (e.g. confirmation and review inside `/ar/order/*`).
+ * If a wildcard would win a page of another group, that wildcard becomes exact rules instead
+ * (repeat until every page's last matching rule is its own group's). A wildcard also matches URLs
+ * that do not exist; those are answered with the 404 page, so a wildcard's policy also carries the
+ * not-found pages' hashes. Rule count therefore does not grow with the number of products.
  */
 export function groupPages(pages: readonly PageScan[]): Group[] {
   const byKey = new Map<string, PageScan[]>();
@@ -199,39 +234,43 @@ export function groupPages(pages: readonly PageScan[]): Group[] {
     const key = `${p.lang}:${p.template}`;
     byKey.set(key, [...(byKey.get(key) ?? []), p]);
   }
-  const groups: Group[] = [];
-  for (const [key, list] of [...byKey].sort(([a], [b]) => a.localeCompare(b))) {
-    const paths = list.map((p) => p.path).sort();
-    let patterns: string[];
-    if (paths.length === 1) patterns = paths;
-    else {
-      const wild = `${commonDirPrefix(paths)}*`;
-      const clash = pages.some((p) => !paths.includes(p.path) && patternMatches(wild, p.path));
-      patterns = clash || wild === '/*' ? paths : [wild];
-    }
-    groups.push({
-      key,
-      patterns,
-      pages: paths,
-      csp: buildCsp(
-        list.flatMap((p) => p.scriptHashes),
-        list.flatMap((p) => p.styleHashes),
-        list.some((p) => p.hasOrderForm || p.template === 'product'),
-      ),
-      styleHashes: new Set(list.flatMap((p) => p.styleHashes)).size,
+  const notFound = pages.filter(isNotFound);
+  const lists = [...byKey].sort(([a], [b]) => a.localeCompare(b));
+  const exact = new Set<string>();
+  for (;;) {
+    const groups: Group[] = lists.map(([key, list]) => {
+      const paths = list.map((p) => p.path).sort();
+      const prefix = commonDirPrefix(paths);
+      const wildcard = paths.length > 1 && depth(prefix) >= 2 && !exact.has(key) && !list.some(isNotFound);
+      const withNotFound = wildcard ? [...list, ...notFound] : list;
+      return {
+        key,
+        wildcard,
+        patterns: wildcard ? [`${prefix}*`] : paths,
+        pages: paths,
+        csp: buildCsp(
+          withNotFound.flatMap((p) => p.scriptHashes),
+          withNotFound.flatMap((p) => p.styleHashes),
+          list.some((p) => p.hasOrderForm || p.template === 'product'),
+        ),
+        styleHashes: new Set(list.flatMap((p) => p.styleHashes)).size,
+      };
     });
+    const thief = pages
+      .map((p) => ({ p, owner: effectiveGroup(groups, p.path) }))
+      .find(({ p, owner }) => owner === undefined || owner.key !== `${p.lang}:${p.template}`);
+    if (thief === undefined) return orderGroups(groups);
+    if (thief.owner === undefined || !thief.owner.wildcard) {
+      throw new CspError(`${thief.p.path} cannot be given its own CSP rule (owner: ${thief.owner?.key ?? 'none'})`);
+    }
+    exact.add(thief.owner.key); // that wildcard takes another template's page: make it exact rules
   }
-  for (const p of pages) {
-    const owners = groups.filter((g) => g.patterns.some((pat) => patternMatches(pat, p.path)));
-    if (owners.length !== 1) throw new CspError(`${p.path} is matched by ${owners.length} CSP rules (${owners.map((g) => g.key).join(', ')})`);
-  }
-  return groups;
 }
 
 export function buildRules(pages: readonly PageScan[]): { rules: Rule[]; groups: Group[] } {
   const groups = groupPages(pages);
-  // Unknown URLs are answered with the not-found page: the fallback CSP covers exactly those.
-  const notFound = pages.filter((p) => p.template === '404' || p.template === 'not-found' || /(^|\/)404\.html$/.test(p.path));
+  // Unknown URLs outside every wildcard are answered with the not-found page: the fallback CSP covers those.
+  const notFound = pages.filter(isNotFound);
   const fallback = buildCsp(
     notFound.flatMap((p) => p.scriptHashes),
     notFound.flatMap((p) => p.styleHashes),
@@ -241,16 +280,46 @@ export function buildRules(pages: readonly PageScan[]): { rules: Rule[]; groups:
     { pattern: '/*', headers: [...SECURITY_HEADERS, ['Cache-Control', HTML_CACHE], ['Content-Security-Policy', fallback]] },
     ...IMMUTABLE_PATHS.map((pattern): Rule => ({ pattern, detach: ['Cache-Control'], headers: [['Cache-Control', IMMUTABLE]] })),
     ...ORDER_STEP_PATHS.map((pattern): Rule => ({ pattern, headers: [['No-Vary-Search', NO_VARY_SEARCH]] })),
-    // Later rules detach earlier ones' headers: confirmation and review never get No-Vary-Search.
-    ...ORDER_STEP_EXCLUDED.map((pattern): Rule => ({ pattern, detach: ['No-Vary-Search'], headers: [] })),
   ];
+  // groups are already in emission order (wildcards broad → narrow, then exact): last match wins.
   for (const g of groups) {
     for (const pattern of g.patterns) rules.push({ pattern, detach: ['Content-Security-Policy'], headers: [['Content-Security-Policy', g.csp]] });
   }
-  return { rules, groups };
+  // Last: confirmation and review never get No-Vary-Search (a later rule detaches an earlier one's header).
+  rules.push(...ORDER_STEP_EXCLUDED.map((pattern): Rule => ({ pattern, detach: ['No-Vary-Search'], headers: [] })));
+  return { rules: mergeSamePattern(rules), groups };
+}
+
+/**
+ * Workers static assets keep one block per URL pattern (a repeated pattern replaces the earlier
+ * block, verified in workerd), so rules with the same pattern are merged into one, at the position of
+ * the LAST occurrence (so "last matching rule wins" ordering is preserved).
+ */
+export function mergeSamePattern(rules: readonly Rule[]): Rule[] {
+  const last = new Map<string, number>();
+  rules.forEach((r, i) => last.set(r.pattern, i));
+  const merged = new Map<string, { detach: string[]; headers: (readonly [string, string])[] }>();
+  for (const r of rules) {
+    const m = merged.get(r.pattern) ?? { detach: [], headers: [] };
+    for (const d of r.detach ?? []) if (!m.detach.includes(d)) m.detach.push(d);
+    m.headers.push(...r.headers);
+    merged.set(r.pattern, m);
+  }
+  return rules
+    .map((r, i) => ({ r, i }))
+    .filter(({ r, i }) => last.get(r.pattern) === i)
+    .map(({ r }) => {
+      const m = merged.get(r.pattern)!;
+      return m.detach.length > 0 ? { pattern: r.pattern, detach: m.detach, headers: m.headers } : { pattern: r.pattern, headers: m.headers };
+    });
 }
 
 export function renderHeaders(rules: readonly Rule[]): string {
+  const seen = new Set<string>();
+  for (const r of rules) {
+    if (seen.has(r.pattern)) throw new CspError(`duplicate _headers pattern ${r.pattern}: the platform keeps only one block per pattern`);
+    seen.add(r.pattern);
+  }
   if (rules.length > MAX_RULES) throw new CspError(`${rules.length} header rules > ${MAX_RULES} (Workers static assets limit)`);
   const lines = [HEADER_MARK];
   for (const r of rules) {

@@ -37,6 +37,7 @@ beforeAll(async () => {
     put(`${lang}/order/confirmation/index.html`, page(lang, 'confirmation', '.conf{}', '<p data-hb-when="has-ref" hidden><bdi data-hb="ref"></bdi></p>'));
     put(`${lang}/404.html`, page(lang, '404', `.nf-${lang}{}`));
     put(`${lang}/order/pack/index.html`, page(lang, 'order-step', '.step{}', '<form method="post" action="/api/order"></form>'));
+    put(`${lang}/order/pack-b/index.html`, page(lang, 'order-step', '.step{}', '<form method="post" action="/api/order"></form>'));
   }
   put('404.html', page('ar', '404', '.nf{}'));
   // Review templates: orderform's real built pages (ORDER-6), so the slot contract and their inline
@@ -142,6 +143,30 @@ describe('static assets with the generated _headers', () => {
       body: new URLSearchParams({ lang: 'fr', variantId: '11', qty: '1', name: 'Amine', phone: '0555123456', wilayaCode: '16' }).toString(),
     });
     expect(review.headers.get('no-vary-search')).toBeNull();
+  });
+
+  test('order step is one /{lang}/order/* rule; confirmation and review override it with exactly their own policy', async () => {
+    for (const lang of ['ar', 'fr']) {
+      const step = oneCsp(await server.fetch(`/${lang}/order/pack-b/`));
+      expect(step).toContain(sha256('.step{}'));
+      expect(step).not.toContain(sha256('.conf{}'));
+      const conf = oneCsp(await server.fetch(`/${lang}/order/confirmation/?ref=HB-7K2Q9`));
+      expect(conf).toContain(sha256('.conf{}'));
+      expect(conf).not.toContain(sha256('.step{}'));
+      covers(conf, PAGES[`${lang}/order/confirmation/index.html`]!, `/${lang}/order/confirmation/`);
+      const review = await server.fetch('/api/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ lang, variantId: '11', qty: '1', name: 'Amine', phone: '0555123456', wilayaCode: '16' }).toString(),
+      });
+      const rcsp = oneCsp(review);
+      covers(rcsp, PAGES[`${lang}/order/review/index.html`]!, `/${lang}/order/review/`);
+      expect(rcsp).not.toContain(sha256('.step{}'));
+      // An order step that does not exist is answered with the 404 page, under the wildcard's policy:
+      const gone = await server.fetch(`/${lang}/order/no-such-product/`);
+      expect(gone.status).toBe(404);
+      expect(oneCsp(gone)).toContain(sha256(`.nf-${lang}{}`));
+    }
   });
 
   test('hashed assets are immutable (one Cache-Control value)', async () => {

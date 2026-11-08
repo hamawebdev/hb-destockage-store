@@ -5,6 +5,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 import {
+  buildRules,
+  effectiveGroup,
+  mergeSamePattern,
+  type PageScan,
   CspError,
   HEADER_MARK,
   MAX_LINE,
@@ -263,6 +267,90 @@ describe('generate on a fixture site', () => {
     const first = readFileSync(join(d, '_headers'), 'utf8');
     generate(d);
     expect(readFileSync(join(d, '_headers'), 'utf8')).toBe(first);
+  });
+});
+
+describe('rules scale with templates, not with products (lead ruling on ORDER-STEP)', () => {
+  const STYLE: Record<string, string> = {};
+  const scan = (path: string, lang: string, template: string): PageScan => ({
+    path,
+    lang,
+    template,
+    scriptHashes: [sha256(SPEC), sha256(LOADER)],
+    styleHashes: [(STYLE[template] ??= sha256(`.${template}{}`))],
+    hasOrderForm: template === 'order-step' || template === 'order-confirmed',
+    problems: [],
+  });
+  function catalogue(products: number): PageScan[] {
+    const pages: PageScan[] = [scan('/404.html', 'ar', 'not-found')];
+    for (const lang of ['ar', 'fr']) {
+      pages.push(scan(`/${lang}/`, lang, 'home'), scan(`/${lang}/search/`, lang, 'search'), scan(`/${lang}/404.html`, lang, 'not-found'));
+      pages.push(scan(`/${lang}/order/confirmation/`, lang, 'order-confirmed'), scan(`/${lang}/order/review/`, lang, 'order-confirmed'));
+      pages.push(scan(`/${lang}/livraison/`, lang, 'content'), scan(`/${lang}/a-propos/`, lang, 'content'));
+      for (let c = 0; c < 20; c++) pages.push(scan(`/${lang}/c/cat-${c}/`, lang, 'category'), scan(`/${lang}/c/cat-${c}/2/`, lang, 'category'));
+      for (let i = 0; i < products; i++) {
+        pages.push(scan(`/${lang}/p/product-${i}/`, lang, 'product'), scan(`/${lang}/order/product-${i}/`, lang, 'order-step'));
+      }
+    }
+    return pages;
+  }
+
+  test('~500 products per language: same rule count as 10, under the cap, every page gets its own template policy', () => {
+    const small = buildRules(catalogue(10));
+    const large = buildRules(catalogue(500));
+    expect(large.rules.length).toBe(small.rules.length);
+    expect(large.rules.length).toBeLessThanOrEqual(100);
+    expect(() => renderHeaders(large.rules)).not.toThrow();
+    for (const p of catalogue(500)) expect(effectiveGroup(large.groups, p.path)?.key, p.path).toBe(`${p.lang}:${p.template}`);
+    const patterns = large.rules.map((r) => r.pattern);
+    expect(patterns).toContain('/ar/order/*');
+    expect(patterns).toContain('/ar/p/*');
+    // confirmation and review are exact rules AFTER the order-step wildcard, so they win
+    expect(patterns.lastIndexOf('/ar/order/confirmation/')).toBeGreaterThan(patterns.indexOf('/ar/order/*'));
+    expect(patterns.lastIndexOf('/ar/order/review/')).toBeGreaterThan(patterns.indexOf('/ar/order/*'));
+  });
+
+  test('applied like the platform: confirmation/review get only their policy, the order step only its own; unknown URLs under a wildcard keep the 404 styles', () => {
+    const { rules } = buildRules(catalogue(500));
+    const text = renderHeaders(rules);
+    for (const lang of ['ar', 'fr']) {
+      const conf = cspOf(text, `/${lang}/order/confirmation/`);
+      const review = cspOf(text, `/${lang}/order/review/`);
+      const step = cspOf(text, `/${lang}/order/product-77/`);
+      expect(conf).toContain(STYLE['order-confirmed']);
+      expect(conf).not.toContain(STYLE['order-step']);
+      expect(review).toBe(conf);
+      expect(step).toContain(STYLE['order-step']);
+      expect(step).not.toContain(STYLE['order-confirmed']);
+      // /ar/p/deleted/ is answered with the 404 page: its style must be allowed there too
+      expect(cspOf(text, `/${lang}/p/deleted-product/`)).toContain(STYLE['not-found']);
+      expect(cspOf(text, `/${lang}/order/deleted-product/`)).toContain(STYLE['not-found']);
+    }
+  });
+
+  test('a cap overflow still fails the build', () => {
+    const pages = catalogue(1);
+    // 120 content pages (exact rules each) cannot fit in 100 rules
+    for (let i = 0; i < 120; i++) pages.push(scan(`/ar/page-${i}/`, 'ar', 'content'));
+    expect(() => renderHeaders(buildRules(pages).rules)).toThrow(/100/);
+  });
+});
+
+describe('one block per pattern', () => {
+  test('same-pattern rules are merged at the last position (No-Vary-Search + the order-step CSP on /ar/order/*)', () => {
+    const merged = mergeSamePattern([
+      { pattern: '/*', headers: [['A', '1']] },
+      { pattern: '/ar/order/*', headers: [['No-Vary-Search', 'params=("v")']] },
+      { pattern: '/ar/p/*', detach: ['CSP'], headers: [['CSP', 'p']] },
+      { pattern: '/ar/order/*', detach: ['CSP'], headers: [['CSP', 'o']] },
+      { pattern: '/ar/order/review/*', detach: ['No-Vary-Search'], headers: [] },
+    ]);
+    expect(merged.map((r) => r.pattern)).toEqual(['/*', '/ar/p/*', '/ar/order/*', '/ar/order/review/*']);
+    expect(merged[2]).toEqual({ pattern: '/ar/order/*', detach: ['CSP'], headers: [['No-Vary-Search', 'params=("v")'], ['CSP', 'o']] });
+  });
+
+  test('renderHeaders refuses a duplicate pattern', () => {
+    expect(() => renderHeaders([{ pattern: '/x/*', headers: [] }, { pattern: '/x/*', headers: [] }])).toThrow(/duplicate/);
   });
 });
 
