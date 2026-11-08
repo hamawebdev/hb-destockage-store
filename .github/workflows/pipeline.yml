@@ -6,8 +6,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    # team/tooling: CI only (the deploy job is limited to refs/heads/main).
-    branches: [main, team/tooling]
+    branches: [main]
   workflow_dispatch:
     inputs:
       mode:

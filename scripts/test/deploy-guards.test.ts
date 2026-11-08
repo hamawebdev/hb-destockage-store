@@ -58,6 +58,10 @@ describe('workflow security', () => {
   const buildJob = job('build-site');
   const deployJob = job('deploy');
 
+  it('runs on pushes to main only', () => {
+    expect(pipeline).toMatch(/^ {2}push:\n {4}branches: \[main\]$/m);
+  });
+
   it('has no pull_request_target', () => {
     for (const w of all) expect(w).not.toContain('pull_request_target');
   });
