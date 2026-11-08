@@ -1,0 +1,178 @@
+{
+  "id": 6,
+  "key": "legal",
+  "slug": {
+    "ar": "ash-shurut",
+    "fr": "conditions-generales"
+  },
+  "title": {
+    "ar": "الشروط العامة للبيع",
+    "fr": "Conditions générales de vente"
+  },
+  "summary": {
+    "ar": "شروط البيع في HB Destockage: الطلب، الأسعار، الدفع عند الاستلام، التوصيل والإرجاع.",
+    "fr": "Conditions de vente HB Destockage : commande, prix, paiement à la livraison, livraison et retours."
+  },
+  "body": {
+    "ar": [
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER: نص قانوني يحرّره ويصادق عليه المستشار القانوني لـ HB Destockage، طبقاً للتشريع الجزائري المعمول به. النقاط أدناه تصف طريقة عمل المتجر فقط.]"
+      },
+      {
+        "type": "h2",
+        "text": "البائع"
+      },
+      {
+        "type": "p",
+        "text": "HB Destockage. [PLACEHOLDER: الاسم التجاري، رقم السجل التجاري، رقم التعريف الجبائي، العنوان]"
+      },
+      {
+        "type": "link",
+        "text": "0560 41 74 03",
+        "href": "tel:+213560417403"
+      },
+      {
+        "type": "h2",
+        "text": "الطلب"
+      },
+      {
+        "type": "p",
+        "text": "يتم الطلب عبر الاستمارة الموجودة في صفحة المنتج. يصبح الطلب نهائياً بعد اتصال التأكيد."
+      },
+      {
+        "type": "h2",
+        "text": "الأسعار"
+      },
+      {
+        "type": "p",
+        "text": "الأسعار بالدينار الجزائري. يُضاف سعر التوصيل حسب الولاية، ويظهر قبل التأكيد. [PLACEHOLDER: الرسوم]"
+      },
+      {
+        "type": "h2",
+        "text": "الدفع"
+      },
+      {
+        "type": "p",
+        "text": "الدفع نقداً عند الاستلام، لعامل التوصيل."
+      },
+      {
+        "type": "h2",
+        "text": "التوصيل"
+      },
+      {
+        "type": "link",
+        "text": "التوصيل والرسوم",
+        "href": "/ar/at-tawsil/"
+      },
+      {
+        "type": "h2",
+        "text": "الإرجاع والاستبدال"
+      },
+      {
+        "type": "link",
+        "text": "الإرجاع والاستبدال",
+        "href": "/ar/al-irjaa/"
+      },
+      {
+        "type": "h2",
+        "text": "المعطيات الشخصية"
+      },
+      {
+        "type": "link",
+        "text": "سياسة الخصوصية",
+        "href": "/ar/al-khususiya/"
+      },
+      {
+        "type": "h2",
+        "text": "النزاعات"
+      },
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER: يحرّره المستشار القانوني]"
+      }
+    ],
+    "fr": [
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER : texte juridique à rédiger et valider par le conseil juridique de HB Destockage, conformément à la législation algérienne en vigueur. Les points ci-dessous décrivent seulement le fonctionnement de la boutique.]"
+      },
+      {
+        "type": "h2",
+        "text": "Le vendeur"
+      },
+      {
+        "type": "p",
+        "text": "HB Destockage. [PLACEHOLDER : raison sociale, numéro de registre du commerce, NIF, adresse]"
+      },
+      {
+        "type": "link",
+        "text": "0560 41 74 03",
+        "href": "tel:+213560417403"
+      },
+      {
+        "type": "h2",
+        "text": "La commande"
+      },
+      {
+        "type": "p",
+        "text": "La commande se fait avec le formulaire de la page produit. Elle devient définitive après l'appel de confirmation."
+      },
+      {
+        "type": "h2",
+        "text": "Les prix"
+      },
+      {
+        "type": "p",
+        "text": "Les prix sont en dinars algériens. Les frais de livraison, qui dépendent de la wilaya, s'ajoutent et s'affichent avant la confirmation. [PLACEHOLDER : taxes]"
+      },
+      {
+        "type": "h2",
+        "text": "Le paiement"
+      },
+      {
+        "type": "p",
+        "text": "Le paiement se fait en espèces à la livraison, au livreur."
+      },
+      {
+        "type": "h2",
+        "text": "La livraison"
+      },
+      {
+        "type": "link",
+        "text": "Livraison et frais",
+        "href": "/fr/livraison/"
+      },
+      {
+        "type": "h2",
+        "text": "Retours et échanges"
+      },
+      {
+        "type": "link",
+        "text": "Retours et échanges",
+        "href": "/fr/retours-echanges/"
+      },
+      {
+        "type": "h2",
+        "text": "Données personnelles"
+      },
+      {
+        "type": "link",
+        "text": "Politique de confidentialité",
+        "href": "/fr/confidentialite/"
+      },
+      {
+        "type": "h2",
+        "text": "Litiges"
+      },
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER : à rédiger par le conseil juridique]"
+      }
+    ]
+  },
+  "sort": 60,
+  "active": true,
+  "placeholder": true,
+  "updatedAt": 1793750400000
+}

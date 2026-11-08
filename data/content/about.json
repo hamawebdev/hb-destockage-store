@@ -1,0 +1,102 @@
+{
+  "id": 1,
+  "key": "about",
+  "slug": {
+    "ar": "man-nahnu",
+    "fr": "qui-sommes-nous"
+  },
+  "title": {
+    "ar": "من نحن",
+    "fr": "Qui sommes-nous"
+  },
+  "summary": {
+    "ar": "HB Destockage متجر جزائري عبر الإنترنت: منتجات مختارة بأسعار التصفية، الدفع عند الاستلام والتوصيل إلى 69 ولاية.",
+    "fr": "HB Destockage, boutique en ligne algérienne : des produits choisis à prix de déstockage, payés à la livraison dans les 69 wilayas."
+  },
+  "body": {
+    "ar": [
+      {
+        "type": "p",
+        "text": "HB Destockage متجر جزائري عبر الإنترنت يقدّم منتجات مختارة بأسعار التصفية: للمنزل والمطبخ والحمّام، وأكثر من ذلك."
+      },
+      {
+        "type": "p",
+        "text": "«ديستوكاج» يعني التصفية: نشتري نهايات السلسلات وفائض المخزون، وهذا ما يسمح لنا بالبيع بسعر أقل. [PLACEHOLDER: مصدر المنتجات، في انتظار تأكيد HB Destockage]"
+      },
+      {
+        "type": "h2",
+        "text": "وعدنا لك"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "أسعار واضحة: ترى سعر المنتج وسعر التوصيل والمجموع قبل تأكيد الطلب.",
+          "الدفع عند الاستلام: لا تدفع إلا عندما يكون الطرد بين يديك.",
+          "اتصال لتأكيد كل طلب قبل إرساله.",
+          "التوصيل إلى 69 ولاية."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "قصتنا"
+      },
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER: قصة HB Destockage، المدينة، سنة التأسيس، الفريق]"
+      },
+      {
+        "type": "h2",
+        "text": "تواصل معنا"
+      },
+      {
+        "type": "link",
+        "text": "اتصل بنا",
+        "href": "/ar/ittasil-bina/"
+      }
+    ],
+    "fr": [
+      {
+        "type": "p",
+        "text": "HB Destockage est une boutique en ligne algérienne qui propose des produits choisis à prix de déstockage : maison, cuisine, salle de bain, et bien plus."
+      },
+      {
+        "type": "p",
+        "text": "Le déstockage, c'est acheter des fins de série et des surplus de stock : c'est ce qui nous permet de vendre moins cher. [PLACEHOLDER : origine des produits, à confirmer par HB Destockage]"
+      },
+      {
+        "type": "h2",
+        "text": "Notre promesse"
+      },
+      {
+        "type": "ul",
+        "items": [
+          "Des prix clairs : vous voyez le prix du produit, les frais de livraison et le total avant de confirmer.",
+          "Le paiement à la livraison : vous payez seulement quand vous avez le colis entre les mains.",
+          "Un appel de confirmation avant chaque envoi.",
+          "La livraison dans les 69 wilayas."
+        ]
+      },
+      {
+        "type": "h2",
+        "text": "Notre histoire"
+      },
+      {
+        "type": "p",
+        "text": "[PLACEHOLDER : histoire de HB Destockage, ville, année de création, équipe]"
+      },
+      {
+        "type": "h2",
+        "text": "Nous contacter"
+      },
+      {
+        "type": "link",
+        "text": "Contact",
+        "href": "/fr/contact/"
+      }
+    ]
+  },
+  "sort": 10,
+  "active": true,
+  "placeholder": true,
+  "updatedAt": 1793750400000
+}
