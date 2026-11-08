@@ -258,3 +258,4 @@ ACAT-3 r2 APPROVED tier=low reviewer=rev-f commits=18582ffa844c028bfc74d40c59110
 CAT-1 r5 APPROVED tier=high reviewer=rev-c commits=929b24d6162b573e8a101bf6e5b72821544e632e review=artifacts/ORDER-STEP/review-cat1-r5.md
 TOKENS-9 r1 APPROVED tier=low reviewer=rev-b commits=c45c32ab2dc442f91bc254ba4c570916c7232fec review=artifacts/TOKENS/review-merge-c45c32a.md
 ORDER-1 r3 APPROVED tier=low reviewer=rev-c commits=e57dd3b8b33f71f0865fa00cfe9ad9df585f9918 review=artifacts/ORDER-INT-1/review-r1.md
+PAGES-2 r3 APPROVED tier=high reviewer=rev-c commits=d55d67635a807058454cd06584c61063f4c3149f,01a4a9f3b60885ae6ffd29003b63cda906cb1133 review=artifacts/ORDER-STEP/review-pages2-r1.md
