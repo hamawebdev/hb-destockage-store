@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Loading sharp and encoding AVIF takes seconds on the shared machine.
 vi.setConfig({ testTimeout: 60_000 });
-import { sniffImage } from './sniff.ts';
+import { checkStructure, sniffImage } from './sniff.ts';
 
 const bytes = (...parts: (number[] | string)[]): Uint8Array =>
   Uint8Array.from(parts.flatMap((p) => (typeof p === 'string' ? [...p].map((ch) => ch.charCodeAt(0)) : p)));
@@ -110,8 +110,42 @@ describe('sniffImage: real encoder output (sharp, when installed)', () => {
     if (mod === null) return;
     const sharp = mod.default;
     for (const format of ['jpeg', 'png', 'webp', 'avif'] as const) {
-      const buf = await sharp({ create: { width: 37, height: 21, channels: 3, background: '#c00000' } }).toFormat(format).toBuffer();
-      expect(sniffImage(new Uint8Array(buf)), format).toEqual({ ok: true, type: format, width: 37, height: 21 });
+      const buf = new Uint8Array(await sharp({ create: { width: 37, height: 21, channels: 3, background: '#c00000' } }).toFormat(format).toBuffer());
+      expect(sniffImage(buf), format).toEqual({ ok: true, type: format, width: 37, height: 21 });
+      expect(checkStructure(buf, format), `${format} structure`).toBe(true);
+      // Same header, body cut in half: refused.
+      expect(checkStructure(buf.slice(0, Math.floor(buf.length / 2)), format), `${format} half`).toBe(false);
     }
+  });
+});
+
+describe('checkStructure (header-valid files with a junk body)', () => {
+  const chunk = (type: string, data: number[]) => [...u32be(data.length), ...str(type), ...data, 0, 0, 0, 0];
+  const fullPng = () => Uint8Array.from([0x89, ...str('PNG'), 0x0d, 0x0a, 0x1a, 0x0a, ...chunk('IHDR', [...u32be(10), ...u32be(10), 8, 6, 0, 0, 0]), ...chunk('IDAT', [1, 2, 3]), ...chunk('IEND', [])]);
+  it('PNG: needs IDAT and IEND inside the file', () => {
+    expect(checkStructure(fullPng(), 'png')).toBe(true);
+    expect(checkStructure(pngWith(10, 10), 'png')).toBe(false);
+    const junk = Uint8Array.from([...pngWith(10, 10), ...str('<script>alert(1)</script>')]);
+    expect(checkStructure(junk, 'png')).toBe(false);
+    expect(checkStructure(fullPng().slice(0, -6), 'png')).toBe(false);
+  });
+  it('JPEG: needs a scan then end-of-image', () => {
+    expect(checkStructure(jpegWith(10, 10), 'jpeg')).toBe(false); // SOF but no SOS
+    const ok = Uint8Array.from([...jpegWith(10, 10).slice(0, -2), 0xff, 0xda, 0, 2, 1, 2, 3, 0xff, 0xd9]);
+    expect(checkStructure(ok, 'jpeg')).toBe(true);
+    expect(checkStructure(ok.slice(0, -2), 'jpeg')).toBe(false);
+  });
+  it('WebP: RIFF size must match the file', () => {
+    const body = bytes('WEBP', 'VP8 ', u32le(10), [0, 0, 0, 0x9d, 0x01, 0x2a, 10, 0, 10, 0]);
+    const ok = Uint8Array.from([...bytes('RIFF', u32le(body.length)), ...body]);
+    expect(checkStructure(ok, 'webp')).toBe(true);
+    expect(checkStructure(Uint8Array.from([...ok, 1, 2, 3]), 'webp')).toBe(false);
+  });
+  it('AVIF: boxes must cover the file and include mdat', () => {
+    const base = avifWith(10, 10);
+    expect(checkStructure(base, 'avif')).toBe(false); // no mdat
+    const ok = Uint8Array.from([...base, ...box('mdat', [1, 2, 3, 4])]);
+    expect(checkStructure(ok, 'avif')).toBe(true);
+    expect(checkStructure(Uint8Array.from([...ok, 9]), 'avif')).toBe(false);
   });
 });

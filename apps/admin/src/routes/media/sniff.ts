@@ -212,3 +212,61 @@ function avif(r: Reader): SniffResult {
   if (width === 0) return { ok: false, error: 'truncated' };
   return rotated ? result('avif', height, width) : result('avif', width, height);
 }
+
+// ---------------------------------------------------------------------------------------------
+// Structural completeness (rev-f ACAT-3 r1 nit 1). The header alone can be valid while the body is
+// junk; a Worker cannot decode, so check the container structure instead, and the publish
+// pipeline's sharp decode stays the final check:
+//  - JPEG: a scan (SOS, FF DA) followed later by end-of-image (FF D9);
+//  - PNG: the chunk walk reaches IEND, with at least one IDAT, inside the file;
+//  - WebP: the RIFF size field matches the file length (+1 pad byte allowed);
+//  - AVIF: the top-level boxes exactly cover the file and include `mdat`.
+// ---------------------------------------------------------------------------------------------
+
+export function checkStructure(bytes: Uint8Array, type: ImageType): boolean {
+  const r = new Reader(bytes);
+  try {
+    switch (type) {
+      case 'jpeg': {
+        let sos = -1;
+        for (let i = 2; i + 1 < bytes.length; i++) {
+          if (bytes[i] === 0xff && bytes[i + 1] === 0xda) {
+            sos = i;
+            break;
+          }
+        }
+        if (sos < 0) return false;
+        for (let i = bytes.length - 2; i > sos; i--) if (bytes[i] === 0xff && bytes[i + 1] === 0xd9) return true;
+        return false;
+      }
+      case 'png': {
+        let at = 8;
+        let idat = false;
+        for (let guard = 0; guard < 100_000 && at + 12 <= bytes.length; guard++) {
+          const len = r.u32(at);
+          const t = r.ascii(at + 4, 4);
+          if (at + 12 + len > bytes.length) return false;
+          if (t === 'IDAT') idat = true;
+          if (t === 'IEND') return idat;
+          at += 12 + len;
+        }
+        return false;
+      }
+      case 'webp': {
+        const size = r.u32(4, true) + 8;
+        return size === bytes.length || size + 1 === bytes.length;
+      }
+      case 'avif': {
+        let end = 0;
+        let mdat = false;
+        for (const b of boxes(r, 0, bytes.length)) {
+          if (b.type === 'mdat') mdat = true;
+          end = b.end;
+        }
+        return mdat && end === bytes.length;
+      }
+    }
+  } catch {
+    return false;
+  }
+}

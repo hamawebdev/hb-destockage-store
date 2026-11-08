@@ -20,6 +20,8 @@ export const MAX_FILES = 10;
 export const MIN_LONG_SIDE = 600;
 export const RECOMMENDED_WIDTH = 1200;
 export const MAX_PIXELS = 40_000_000;
+/** Plan §6: ≤ 8,000 px per side (sharp at publish; sniff.ts accepts up to its 20,000 sanity bound). */
+export const MAX_SIDE_PX = 8_000;
 
 export type Owner = { kind: 'product'; id: number } | { kind: 'category'; id: number };
 

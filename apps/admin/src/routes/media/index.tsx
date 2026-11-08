@@ -29,6 +29,7 @@ import {
   MAX_FILE_BYTES,
   MAX_FILES,
   MAX_PIXELS,
+  MAX_SIDE_PX,
   MIN_LONG_SIDE,
   moveImage,
   ownerOf,
@@ -41,7 +42,7 @@ import {
   type Upload,
 } from './data.ts';
 import { m } from './messages.ts';
-import { EXT, MIME, sniffImage, type ImageType } from './sniff.ts';
+import { checkStructure, EXT, MIME, sniffImage, type ImageType } from './sniff.ts';
 import { DeletePage, RecentList } from './views.tsx';
 
 type Ctx = Context<AppEnv>;
@@ -135,7 +136,9 @@ r.post('/upload', requirePerm('media.edit'), async (c) => {
       errors[`files_${i}`] = tm(`err.${s.error}`, { name });
       continue;
     }
-    if (Math.max(s.width, s.height) < MIN_LONG_SIDE) errors[`files_${i}`] = tm('err.too_small', { name });
+    if (!checkStructure(bytes, s.type)) errors[`files_${i}`] = tm('err.truncated', { name });
+    else if (Math.max(s.width, s.height) < MIN_LONG_SIDE) errors[`files_${i}`] = tm('err.too_small', { name });
+    else if (Math.max(s.width, s.height) > MAX_SIDE_PX) errors[`files_${i}`] = tm('err.too_wide', { name });
     else if (s.width * s.height > MAX_PIXELS) errors[`files_${i}`] = tm('err.too_many_pixels', { name });
     else uploads.push({ bytes, type: s.type, width: s.width, height: s.height, name });
   }

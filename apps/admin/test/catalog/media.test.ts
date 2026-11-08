@@ -20,7 +20,13 @@ const one = <T,>(sql: string, ...a: unknown[]) => h.db.prepare(sql).bind(...a).f
 const all = <T,>(sql: string, ...a: unknown[]) => h.db.prepare(sql).bind(...a).all<T>().then((r) => r.results);
 
 const u32 = (n: number) => [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
-const png = (w: number, h2: number) => Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...u32(13), 0x49, 0x48, 0x44, 0x52, ...u32(w), ...u32(h2), 8, 6, 0, 0, 0]);
+const chunk = (type: string, data: number[]) => [...u32(data.length), ...[...type].map((ch) => ch.charCodeAt(0)), ...data, 0, 0, 0, 0];
+/** A structurally complete PNG (IHDR, IDAT, IEND; CRCs are not checked by the admin). */
+const png = (w: number, h2: number) =>
+  Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...chunk('IHDR', [...u32(w), ...u32(h2), 8, 6, 0, 0, 0]), ...chunk('IDAT', [1, 2, 3]), ...chunk('IEND', [])]);
+/** Valid header, junk body (rev-f ACAT-3 r1 nit 1). */
+const pngHeaderOnly = (w: number, h2: number) =>
+  Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...chunk('IHDR', [...u32(w), ...u32(h2), 8, 6, 0, 0, 0]), ...[...'<script>alert(1)</script>'].map((ch) => ch.charCodeAt(0))]);
 const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>');
 
 async function upload(email: string, owner: string, files: { name: string; bytes: Uint8Array; type?: string }[], extra: Record<string, string> = {}) {
@@ -86,6 +92,8 @@ describe('upload', () => {
     expect((await upload(USERS.content, `product:${pid}`, [{ name: 'big.png', bytes: big }])).status).toBe(413);
     expect((await upload(USERS.content, `product:${pid}`, [{ name: 'tiny.png', bytes: png(300, 200) }])).status).toBe(415);
     expect((await upload(USERS.content, `product:${pid}`, [{ name: 'huge.png', bytes: png(8000, 8000) }])).status).toBe(415);
+    expect((await upload(USERS.content, `product:${pid}`, [{ name: 'wide.png', bytes: png(9000, 1000) }])).status).toBe(415); // > 8000 px per side
+    expect((await upload(USERS.content, `product:${pid}`, [{ name: 'junk.png', bytes: pngHeaderOnly(1200, 800) }])).status).toBe(415); // header ok, body junk
     const eleven = Array.from({ length: 11 }, (_, i) => ({ name: `${i}.png`, bytes: png(1200, 800) }));
     expect((await upload(USERS.content, `product:${pid}`, eleven)).status).toBe(413);
     expect((await upload(USERS.content, `product:${pid}`, [])).status).toBe(422);
