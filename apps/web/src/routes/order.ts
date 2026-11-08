@@ -8,6 +8,7 @@
  *   step "confirm": OrderInput (fill time from the review token) → 303 to the confirmation page,
  *     or the review page again with the error and the fresh quote (same key: retries stay idempotent).
  * The notification is enqueued after the D1 write, in waitUntil; a queue failure never fails the order.
+ * Meta's server event goes the same way, only for a new order and only with the JSON path's consent signal.
  */
 import type { Context, Hono } from 'hono';
 import { createDb, type Db } from '@hb/db';
@@ -17,6 +18,7 @@ import {
   formFieldsToBody,
   isLang,
   makeOrderRef,
+  parseMetaSignals,
   parseOrderDraft,
   parseOrderInput,
   parseQuoteInput,
@@ -30,6 +32,7 @@ import { communesOf, readPricing, resolveVariant } from '../catalog-reads.ts';
 import { readConfig, type Config, type Env } from '../env.ts';
 import { feeProvider } from '../fees.ts';
 import { log } from '../http.ts';
+import { sendMetaPurchase, type MetaOrderContext } from '../meta/capi.ts';
 import { ipHash, ipRateKey, reviewFillMs, signReviewToken, sinkRef } from '../order/crypto.ts';
 import { createD1OrderStore, DB_WRITES, type OrderWrites } from '../order/d1-store.ts';
 import { renderConfirmation, renderReview, type ReviewLine } from '../order/html.ts';
@@ -81,8 +84,16 @@ export async function notify(env: Pick<Env, 'ORDERS'>, store: Pick<OrderStore, '
   }
 }
 
-function afterWrite(c: C, store: OrderStore, outcome: PlaceOutcome): void {
-  if (outcome.kind === 'created') c.executionCtx.waitUntil(notify(c.env, store, outcome.orderId, outcome.message));
+type AfterWriteContext = Pick<C, 'env' | 'executionCtx'>;
+
+export function afterWrite(c: AfterWriteContext, store: Pick<OrderStore, 'noteEnqueueFailed'>, outcome: PlaceOutcome, siteHost?: string, meta?: MetaOrderContext): void {
+  if (outcome.kind !== 'created') return;
+  c.executionCtx.waitUntil(notify(c.env, store, outcome.orderId, outcome.message));
+  if (meta !== undefined) {
+    c.executionCtx.waitUntil(
+      sendMetaPurchase(c.env, siteHost, { ref: outcome.message.ref, createdAtMs: outcome.message.createdAt, totalDzd: outcome.message.totalDzd }, meta),
+    );
+  }
 }
 
 export function registerOrder(app: Hono<{ Bindings: Env }>, writes: OrderWrites = DB_WRITES): void {
@@ -97,13 +108,19 @@ export function registerOrder(app: Hono<{ Bindings: Env }>, writes: OrderWrites 
 
     try {
       if (body.kind === 'json') {
-        const parsed = parseOrderInput(parseJsonObject(body.text));
+        const rawJson = parseJsonObject(body.text);
+        const parsed = parseOrderInput(rawJson);
         if (!parsed.ok) return failure(c, { code: failureCode(parsed.errors), errors: parsed.errors });
         const outcome = await placeOrder(
           { input: parsed.value, path: 'json', ip, now, minFillMs: config.minFillMs },
           placeDeps(c, db, store, config),
         );
-        afterWrite(c, store, outcome);
+        const signals = parseMetaSignals(rawJson);
+        const meta: MetaOrderContext | undefined =
+          signals === null
+            ? undefined
+            : { signals, lang: parsed.value.lang, phoneE164: parsed.value.phone.e164, items: parsed.value.items, ip, userAgent: c.req.header('User-Agent') ?? null };
+        afterWrite(c, store, outcome, config.siteHosts[0], meta);
         if (outcome.kind === 'failure') return failure(c, outcome.failure);
         return c.json(outcome.body, outcome.status);
       }
