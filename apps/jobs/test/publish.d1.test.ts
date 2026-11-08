@@ -26,9 +26,9 @@ function stages(over: Partial<PublishStages> = {}): PublishStages {
       log('exported');
       return { file: '/tmp/x/snapshot.json', sha256: 'ab'.repeat(32), productCount: 42 };
     },
-    build: async (_s, log) => {
+    build: async (_s, log, timings) => {
       log('built');
-      return { imagesMs: 5, astroMs: 7 };
+      Object.assign(timings, { imagesMs: 5, astroMs: 7 });
     },
     budget: async () => ({ ok: true, summary: 'BUDGET OK: 30 pages, 12 rules' }),
     ...over,
@@ -68,6 +68,15 @@ describe('publish queue', { timeout: 30_000 }, () => {
     expect(JSON.parse(String((await row(id))!['timings_json']))).toMatchObject({ budgetStaticOnly: 1 });
   });
 
+  test('--budget report: a failing budget is recorded (budget_ok 0) but the run succeeds', async () => {
+    const id = (await enqueueRun(p.env.DB))!;
+    const [r] = await runPublishQueue(p.env.DB, stages({ budget: async () => ({ ok: false, summary: 'BUDGET FAILED: 1 violations (html-br: 1)', staticOnly: false, reportOnly: true }) }), { deployCommand: DEPLOY, now });
+    expect(r).toMatchObject({ status: 'succeeded', error: null, budgetOk: false });
+    const db = (await row(id))!;
+    expect(db).toMatchObject({ status: 'succeeded', budget_ok: 0, error: null });
+    expect(String(db['log_tail'])).toContain('budget (report only): FAIL: BUDGET FAILED');
+  });
+
   test('budget failure: status failed, error "budget", budget_ok 0, no deploy line', async () => {
     const id = (await enqueueRun(p.env.DB))!;
     await runPublishQueue(p.env.DB, stages({ budget: async () => ({ ok: false, summary: 'BUDGET FAILED: 2 violations (html-br: 2)' }) }), { deployCommand: DEPLOY, now });
@@ -96,6 +105,23 @@ describe('publish queue', { timeout: 30_000 }, () => {
     const db = (await row(id))!;
     expect(db).toMatchObject({ status: 'failed', budget_ok: null, error: 'build: npm run build -w @hb/storefront exited 1 at something' });
     expect(JSON.parse(String(db['timings_json']))).toHaveProperty('buildMs');
+  });
+
+  test('JOBS-8: sub-stage timings done before a failure are kept on the run', async () => {
+    const id = (await enqueueRun(p.env.DB))!;
+    await runPublishQueue(
+      p.env.DB,
+      stages({
+        build: async (_s, _log, timings) => {
+          timings['catalogMs'] = 1234;
+          throw new Error('astro exited 1: catalogue pre-build failed (exit 2)');
+        },
+      }),
+      { deployCommand: DEPLOY, now },
+    );
+    const db = (await row(id))!;
+    expect(JSON.parse(String(db['timings_json']))).toMatchObject({ catalogMs: 1234 });
+    expect(db['error']).toBe('build: astro exited 1: catalogue pre-build failed (exit 2)');
   });
 
   test('abandoned in the admin meanwhile: outcome not recorded, admin values kept', async () => {
