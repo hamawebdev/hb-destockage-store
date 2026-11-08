@@ -1,12 +1,10 @@
-// Placeholder (TOOL-2). Owner: web. Serves storefront static assets + /api/*.
-import { Hono } from 'hono';
+// Entry point of the storefront Worker (`wrangler.jsonc` → main). Owner: web.
+import { app } from './app.ts';
+import type { Env } from './env.ts';
 
-export interface Env {
-  ASSETS: Fetcher;
-}
+export { app };
+export type { Env };
 
-export const app = new Hono<{ Bindings: Env }>();
-
-app.get('/api/health', (c) => c.json({ ok: true }));
-
-export default app;
+export default {
+  fetch: app.fetch,
+} satisfies ExportedHandler<Env>;

@@ -1,4 +1,7 @@
-// Placeholder (TOOL-2). Owner: web.
+// HB Destockage storefront Worker (owner: web). Plan: artifacts/WEB-0/plan.md §1.1.
+// Static assets (the Astro build) are served before the Worker runs; the Worker only sees the
+// `run_worker_first` paths: /api/* and the order confirmation page (ref filled in, no D1).
+// Local only: `npm run dev -w @hb/web` (port 4210, inspector 4211). No login, no deploy.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "hb-web",
@@ -7,7 +10,85 @@
   "assets": {
     "directory": "../storefront/dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash",
+    "run_worker_first": ["/api/*", "/ar/order/confirmation/*", "/fr/order/confirmation/*"]
   },
-  "dev": { "port": 4210 }
+  // One D1 database. Production: `wrangler d1 create hb-destockage --location weur` (see ops/); never created from here.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hb-destockage",
+      "database_id": "00000000-0000-4000-8000-000000000d1b",
+      "migrations_dir": "../../packages/db/migrations"
+    }
+  ],
+  // order.created → apps/jobs (consumer + DLQ hb-order-notifications-dlq are declared there).
+  "queues": { "producers": [{ "binding": "ORDERS", "queue": "hb-order-notifications" }] },
+  // Workers Rate Limiting binding: period must be 10 or 60 s. Phone = primary key (429);
+  // IP = secondary key (flag only, never reject: CGNAT).
+  "ratelimits": [
+    { "name": "ORDER_RL_PHONE", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "ORDER_RL_IP", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },
+    // RUM flood guard (IP-only is fine here: a dropped beacon costs nothing).
+    { "name": "RUM_RL_IP", "namespace_id": "1003", "simple": { "limit": 60, "period": 60 } }
+  ],
+  // Secrets (never here): TURNSTILE_SECRET, ORDER_SIGNING_KEY, IP_HASH_KEY — `.dev.vars` locally.
+  // TOP LEVEL = PRODUCTION (what `wrangler deploy` and `npm run build` = `deploy --dry-run --env=""`
+  // ship). ENV=production refuses placeholder (invented, seeded) delivery fees. Nothing local here:
+  // development values come only from the dev script (`--var ENV:development --var SITE_HOSTS:…`,
+  // the admin Worker's pattern); tests use env "test".
+  // SITE_HOSTS is REQUIRED in production and deliberately absent: set the client's storefront
+  // hostname(s) at deploy ([PLACEHOLDER] in ops/README.md §5). Missing, or containing localhost,
+  // ⇒ every /api/* answers 500 and logs `config_invalid` instead of mis-flagging orders.
+  "vars": {
+    "ENV": "production",
+    "MIN_FILL_MS": "2500",
+    "MIN_REVIEW_MS": "1500",
+    "RUM_SAMPLE": "1"
+  },
+  // Before bundling: WEB-7 deploy guard (a real `wrangler deploy` of a storefront built for a non-
+  // production origin — http, localhost, an IP, .example/.test… — is refused; dev and --dry-run only
+  // report), then WEB-4: generate the static-assets `_headers` (hash CSP + security headers) from the
+  // built HTML, failing when a page has inline code no hash can cover.
+  "build": { "command": "node scripts/deploy-guard.ts && node scripts/csp.ts", "cwd": "." },
+  "minify": true,
+  "observability": { "enabled": true },
+  "dev": { "port": 4210, "inspector_port": 4211 },
+  "env": {
+    // Test environment: same bindings (bindings are not inherited by named envs), a fixture
+    // asset directory so tests do not depend on the storefront build.
+    "test": {
+      // Tests use fixture assets; the CSP generator is tested on its own (test/csp*.test.ts).
+      "build": { "command": "true" },
+      "assets": {
+        "directory": "./test/fixtures/assets",
+        "binding": "ASSETS",
+        "not_found_handling": "404-page",
+        "html_handling": "auto-trailing-slash",
+        "run_worker_first": ["/api/*", "/ar/order/confirmation/*", "/fr/order/confirmation/*"]
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "hb-destockage",
+          "database_id": "00000000-0000-4000-8000-000000000d1b",
+          "migrations_dir": "../../packages/db/migrations"
+        }
+      ],
+      "queues": { "producers": [{ "binding": "ORDERS", "queue": "hb-order-notifications" }] },
+      "ratelimits": [
+        { "name": "ORDER_RL_PHONE", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
+        { "name": "ORDER_RL_IP", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },
+        { "name": "RUM_RL_IP", "namespace_id": "1003", "simple": { "limit": 60, "period": 60 } }
+      ],
+      "vars": {
+        "ENV": "test",
+        "SITE_HOSTS": "localhost,127.0.0.1,example.com",
+        "MIN_FILL_MS": "2500",
+        "MIN_REVIEW_MS": "1500",
+        "RUM_SAMPLE": "1"
+      }
+    }
+  }
 }
