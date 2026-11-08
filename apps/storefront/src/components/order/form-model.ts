@@ -39,6 +39,8 @@ export interface OrderFormInput {
   readonly jsVersion?: string | null;
   /** `?v=` content hash of /js/order-ts.js (lazy Turnstile loader, ORDER-3). */
   readonly tsJsVersion?: string | null;
+  /** Cart mode (/{lang}/checkout/): order.js reads the lines from cart.js instead of one product (CART-0). */
+  readonly cart?: { readonly jsVersion: string | null; readonly itemsUrl: string; readonly homeHref: string } | null;
 }
 
 /**
@@ -63,6 +65,17 @@ export const UI_MESSAGE_KEYS = {
   variant_unavailable: 'order.errors.variant_unavailable',
 } as const;
 
+/** Extra inline strings for the cart checkout lines (rendered by order.js). */
+export const CART_MESSAGE_KEYS = {
+  qty_max: 'cart.qtyMax',
+  unavailable: 'cart.unavailable',
+  unavailable_note: 'cart.unavailableNote',
+  load_failed: 'cart.loadFailed',
+  remove: 'cart.remove',
+  dec: 'order.qty.decrease',
+  inc: 'order.qty.increase',
+} as const;
+
 export const ERROR_MESSAGE_KEYS = {
   name_required: 'order.errors.name_required',
   wilaya_required: 'order.errors.wilaya_required',
@@ -75,6 +88,8 @@ export const ERROR_MESSAGE_KEYS = {
   commune_invalid: 'order.errors.commune_invalid',
   qty_invalid: 'order.errors.qty_invalid',
   items_invalid: 'order.errors.items_invalid',
+  items_empty: 'order.errors.items_empty',
+  order_total_out_of_range: 'order.errors.order_total_out_of_range',
   variant_required: 'order.errors.variant_required',
   variant_unavailable: 'order.errors.variant_unavailable',
   out_of_stock: 'order.errors.out_of_stock',
@@ -123,6 +138,7 @@ export function orderFormConfigJson(lang: Lang, strings: StringTable, contact: C
 }
 
 export type ClientMessageCode = keyof typeof CLIENT_MESSAGE_KEYS;
+type UiCode = keyof typeof UI_MESSAGE_KEYS | keyof typeof CART_MESSAGE_KEYS;
 
 export interface Option {
   readonly value: string;
@@ -141,7 +157,7 @@ export interface OrderFormModel {
   readonly phone: { readonly maxLength: number };
   readonly honeypotName: string;
   /** Inline UI-state strings only (BUG-12); errors are in form.json. */
-  readonly uiMessages: readonly { readonly code: keyof typeof UI_MESSAGE_KEYS; readonly text: string }[];
+  readonly uiMessages: readonly { readonly code: UiCode; readonly text: string }[];
   /** Three rows (client requirement: product price, delivery fee and total before confirm). */
   readonly summary: {
     readonly product: string;
@@ -173,10 +189,8 @@ export function orderFormModel(input: OrderFormInput): OrderFormModel {
   const t = (key: string): string => str(strings, key);
   // {phone} filled here inside LTR isolates; {total}, {wilaya} are filled by order.js.
   const phone = ltr(contact.phoneDisplay);
-  const uiMessages = (Object.keys(UI_MESSAGE_KEYS) as (keyof typeof UI_MESSAGE_KEYS)[]).map((code) => ({
-    code,
-    text: str(strings, UI_MESSAGE_KEYS[code], { phone }),
-  }));
+  const uiKeys: Record<string, string> = input.cart ? { ...UI_MESSAGE_KEYS, ...CART_MESSAGE_KEYS } : UI_MESSAGE_KEYS;
+  const uiMessages = Object.keys(uiKeys).map((code) => ({ code: code as UiCode, text: str(strings, uiKeys[code]!, { phone }) }));
 
   const dv = defaultVariant(form);
   const maxQty = Math.max(1, Math.min(form.qty.max, dv?.maxQty ?? form.qty.max));
@@ -186,7 +200,14 @@ export function orderFormModel(input: OrderFormInput): OrderFormModel {
   dataAttrs['data-lang'] = lang;
   dataAttrs['data-quote'] = form.quoteEndpoint;
   dataAttrs['data-communes'] = form.communesUrlTemplate;
-  dataAttrs['data-variants'] = variantsAttr(form.variants);
+  if (input.cart) {
+    dataAttrs['data-mode'] = 'cart';
+    if (input.cart.jsVersion) dataAttrs['data-cart'] = `/js/cart.js?v=${input.cart.jsVersion}`;
+    dataAttrs['data-home'] = input.cart.homeHref;
+  } else {
+    dataAttrs['data-variants'] = variantsAttr(form.variants);
+    dataAttrs['data-vl'] = JSON.stringify(Object.fromEntries(form.variants.map((v) => [v.id, v.label])));
+  }
   // Error copy, phone pattern and confirmation fallback: /{lang}/order/form.json, versioned by content (BUG-12).
   dataAttrs['data-cfg'] = `/${lang}/order/form.json?v=${orderFormConfigJson(lang, strings, contact).version}`;
   // Turnstile: first-party loader imported by order.js on the first interaction; never a third-party URL here.
@@ -195,14 +216,17 @@ export function orderFormModel(input: OrderFormInput): OrderFormModel {
     dataAttrs['data-ts-js'] = `/js/order-ts.js?v=${input.tsJsVersion}`;
   }
 
-  const hidden = [
-    { name: 'lang', value: lang },
-    { name: 'productId', value: String(form.productId) },
-    // No-JS first POST renders the server review step; order.js sends JSON instead (WEB-0 §2.2–2.3).
-    { name: 'step', value: 'review' },
-  ];
+  // The cart page has no no-JS path: nothing to post but JSON from order.js.
+  const hidden = input.cart
+    ? [{ name: 'lang', value: lang }]
+    : [
+        { name: 'lang', value: lang },
+        { name: 'productId', value: String(form.productId) },
+        // No-JS first POST renders the server review step; order.js sends JSON instead (WEB-0 §2.2–2.3).
+        { name: 'step', value: 'review' },
+      ];
   // Multi-variant products: pages renders `variantId` (radios or a hidden input) with form="order-form".
-  if (form.singleVariant) hidden.push({ name: 'variantId', value: String(form.defaultVariantId) });
+  if (!input.cart && form.singleVariant) hidden.push({ name: 'variantId', value: String(form.defaultVariantId) });
 
   return {
     lang,
