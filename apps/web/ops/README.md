@@ -90,7 +90,28 @@ File: [`waf-rate-limit-rule.json`](waf-rate-limit-rule.json).
   - `IP_HASH_KEY`: ≥ 32 random bytes; salts `orders.ip_hash`. Rotating it breaks the "same IP as order X"
     link for older orders only.
 
-## 6. Things only a real deployment can confirm
+## 6. Deploy guard: the storefront build must be for the production origin (WEB-7)
+
+`wrangler deploy` (and `versions upload`) runs `scripts/deploy-guard.ts` first, from wrangler's build command.
+That is the only hook a manual deploy runs. It reads every origin the built site publishes (sitemap.xml,
+robots.txt, each page's canonical / hreflang / og:url) and **refuses the deploy** in these cases:
+- an origin is not https, has a port, is localhost, an IP literal or a single-label host;
+- an origin is on a reserved/test domain (`.example`, `.test`, `.invalid`, `.local`, `.localhost`, `.internal`…);
+- more than one origin is published, or none is.
+Root `npm run build` builds the seed with `HB_SITE_ORIGIN=http://localhost:8787` for clean-checkout checks, and
+that output must never ship.
+- **Real deploy:** rebuild first with `HB_SITE_ORIGIN=https://<production domain>` and the production snapshot.
+- **`wrangler deploy --temporary` (measurement):** it is a real upload, so it is checked like a deploy. Build the
+  storefront with `HB_SITE_ORIGIN=https://<name>.workers.dev`, the host the temporary deploy will get, then deploy.
+  A localhost build is refused.
+- **`wrangler dev`:** no check.
+- **`wrangler deploy --dry-run`** (`npm run build`, the gate): checked and reported, never fails.
+- How dry-run is detected: wrangler gives the build its command in `WRANGLER_COMMAND` ("deploy" for both real and
+  dry runs). The guard reads `--dry-run` from the wrangler process's argv via Linux `/proc`. **On a system without
+  `/proc` (macOS, Windows), a dry run of a non-production build fails by design**: when the guard cannot tell, it
+  treats the run as a real deploy. Run dry runs there on a build made for a production origin, or on Linux.
+
+## 7. Things only a real deployment can confirm
 
 - That `_headers` rules (CSP etc.) are kept on responses the Worker passes through from `env.ASSETS`
   (confirmation page, no-JS review). Verified in local workerd (test/csp.workerd.test.ts); re-check once with
@@ -98,7 +119,7 @@ File: [`waf-rate-limit-rule.json`](waf-rate-limit-rule.json).
 - The WAF rule's effect on real CGNAT traffic (Security Events) and the Turnstile solve rate. RUM and the order
   log will show them.
 
-## 7. Bundle size
+## 8. Bundle size
 
 `npm run build -w @hb/web` (= `wrangler deploy --dry-run --env=""`, the production top level).
 Measured at abfc3f6 (wrangler 4.157.0, minify on): **170.55 KiB upload / 51.60 KiB gzip** (index.js

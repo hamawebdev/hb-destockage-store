@@ -47,9 +47,11 @@
     "MIN_REVIEW_MS": "1500",
     "RUM_SAMPLE": "1"
   },
-  // WEB-4: before bundling, generate the static-assets `_headers` (hash CSP + security headers)
-  // from the built storefront HTML. Fails the build when a page has inline code no hash can cover.
-  "build": { "command": "node scripts/csp.ts", "cwd": "." },
+  // Before bundling: WEB-7 deploy guard (a real `wrangler deploy` of a storefront built for a non-
+  // production origin — http, localhost, an IP, .example/.test… — is refused; dev and --dry-run only
+  // report), then WEB-4: generate the static-assets `_headers` (hash CSP + security headers) from the
+  // built HTML, failing when a page has inline code no hash can cover.
+  "build": { "command": "node scripts/deploy-guard.ts && node scripts/csp.ts", "cwd": "." },
   "minify": true,
   "observability": { "enabled": true },
   "dev": { "port": 4210, "inspector_port": 4211 },
