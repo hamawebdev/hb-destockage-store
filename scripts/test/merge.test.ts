@@ -1,7 +1,7 @@
 // Tests for scripts/team/merge.sh (TOOL-5). Authority = the lead-only ledger main:team/APPROVALS.md
 // (lead ruling 2026-11-05). Includes rev-d's TOOL-5 r1 attack cases (artifacts/TOOL-5/rev-d/attack*.sh)
 // as permanent tests: C1–C7 controls, X1–X8 attacks, and the evil octopus / 2-parent merges.
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
@@ -33,12 +33,6 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
   };
   const approve = (id: string, n: number, verdict: 'APPROVED' | 'CHANGES_REQUESTED', commits: string[], t = 'low', reviewer = 'rev-d') =>
     ledger(`${id} r${n} ${verdict} tier=${t} reviewer=${reviewer} commits=${commits.join(',')} review=artifacts/${id}/review-r${n}.md`);
-  const signoff = (line: string) => {
-    const f = join(root, 'team/SIGNOFFS.md');
-    writeFileSync(f, readFileSync(f, 'utf8') + line + '\n');
-    ok(git(root, 'add', '-A'));
-    ok(commit(root, 'BOOT-8: sign-off', { HB_ROLE: 'lead' }));
-  };
   const resetBranch = () => {
     ok(git(wt, 'checkout', '-q', 'team/web'));
     ok(git(wt, 'reset', '-q', '--hard', 'main'));
@@ -52,7 +46,7 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     gateRed = join(bin, 'gate-red.sh');
     writeFileSync(gateOk, '#!/bin/sh\necho "fake gate GREEN $*"\n', { mode: 0o755 });
     writeFileSync(gateRed, '#!/bin/sh\necho "gate: RED at test" >&2\nexit 1\n', { mode: 0o755 });
-    write(root, 'team/SIGNOFFS.md', '# Client sign-offs\n');
+    write(root, 'team/REVIEW-REQUIRED.txt', '# paths whose commits need a ledger approval\napps/web/src/**\napps/admin/**\npackages/**\n');
     write(root, 'team/APPROVALS.md', '# Approvals ledger (lead-only)\n\nOne line per review round:\n`<ID> r<n> APPROVED|CHANGES_REQUESTED tier=<low|high> reviewer=<rev-x> commits=<full-sha>[,…] review=artifacts/<ID>/review-r<n>.md`\n\n');
     ok(git(root, 'add', '-A'));
     ok(commit(root, 'BOOT-1: ledgers', { HB_ROLE: 'lead' }));
@@ -99,34 +93,34 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
     expect(r.stderr).toContain('no line for WEB-3');
   });
 
-  test('C4 / X7: high risk needs a SIGNOFFS line "<ID> <exact full sha> — signed off"; malformed sign-off lines refuse everything', () => {
+  test('no sign-off check: a high-tier commit merges with just its ledger line', () => {
     resetBranch();
     write(wt, 'apps/web/src/e.ts', 'export const e = 1;\n');
     const c = commitIn(wt, 'WEB-5: e', tier('Risk tier: high'));
-    approve('WEB-5', 1, 'APPROVED', [c]);
-    signoff(`WEB-5 ${'0'.repeat(40)} — signed off 2026-11-05`); // another sha (C4): well-formed, does not cover c
-    let r = merge(['team/web', '--dry-run']);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain("no 'WEB-5");
-    const f = join(root, 'team/SIGNOFFS.md');
-    const clean = readFileSync(f, 'utf8');
-    for (const bad of [
-      `WEB-5 ${c} — client REFUSED, do not merge`, // X7
-      `WEB-5 ${c.slice(0, 12)} — signed off 2026-11-05`, // short sha
-      ` WEB-5 ${c} — signed off 2026-11-05`, // leading space
-      `WEB-5 ${c} — signed off 2026-11-05\r`, // CRLF
-    ]) {
-      signoff(bad);
-      r = merge(['team/web', '--dry-run']);
-      expect(r.status, JSON.stringify(bad)).toBe(1);
-      expect(r.stderr).toContain('malformed sign-off line');
-      writeFileSync(f, clean);
-      ok(git(root, 'add', '-A'));
-      ok(commit(root, 'BOOT-8: sign-off repair', { HB_ROLE: 'lead' }));
-    }
-    signoff(`WEB-5 ${c} — signed off 2026-11-05 — evidence artifacts/WEB-5/`);
-    r = merge(['team/web']);
+    approve('WEB-5', 1, 'APPROVED', [c], 'high');
+    const r = merge(['team/web']);
     expect(r.status, r.stdout + r.stderr).toBe(0);
+  });
+
+  test('a commit touching no review-required path merges without a ledger line; a missing list refuses', () => {
+    resetBranch();
+    write(wt, 'apps/web/public/readme.txt', 'x\n');
+    commitIn(wt, 'WEB-50: public file');
+    const r = merge(['team/web', '--dry-run']);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toContain('no review required');
+
+    const f = join(root, 'team/REVIEW-REQUIRED.txt');
+    const saved = readFileSync(f, 'utf8');
+    rmSync(f);
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: drop list', { HB_ROLE: 'lead' }));
+    const r2 = merge(['team/web', '--dry-run']);
+    expect(r2.status).toBe(1);
+    expect(r2.stderr).toContain('REVIEW-REQUIRED');
+    writeFileSync(f, saved);
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-9: restore list', { HB_ROLE: 'lead' }));
   });
 
   test('C5: a --no-verify commit touching another owner\'s path is refused', () => {
@@ -172,16 +166,6 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
   });
 
   // ---- attacks (rev-d X1–X8) ----------------------------------------------------------------------
-  test('X1: the ledger tier raises the commit\'s tier; high without sign-off is refused', () => {
-    resetBranch();
-    write(wt, 'apps/web/src/x1.ts', 'export {};\n');
-    const c = commitIn(wt, 'WEB-10: x1');
-    approve('WEB-10', 1, 'APPROVED', [c], 'high');
-    const r = merge(['team/web', '--dry-run']);
-    expect(r.status).toBe(1);
-    expect(r.stderr).toContain('effective tier high');
-  });
-
   test('X2–X4: review files are evidence, never authority (drafts, quoted verdicts, self-written approvals)', () => {
     resetBranch();
     write(wt, 'apps/web/src/x2.ts', 'export {};\n');
@@ -302,13 +286,13 @@ describe('merge.sh (lead merge, ledger = team/APPROVALS.md)', () => {
 
   test('X14 (rev-d r4): a branch commit labelled BOOT-n cannot edit the lead-only ledger files, even with a ledger line', () => {
     resetBranch();
-    write(wt, 'team/SIGNOFFS.md', readFileSync(join(root, 'team/SIGNOFFS.md'), 'utf8') + 'forged\n');
-    const c = commitIn(wt, 'BOOT-77: forge a sign-off', GOOD_BODY, true);
+    write(wt, 'team/APPROVALS.md', readFileSync(join(root, 'team/APPROVALS.md'), 'utf8') + '# forged\n');
+    const c = commitIn(wt, 'BOOT-77: forge the ledger', GOOD_BODY, true);
     approve('BOOT-77', 1, 'APPROVED', [c]);
     const r = merge(['team/web', '--dry-run']);
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('ownership');
-    expect(r.stderr).toContain('team/SIGNOFFS.md');
+    expect(r.stderr).toContain('team/APPROVALS.md');
   });
 
   const exceptions = (line: string) => {

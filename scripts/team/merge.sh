@@ -12,13 +12,11 @@
 #                       commit's own ID area (owners.json idAreas, e.g. SHARED → shared), or the
 #                       merging branch's owner when the commit is on that branch's first-parent
 #                       line. Never inferred from movable team/* refs (rev-d X12).
-#                     - approved per the lead-only ledger main:team/APPROVALS.md (review files under
-#                       artifacts/ are evidence, never authority): the full sha is listed on SOME
-#                       ledger line for its ID, and the LATEST line for that ID (highest r<n>) is
-#                       APPROVED. Ledger lines are parsed strictly (anchored, full shas, reviewer =
-#                       a rev-* teammate in owners.json); a malformed ledger line refuses everything
-#                     - effective tier = max(commit's "Risk tier:", tier= of any ledger line for the
-#                       ID); high ⇒ main:team/SIGNOFFS.md has "<ID> <full sha> — signed off …"
+#                     - only when it touches a path on the lead-only main:team/REVIEW-REQUIRED.txt (order
+#                       path, totals and fees, admin auth): approved per the lead-only ledger
+#                       main:team/APPROVALS.md — the full sha on SOME line for its ID and the LATEST line
+#                       for that ID APPROVED (strict lines; a malformed line refuses everything).
+#                       Every other commit needs no ledger line. No sign-off check.
 #   merge commit      - accepted automatically when merge.sh's own recreation (git merge-tree from its
 #                       parents, chained for an octopus) yields exactly its tree — a clean merge adds
 #                       nothing, and every parent is either on main or itself checked in this range;
@@ -69,16 +67,17 @@ commits=()
 while IFS= read -r c; do [[ -n "$c" ]] && commits+=("$c"); done < <(g rev-list --reverse "main..$sha")
 [[ ${#commits[@]} -gt 0 ]] || { echo "merge: nothing to merge ($sha is already on main)"; exit 0; }
 
-owners_tmp="$(mktemp)"; signoffs_tmp="$(mktemp)"
+owners_tmp="$(mktemp)"; rr_tmp="$(mktemp)"
 tmp_wt="" tmp_branch=""
 cleanup() {
-  rm -f "$owners_tmp" "$signoffs_tmp" "${msg_tmp:-}" "${ledger_tmp:-}"
+  rm -f "$owners_tmp" "$rr_tmp" "${msg_tmp:-}" "${ledger_tmp:-}"
   if [[ -n "$tmp_wt" ]]; then g worktree remove --force "$tmp_wt" >/dev/null 2>&1 || rm -rf "$tmp_wt"; g worktree prune >/dev/null 2>&1 || true; fi
   if [[ -n "$tmp_branch" ]]; then g branch -D "$tmp_branch" >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
 g show main:team/owners.json >"$owners_tmp" 2>/dev/null || { echo "merge: main has no team/owners.json" >&2; exit 1; }
-g show main:team/SIGNOFFS.md >"$signoffs_tmp" 2>/dev/null || : >"$signoffs_tmp"
+# Lead-only list of path globs whose commits need a ledger approval (order path, totals and fees, admin auth).
+g show main:team/REVIEW-REQUIRED.txt >"$rr_tmp" 2>/dev/null || { echo "merge: REFUSED — main has no team/REVIEW-REQUIRED.txt (the lead's list of paths that need review)" >&2; exit 1; }
 # Lead-only exceptions (see header). Exact full shas; the ID must match the commit's subject ID.
 declare -A exc_message=() exc_owner=()
 exc_errors=()
@@ -117,14 +116,14 @@ merge_recreates() {
 ledger_tmp="$(mktemp)"
 g show main:team/APPROVALS.md >"$ledger_tmp" 2>/dev/null || : >"$ledger_tmp"
 reviewers=" $(node -e 'const o=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).owners;process.stdout.write(Object.keys(o).filter(n=>/^rev-[a-z]$/.test(n)).join(" "))' "$owners_tmp") "
-declare -A L_listed=() L_n=() L_verdict=() L_who=() L_review=() L_high=()
+declare -A L_listed=() L_n=() L_verdict=() L_who=() L_review=()
 ledger_errors=()
 id_re='[A-Z]+(-[A-Z]+)?-[0-9]+'
 line_re="^($id_re) r([0-9]+) (APPROVED|CHANGES_REQUESTED) tier=(low|high) reviewer=(rev-[a-z]) commits=([0-9a-f]{40}(,[0-9a-f]{40})*) review=([^[:space:]]+)\$"
 # Fail closed (rev-d TOOL-5 r2, lead rule): every non-blank line that is not a "#" heading/comment or
 # a "`" template line and contains anything that looks like a task ID must match the strict regex
 # exactly (no leading/double spaces, tabs, CRLF, lowercase verdicts, short shas, trailing junk);
-# otherwise ALL merges are refused, naming the line. Same rule for team/SIGNOFFS.md below.
+# otherwise ALL merges are refused, naming the line.
 looks_re="$id_re"
 skip_line() { [[ -z "${1//[[:space:]]/}" || "$1" == '#'* ]]; }
 # A line starting with a backtick is a format TEMPLATE only when it holds the <ID> placeholder (e.g.
@@ -147,26 +146,12 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     lw="${BASH_REMATCH[6]}" lc="${BASH_REMATCH[7]}" lr="${BASH_REMATCH[9]}"
     if [[ "$reviewers" != *" $lw "* ]]; then ledger_errors+=("team/APPROVALS.md:$lnum reviewer '$lw' is not a reviewer in team/owners.json"); continue; fi
     for x in ${lc//,/ }; do L_listed["$lid $x"]=1; done
-    [[ "$lt" == high ]] && L_high[$lid]=1
     if (( ln >= ${L_n[$lid]:--1} )); then L_n[$lid]=$ln L_verdict[$lid]=$lv L_who[$lid]=$lw L_review[$lid]=$lr; fi
   elif [[ "$line" =~ $looks_re ]]; then
     ledger_errors+=("team/APPROVALS.md:$lnum malformed ledger line: $(printf '%q' "$line") — fix it, or if it is prose mentioning ID-like tokens (SHA-256, UTF-8) make it a '#' comment")
   fi
 done <"$ledger_tmp"
 
-declare -A S_signed=()
-sign_re="^($id_re) ([0-9a-f]{40}) — signed off( .*)?\$"
-lnum=0
-while IFS= read -r line || [[ -n "$line" ]]; do
-  lnum=$((lnum + 1))
-  skip_line "$line" && continue
-  normalize_line || continue
-  if [[ "$line" =~ $sign_re && "$line" != *$'\r'* ]]; then
-    S_signed["${BASH_REMATCH[1]} ${BASH_REMATCH[3]}"]=1
-  elif [[ "$line" =~ $looks_re ]]; then
-    ledger_errors+=("team/SIGNOFFS.md:$lnum malformed sign-off line: $(printf '%q' "$line") — fix it, or if it is prose mentioning ID-like tokens make it a '#' comment")
-  fi
-done <"$signoffs_tmp"
 if [[ ${#ledger_errors[@]} -gt 0 ]]; then
   echo "merge: REFUSED — the approvals ledger / sign-off log has errors (fix it on main first):" >&2
   printf '  - %s\n' "${ledger_errors[@]}" >&2
@@ -266,18 +251,16 @@ for c in "${commits[@]}"; do
 
   if [[ -n "$id" ]]; then
     ids+=("$id")
-    [[ -n "${L_listed["$id $c"]:-}" ]] || why+=("not listed for $id in team/APPROVALS.md (full sha)")
-    relied="no ledger line"
-    if [[ -n "${L_n[$id]:-}" ]]; then
-      relied="ledger $id r${L_n[$id]} ${L_verdict[$id]} by ${L_who[$id]} (${L_review[$id]})"
-      [[ "${L_verdict[$id]}" == APPROVED ]] || why+=("latest ledger line for $id is r${L_n[$id]} ${L_verdict[$id]}")
-    else
-      why+=("no line for $id in team/APPROVALS.md")
-    fi
-    # effective tier = max(commit, ledger): a reviewer may raise it, never lower it
-    [[ -n "${L_high[$id]:-}" ]] && tier=high
-    if [[ "$tier" == high ]]; then
-      [[ -n "${S_signed["$id $c"]:-}" ]] || why+=("effective tier high but team/SIGNOFFS.md has no '$id $c — signed off …' line")
+    relied="no review required"
+    if rr_paths="$(cd "$main_root" && node "$here/../lib/owners.mjs" needs-review "$c" "$rr_tmp" 2>/dev/null)"; then
+      [[ -n "${L_listed["$id $c"]:-}" ]] || why+=("not listed for $id in team/APPROVALS.md (full sha); it touches review-required paths: ${rr_paths//$'\n'/ }")
+      relied="no ledger line"
+      if [[ -n "${L_n[$id]:-}" ]]; then
+        relied="ledger $id r${L_n[$id]} ${L_verdict[$id]} by ${L_who[$id]} (${L_review[$id]})"
+        [[ "${L_verdict[$id]}" == APPROVED ]] || why+=("latest ledger line for $id is r${L_n[$id]} ${L_verdict[$id]}")
+      else
+        why+=("no line for $id in team/APPROVALS.md")
+      fi
     fi
   fi
 

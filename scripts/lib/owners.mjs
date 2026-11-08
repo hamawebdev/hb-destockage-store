@@ -4,6 +4,7 @@
 //   node scripts/lib/owners.mjs check-staged <name> [--lead]   pre-commit checks on the index
 //   node scripts/lib/owners.mjs check-commit <name> <sha>      same rules for one commit (merge.sh)
 //   node scripts/lib/owners.mjs check-net <author> <base> <result>   net diff of a merge (stdin: sha owner)
+//   node scripts/lib/owners.mjs needs-review <sha> <globs-file>      paths of a commit on the review-required list
 //   node scripts/lib/owners.mjs violations <name> [path…]      paths <name> may not write (args or stdin, one per line)
 //   node scripts/lib/owners.mjs port <name>                    print portBase
 //   node scripts/lib/owners.mjs owner-of <path>                print the owners allowed to write <path>
@@ -325,6 +326,16 @@ function main(argv) {
         return 1;
       }
       return 0;
+    }
+    if (cmd === 'needs-review') {
+      // needs-review <sha> <globs-file>: prints the commit's paths matching the list; exit 0 if any, 1 if none
+      const [sha, file] = rest;
+      if (!sha || !file) throw new Error('usage: needs-review <sha> <globs-file>');
+      const globs = readFileSync(file, 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+      const paths = git(['diff-tree', '--no-commit-id', '-r', '--name-only', '--no-renames', '-z', '--root', sha]).split('\0').filter(Boolean);
+      const hit = paths.filter((p) => any(p, globs));
+      if (hit.length) process.stdout.write(hit.join('\n') + '\n');
+      return hit.length ? 0 : 1;
     }
     if (cmd === 'violations') {
       const [name, ...paths] = rest;

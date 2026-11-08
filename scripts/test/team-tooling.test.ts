@@ -259,6 +259,28 @@ describe('pre-commit ownership', () => {
     ok(git(root, 'clean', '-qfd'));
   });
 
+  test('ORDER-STEP: pages owns order/[slug].astro; orderform keeps confirmation, review and form.json', () => {
+    const route = 'apps/storefront/src/pages/ar/order/[slug].astro';
+    branch(root, 'team/pages');
+    write(root, route, '<html></html>\n');
+    ok(git(root, 'add', '--', route));
+    expect(commit(root, 'PAGES-9: order route').status).toBe(0);
+    branch(root, 'team/orderform');
+    write(root, route, '<html></html>\n');
+    ok(git(root, 'add', '--', route));
+    const r = commit(root, 'ORDER-9: order route');
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('owned by pages');
+    ok(git(root, 'reset', '-q', '--hard'));
+    ok(git(root, 'clean', '-qfd'));
+    for (const f of ['apps/storefront/src/pages/fr/order/review/index.astro', 'apps/storefront/src/pages/ar/order/confirmation/index.astro', 'apps/storefront/src/pages/ar/order/form.json.ts']) {
+      branch(root, 'team/orderform');
+      write(root, f, 'x\n');
+      ok(git(root, 'add', '--', f));
+      expect(commit(root, 'ORDER-9: keep', {}).status, f).toBe(0);
+    }
+  });
+
   test('pre-commit is fast (< 1 s)', () => {
     branch(root, 'team/web');
     write(root, 'apps/web/src/speed.ts', 'export {};\n');
@@ -419,7 +441,7 @@ describe('gate.sh', () => {
     expect(r2.stdout).toContain('GREEN (cached');
   });
 
-  test('real storefront page + stub budget/lh → RED; TOOL-2 placeholder page → not required', () => {
+  test('real storefront page + stub budget/lh → reported, never RED; TOOL-2 placeholder page → not required', () => {
     const root = makeRepo({ budget: "echo 'budget: not wired yet' && exit 0", lh: "echo 'lh: not wired yet' && exit 0" });
     prepNodeModules(root);
     write(root, 'apps/storefront/src/pages/index.astro', '---\n// Placeholder (TOOL-2). Owner: shell.\n---\n<html></html>\n');
@@ -433,8 +455,9 @@ describe('gate.sh', () => {
     ok(git(root, 'add', '-A'));
     ok(commit(root, 'BOOT-2: real page', { HB_ROLE: 'lead' }));
     const r2 = gate(root, '--no-cache', '--full');
-    expect(r2.status).toBe(1);
-    expect(r2.stdout).toContain('RED   budget (script missing or a stub');
+    expect(r2.status, r2.stdout).toBe(0);
+    expect(r2.stdout).toContain('REPORT budget (not wired yet');
+    expect(r2.stdout).toContain('REPORT lh (not wired yet');
   });
 
   test('storefront diff with only the placeholder page and a stub lh → SKIP, not RED', () => {
@@ -492,8 +515,8 @@ describe('gate.sh', () => {
     ok(commit(root, 'SHELL-9: fr'));
     const r = gate(root, '--no-cache');
     expect(r.stdout).toContain('steps = typecheck test build budget check-tap axe lh');
-    expect(r.status).toBe(1);
-    expect(r.stdout).toContain('RED   check-tap (exit 1');
+    expect(r.status, r.stdout).toBe(0); // report-only
+    expect(r.stdout).toMatch(/REPORT check-tap \(exit 1.*report only, does not block/);
   });
 
   test('disk rule: RED at disk when / is below the free-space minimum; TMPDIR moves to the data volume', () => {
@@ -510,6 +533,41 @@ describe('gate.sh', () => {
     expect(r.stdout).toContain(`TMPDIR=${join(vol, 'hb-tmp', 'gate-main')}`);
     const log = r.stdout.match(/log: (\S.*\.log)/)?.[1] ?? '';
     expect(readFileSync(log, 'utf8')).toContain(`TMP=${join(vol, 'hb-tmp', 'gate-main')}`);
+  });
+
+  test('only typecheck, tests and build can fail: failing budget, axe and lh are reported, gate GREEN', () => {
+    const root = makeRepo({ budget: 'exit 2', axe: 'exit 3', lh: 'exit 4' });
+    prepNodeModules(root);
+    write(root, 'apps/storefront/src/pages/ar/index.astro', '<html lang="ar"></html>\n');
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-1: real page', { HB_ROLE: 'lead' }));
+    const r = gate(root, '--no-cache', '--full');
+    expect(r.status, r.stdout).toBe(0);
+    expect(r.stdout).toContain('REPORT budget (exit 2');
+    expect(r.stdout).toContain('REPORT axe (exit 3');
+    expect(r.stdout).toContain('REPORT lh (exit 4');
+    expect(r.stdout).toContain('gate: GREEN');
+  });
+
+  test('db and admin test files run one per process; a failing file is RED and the others still run', () => {
+    const root = makeRepo();
+    prepNodeModules(root);
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    pkg.workspaces = ['packages/db', 'packages/other'];
+    write(root, 'package.json', JSON.stringify(pkg, null, 2));
+    write(root, 'packages/other/package.json', JSON.stringify({ name: '@x/other', scripts: { test: 'true' } }));
+    write(root, 'packages/db/package.json', JSON.stringify({ name: '@x/db', scripts: { test: 'false' } }));
+    write(root, 'packages/db/test/good.test.ts', 'x\n');
+    write(root, 'packages/db/test/bad.test.ts', 'x\n');
+    const fake = join(root, 'fake-vitest.sh');
+    writeFileSync(fake, '#!/bin/sh\necho "ran $2"\ncase "$2" in *bad*) exit 1;; esac\n', { mode: 0o755 });
+    ok(git(root, 'add', '-A'));
+    ok(commit(root, 'BOOT-1: workspaces', { HB_ROLE: 'lead' }));
+    const r = sh(root, join(root, 'scripts/gate.sh'), [root, '--no-cache'], { HB_LOCK_DIR: lockDir, HB_VITEST_CMD: fake });
+    expect(r.stdout).toContain('steps = typecheck test test-files:packages/db build');
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('RED   test:db:test/bad.test.ts');
+    expect(r.stdout).toContain('GREEN test:db:test/good.test.ts');
   });
 
   test('gate refuses when core.hooksPath is not the absolute main hooks path (review F5)', () => {

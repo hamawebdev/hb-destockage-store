@@ -14,7 +14,10 @@
 #   npm run lh        when real pages exist, unless EVERY path changed vs <base> (default: merge-base
 #                     with main) is known not to affect the built storefront or its server
 #                     (admin, jobs, db, docs, team, tooling scripts/hooks, tests, *.md); --full forces it
-# Once apps/storefront has real pages, a missing or stub ("not wired yet") budget/lh script is RED.
+# REPORT-ONLY (client rule: done = typecheck, tests, build): budget, axe, check-tap and lh run and are
+# reported, but never fail the gate — nor does a missing or stub ("not wired yet") script for them.
+# @hb/db and @hb/admin test files run one process per file (limit HB_TEST_FILE_TIMEOUT, 1800 s), the
+# other workspaces together in the `test` step.
 # Refuses (RED "hooks") unless core.hooksPath is the ABSOLUTE path of the main checkout's .githooks.
 # Disk rule: TMPDIR/TEMP/TMP default to /mnt/data/hb-tmp/gate-<branch> (unless already on /mnt/data);
 # RED "disk" when / has under HB_MIN_ROOT_FREE_GB (3) GB free.
@@ -99,7 +102,17 @@ data_steps=()
 [[ -f data/catalog/validate.mjs ]] && data_steps+=(data-catalog-validate)
 [[ -d data/catalog/test && -n "$(data_files data/catalog/test)" ]] && data_steps+=(data-catalog-test)
 
-steps=(typecheck test "${data_steps[@]}" build)
+# Suites too slow on workerd D1 for one hold run file by file (lead); fake/older trees keep plain `npm test`.
+mapfile -t workspaces < <(node -e 'for (const w of (require("./package.json").workspaces||[])) console.log(w)')
+test_files_in() { (cd "$1" && find test src -type f \( -name '*.test.ts' -o -name '*.test.tsx' \) 2>/dev/null | sort); }
+per_file_dirs=() per_file_steps=()
+for d in packages/db apps/admin; do
+  if printf '%s\n' "${workspaces[@]:-}" | grep -qx "$d" && [[ -n "$(test_files_in "$d")" ]]; then
+    per_file_dirs+=("$d"); per_file_steps+=("test-files:$d")
+  fi
+done
+
+steps=(typecheck test "${per_file_steps[@]}" "${data_steps[@]}" build)
 real_pages=0
 if has_real_pages; then real_pages=1; steps+=(budget); fi
 storefront_affected=0
@@ -165,6 +178,7 @@ run_step() {
   # Hang-proof: every step has a hard limit, so a hung step cannot hold the gate and heavy slots.
   local limit="${HB_STEP_TIMEOUT:-2700}"
   [[ "$name" == lh ]] && limit="${HB_LH_TIMEOUT:-14400}"
+  [[ "$name" == test:* ]] && limit="${HB_TEST_FILE_TIMEOUT:-1800}"
   HB_RUN_TIMEOUT="$limit" hb_run_group "$@" >>"$log" 2>&1 </dev/null || rc=$?
   local timed_out=""
   if [[ $rc -ne 0 ]] && (( SECONDS - t0 >= limit )); then
@@ -192,16 +206,21 @@ fi
 
 for s in "${steps[@]}"; do
   [[ -n "$red" ]] && { summary+=("SKIP  $s (after red)"); continue; }
+  report_only=0
+  case "$s" in budget | lh | axe | check-tap) report_only=1 ;; esac
   if [[ "$s" == budget || "$s" == lh || "$s" == axe ]] && ! script_wired "$s"; then
-    if [[ $real_pages -eq 1 ]]; then
-      summary+=("RED   $s (script missing or a stub while apps/storefront has real pages — owner: measure)")
-      red="$s"
-    else
-      summary+=("SKIP  $s (not wired yet; only TOOL-2 placeholder pages exist)")
-    fi
+    summary+=("REPORT $s (not wired yet; report only, does not block)")
     continue
   fi
   case "$s" in
+    test-files:*)
+      dir="${s#test-files:}"
+      vitest_cmd="${HB_VITEST_CMD:-npx vitest run}"
+      while IFS= read -r rel; do
+        run_step "test:${dir##*/}:$rel" env -C "$dir" bash -c "$vitest_cmd --passWithNoTests \"\$1\"" _ "$rel"
+      done < <(test_files_in "$dir")
+      continue
+      ;;
     data-geo) mapfile -t f < <(data_files data/geo); run_step "$s" node --test "${f[@]}" ;;
     data-catalog-validate) run_step "$s" node data/catalog/validate.mjs ;;
     data-catalog-test) mapfile -t f < <(data_files data/catalog/test); run_step "$s" node --test "${f[@]}" ;;
@@ -209,9 +228,21 @@ for s in "${steps[@]}"; do
     # measure's gate mode: refuses any option that narrows or relaxes the run (--runs, --url, …)
     lh) run_step "$s" env HB_GATE=1 npm run lh ;;
     # root `npm test` chains `npm run test:data` (rev-e); the gate runs those as named data-* steps
-    test) run_step "$s" env HB_SKIP_DATA_TESTS=1 npm run test ;;
+    test)
+      if [[ ${#per_file_dirs[@]} -gt 0 ]]; then
+        rest=()
+        for w in "${workspaces[@]}"; do [[ " ${per_file_dirs[*]} " == *" $w "* ]] || rest+=("$w"); done
+        run_step "$s" env HB_SKIP_DATA_TESTS=1 bash -c 'set -e; for w in "$@"; do npm run test -w "$w" --if-present; done; if [[ -f scripts/vitest.config.ts ]]; then npx vitest run --config scripts/vitest.config.ts; fi' _ "${rest[@]}"
+      else
+        run_step "$s" env HB_SKIP_DATA_TESTS=1 npm run test
+      fi
+      ;;
     *) run_step "$s" npm run "$s" ;;
   esac
+  if [[ $report_only -eq 1 && "$red" == "$s" ]]; then
+    red=""
+    summary[-1]="REPORT ${summary[-1]#RED   } — report only, does not block"
+  fi
 done
 
 say "gate: summary"
