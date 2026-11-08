@@ -23,6 +23,7 @@ import sharp from 'sharp';
 import { candidateWidths } from './widths.ts';
 import {
   IMAGE_MAX_BYTES_UP_TO_960,
+  IMAGE_TARGET_BYTES_UP_TO_960,
   IMAGE_WIDTHS,
   type CatalogSnapshot,
   type ImageManifest,
@@ -32,7 +33,7 @@ import {
 } from './types.ts';
 
 /** Bump when the encoding recipe changes: every hash (and cached file) changes with it. */
-export const PIPELINE_VERSION = 'cat4-v2';
+export const PIPELINE_VERSION = 'cat4-v3';
 export const BUDGET_MAX_WIDTH = 960;
 
 export interface ImagePipelineOptions {
@@ -43,8 +44,14 @@ export interface ImagePipelineOptions {
   /** Returns the original's bytes for a `SnapshotImage.key` (disk for seed, R2 for D1 exports). */
   readonly readOriginal: (key: string) => Promise<Buffer>;
   readonly widths?: readonly number[];
-  /** Byte ceiling for every candidate ≤ 960 w. Default 25,000. */
+  /** Target for every candidate ≤ 960 w. Default IMAGE_TARGET_BYTES_UP_TO_960 (20,000). */
   readonly maxBytes?: number;
+  /**
+   * Hard limit when the target is unreachable at `minQuality`: such a candidate is accepted up to
+   * this size and reported in `warnings` (IMAGE_OVER_TARGET); above it the build fails.
+   * Default IMAGE_MAX_BYTES_UP_TO_960 (25,000).
+   */
+  readonly hardMaxBytes?: number;
   /** Starting (highest) AVIF quality. Default 60. */
   readonly maxQuality?: number;
   /** Lowest AVIF quality the search may use; below it the build fails. Default 20. */
@@ -69,9 +76,21 @@ export interface ImageReportRow {
   readonly ms: number;
 }
 
+/** A candidate ≤ 960 w over the 20 kB target but within the spec limit (lead's fallback rule). */
+export interface ImageWarning {
+  readonly code: 'IMAGE_OVER_TARGET';
+  readonly key: string;
+  readonly width: number;
+  readonly bytes: number;
+  readonly quality: number;
+  readonly message: string;
+}
+
 export interface ImagePipelineResult {
   readonly manifest: ImageManifest;
   readonly report: readonly ImageReportRow[];
+  /** Never fatal. Derived from the encoded sizes, so cached runs report them too. */
+  readonly warnings: readonly ImageWarning[];
 }
 
 export class ImageBudgetError extends Error {
@@ -125,6 +144,7 @@ async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) 
 interface Settings {
   readonly widths: readonly number[];
   readonly maxBytes: number;
+  readonly hardMaxBytes: number;
   readonly maxQuality: number;
   readonly minQuality: number;
   readonly effort: number;
@@ -172,7 +192,25 @@ async function encodeOne(key: string, original: Buffer, s: Settings, hash: strin
           }
         }
         if (!best) {
-          throw new ImageBudgetError(`${key}: ${w} w exceeds ${s.maxBytes} B even at quality ${s.minQuality}`);
+          // Fallback (lead's ruling): the target is out of reach at the floor; accept the highest
+          // quality that fits the spec limit (reported as IMAGE_OVER_TARGET), else fail. The
+          // starting encode is a candidate too (rev-c r2 Nit).
+          if (file.length <= s.hardMaxBytes) best = { q: start, buf: file };
+          lo = s.minQuality;
+          hi = best ? 0 : start - 1;
+          while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const buf = await enc(mid);
+            if (buf.length <= s.hardMaxBytes) {
+              best = { q: mid, buf };
+              lo = mid + 1;
+            } else {
+              hi = mid - 1;
+            }
+          }
+        }
+        if (!best) {
+          throw new ImageBudgetError(`${key}: ${w} w exceeds ${s.hardMaxBytes} B even at quality ${s.minQuality}`);
         }
         quality = best.q;
         file = best.buf;
@@ -202,7 +240,8 @@ async function sameSize(a: string, b: string): Promise<boolean> {
 export async function buildImages(snapshot: CatalogSnapshot, opts: ImagePipelineOptions): Promise<ImagePipelineResult> {
   const s: Settings = {
     widths: opts.widths ?? IMAGE_WIDTHS,
-    maxBytes: opts.maxBytes ?? IMAGE_MAX_BYTES_UP_TO_960,
+    maxBytes: opts.maxBytes ?? IMAGE_TARGET_BYTES_UP_TO_960,
+    hardMaxBytes: opts.hardMaxBytes ?? IMAGE_MAX_BYTES_UP_TO_960,
     maxQuality: opts.maxQuality ?? 60,
     minQuality: opts.minQuality ?? 20,
     effort: opts.effort ?? 4,
@@ -258,7 +297,19 @@ export async function buildImages(snapshot: CatalogSnapshot, opts: ImagePipeline
       if (/^[0-9a-f]{16}-(\d+\.avif|og\.jpg)$/.test(f) && !keep.has(f)) await rm(join(imgDir, f));
     }
   }
-  return { manifest, report: rows };
+  const warnings: ImageWarning[] = rows.flatMap((r) =>
+    r.candidates
+      .filter((c) => c.width <= BUDGET_MAX_WIDTH && c.bytes > s.maxBytes)
+      .map((c) => ({
+        code: 'IMAGE_OVER_TARGET' as const,
+        key: r.key,
+        width: c.width,
+        bytes: c.bytes,
+        quality: c.quality,
+        message: `IMAGE_OVER_TARGET ${r.key}: ${c.width} w is ${c.bytes} B at q${c.quality} (target ${s.maxBytes} B, accepted up to ${s.hardMaxBytes} B); replace the photo with an easier-to-compress one`,
+      })),
+  );
+  return { manifest, report: rows, warnings };
 }
 
 /** Markdown sizes table (artifacts/CAT-4/sizes.md). */
@@ -267,7 +318,7 @@ export function sizesMarkdown(result: ImagePipelineResult, title = 'CAT-4 image 
   const lines = [
     `# ${title}`,
     '',
-    `AVIF bytes (quality) per candidate width. Budget: every candidate ≤ ${BUDGET_MAX_WIDTH} w ≤ ${IMAGE_MAX_BYTES_UP_TO_960.toLocaleString('en')} B.`,
+    `AVIF bytes (quality) per candidate width. Target: every candidate ≤ ${BUDGET_MAX_WIDTH} w ≤ ${IMAGE_TARGET_BYTES_UP_TO_960.toLocaleString('en')} B (spec budget ${IMAGE_MAX_BYTES_UP_TO_960.toLocaleString('en')} B).`,
     '',
     `| key | original | ${widths.map((w) => `${w} w`).join(' | ')} | og.jpg | cached | ms |`,
     `|---|---|${widths.map(() => '---:').join('|')}|---:|---|---:|`,
@@ -285,9 +336,10 @@ export function sizesMarkdown(result: ImagePipelineResult, title = 'CAT-4 image 
   const above = result.report.flatMap((r) => r.candidates.filter((c) => c.width > BUDGET_MAX_WIDTH));
   const max = within.reduce((m, c) => Math.max(m, c.bytes), 0);
   const maxAbove = above.reduce((m, c) => Math.max(m, c.bytes), 0);
+  for (const w of result.warnings) lines.push('', `WARNING ${w.message}`);
   lines.push(
     '',
-    `Images: ${result.report.length}. Largest candidate ≤ ${BUDGET_MAX_WIDTH} w: ${max.toLocaleString('en')} B. Over budget: ${within.filter((c) => c.bytes > IMAGE_MAX_BYTES_UP_TO_960).length}. ` +
+    `Images: ${result.report.length}. Largest candidate ≤ ${BUDGET_MAX_WIDTH} w: ${max.toLocaleString('en')} B. Over target: ${within.filter((c) => c.bytes > IMAGE_TARGET_BYTES_UP_TO_960).length}. ` +
       `Largest candidate > ${BUDGET_MAX_WIDTH} w (no budget): ${maxAbove.toLocaleString('en')} B.`,
     '',
   );

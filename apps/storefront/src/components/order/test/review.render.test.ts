@@ -31,13 +31,15 @@ describe.each(['ar', 'fr'] as const)('Review template (%s)', (lang) => {
       expect(els, code).toHaveLength(field ? 2 : 1); // summary + under the field
       for (const el of els) expect(el, code).toMatch(/\shidden/);
     }
-    // Known gap: brand added order.errors.order_total_out_of_range after this branch's copy of brand/copy (no direct
-    // merges; it arrives through main). Rendered as a visible [PLACEHOLDER] (CLAUDE.md), refused by HB_STRICT_COPY=1.
-    // This expectation fails once the key is present, so the exception cannot go stale.
+    // order.errors.order_total_out_of_range was added by brand (BRAND-3 ebf90cc) after this branch's copy of brand/copy;
+    // it arrives through main. Until then it may be missing (rendered as a visible [PLACEHOLDER], refused by
+    // HB_STRICT_COPY=1); once present (e.g. on team/pages, which has ebf90cc) its real copy must render. No other code
+    // may lack copy. (It was pinned as exactly-missing so that the copy's arrival would be flagged; it was, on team/pages.)
     const missing = REVIEW_ERROR_CODES.filter((c) => strings[lang][`order.errors.${c}`] === undefined);
-    expect(missing).toEqual(['order_total_out_of_range']);
-    const withoutKnownGap = html.replace(/<[a-z]+[^>]*data-hb-error="order_total_out_of_range"[^>]*>[^<]*<\/[a-z]+>/g, '');
-    expect(withoutKnownGap).not.toMatch(/\[PLACEHOLDER\]|\{(phone|max|option)\}/);
+    expect(['order_total_out_of_range']).toEqual(expect.arrayContaining(missing));
+    let withoutGaps = html;
+    for (const c of missing) withoutGaps = withoutGaps.replace(new RegExp(`<[a-z]+[^>]*data-hb-error="${c}"[^>]*>[^<]*</[a-z]+>`, 'g'), '');
+    expect(withoutGaps).not.toMatch(/\[PLACEHOLDER\]|\{(phone|max|option)\}/);
     expect(html).toContain('⁦0560417403⁩'); // {phone} isolated LTR inside messages
   });
 
