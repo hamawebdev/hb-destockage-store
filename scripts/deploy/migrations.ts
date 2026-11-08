@@ -26,7 +26,8 @@ export interface Statement {
  *
  * BEGIN and END are also legal identifiers in SQLite, so a CREATE TRIGGER is delimited by its
  * grammar: the body opens at the first bare BEGIN after ON, and closes at the END that balances
- * it, immediately before the `;`. Anything that does not fit is reported, never guessed.
+ * it, immediately before the `;`. Every statement in the body must start with SELECT, the only
+ * kind a guard trigger needs. Anything that does not fit is reported, never guessed.
  */
 export function parseStatements(sql: string): Statement[] {
   const out: Statement[] = [];
@@ -37,6 +38,8 @@ export function parseStatements(sql: string): Statement[] {
   let depth = 0;
   let body: number | undefined;
   let problem: string | undefined;
+  // In the body, outside any CASE: the next token starts a statement.
+  let atStatementStart = false;
   let i = 0;
 
   const isTrigger = (): boolean => {
@@ -60,6 +63,7 @@ export function parseStatements(sql: string): Statement[] {
     depth = 0;
     body = undefined;
     problem = undefined;
+    atStatementStart = false;
   };
   const push = (text: string, quoted: boolean, at: number): void => {
     if (start < 0) start = at;
@@ -76,11 +80,25 @@ export function parseStatements(sql: string): Statement[] {
         phase = 2;
         depth = 1;
         body = tokens.length;
+        atStatementStart = true;
       }
-    } else if (!afterDot) {
+    } else if (afterDot) {
+      atStatementStart = false;
+    } else {
+      if (atStatementStart && word !== 'SELECT' && !(word === 'END' && depth === 1)) problem ??= `a trigger body statement that is not a SELECT (${word})`;
+      atStatementStart = false;
       if (word === 'BEGIN') problem ??= 'a second BEGIN inside the trigger body';
       else if (word === 'CASE') depth++;
       else if (word === 'END' && --depth === 0) phase = 3;
+    }
+  };
+  /** A token that is not a bare word (quoted name, string, number, punctuation). */
+  const onOtherToken = (): void => {
+    if (!isTrigger()) return;
+    if (phase === 3) problem ??= 'text after the final END of the trigger';
+    else if (phase === 2 && atStatementStart) {
+      problem ??= 'a trigger body statement that is not a SELECT';
+      atStatementStart = false;
     }
   };
 
@@ -109,8 +127,14 @@ export function parseStatements(sql: string): Statement[] {
         j++;
       }
       push(c === "'" ? "'" : value, true, i);
-      if (isTrigger() && phase === 3) problem ??= 'text after the final END of the trigger';
+      onOtherToken();
       i = j + 1;
+    } else if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(sql[i + 1] ?? ''))) {
+      // One token, so that the dot of `1.` is never taken for a table qualifier.
+      const number = /^(0[xX][0-9a-fA-F]+|[0-9]*\.?[0-9]*([eE][+-]?[0-9]+)?)/.exec(sql.slice(i))![0];
+      push(number, false, i);
+      onOtherToken();
+      i += number.length;
     } else if (/[A-Za-z_]/.test(c)) {
       let j = i + 1;
       while (j < sql.length && /[\w$]/.test(sql[j]!)) j++;
@@ -121,13 +145,18 @@ export function parseStatements(sql: string): Statement[] {
       if (isTrigger() && tokens.length > 2) onTriggerWord(word, afterDot);
       i = j;
     } else if (c === ';') {
-      if (!(isTrigger() && phase === 2)) flush(i);
+      if (isTrigger() && phase === 2) {
+        if (atStatementStart) problem ??= 'an empty statement in the trigger body';
+        if (depth === 1) atStatementStart = true;
+      } else {
+        flush(i);
+      }
       i++;
     } else if (/\s/.test(c)) {
       i++;
     } else {
       push(c, false, i);
-      if (isTrigger() && phase === 3) problem ??= 'text after the final END of the trigger';
+      onOtherToken();
       i++;
     }
   }

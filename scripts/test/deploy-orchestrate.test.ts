@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MigrationFile } from '../deploy/migrations.ts';
-import { build, CATALOGUE_TABLES, check, DeployHalt, deployWorkers, exportedTables, preflightProblems, prepare, rollback, smoke, type CommandResult, type DeployState, type Io, type PublishedSnapshot, type RunConfig, type WranglerConfig } from '../deploy/orchestrate.ts';
+import { build, CATALOGUE_TABLES, check, DeployHalt, deployWorkers, exportedTables, importSite, preflightProblems, prepare, rollback, siteProblems, smoke, type CommandResult, type DeployState, type Io, type PublishedSnapshot, type RunConfig, type WranglerConfig } from '../deploy/orchestrate.ts';
 
 const SHA = 'a'.repeat(40);
 const TIP = 'b'.repeat(40);
@@ -32,11 +32,14 @@ interface Options {
   exportSql?: string;
   executeOutput?: string;
   sameVersionAfterDeploy?: boolean;
+  settingsRows?: Record<string, unknown>[];
 }
 
 const safe: MigrationFile = { name: '0010_add.sql', content: 'ALTER TABLE t ADD c text;' };
 const destructive: MigrationFile = { name: '0011_drop.sql', content: 'DROP TABLE t;' };
 const ok = (stdout = ''): CommandResult => ({ code: 0, stdout, stderr: '' });
+
+const outputsOf = new WeakMap<Io, Record<string, string>>();
 
 function harness(opts: Options = {}) {
   const calls: string[][] = [];
@@ -45,6 +48,7 @@ function harness(opts: Options = {}) {
   const logs: string[] = [];
   const outputs: Record<string, string> = {};
   const captures: Record<string, boolean> = {};
+  const written: Record<string, string> = {};
   let state: DeployState = {};
   const io: Io = {
     async wrangler(args, o) {
@@ -55,7 +59,7 @@ function harness(opts: Options = {}) {
       if (args[0] === 'deployments') {
         const name = args[args.indexOf('--name') + 1]!;
         const v = opts.versions === undefined ? `old-${name}` : opts.versions[name];
-        const deployed = calls.some((c) => c[0] === 'deploy' && c.includes(`apps/${name.replace('hb-', '')}/wrangler.jsonc`));
+        const deployed = calls.some((c) => c[0] === 'deploy' && c.includes(`apps/${name.replace('hb-', '')}`));
         if (opts.statusError !== undefined) return { code: 1, stdout: '', stderr: opts.statusError };
         if (deployed && !opts.sameVersionAfterDeploy) return ok(JSON.stringify({ versions: [{ version_id: `new-${name}`, percentage: 100 }] }));
         if (v === null) return { code: 1, stdout: '', stderr: 'This Worker does not exist on your account. [code: 10007]' };
@@ -87,6 +91,8 @@ function harness(opts: Options = {}) {
         if (sql.includes('sqlite_master')) return ok(JSON.stringify([{ results: (opts.tables ?? ['d1_migrations', 'products']).map((name) => ({ name })) }]));
         if (sql.includes('FROM d1_migrations')) return ok(JSON.stringify([{ results: (opts.applied ?? []).map((name) => ({ name })) }]));
         if (sql.includes('count(*)')) return ok(JSON.stringify([{ results: [{ products: opts.products ?? 3, wilayas: 69, store_name: 1 }] }]));
+        if (sql.includes('key IN (')) return ok(JSON.stringify([{ results: opts.settingsRows ?? [{ key: 'storeName', value: "{\"fr\":\"L'atelier\"}", updated_at: 5 }] }]));
+        if (sql.includes('JOIN variants')) return ok(JSON.stringify([{ results: [{ product_id: 1, slug_ar: 'أ', slug_fr: 'a', variant_id: 9, price_dzd: 100, stock: null }] }]));
         if (sql.includes('updated_by')) return ok(JSON.stringify([{ results: [{ id: 7 }] }]));
         if (sql.includes('r2_key')) return ok(JSON.stringify([{ results: [{ key: 'p/a.jpg' }] }]));
         return ok('[{"results":[]}]');
@@ -99,7 +105,7 @@ function harness(opts: Options = {}) {
     },
     migrationFiles: async () => opts.files ?? [safe],
     readConfig: async (p) => goodConfigs[p]!,
-    writeFile: async () => {},
+    writeFile: async (path, content) => void (written[path] = content),
     readFile: async () => opts.exportSql ?? 'PRAGMA defer_foreign_keys=TRUE;\nINSERT INTO "products" ("id") VALUES (1);\n',
     readState: async () => state,
     writeState: async (s) => void (state = s),
@@ -110,6 +116,8 @@ function harness(opts: Options = {}) {
       return '/repo/.wrangler/publish/1/snapshot.json';
     },
     readSnapshot: async () => ({ products: [], settings: { turnstileSiteKey: 'k' } }) satisfies PublishedSnapshot,
+    listSite: async () => [{ path: 'ar/index.html', kind: 'file' }, { path: 'fr/index.html', kind: 'file' }],
+    installSite: async () => void steps.push('install site'),
     setOutput: (k, v) => void (outputs[k] = v),
     smoke: async (_s, scope) => {
       steps.push(`smoke ${scope}`);
@@ -118,23 +126,27 @@ function harness(opts: Options = {}) {
     log: (l) => logs.push(l),
     summary: (l) => summary.push(l),
   };
-  return { io, calls, steps, summary, logs, outputs, captures, state: () => state };
+  outputsOf.set(io, outputs);
+  return { io, calls, steps, summary, logs, outputs, captures, written, state: () => state };
 }
 
 const cfg = (over: Partial<RunConfig> = {}): RunConfig => ({
-  mode: 'deploy', sha: SHA, event: 'push', ref: 'refs/heads/main', approval: '', olderCommit: 'no', repoRoot: '/repo', workDir: '/tmp/w', imageCache: '/tmp/c', ...over,
+  mode: 'deploy', sha: SHA, event: 'push', ref: 'refs/heads/main', approval: '', olderCommit: 'no', shaExplicit: false, repoRoot: '/repo', workDir: '/tmp/w', imageCache: '/tmp/c', ...over,
 });
 
-/** The workflow's steps, in order; the rollback step runs when one fails. */
+/** The workflow's jobs and steps, in order; the rollback step runs when one fails. */
 async function run(c: RunConfig, io: Io): Promise<void> {
   if (!(await check(c, io))) return;
+  await prepare(c, io);
+  await build(c, io);
+  const out = outputsOf.get(io)!;
+  const next: RunConfig = { ...c, before: JSON.parse(out['before']!) as Record<string, string | null>, smokeCatalogue: JSON.parse(out['smoke']!) as PublishedSnapshot };
   try {
-    await prepare(c, io);
-    await build(c, io);
-    await deployWorkers(c, io);
-    await smoke(c, io);
+    await importSite(next, io);
+    await deployWorkers(next, io);
+    await smoke(next, io);
   } catch (err) {
-    await rollback(c, io);
+    await rollback(next, io);
     throw err;
   }
 }
@@ -144,11 +156,18 @@ describe('deploy order', () => {
     const h = harness();
     await run(cfg(), h.io);
     expect(h.steps).toEqual([
-      'bookmark', 'migrate remote', 'export', 'fetch originals', 'migrate local', 'load originals', 'publish',
-      'deploy apps/jobs/wrangler.jsonc', 'deploy apps/web/wrangler.jsonc', 'deploy apps/admin/wrangler.jsonc', 'smoke all',
+      'bookmark', 'migrate remote', 'export', 'fetch originals', 'migrate local', 'load originals', 'publish', 'install site',
+      'deploy apps/jobs', 'deploy apps/web', 'deploy apps/admin', 'smoke all',
     ]);
     expect(h.summary.join('\n')).toContain('bm-123');
     expect(h.summary.join('\n')).toContain('new-hb-web');
+  });
+
+  it('runs each deploy from the Worker directory, where its build.command expects to run', async () => {
+    const h = harness();
+    await run(cfg(), h.io);
+    const dirs = h.calls.filter((c) => c[0] === 'deploy').map((c) => c[c.indexOf('--cwd') + 1]);
+    expect(dirs).toEqual(['apps/jobs', 'apps/web', 'apps/admin']);
   });
 
   it('never lets wrangler create a missing resource', async () => {
@@ -217,32 +236,32 @@ describe('commit guard', () => {
 
   it('refuses a publish that is no longer the tip, even with older_commit', async () => {
     const h = harness({ tip: TIP });
-    await expect(run(cfg({ event: 'workflow_dispatch', mode: 'publish', olderCommit: 'yes' }), h.io)).rejects.toThrow(/publish only runs on main's tip/);
+    await expect(run(cfg({ event: 'workflow_dispatch', mode: 'publish', olderCommit: 'yes', shaExplicit: true }), h.io)).rejects.toThrow(/publish only runs on main's tip/);
     expect(h.calls).toEqual([]);
   });
 
   it('older_commit does not help a push', async () => {
     const h = harness({ tip: TIP });
-    await run(cfg({ olderCommit: 'yes' }), h.io);
+    await run(cfg({ olderCommit: 'yes', shaExplicit: true }), h.io);
     expect(h.calls).toEqual([]);
   });
 
   it('with older_commit a hand-started run may deploy an older commit on main', async () => {
     const h = harness({ tip: TIP });
-    await run(cfg({ event: 'workflow_dispatch', olderCommit: 'yes' }), h.io);
+    await run(cfg({ event: 'workflow_dispatch', olderCommit: 'yes', shaExplicit: true }), h.io);
     expect(h.steps.some((s) => s.startsWith('deploy'))).toBe(true);
     expect(h.summary.join()).toMatch(/older commit/);
   });
 
   it('refuses an older commit when the database is ahead of it', async () => {
     const h = harness({ tip: TIP, applied: [safe.name, '0099_newer.sql'] });
-    await expect(run(cfg({ event: 'workflow_dispatch', olderCommit: 'yes' }), h.io)).rejects.toThrow(/does not know about/);
+    await expect(run(cfg({ event: 'workflow_dispatch', olderCommit: 'yes', shaExplicit: true }), h.io)).rejects.toThrow(/does not know about/);
     expect(h.steps).toEqual([]);
   });
 
   it('older_commit=with-newer-migrations goes ahead when the database is ahead', async () => {
     const h = harness({ tip: TIP, applied: [safe.name, '0099_newer.sql'] });
-    await run(cfg({ event: 'workflow_dispatch', olderCommit: 'with-newer-migrations' }), h.io);
+    await run(cfg({ event: 'workflow_dispatch', olderCommit: 'with-newer-migrations', shaExplicit: true }), h.io);
     expect(h.steps.some((s) => s.startsWith('deploy'))).toBe(true);
   });
 
@@ -295,10 +314,10 @@ describe('rollback', () => {
   });
 
   it('when a deploy fails, rolls back that Worker and the ones before it, not the later ones', async () => {
-    const h = harness({ failOn: (a) => a[0] === 'deploy' && a.includes('apps/web/wrangler.jsonc') });
+    const h = harness({ failOn: (a) => a[0] === 'deploy' && a.includes('apps/web') });
     await expect(run(cfg(), h.io)).rejects.toThrow(DeployHalt);
     expect(h.steps.filter((s) => s.startsWith('rollback'))).toEqual(['rollback hb-web', 'rollback hb-jobs']);
-    expect(h.steps).not.toContain('deploy apps/admin/wrangler.jsonc');
+    expect(h.steps).not.toContain('deploy apps/admin');
   });
 
   it('handles a Worker with no previous version', async () => {
@@ -326,7 +345,7 @@ describe('publish mode', () => {
   it('rebuilds and redeploys hb-web only, without migrations', async () => {
     const h = harness({ applied: [safe.name] });
     await run(cfg({ mode: 'publish', event: 'workflow_dispatch' }), h.io);
-    expect(h.steps).toEqual(['export', 'fetch originals', 'migrate local', 'load originals', 'publish', 'deploy apps/web/wrangler.jsonc', 'smoke site']);
+    expect(h.steps).toEqual(['export', 'fetch originals', 'migrate local', 'load originals', 'publish', 'install site', 'deploy apps/web', 'smoke site']);
   });
 
   it('refuses when migrations are pending', async () => {
@@ -382,7 +401,7 @@ describe('failing safely', () => {
   it('only the exact missing-Worker answer counts as a first deployment', async () => {
     const h = harness({ versions: { 'hb-jobs': null, 'hb-web': null, 'hb-admin': null } });
     await run(cfg(), h.io);
-    expect(h.state().before).toEqual({ 'hb-jobs': null, 'hb-web': null, 'hb-admin': null });
+    expect(JSON.parse(h.outputs['before']!)).toEqual({ 'hb-jobs': null, 'hb-web': null, 'hb-admin': null });
   });
 
   it('fails and rolls back when a deploy leaves the same version active', async () => {
@@ -393,16 +412,59 @@ describe('failing safely', () => {
 
   it('the rollback step is a no-op when nothing was deployed', async () => {
     const h = harness();
-    await rollback(cfg(), h.io);
+    await rollback(cfg({ before: { 'hb-web': 'old' } }), h.io);
     expect(h.calls).toEqual([]);
     expect(h.summary.join()).toMatch(/Nothing to roll back/);
   });
 
   it('a failed rollback fails the rollback step', async () => {
     const h = harness({ rollbackFails: true });
-    await h.io.writeState({ before: { 'hb-web': 'old' }, deployed: ['hb-web'] });
-    await expect(rollback(cfg(), h.io)).rejects.toThrow(/rollback incomplete/);
+    await h.io.writeState({ deployed: ['hb-web'] });
+    await expect(rollback(cfg({ before: { 'hb-web': 'old' } }), h.io)).rejects.toThrow(/rollback incomplete/);
   });
+});
+
+describe('catalogue boundary', () => {
+  it('passes only storefront settings to the build, with values quoted', async () => {
+    const h = harness();
+    await run(cfg(), h.io);
+    const sql = h.written['/tmp/w/catalogue.sql']!;
+    expect(sql).toContain('INSERT INTO "settings" ("key","value","updated_at") VALUES (\'storeName\',\'{"fr":"L\'\'atelier"}\',5);');
+    const query = h.calls.flatMap((c) => c).find((a) => a.includes('key IN ('))!;
+    expect(query).toContain("'turnstileSiteKey'");
+    expect(query).not.toMatch(/jobs\.|seed/);
+  });
+
+  it('refuses a setting outside the storefront keys', async () => {
+    const h = harness({ settingsRows: [{ key: 'jobs.backup_status', value: '{}', updated_at: 1 }] });
+    await expect(run(cfg(), h.io)).rejects.toThrow(/outside the storefront keys/);
+  });
+
+  it('stops when no INSERT is recognised in the export', async () => {
+    const h = harness({ exportSql: 'PRAGMA defer_foreign_keys=TRUE;\nINSERT INTO products VALUES (1);\n' });
+    await expect(run(cfg(), h.io)).rejects.toThrow(/no INSERT this pipeline recognises/);
+    expect(h.steps).not.toContain('fetch originals');
+  });
+
+  it('smoke data comes from production, not from the build', async () => {
+    const h = harness();
+    await run(cfg(), h.io);
+    expect(JSON.parse(h.outputs['smoke']!)).toEqual({ products: [{ status: 'active', slug: { ar: 'أ', fr: 'a' }, variants: [{ id: 9, priceDzd: 100, stock: null, active: true }] }] });
+  });
+
+  it('older_commit requires the sha input', async () => {
+    const h = harness({ tip: TIP });
+    await expect(run(cfg({ event: 'workflow_dispatch', olderCommit: 'yes', shaExplicit: false }), h.io)).rejects.toThrow(/needs the commit named/);
+  });
+});
+
+describe('siteProblems', () => {
+  const ok = [{ path: 'ar/index.html', kind: 'file' }, { path: 'fr/index.html', kind: 'file' }] as const;
+  it('accepts plain files', () => expect(siteProblems(ok)).toEqual([]));
+  it('refuses a symlink', () => expect(siteProblems([...ok, { path: 'x', kind: 'other' }]).join()).toMatch(/not a regular file/));
+  it('refuses a parent path', () => expect(siteProblems([...ok, { path: '../x', kind: 'file' }]).join()).toMatch(/unsafe path/));
+  it('refuses server code', () => expect(siteProblems([...ok, { path: '_worker.js', kind: 'file' }]).join()).toMatch(/server code/));
+  it('needs both language home pages', () => expect(siteProblems([{ path: 'ar/index.html', kind: 'file' }]).join()).toMatch(/missing fr/));
 });
 
 it('exportedTables reads the tables of an export', () => {

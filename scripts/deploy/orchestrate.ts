@@ -1,7 +1,8 @@
-// The production deployment as separate phases, one per workflow step, so the Cloudflare token is
-// held only by the phases that talk to Cloudflare (docs/DEPLOY.md). All I/O goes through `Io`, so
-// the order of operations, the migration halt and the rollback are tested without Cloudflare.
+// The production deployment as separate phases across three jobs (docs/DEPLOY.md, "Trust
+// boundaries"): export (token), build (no token, no secrets), deploy (token, never runs built code).
+// All I/O goes through `Io`, so order, halts and rollback are tested without Cloudflare.
 import { dirname, join, relative, resolve } from 'node:path';
+import { STOREFRONT_SETTINGS_KEYS } from '@hb/db/enums';
 import { MigrationOrderError, planMigrations, type MigrationFile, type MigrationPlan } from './migrations.ts';
 import type { SmokeSnapshot } from './smoke.ts';
 
@@ -10,7 +11,10 @@ export const SITE_ORIGIN = 'https://comptoirdeluxe.com';
 export const ADMIN_ORIGIN = 'https://admin.comptoirdeluxe.com';
 export const PLACEHOLDER_D1_ID = '00000000-0000-4000-8000-000000000d1b';
 
-/** Read by @hb/db exportCatalogSnapshot. Only these tables ever leave production D1. */
+/**
+ * Whole tables read by @hb/db exportCatalogSnapshot: only these are exported from production D1.
+ * `settings` is not exported whole: only its storefront keys are, row by row (settingsSql).
+ */
 export const CATALOGUE_TABLES = [
   'categories',
   'products',
@@ -21,7 +25,6 @@ export const CATALOGUE_TABLES = [
   'pack_items',
   'images',
   'content_pages',
-  'settings',
   'wilayas',
 ] as const;
 
@@ -56,18 +59,27 @@ export interface RunConfig {
   readonly ref: string;
   readonly approval: string;
   readonly olderCommit: OlderCommit;
+  /** Whether the run named its commit in the `sha` input. */
+  readonly shaExplicit: boolean;
+  /** Worker versions captured by the export job. */
+  readonly before?: Record<string, string | null>;
+  /** Live products from the export job, for the smoke checks. */
+  readonly smokeCatalogue?: SmokeSnapshot;
   readonly repoRoot: string;
   readonly workDir: string; // private directory, kept between the job's steps
   readonly imageCache: string;
 }
 
-/** What one step leaves for the next, in workDir. Holds no secret. */
+/** What one step leaves for a later one, in workDir. Holds no secret. */
 export interface DeployState {
-  before?: Record<string, string | null>;
   authorIds?: number[];
   imageKeys?: string[];
-  snapshotFile?: string;
   deployed?: string[];
+}
+
+export interface SiteEntry {
+  readonly path: string; // relative to the artifact root
+  readonly kind: 'file' | 'dir' | 'other';
 }
 
 export interface Io {
@@ -87,7 +99,11 @@ export interface Io {
   /** Runs the publish build; returns the snapshot file it wrote. */
   publish(args: readonly string[]): Promise<string>;
   readSnapshot(path: string): Promise<PublishedSnapshot>;
-  smoke(snapshot: PublishedSnapshot, scope: 'all' | 'site'): Promise<string[]>;
+  /** Lists the unpacked build artifact without following links. */
+  listSite(dir: string): Promise<SiteEntry[]>;
+  /** Copies the validated artifact into apps/storefront/dist. */
+  installSite(dir: string): Promise<void>;
+  smoke(snapshot: SmokeSnapshot, scope: 'all' | 'site'): Promise<string[]>;
   setOutput(name: string, value: string): void;
   log(line: string): void;
   summary(line: string): void;
@@ -178,6 +194,7 @@ export function preflightProblems(configs: { jobs: WranglerConfig; web: Wrangler
 async function verifyCommit(cfg: RunConfig, io: Io): Promise<boolean> {
   if (cfg.ref !== 'refs/heads/main') fail(`refusing to deploy from ${cfg.ref}: only refs/heads/main deploys`);
   if (!/^[0-9a-f]{40}$/.test(cfg.sha)) fail('the commit must be a full 40-character SHA');
+  if (cfg.olderCommit !== 'no' && !cfg.shaExplicit) fail('older_commit needs the commit named in the sha input');
   const head = (await io.git(['rev-parse', 'HEAD'])).stdout.trim();
   if (head !== cfg.sha) fail(`checked out ${head}, expected ${cfg.sha}`);
   const main = await io.git(['rev-parse', 'origin/main']);
@@ -312,11 +329,46 @@ export async function check(cfg: RunConfig, io: Io): Promise<boolean> {
   return true;
 }
 
-/** Step with the token: versions, migrations, then everything the build needs from production. */
+/** Rows for `settings`: only the storefront keys ever leave production. */
+function settingsSql(rows: readonly Record<string, unknown>[]): string {
+  const allowed = new Set<string>(STOREFRONT_SETTINGS_KEYS);
+  const quote = (v: unknown): string => `\'${String(v).replaceAll("\'", "\'\'")}\'`;
+  return rows
+    .map((r) => {
+      const key = String(r['key']);
+      if (!allowed.has(key)) throw new DeployHalt(`refusing setting outside the storefront keys: ${key}`);
+      const updatedAt = Number(r['updated_at']);
+      if (!Number.isInteger(updatedAt)) throw new DeployHalt(`settings.${key} has no integer updated_at`);
+      return `INSERT INTO "settings" ("key","value","updated_at") VALUES (${quote(key)},${quote(r['value'])},${updatedAt});\n`;
+    })
+    .join('');
+}
+
+/** Live products straight from production: the smoke checks never rely on anything the build produced. */
+async function smokeCatalogue(io: Io): Promise<SmokeSnapshot> {
+  const rows = await queryD1(
+    io,
+    REMOTE_CONFIG,
+    ['--remote'],
+    "SELECT p.id AS product_id, p.slug_ar, p.slug_fr, v.id AS variant_id, v.price_dzd, v.stock FROM products p JOIN variants v ON v.product_id = p.id WHERE p.status = 'active' AND v.active = 1 ORDER BY p.sort, p.id, v.position",
+  );
+  const byProduct = new Map<number, { status: string; slug: { ar: string; fr: string }; variants: { id: number; priceDzd: number; stock: number | null; active: boolean }[] }>();
+  for (const r of rows) {
+    const id = Number(r['product_id']);
+    let p = byProduct.get(id);
+    if (!p) {
+      p = { status: 'active', slug: { ar: String(r['slug_ar']), fr: String(r['slug_fr']) }, variants: [] };
+      byProduct.set(id, p);
+    }
+    p.variants.push({ id: Number(r['variant_id']), priceDzd: Number(r['price_dzd']), stock: r['stock'] === null ? null : Number(r['stock']), active: true });
+  }
+  return { products: [...byProduct.values()] };
+}
+
+/** Export job, with the token: versions, migrations, then everything the build needs from production. */
 export async function prepare(cfg: RunConfig, io: Io): Promise<void> {
   const before: Record<string, string | null> = {};
   for (const w of targetsOf(cfg)) before[w.name] = await currentVersion(io, w);
-  await io.writeState({ before });
 
   if (cfg.mode === 'deploy') await applyMigrations(cfg, io);
   else await ensureNoPendingMigrations(io);
@@ -325,7 +377,7 @@ export async function prepare(cfg: RunConfig, io: Io): Promise<void> {
     io,
     REMOTE_CONFIG,
     ['--remote'],
-    "SELECT (SELECT count(*) FROM products) AS products, (SELECT count(*) FROM wilayas) AS wilayas, (SELECT count(*) FROM settings WHERE key = 'storeName') AS store_name",
+    "SELECT (SELECT count(*) FROM products) AS products, (SELECT count(*) FROM wilayas) AS wilayas, (SELECT count(*) FROM settings WHERE key = \'storeName\') AS store_name",
   );
   const products = Number(counts?.['products'] ?? 0);
   const wilayas = Number(counts?.['wilayas'] ?? 0);
@@ -339,17 +391,19 @@ export async function prepare(cfg: RunConfig, io: Io): Promise<void> {
 
   // Captured: wrangler prints a signed download URL for the export.
   await wr(io, ['d1', 'export', DB_NAME, '--remote', '--no-schema', '-y', '--output', exportFile(cfg), ...CATALOGUE_TABLES.flatMap((t) => ['--table', t]), '-c', REMOTE_CONFIG], true);
+  const dump = await io.readFile(exportFile(cfg));
   const allowed = new Set<string>(CATALOGUE_TABLES);
-  const stray = exportedTables(await io.readFile(exportFile(cfg))).filter((t) => !allowed.has(t));
+  const exported = exportedTables(dump);
+  if (exported.length === 0) fail('the export contains no INSERT this pipeline recognises: it cannot be checked against the allowlist. Stopping.');
+  const stray = exported.filter((t) => !allowed.has(t));
   if (stray.length > 0) fail(`the export contains tables outside the catalogue allowlist: ${stray.join(', ')}. Stopping.`);
 
-  // content_pages and settings keep a foreign key to admin_users, which never leaves production.
-  const authors = await queryD1(
-    io,
-    REMOTE_CONFIG,
-    ['--remote'],
-    'SELECT updated_by AS id FROM content_pages WHERE updated_by IS NOT NULL UNION SELECT updated_by AS id FROM settings WHERE updated_by IS NOT NULL',
-  );
+  const keys = STOREFRONT_SETTINGS_KEYS.map((k) => `\'${k}\'`).join(', ');
+  const settings = await queryD1(io, REMOTE_CONFIG, ['--remote'], `SELECT key, value, updated_at FROM settings WHERE key IN (${keys})`);
+  await io.writeFile(exportFile(cfg), dump + settingsSql(settings));
+
+  // content_pages keeps a foreign key to admin_users, which never leaves production.
+  const authors = await queryD1(io, REMOTE_CONFIG, ['--remote'], 'SELECT DISTINCT updated_by AS id FROM content_pages WHERE updated_by IS NOT NULL');
   const authorIds = authors.map((a) => Number(a['id'])).filter(Number.isInteger);
 
   const imageRows = await queryD1(io, REMOTE_CONFIG, ['--remote'], 'SELECT DISTINCT r2_key AS key FROM images WHERE r2_key IS NOT NULL');
@@ -358,11 +412,13 @@ export async function prepare(cfg: RunConfig, io: Io): Promise<void> {
   if (unsafe.length > 0) fail(`refusing unsafe image keys: ${unsafe.slice(0, 5).join(', ')}`);
   await io.fetchOriginals(imageKeys, originalsDir(cfg));
 
-  await io.writeState({ before, authorIds, imageKeys });
+  await io.writeState({ authorIds, imageKeys });
+  io.setOutput('before', JSON.stringify(before));
+  io.setOutput('smoke', JSON.stringify(await smokeCatalogue(io)));
   io.summary(`Catalogue exported from production (${products} products, ${imageKeys.length} image originals).`);
 }
 
-/** Step without the token: loads the export into a throw-away local database and builds the site. */
+/** Build job, no secrets at all: loads the export into a throw-away local database and builds the site. */
 export async function build(cfg: RunConfig, io: Io): Promise<void> {
   const state = await io.readState();
   const persist = join(cfg.workDir, 'persist');
@@ -398,41 +454,61 @@ export async function build(cfg: RunConfig, io: Io): Promise<void> {
   const snapshotFile = await io.publish([
     '--enqueue', '--source', 'd1', '--persist-to', persist, '--site-origin', SITE_ORIGIN, '--image-cache', cfg.imageCache, '--budget', 'skip',
   ]);
-  await io.writeState({ ...state, snapshotFile });
   const snapshot = await io.readSnapshot(snapshotFile);
   if (snapshot.settings?.turnstileSiteKey == null) io.summary('Warning: settings.turnstileSiteKey is empty: the order form will not load Turnstile (orders are accepted and flagged).');
 }
 
-/** Step with the token: deploys in order, recording each Worker before it is touched. */
+/** Why the unpacked build artifact must not be used; empty when it is plain static files. */
+export function siteProblems(entries: readonly SiteEntry[]): string[] {
+  const problems: string[] = [];
+  const paths = new Set(entries.filter((e) => e.kind === 'file').map((e) => e.path));
+  for (const e of entries) {
+    if (e.kind === 'other') problems.push(`not a regular file: ${e.path}`);
+    if (e.path.startsWith('/') || e.path.split('/').includes('..')) problems.push(`unsafe path: ${e.path}`);
+    if (e.path === '_worker.js' || e.path.startsWith('_worker.js/')) problems.push(`refusing server code in the static site: ${e.path}`);
+  }
+  for (const required of ['ar/index.html', 'fr/index.html']) if (!paths.has(required)) problems.push(`missing ${required}`);
+  return problems;
+}
+
+/** Deploy job, no token: the build artifact is data; check it, then put it where wrangler reads it. */
+export async function importSite(cfg: RunConfig, io: Io): Promise<void> {
+  const dir = join(cfg.workDir, 'site');
+  const problems = siteProblems(await io.listSite(dir));
+  if (problems.length > 0) fail(`the build artifact is not a plain static site:\n${problems.slice(0, 20).join('\n')}`);
+  await io.installSite(dir);
+}
+
+/** Deploy job, with the token: deploys in order, recording each Worker before it is touched. */
 export async function deployWorkers(cfg: RunConfig, io: Io): Promise<void> {
-  const state = await io.readState();
+  const before = cfg.before ?? fail('no recorded Worker versions from the export job');
   const deployed: string[] = [];
   for (const w of targetsOf(cfg)) {
     deployed.push(w.name); // recorded first: a deploy that failed half-way is rolled back too
-    await io.writeState({ ...state, deployed: [...deployed] });
+    await io.writeState({ deployed: [...deployed] });
     // --no-experimental-provision: a missing bucket or queue must fail the deploy, never be created by it.
-    await wr(io, ['deploy', '-c', w.config, ...w.deployArgs, '--no-experimental-provision', '--message', `pipeline ${cfg.sha.slice(0, 12)}`]);
+    // --cwd: wrangler runs apps/web's build.command from its own directory.
+    await wr(io, ['deploy', '--cwd', dirname(w.config), ...w.deployArgs, '--no-experimental-provision', '--message', `pipeline ${cfg.sha.slice(0, 12)}`]);
     io.log(`${w.name} deployed`);
   }
   for (const w of targetsOf(cfg)) {
-    const previous = state.before?.[w.name] ?? null;
+    const previous = before[w.name] ?? null;
     const current = await currentVersion(io, w);
     if (current === null || current === previous) fail(`${w.name}: deployment did not produce a new active version (still ${current ?? 'none'})`);
     io.summary(`Deployed ${w.name}: version \`${current}\` (previous: \`${previous ?? 'none, first deployment'}\`)`);
   }
 }
 
-/** Step without the token. A failure here triggers the rollback step. */
+/** Deploy job, no token. A failure here triggers the rollback step. */
 export async function smoke(cfg: RunConfig, io: Io): Promise<void> {
-  const state = await io.readState();
-  if (!state.snapshotFile) fail('no snapshot from the build step');
-  const problems = await io.smoke(await io.readSnapshot(state.snapshotFile!), cfg.mode === 'publish' ? 'site' : 'all');
+  const catalogue = cfg.smokeCatalogue ?? fail('no smoke catalogue from the export job');
+  const problems = await io.smoke(catalogue, cfg.mode === 'publish' ? 'site' : 'all');
   if (problems.length > 0) fail(`smoke checks failed:\n${problems.join('\n')}`);
   io.summary('Smoke checks: passed.');
 }
 
-/** Step with the token, run when an earlier step failed or the job was cancelled or timed out. */
-export async function rollback(_cfg: RunConfig, io: Io): Promise<void> {
+/** Deploy job, with the token: runs when an earlier step failed or the job was cancelled or timed out. */
+export async function rollback(cfg: RunConfig, io: Io): Promise<void> {
   const state = await io.readState();
   const deployed = state.deployed ?? [];
   if (deployed.length === 0) {
@@ -442,7 +518,7 @@ export async function rollback(_cfg: RunConfig, io: Io): Promise<void> {
   io.summary('## Deployment failed: rolling back');
   let ok = true;
   for (const name of [...deployed].reverse()) {
-    const previous = state.before?.[name] ?? null;
+    const previous = cfg.before?.[name] ?? null;
     if (previous === null) {
       io.summary(`Rollback ${name}: no previous version (first deployment), left in place.`);
       continue;

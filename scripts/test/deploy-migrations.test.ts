@@ -83,6 +83,47 @@ describe('classifyMigration', () => {
     expect(reasons[0]).toMatch(/DROP TABLE orders/);
   });
 
+  it('a float literal before END does not hide the next statement (re-review R1, exact example)', () => {
+    const sql = 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT CASE WHEN 1 THEN 1. END; END;\nDROP TABLE orders;\nSELECT 1 AS end;';
+    expect(parseStatements(sql)).toHaveLength(3);
+    const reasons = classifyMigration(sql);
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0]).toMatch(/DROP TABLE orders/);
+    const plan = planMigrations({ files: [{ name: '0100_x.sql', content: sql }], applied: ['0001_a.sql'], userTables: 20, approval: '' });
+    expect(plan.action).toBe('halt');
+  });
+
+  it.each([
+    ['1.', 'SELECT CASE WHEN 1 THEN 1. END'],
+    ['.5', 'SELECT CASE WHEN 1 THEN .5 END'],
+    ['1.5e3', 'SELECT CASE WHEN 1 THEN 1.5e3 END'],
+    ['0x1F', 'SELECT CASE WHEN 1 THEN 0x1F END'],
+  ])('number %s stays one token', (_label, body) => {
+    expect(classifyMigration(`CREATE TRIGGER t AFTER INSERT ON x BEGIN ${body}; END;`)).toEqual([]);
+  });
+
+  it.each([
+    ['DROP in the body', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN DROP TABLE orders; END;'],
+    ['ALTER in the body', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN ALTER TABLE orders RENAME TO o; END;'],
+    ['a second statement that is not a SELECT', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT 1; VACUUM; END;'],
+    ['WITH in the body', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN WITH a AS (SELECT 1) SELECT * FROM a; END;'],
+    ['a body starting with a quoted name', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN "x"; END;'],
+    ['an empty statement', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN ; END;'],
+  ])('fails closed on a trigger body with %s', (_label, sql) => {
+    expect(classifyMigration(sql).join()).toMatch(/CREATE TRIGGER/);
+  });
+
+  it('accepts several SELECT statements and an empty CASE body', () => {
+    expect(classifyMigration("CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT RAISE(ABORT, 'a'); SELECT CASE WHEN 1 THEN 2 END; END;")).toEqual([]);
+  });
+
+  it('no migration in the repository has a trigger the parser cannot delimit', () => {
+    const dir = join(import.meta.dirname, '../../packages/db/migrations');
+    for (const name of readdirSync(dir).filter((n) => n.endsWith('.sql'))) {
+      for (const st of parseStatements(readFileSync(join(dir, name), 'utf8'))) expect(st.triggerProblem, `${name}: ${st.preview}`).toBeUndefined();
+    }
+  });
+
   it.each([
     ['a second BEGIN in the body', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT begin FROM y; END;'],
     ['text after the final END', 'CREATE TRIGGER t AFTER INSERT ON x BEGIN SELECT 1; END garbage;'],
@@ -101,7 +142,7 @@ describe('classifyMigration', () => {
     ['REPLACE', 'CREATE TRIGGER t AFTER INSERT ON orders BEGIN REPLACE INTO log (a) VALUES (1); END;'],
     ['temporary trigger', 'CREATE TEMP TRIGGER t AFTER INSERT ON orders BEGIN DELETE FROM customers; END;'],
   ])('halts on a trigger body that writes: %s', (_label, sql) => {
-    expect(classifyMigration(sql)[0]).toMatch(/body writes/);
+    expect(classifyMigration(sql)[0]).toMatch(/CREATE TRIGGER/);
   });
 
   it('allows a guard trigger on UPDATE (the event word is not a body write)', () => {

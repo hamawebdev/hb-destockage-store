@@ -7,13 +7,13 @@ The deployment logic is in [`scripts/deploy/`](../scripts/deploy/).
 
 | Trigger | Checks | Deployment |
 |---|---|---|
-| Pull request to `main` | typecheck, tests, build, report | none |
-| Push to `main` | typecheck, tests, build, report | full deployment, only if the checks passed for that commit |
-| Started by hand (`mode=deploy`) | same checks, on the chosen commit | full deployment of that commit, which must be on `main` |
+| Pull request to `main` | typecheck, tests, build | none |
+| Push to `main` | typecheck, tests, build | full deployment, only if the checks passed for that commit |
+| Started by hand (`mode=deploy`) | typecheck, tests, build, on the chosen commit | full deployment of that commit, which must be on `main` |
 | Started by hand (`mode=publish`) | typecheck, tests, build | rebuild and redeploy `hb-web` from current production data, no migrations |
 
-The `report` job (byte budget and Lighthouse) never blocks anything and holds no secrets.
-Only one deployment runs at a time: `deploy` and `publish` share the concurrency group `production-deploy`, and queued runs wait their turn in order (`queue: max`, up to 100 pending).
+The separate `report` workflow (byte budget and Lighthouse, about 45 runner-minutes) runs on pushes to `main` only. It holds no secrets, never blocks anything and takes no time from a deployment.
+Production runs one at a time, first come first served, for the whole run (checks, export, build, deploy): `deploy` and `publish` share the concurrency group `production-deploy`, queued in order (`queue: max`, up to 100 pending).
 
 ## Which commit deploys
 
@@ -23,21 +23,27 @@ The rule: **production only moves forward, unless someone deliberately goes back
 |---|---|---|
 | Push to `main` | deploys | skipped, green, nothing changed: the newer push's run deploys everything, migrations included |
 | Started by hand, `mode=deploy` | deploys | refused, red, nothing changed; start it again |
-| Started by hand, `mode=deploy`, `older_commit=yes`, with `sha` | deploys | deploys that older commit on purpose |
+| Started by hand, `mode=deploy`, `older_commit=yes`, and `sha` required | deploys | deploys that older commit on purpose |
 | Started by hand, `mode=publish` | publishes | refused, red, nothing changed; start it again |
 
 A commit that is not on `main` is always refused. Going back with `older_commit=yes` is also refused if the database already has migrations that commit doesn't know about, because that code may not work with the newer schema. To do it anyway, use `older_commit=with-newer-migrations`. `publish` never accepts an older commit.
 
 ## What a deployment does, in order
 
+**Job `export-catalogue` (holds the token):**
 1. Applies the rule above, and checks the Worker configs (real D1 id, routes, `SITE_HOSTS`, Access values). Every problem is listed at once, before anything changes.
 2. Records the current version of each Worker, for rollback.
 3. Classifies the pending migrations. A destructive set stops the run here (see below).
 4. Records a D1 Time Travel bookmark in the job summary: the restore point.
 5. Applies the pending migrations once, in order (`wrangler d1 migrations apply --remote`).
-6. Exports only the catalogue tables from production D1 and rebuilds the storefront from them, with the originals from R2 `hb-media`. An empty or incomplete catalogue stops the run here, before any Worker is deployed.
-7. Deploys `hb-jobs` (queue consumer), then `hb-web`, then `hb-admin`, with wrangler's automatic resource creation turned off (`--no-experimental-provision`): a missing bucket or queue fails the deployment instead of being created.
-8. Checks each Worker now has a new active version, then runs the smoke checks.
+6. Exports the catalogue from production D1 and the originals from R2 `hb-media`, passed on as the `catalogue` artifact. An empty or incomplete catalogue stops the run here, before any Worker is deployed.
+
+**Job `build-site` (no environment, no secrets):**
+7. Loads the export into a throw-away local database and rebuilds the storefront, passed on as the `site` artifact.
+
+**Job `deploy` (holds the token):**
+8. Checks that the built site is plain static files, then deploys `hb-jobs` (queue consumer), `hb-web`, then `hb-admin`, with wrangler's automatic resource creation turned off (`--no-experimental-provision`): a missing bucket or queue fails the deployment instead of being created.
+9. Checks each Worker now has a new active version, then runs the smoke checks.
 
 If a deploy or a smoke check fails, or the job is cancelled or times out, a final step puts every Worker deployed in this run back on its recorded version, and the run goes red.
 
@@ -45,7 +51,7 @@ The smoke checks prove the live site works; they can't prove which version answe
 
 Deployed version ids, the bookmark and any rollback are in the run's job summary.
 
-Publish mode does steps 1, 2, 6, then deploys `hb-web` only and runs the storefront and order API smoke checks. It refuses to run while migrations are pending: run a full deployment first.
+Publish mode does steps 1, 2, 6 and 7, then deploys `hb-web` only and runs the storefront and order API smoke checks. It refuses to run while migrations are pending: run a full deployment first.
 
 **The pipeline never loads development data and never touches orders or customers.** A redeploy cannot reset the admin's work.
 
@@ -101,10 +107,25 @@ $W d1 time-travel restore hb-destockage --bookmark <bookmark from the job summar
 
 A restore replaces everything written after the target time, **including orders placed meanwhile**. Follow `RESTORE.md` §2 to export the current database first and list those orders for re-entry. Older than 30 days, or the database is lost: use the R2 backup (`RESTORE.md` §3).
 
+## Trust boundaries
+
+The site build runs a large tree of third-party packages (Astro, sharp, the catalogue builder). It must never be able to reach the Cloudflare token, so it runs in a job and on a runner of its own.
+
+| Job | Holds | Runs | Takes in |
+|---|---|---|---|
+| `export-catalogue` | Cloudflare token (one step) | Our scripts and wrangler. Packages installed with `--ignore-scripts`. | The commit |
+| `build-site` | Nothing: no environment, no secrets | The full build, with install scripts | The `catalogue` artifact |
+| `deploy` | Cloudflare token (two steps) | Our scripts and wrangler, fresh checkout, packages installed with `--ignore-scripts` | The `site` artifact, as data |
+
+- A compromised build dependency can only affect the `site` artifact. It can change what the site serves, which no pipeline can prevent, but it can't read the token, change the deploy job's code or packages, or change the Worker code, which is bundled in the deploy job from the fresh checkout.
+- The deploy job never executes anything from the build. It checks the artifact is plain files (no links, no server code), and `wrangler deploy` then only reads those files. `apps/web`'s `build.command` (`deploy-guard.ts` and `csp.ts`, from the fresh checkout, Node built-ins only) reads them to build the CSP.
+- The Worker versions for rollback and the product list for smoke checks come from the export job's outputs, never from the build.
+- **What the `catalogue` artifact holds:** the export of the 10 catalogue tables, the 7 storefront settings, image originals, and the numeric ids of admins who edited content pages. No orders, customers, admin emails or other settings. The export is checked against the table allowlist and stops if any other table appears. It is kept 1 day. The `site` artifact is the public site, also kept 1 day.
+- The artifact digest is verified on download, which detects corruption but doesn't vouch for the build job: the checks above are what count.
+
 ## Secrets and access
 
 - `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` exist only in the GitHub environment `production` (deployment branch policy: `main`).
-- The token is set only on the steps that talk to Cloudflare: *Export from production*, *Deploy Workers* and *Roll back*. No process holds it during `npm ci`, the site build or the smoke checks, and those phases refuse to run if it is present.
-- *Deploy Workers* still runs `wrangler deploy`, which runs `apps/web`'s `build.command` with the token in its environment. That command is the repository's own `deploy-guard.ts` and `csp.ts`, which import only Node built-ins. The token-holding steps also load wrangler and its dependencies from `node_modules`, installed earlier from the lockfile.
+- The token is set only on the steps that talk to Cloudflare: *Export from production*, *Deploy Workers* and *Roll back*. The other steps refuse to run if it is present.
 - Runtime secrets (`TURNSTILE_SECRET`, `ORDER_SIGNING_KEY`, `IP_HASH_KEY`, `CSRF_SECRET`, …) live in Cloudflare. The pipeline never reads or sets them.
-- Catalogue exports stay on the runner and are deleted at the end of the job. Nothing goes into GitHub artifacts except the report job's measurements of the test catalogue.
+- The report workflow's measurements cover the test catalogue only.

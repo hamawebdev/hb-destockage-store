@@ -1,9 +1,9 @@
 // Entry point of the deploy job's steps (.github/workflows/pipeline.yml). Docs: docs/DEPLOY.md.
-//   node scripts/deploy/deploy.ts <check|prepare|build|deploy|smoke|rollback>
-// prepare, deploy and rollback hold the Cloudflare token; check, build and smoke never have it.
+//   node scripts/deploy/deploy.ts <check|prepare|build|import-site|deploy|smoke|rollback>
+// prepare, deploy and rollback hold the Cloudflare token; the others refuse to run with it.
 import { spawn } from 'node:child_process';
 import { appendFileSync, existsSync } from 'node:fs';
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +15,7 @@ import {
   check,
   DeployHalt,
   deployWorkers,
+  importSite,
   prepare,
   rollback,
   SITE_ORIGIN,
@@ -25,9 +26,10 @@ import {
   type OlderCommit,
   type PublishedSnapshot,
   type RunConfig,
+  type SiteEntry,
   type WranglerConfig,
 } from './orchestrate.ts';
-import { runSmoke } from './smoke.ts';
+import { runSmoke, type SmokeSnapshot } from './smoke.ts';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const WRANGLER = join(REPO, 'node_modules/.bin/wrangler');
@@ -106,6 +108,24 @@ const io: Io = {
     return file;
   },
   readSnapshot: async (path) => JSON.parse(await readFile(path, 'utf8')) as PublishedSnapshot,
+  async listSite(dir) {
+    const out: SiteEntry[] = [];
+    const walk = async (rel: string): Promise<void> => {
+      for (const name of await readdir(join(dir, rel))) {
+        const path = rel ? `${rel}/${name}` : name;
+        const st = await lstat(join(dir, path));
+        if (st.isDirectory()) {
+          out.push({ path, kind: 'dir' });
+          await walk(path);
+        } else {
+          out.push({ path, kind: st.isFile() ? 'file' : 'other' });
+        }
+      }
+    };
+    await walk('');
+    return out;
+  },
+  installSite: (dir) => cp(dir, join(REPO, 'apps/storefront/dist'), { recursive: true, verbatimSymlinks: true }),
   smoke: (snapshot, scope) =>
     runSmoke({ siteOrigin: SITE_ORIGIN, adminOrigin: ADMIN_ORIGIN }, snapshot, (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(20_000) }), scope, {
       attempts: 18,
@@ -129,7 +149,7 @@ const required = (name: string): string => {
   return v;
 };
 
-const PHASES = { check, prepare, build, deploy: deployWorkers, smoke, rollback } as const;
+const PHASES = { check, prepare, build, 'import-site': importSite, deploy: deployWorkers, smoke, rollback } as const;
 const NEEDS_TOKEN = new Set(['prepare', 'deploy', 'rollback']);
 const OLDER_COMMIT: readonly OlderCommit[] = ['no', 'yes', 'with-newer-migrations'];
 
@@ -149,6 +169,8 @@ try {
   const imageCache = (process.env['HB_IMAGE_CACHE'] ?? join(homedir(), '.cache/hb-image-derivatives')).replace(/^~(?=\/)/, homedir());
   await mkdir(workDir, { recursive: true });
   await mkdir(imageCache, { recursive: true });
+  const before = process.env['DEPLOY_BEFORE'];
+  const catalogue = process.env['SMOKE_CATALOGUE'];
   const cfg: RunConfig = {
     mode,
     sha: required('DEPLOY_SHA'),
@@ -156,6 +178,9 @@ try {
     ref: required('DEPLOY_REF'),
     approval: process.env['APPROVE_DESTRUCTIVE_MIGRATIONS'] ?? '',
     olderCommit,
+    shaExplicit: Boolean(process.env['DEPLOY_SHA_INPUT']),
+    ...(before ? { before: JSON.parse(before) as Record<string, string | null> } : {}),
+    ...(catalogue ? { smokeCatalogue: JSON.parse(catalogue) as SmokeSnapshot } : {}),
     repoRoot: REPO,
     workDir,
     imageCache,
