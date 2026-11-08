@@ -71,6 +71,7 @@ describe('constant positional CSS', () => {
   });
   test('no JS: changing the value hides the default price; beyond the covered values a neutral block shows', () => {
     expect(css).toContain('.cat-pdp:has([data-mode=single] .cat-val-in:checked:not([checked])) .cat-vp-d{display:none}');
-    expect(css).toContain(`.cat-pdp:has([data-mode=single] .cat-val:nth-child(n+${CSS_POSITIONS + 1})>:checked:not([checked])) .cat-vp-any{display:block}`);
+    // No-JS only: once variant.js marks the box (.is-js) it shows exactly the chosen variant (BUG-18 r1).
+    expect(css).toContain(`.cat-pdp:has([data-mode=single] .cat-val:nth-child(n+${CSS_POSITIONS + 1})>:checked:not([checked])) .cat-vps:not(.is-js)>.cat-vp-any{display:block}`);
   });
 });

@@ -153,7 +153,8 @@ function tenSizes(p: ProductProps, defaultAt: number): ProductProps {
 describe('single option with 9+ values (no JS)', () => {
   it('one block per value in radio order; the default block is marked visible wherever it sits', async () => {
     const p = tenSizes(product('fr', APRON), 9);
-    const html = await render(p);
+    // Slot filled so the sticky buy bar (second .cat-vps) is rendered too, for the browser checks.
+    const html = await render(p, { order: '<section id="order"><form id="order-form"></form></section>' });
     expect(html).toContain('data-mode="single"');
     expect(html.match(/<div class="cat-vp[^"]*"[^>]*data-k="/g)).toHaveLength(10);
     expect(tag(html, /<div class="cat-vp cat-vp-d"[^>]*>/)).toContain('data-v="9009"');

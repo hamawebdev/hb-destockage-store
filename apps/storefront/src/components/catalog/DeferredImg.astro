@@ -5,6 +5,10 @@
  * still fetches it during the LCP window. Ships as a hidden <img> with data-src/data-srcset (no
  * request) that variant.js promotes after load, plus a <noscript> copy through shell's Picture so
  * it is still shown without JS. Never use it for the LCP image.
+ *
+ * Known limit (rev-c BUG-18 r1 Nit): if JS runs but variant.js fails to load, these images stay
+ * hidden (the <noscript> copy is inert when scripting is on). The hash CSP allows no inline
+ * fallback script; the product, price and order form are unaffected.
  */
 import type { ImageProps } from '@hb/catalog';
 import Picture from '../Picture.astro';
