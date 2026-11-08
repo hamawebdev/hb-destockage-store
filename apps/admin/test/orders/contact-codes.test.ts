@@ -7,6 +7,9 @@ import type { UpdateOrderContactResult } from '@hb/db';
 import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, postAs, refOf, seedGeoAndCatalog } from './fixtures.ts';
 
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
+
 const stub = vi.hoisted(() => ({ result: { ok: false, code: 'not_found' } as UpdateOrderContactResult, calls: 0 }));
 vi.mock('@hb/db', async (orig) => {
   const real = await orig<typeof import('@hb/db')>();

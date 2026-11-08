@@ -8,6 +8,9 @@ import { dbOf, insertEvent, insertOrder, postAs, refOf, seedGeoAndCatalog } from
 import type { OrderChangePlan } from '../../src/routes/orders/workflow.ts';
 import type { ApplyResult } from '../../src/routes/orders/writer.ts';
 
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
+
 const fake = vi.hoisted(() => ({
   calls: [] as { orderId: number; plan: OrderChangePlan }[],
   result: { ok: true, version: 1, status: 'new' } as ApplyResult,

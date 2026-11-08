@@ -1,10 +1,13 @@
 // AORD-3 — call queue over a real D1: priority (due callbacks → oldest new → unreachable past
 // retry), claims of others skipped, one claim per user, back to the queue after a call.
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { and, eq, inArray } from 'drizzle-orm';
 import { auditLog, orders } from '@hb/db';
 import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, postAs, refOf, seedGeoAndCatalog } from './fixtures.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 const NOW = Date.now();

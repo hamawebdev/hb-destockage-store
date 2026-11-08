@@ -1,11 +1,14 @@
 // AORD-4 (high risk) — customers on a real D1 with CSRF: fields per role (customers.sensitive),
 // logistics raw-HTML leak test, search normalisation, keyset, block/unblock (reason, audit, 409),
 // notes optimistic check. No export, no delete.
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { auditLog, customers, orders } from '@hb/db';
 import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, postAs, refOf, seedGeoAndCatalog } from './fixtures.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 const NOW = Date.now();

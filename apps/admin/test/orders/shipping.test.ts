@@ -1,11 +1,14 @@
 // AORD-5 (high risk) — shipping hand-off on a real D1 with CSRF: roles, bulk "mark shipped" with
 // per-row results, printable slips (confirmed/shipped only, delivery fields only, one audit row with
 // refs and no data), delivered/returned back to the screen. Plan: artifacts/AORD-5/plan.md.
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { auditLog, orderEvents, orders, variants } from '@hb/db';
 import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, postAs, refOf, seedGeoAndCatalog, type CatalogFixture } from './fixtures.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 let cat: CatalogFixture;

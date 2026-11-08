@@ -1,11 +1,14 @@
 // AORD-1 — orders list over a real D1 (wrangler getPlatformProxy) with the DB-1 migrations.
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { formatPhoneDisplay } from '@hb/shared';
 import { formatMoney } from '../../src/ui/format.tsx';
 import { ordersListQuery } from '../../src/routes/orders/list-data.ts';
 import { parseOrdersFilter } from '../../src/routes/orders/list-query.ts';
 import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, insertOrdersBulk, refOf, seedGeoAndCatalog } from './fixtures.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 

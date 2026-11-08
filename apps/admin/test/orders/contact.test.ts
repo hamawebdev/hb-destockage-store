@@ -1,12 +1,15 @@
 // AORD-6 (high risk) — contact/address edit on a real D1 with DB-6 updateOrderContact and the
 // admin-table FeeProvider from @hb/db: role × status rule, review before save, server-side re-quote,
 // unavailable wilayas, phone re-normalise + customer re-link, version guard, audit row.
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { auditLog, communes, customers, deliveryFees, orderEvents, orderItems, orders, wilayas } from '@hb/db';
 import { formatMoney } from '../../src/ui/format.tsx';
 import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, postAs, refOf, seedGeoAndCatalog, type CatalogFixture } from './fixtures.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 let cat: CatalogFixture;

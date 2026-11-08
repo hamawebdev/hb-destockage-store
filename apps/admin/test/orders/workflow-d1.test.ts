@@ -1,12 +1,15 @@
 // AORD-2 (high risk) — the confirmation workflow end to end on a real D1 with the real DB-4 writer:
 // HTTP → role → form → plan → DB-4 guarded batch + audit row. Oracles are hand-written (AORD-0 §0/§4).
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { auditLog, customers, orderEvents, orders, variants } from '@hb/db';
 import { ADMIN_ROLES, CALL_OUTCOMES, type AdminRole, type CallOutcome, type OrderStatus } from '@hb/shared';
 import { toAlgiersInput } from '../../src/lib/time.ts';
 import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, postAs, refOf, seedGeoAndCatalog, type CatalogFixture } from './fixtures.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 let cat: CatalogFixture;

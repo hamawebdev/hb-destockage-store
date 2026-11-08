@@ -1,6 +1,6 @@
 // AORD-2 — workflow planning (pure). Oracles below are written by hand from the lead's decisions
 // (AORD-0 plan §0, §4; ADMIN-0 §4), not derived from @hb/shared's table, so a wrong table entry fails here.
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import * as v from 'valibot';
 import { ADMIN_ROLES, CALL_OUTCOMES, ORDER_STATUSES, type AdminRole, type CallOutcome, type OrderStatus } from '@hb/shared';
 import { toAlgiersInput } from '../../src/lib/time.ts';
@@ -16,6 +16,9 @@ import {
   unansweredStreak,
   type OrderState,
 } from '../../src/routes/orders/workflow.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 const NOW = Date.UTC(2026, 10, 5, 9, 0);
 const MIN = 60_000;

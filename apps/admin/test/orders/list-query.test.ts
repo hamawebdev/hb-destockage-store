@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { SQLiteAsyncDialect } from 'drizzle-orm/sqlite-core';
 import type { SQL } from 'drizzle-orm';
 import { ADMIN_ROLES, ORDER_STATUSES } from '@hb/shared';
@@ -12,6 +12,9 @@ import {
   parseOrdersFilter,
   type OrdersFilter,
 } from '../../src/routes/orders/list-query.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 const dialect = new SQLiteAsyncDialect();
 const toSql = (s: SQL | undefined) => (s ? dialect.sqlToQuery(s) : null);

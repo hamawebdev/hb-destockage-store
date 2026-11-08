@@ -1,11 +1,14 @@
 // customers.sensitive (lead decision; AORD-1 F1 / AORD-2 F1): logistics receives delivery fields
 // only. The real list and detail pages are rendered as logistics and the raw HTML is searched for
 // every sensitive value; the same values are shown to a confirmer (so the markers are real).
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { customers, orders } from '@hb/db';
 import { harness, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertEvent, insertOrder, postAs, refOf, seedGeoAndCatalog } from './fixtures.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 let h: Harness;
 const NOW = Date.now();

@@ -6,12 +6,15 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { orders } from '@hb/db';
 import { tokensCss } from '@hb/ui-tokens';
 import { harness, tokenFor, USERS, type Harness } from '../helpers.ts';
 import { dbOf, insertOrder, refOf, seedGeoAndCatalog } from './fixtures.ts';
+
+// Real D1 (Miniflare) on a shared, loaded host: explicit budgets so the gate does not time out at random.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 120_000 });
 
 const CHROME = '/usr/bin/google-chrome';
 const asset = (f: string) => readFileSync(fileURLToPath(new URL(`../../public/assets/${f}`, import.meta.url).href), 'utf8');

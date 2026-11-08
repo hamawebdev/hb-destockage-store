@@ -76,6 +76,9 @@ export async function insertOrder(db: Db, cat: CatalogFixture, s: OrderSpec): Pr
       unitPriceDzd: price,
       qty,
       lineTotalDzd: price * qty,
+      // As DB-4 createOrder records it: what was taken from tracked stock (variant A is tracked,
+      // B is untracked/NULL). Cancel/return restores exactly this (db 5cf224a).
+      stockTaken: k === 'A' ? qty : 0,
     };
   });
   const subtotal = lines.reduce((t, l) => t + l.lineTotalDzd, 0);
@@ -189,6 +192,7 @@ export async function insertOrdersBulk(
       unitPriceDzd: 14_600,
       qty: 1,
       lineTotalDzd: 14_600,
+      stockTaken: 1,
     }),
   );
   await db.batch(items as [(typeof items)[number], ...(typeof items)[number][]]);
