@@ -247,7 +247,7 @@
   "order.errors.unsupported_media_type": "La commande n'a pas pu être envoyée. Rechargez la page et réessayez.",
   "order.errors.rate_limited": "Plusieurs commandes viennent d'être envoyées avec ce numéro. Pour commander, appelez-nous au {phone} ou écrivez-nous sur WhatsApp.",
   "order.errors.server_error": "Un problème est survenu de notre côté et votre commande n'est pas enregistrée. Réessayez, ou appelez-nous au {phone}.",
-  "order.errors.network_error": "Connexion impossible. Vérifiez votre connexion internet et réessayez. Votre commande ne sera pas envoyée deux fois.",
+  "order.errors.network_error": "Connexion impossible. Vérifiez votre connexion internet et réessayez.",
   "order.errors.quote_failed": "Les frais de livraison n'ont pas pu être calculés. Réessayez, ou appelez-nous au {phone} ou écrivez-nous sur WhatsApp.",
   "order.errors.total_changed": "Le total a changé depuis l'affichage du récapitulatif. Vérifiez le nouveau total, puis confirmez.",
   "order.notices.duplicate": "Cette commande est déjà enregistrée. Nous vous appelons bientôt pour la confirmer.",
