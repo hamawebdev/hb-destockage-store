@@ -194,7 +194,13 @@ export async function loadSnapshot(
       'loadSnapshot',
     );
   }
-  if (which === 'fixture') return parseSnapshot(fixtureSnapshot, 'fixture', { requireAllWilayas: false });
+  if (which === 'fixture') {
+    // The invented catalogue is never published (CAT-6 r3, same class as the origin fallback).
+    if (env['HB_PUBLISH'] === '1') {
+      throw new SnapshotError([{ path: 'HB_SNAPSHOT', message: 'HB_SNAPSHOT=fixture cannot be published (HB_PUBLISH=1)' }], 'loadSnapshot');
+    }
+    return parseSnapshot(fixtureSnapshot, 'fixture', { requireAllWilayas: false });
+  }
   const repoRoot = opts.repoRoot ?? findRepoRoot(process.cwd());
   if (which === 'seed') return fromSeed(repoRoot);
   return fromExport(isAbsolute(which) ? which : join(repoRoot, which));
@@ -255,11 +261,16 @@ export function isPublishBuild(env: Readonly<Record<string, string | undefined>>
  */
 export function siteOriginFromEnv(env: Readonly<Record<string, string | undefined>> = process.env): string {
   const raw = env['HB_SITE_ORIGIN']?.trim();
-  if (!raw) {
-    if (env['HB_SNAPSHOT'] === 'fixture') return FIXTURE_ORIGIN;
-    throw new Error("HB_SITE_ORIGIN is not set: required for every build except HB_SNAPSHOT=fixture (e.g. https://hbdestockagedz.com)");
-  }
   const publish = isPublishBuild(env);
+  if (!raw) {
+    // The fixture origin is a fallback for non-publish fixture builds only (CAT-6 r3).
+    if (env['HB_SNAPSHOT'] === 'fixture' && !publish) return FIXTURE_ORIGIN;
+    throw new Error(
+      publish
+        ? 'HB_SITE_ORIGIN is not set: a publish build needs the real public origin (e.g. https://hbdestockagedz.com)'
+        : "HB_SITE_ORIGIN is not set: required for every build except HB_SNAPSHOT=fixture (e.g. https://hbdestockagedz.com)",
+    );
+  }
   const r = parseSiteOrigin(raw, { publish });
   if (!r.ok) throw new Error(`HB_SITE_ORIGIN rejected${publish ? ' for a publish build' : ''}: ${r.reason}`);
   return r.origin;
