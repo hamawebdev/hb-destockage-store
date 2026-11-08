@@ -20,7 +20,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fixtureSnapshot } from './fixtures/snapshot.ts';
 import { parseSnapshot, SnapshotError, type SnapshotIssue } from './schema.ts';
-import { isSiteOrigin } from './url.ts';
+import { parseSiteOrigin } from './url.ts';
 import { SNAPSHOT_VERSION, type CatalogSnapshot, type Localized, type SnapshotWilaya, type StringTable } from './types.ts';
 
 export interface SeedOptions {
@@ -238,17 +238,29 @@ export async function loadStrings(repoRoot: string): Promise<Localized<StringTab
 export const FIXTURE_ORIGIN = 'https://hbdestockage.example';
 
 /**
+ * A publish build: `HB_PUBLISH=1`, or a snapshot that is an export file (anything but `seed` or
+ * `fixture`; the publish pipeline builds from a D1 export).
+ */
+export function isPublishBuild(env: Readonly<Record<string, string | undefined>> = process.env): boolean {
+  const snap = env['HB_SNAPSHOT'];
+  return env['HB_PUBLISH'] === '1' || (snap !== undefined && snap !== '' && snap !== 'seed' && snap !== 'fixture');
+}
+
+/**
  * The one canonical origin for pages, canonical/hreflang/og:url, sitemap and robots (lead ruling on
- * CAT-6 r1): `HB_SITE_ORIGIN`. Required unless `HB_SNAPSHOT=fixture` (then FIXTURE_ORIGIN). Must be
- * an origin (`https://host[:port]`, or http://localhost for local builds). A trailing `/` is dropped.
+ * CAT-6 r1): `HB_SITE_ORIGIN`, checked with `parseSiteOrigin`. Required unless `HB_SNAPSHOT=fixture`
+ * (then FIXTURE_ORIGIN). Publish builds (`isPublishBuild`) need a public https origin; other builds
+ * may also use a local dev origin (e.g. the clean-checkout build's http://localhost:8787).
  * shell's storefront build calls this too, so both layers resolve the same value.
  */
 export function siteOriginFromEnv(env: Readonly<Record<string, string | undefined>> = process.env): string {
-  const raw = env['HB_SITE_ORIGIN']?.trim().replace(/\/+$/, '');
+  const raw = env['HB_SITE_ORIGIN']?.trim();
   if (!raw) {
     if (env['HB_SNAPSHOT'] === 'fixture') return FIXTURE_ORIGIN;
     throw new Error("HB_SITE_ORIGIN is not set: required for every build except HB_SNAPSHOT=fixture (e.g. https://hbdestockagedz.com)");
   }
-  if (!isSiteOrigin(raw)) throw new Error(`HB_SITE_ORIGIN is not an origin (https://host[:port]): ${JSON.stringify(raw)}`);
-  return raw;
+  const publish = isPublishBuild(env);
+  const r = parseSiteOrigin(raw, { publish });
+  if (!r.ok) throw new Error(`HB_SITE_ORIGIN rejected${publish ? ' for a publish build' : ''}: ${r.reason}`);
+  return r.origin;
 }

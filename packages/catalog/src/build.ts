@@ -152,7 +152,7 @@ export function createBuildContext(snapshot: CatalogSnapshot, input: BuildInput)
     const missing = REQUIRED_STRING_KEYS.filter((k) => typeof input.strings[lang][k] !== 'string');
     if (missing.length) throw new BuildError(`strings.${lang}: missing ${missing.join(', ')}`);
   }
-  if (!isSiteOrigin(input.siteUrl.replace(/\/+$/, ''))) throw new BuildError(`siteUrl must be an origin (https://host[:port]): ${input.siteUrl}`);
+  if (!isSiteOrigin(input.siteUrl.replace(/\/+$/, ''))) throw new BuildError(`siteUrl must be a site origin (https://host.tld, or a local dev origin): ${input.siteUrl}`);
   const router = createRouter(snapshot, input.pageSize);
   const categories = publishedCategories(snapshot);
   const products = publishedProducts(snapshot, categories);

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { buildAllPages } from '../src/build.ts';
 import { fixtureContext } from '../src/fixtures/props.ts';
 import { buildSitemap, robotsTxt } from '../src/seo.ts';
-import { FIXTURE_ORIGIN, siteOriginFromEnv } from '../src/sources.ts';
+import { FIXTURE_ORIGIN, isPublishBuild, siteOriginFromEnv } from '../src/sources.ts';
 
 describe('siteOriginFromEnv (lead ruling on CAT-6 r1: one origin source)', () => {
   test('HB_SITE_ORIGIN is required except with the fixture', () => {
@@ -12,9 +12,23 @@ describe('siteOriginFromEnv (lead ruling on CAT-6 r1: one origin source)', () =>
     expect(siteOriginFromEnv({ HB_SNAPSHOT: 'fixture' })).toBe(FIXTURE_ORIGIN);
   });
   test('validated and normalised', () => {
-    expect(siteOriginFromEnv({ HB_SITE_ORIGIN: 'https://hbdestockagedz.com/' })).toBe('https://hbdestockagedz.com');
-    expect(() => siteOriginFromEnv({ HB_SITE_ORIGIN: 'https://hb.dz/shop' })).toThrow(/not an origin/);
-    expect(() => siteOriginFromEnv({ HB_SITE_ORIGIN: 'hbdestockagedz.com' })).toThrow(/not an origin/);
+    expect(siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'https://hbdestockagedz.com/' })).toBe('https://hbdestockagedz.com');
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'https://hb.dz/shop' })).toThrow(/rejected/);
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'hbdestockagedz.com' })).toThrow(/not https/);
+  });
+  test('local dev origin only outside publish builds (clean-checkout build uses http://localhost:8787)', () => {
+    expect(siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'http://localhost:8787' })).toBe('http://localhost:8787');
+    expect(siteOriginFromEnv({ HB_SNAPSHOT: 'fixture', HB_SITE_ORIGIN: 'http://localhost:8787' })).toBe('http://localhost:8787');
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_PUBLISH: '1', HB_SITE_ORIGIN: 'http://localhost:8787' })).toThrow(/publish build/);
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: '/x/export.json', HB_SITE_ORIGIN: 'http://localhost:8787' })).toThrow(/publish build/);
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'https://127.0.0.1' })).toThrow(/IP literal/);
+    expect(siteOriginFromEnv({ HB_SNAPSHOT: '/x/export.json', HB_SITE_ORIGIN: 'https://hbdestockagedz.com' })).toBe('https://hbdestockagedz.com');
+  });
+  test('isPublishBuild', () => {
+    expect(isPublishBuild({ HB_SNAPSHOT: 'seed' })).toBe(false);
+    expect(isPublishBuild({ HB_SNAPSHOT: 'fixture' })).toBe(false);
+    expect(isPublishBuild({ HB_SNAPSHOT: 'seed', HB_PUBLISH: '1' })).toBe(true);
+    expect(isPublishBuild({ HB_SNAPSHOT: 'out/snapshot.json' })).toBe(true);
   });
 });
 
