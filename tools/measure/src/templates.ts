@@ -17,8 +17,10 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { walk } from './lib/paths.ts';
 
-export const TEMPLATES = ['home', 'category', 'product', 'search', 'content', 'order-confirmed', 'not-found'] as const;
+export const TEMPLATES = ['home', 'category', 'product', 'search', 'content', 'order-confirmed', 'not-found', 'order-step'] as const;
 export type Template = (typeof TEMPLATES)[number];
+/** Measured when the build has them, never an error when it does not (report-only: lead, ORDER-STEP). */
+export const OPTIONAL_TEMPLATES: ReadonlySet<Template> = new Set<Template>(['order-step']);
 /** Allowed `data-tpl-kind` values per template (others take none). */
 export const KINDS: Partial<Record<Template, readonly string[]>> = { product: ['simple', 'variable', 'pack'], category: ['top', 'sub'] };
 export type Lang = 'ar' | 'fr';
@@ -71,6 +73,7 @@ export function templateFromUrl(url: string): Template | null {
   if (/^p\/[^/]+\/$/.test(rest)) return 'product';
   if (rest === 'search/') return 'search';
   if (rest === 'order/confirmation/') return 'order-confirmed';
+  if (/^order\/(?!confirmation\/|review\/)[^/]+\/$/.test(rest)) return 'order-step';
   if (/^[^/]+\/$/.test(rest) && !RESERVED.has(rest.slice(0, -1))) return 'content';
   return null;
 }
@@ -133,7 +136,7 @@ export function discover(dist: string): Registry {
       // heaviest HTML first (worst case for the budget; rev-c MEAS-2 r1 nit 3), then the shortest
       // URL (page 1 before /c/x/2/), then path order: deterministic
       const all = mine.filter((p) => p.template === t).sort((x, y) => y.bytes - x.bytes || x.url.length - y.url.length || x.url.localeCompare(y.url));
-      if (!all.length) { errors.push(`template ${t} has no page in /${lang}/`); continue; }
+      if (!all.length) { if (!OPTIONAL_TEMPLATES.has(t)) errors.push(`template ${t} has no page in /${lang}/`); continue; }
       const groups: Array<[string | undefined, PageInfo[]]> = kinded.has(t)
         ? kinded.get(t)!.map((k) => [k, all.filter((p) => p.kind === k)])
         : [[undefined, all]];

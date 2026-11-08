@@ -286,6 +286,24 @@ describe('template registry', () => {
     expect(e).toMatch(/\/fr\/search\/: data-tpl-kind="top" on a search page/);
     expect(e).toMatch(/product kind "variable" has pages in the other language but none in \/fr\//);
   });
+  it('order-step: measured when the build has it, never an error when it does not (report-only)', () => {
+    expect(['/ar/order/musaffat/', '/fr/order/poele-28-cm/', '/fr/order/confirmation/', '/fr/order/review/'].map(templateFromUrl))
+      .toEqual(['order-step', 'order-step', 'order-confirmed', null]);
+    const none = tmp();
+    site(none);
+    expect(discover(none).errors).toEqual([]);
+    expect(discover(none).targets.some((t) => t.template === 'order-step')).toBe(false);
+    const d = tmp();
+    site(d);
+    for (const l of ['ar', 'fr']) put(d, `${l}/order/a/index.html`, page(l, 'order-step'));
+    const r = discover(d);
+    expect(r.errors).toEqual([]);
+    expect(r.targets.filter((t) => t.template === 'order-step').map((t) => [t.id, t.url])).toEqual([['order-step-ar', '/ar/order/a/'], ['order-step-fr', '/fr/order/a/']]);
+    const one = tmp();
+    site(one);
+    put(one, 'ar/order/a/index.html', page('ar', 'order-step'));
+    expect(discover(one).errors).toEqual([]); // one language only: reported, not an error
+  });
   it('explicit URL lists', () => {
     expect(targetsFromUrls(['/ar/', 'http://h/fr/p/x/']).map((t) => [t.id, t.url])).toEqual([['01-home-ar', '/ar/'], ['02-product-fr', '/fr/p/x/']]);
   });

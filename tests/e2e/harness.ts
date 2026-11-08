@@ -12,7 +12,7 @@
  */
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,10 +44,13 @@ export const FEATURES: Record<Feature, () => string | null> = {
   webOrder: () => (has('apps/web/src/routes/order.ts') ? null : 'POST /api/order not in this checkout (WEB order route)'),
   webQuote: () => (has('apps/web/src/routes/quote.ts') ? null : 'POST /api/quote not in this checkout'),
   orderForm: () => {
-    const dir = path.join(DIST, 'fr/p');
-    if (!existsSync(dir)) return 'no product pages in the build';
-    const html = spawnSync('grep', ['-rl', 'action="/api/order"', dir], { encoding: 'utf8' }).stdout;
-    return html.trim() ? null : 'no product page with <form action="/api/order"> in the build (ORDER form)';
+    // ORDER-STEP: the form lives on /{lang}/order/<slug>/, reached from the product page's #cat-buy
+    const dir = path.join(DIST, 'fr/order');
+    const steps = existsSync(dir) ? readdirSync(dir).filter((d) => d !== 'confirmation' && d !== 'review' && existsSync(path.join(dir, d, 'index.html'))) : [];
+    if (!steps.some((d) => readFileSync(path.join(dir, d, 'index.html'), 'utf8').includes('action="/api/order"'))) return 'no order step page with <form action="/api/order"> in the build (ORDER-STEP: /{lang}/order/<slug>/)';
+    const products = path.join(DIST, 'fr/p');
+    const hasCta = existsSync(products) && readdirSync(products).some((d) => { const f = path.join(products, d, 'index.html'); return existsSync(f) && readFileSync(f, 'utf8').includes('id="cat-buy"'); });
+    return hasCta ? null : 'no product page with the #cat-buy order CTA in the build (ORDER-STEP product page)';
   },
   geoFiles: () => (existsSync(path.join(DIST, 'geo/communes/ar/1.json')) ? null : 'per-wilaya commune JSON not in the build (CAT-5 /geo/communes/<lang>/<code>.json)'),
   adminAuth: () => (has('apps/admin/src/auth/dev-routes.tsx') ? null : 'admin auth (ADMIN-1 dev login + Access JWT) not in this checkout'),

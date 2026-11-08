@@ -221,7 +221,8 @@ npm run lh -- --serve static --port 4114      # server choice / port (measure bl
   **heaviest** HTML (worst case), ties → shortest URL. Pages not measured are listed in the
   summary with the reason. The not-found template is measured at its file URL
   (`/{lang}/404.html`, HTTP 200): Lighthouse refuses to score a document answered with 404.
-  **Variants (MEAS-5):** the layout writes `<html data-tpl-kind>` (contract with shell and
+  `order-step` (`/{lang}/order/<slug>/`) is measured when the build has it and is never an error
+  when it does not (report-only). **Variants (MEAS-5):** the layout writes `<html data-tpl-kind>` (contract with shell and
   pagedata): product → `simple` | `variable` | `pack`, category → `top` | `sub`. When a build
   declares kinds, each (template, kind) is its own target in both languages (`product-pack-ar`,
   `category-sub-fr`, shots in `product/ar-pack-360.png`). It fails the run when a page of that
@@ -377,13 +378,15 @@ D1 columns from `packages/db` migrations; admin: admin-core's dev login, CSRF an
 pattern, admin-orders' route table and detail-page forms). Each spec declares the features it
 needs (`tests/e2e/harness.ts` `FEATURES`: files and route tables in the checkout) and is skipped
 with the reason in its name until they exist, e.g. `[waiting: POST /api/order not in this
-checkout (WEB order route)]`. Once it runs, a 403/404/409/422 from any step fails it.
+checkout (WEB order route)]`. Once it runs, a 403/404/409/422 from any step fails it. The browser
+reaches loopback only: every other origin (the Turnstile script) is aborted, so an e2e run never
+calls a third party, and those orders take the "Turnstile missing ⇒ accept and flag" path.
 
 | Spec | What it proves |
 |---|---|
-| `order.spec.ts` | per language: a **variant** (non-default variant of a variable product) order shows the wilaya's fee and the correct total (price × 2 + fee) before confirming, creates the order with those amounts and that variant in D1; a duplicate JSON submit with the same idempotency key returns 200 and the same ref, and D1 holds one order; the order appears in the admin's list and detail page; in the admin (admin-orders' contract: forms read from the detail page, `_csrf` and `version` included, each POST must answer 303) a confirmer logs a call with a callback (new → called) and a confirmed call (called → confirmed), logistics ships it with a courier (→ shipped), and order_events grows by ≥ 3 |
-| `nojs.spec.ts` | per language, JavaScript disabled: the form posts to the Worker's review page, which shows fee and total; confirm (after the 1.5 s minimum review time) → 303 to the confirmation page and the order in D1 |
-| `geo.spec.ts` | per language: the wilaya picker lists 69 wilayas (codes 1–69); `/geo/communes/<lang>/<code>.json` totals 1,541 distinct communes; the seeded D1 holds 69 wilayas and 1,541 communes |
+| `order.spec.ts` | per language, the customer's way in (ORDER-STEP): product page → pick a **variant** (non-default variant of a variable product) → CTA → `/{lang}/order/<slug>/` with `?v=` preselected. The form shows the wilaya's fee and the correct total (price × 2 + fee) before confirming, and the order lands in D1 with those amounts and that variant. A duplicate submit returns the same ref with one order in D1, both for the same idempotency key (201) and for the same customer going through the page again (server dedup). The order appears in the admin's list and detail page. In the admin (admin-orders' contract: forms read from the detail page, `_csrf` and `version` included, each POST must answer 303) a confirmer logs a call with a callback (new → called) and a confirmed call (called → confirmed), logistics ships it with a courier (→ shipped), and order_events grows by ≥ 3 |
+| `nojs.spec.ts` | per language, JavaScript disabled: product page → the GET form's CTA → order step (the customer picks the variant there; the static page cannot read the query) → the Worker's review page, which shows fee and total → confirm (after the 1.5 s minimum review time) → 303 to the confirmation page and the order in D1 |
+| `geo.spec.ts` | per language, on the order step: the wilaya picker lists 69 wilayas (codes 1–69); choosing a wilaya fills the commune picker with exactly that wilaya's communes; `/geo/communes/<lang>/<code>.json` totals 1,541 distinct communes; the seeded D1 holds 69 wilayas and 1,541 communes |
 | `admin-auth.spec.ts` | each test proves its success path first (a real dev login → 303 + cookie served the dashboard). Then every admin route (admin-core's mounts from `app.ts` + admin-orders' route table, GET and POST) answers 401/403 with no credentials, a garbage Access JWT, or a forged dev cookie (real payload, wrong signature); an inactive dev user is refused where the owner, same request, is let in; the dev login answers a loopback Host and refuses another; every dev role is served the dashboard |
 
 ## Timings (MEAS-5)

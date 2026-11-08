@@ -1,5 +1,9 @@
 /**
  * Shared flows for the e2e specs, written against the contracts:
+ *  - the order journey = ORDER-STEP (artifacts/ORDER-STEP/plan.md): the product page's GET form
+ *    `#cat-buy` (picker + CTA; with JS also `a.cat-cta` carrying ?v=<variantId>) → the prerendered
+ *    order step /{lang}/order/<slug>/ with orderform's form; picker radios carry `data-ov` =
+ *    option value id on both pages (pages' VariantPicker);
  *  - form field names of the order form = the shared OrderDraft/OrderInput names
  *    (packages/shared/src/order-schema.ts: name, phone, wilayaCode, communeId, qty, items/options,
  *    idempotencyKey, step);
@@ -13,11 +17,26 @@
  *    urlencoded, Origin + Sec-Fetch-Site: same-origin, `_csrf` (here read from the rendered page,
  *    like its `csrfFrom`) and the form's `version`.
  */
-import { chromium, type Browser, type Page } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 import { d1, integersIn, testPhone } from './harness.ts';
 
 export const CHROME = '/usr/bin/google-chrome';
 export const launch = (): Promise<Browser> => chromium.launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+
+/**
+ * A browser context that only reaches loopback: every other origin (the Turnstile script) is
+ * aborted, so an e2e run never calls a third party. Turnstile missing ⇒ the order is accepted and
+ * flagged (project rule), which is the path these specs exercise.
+ */
+export async function loopbackContext(browser: Browser, opts: Parameters<Browser['newContext']>[0] = {}): Promise<BrowserContext> {
+  const ctx = await browser.newContext(opts);
+  await ctx.route('**/*', (route) => {
+    const { protocol, hostname } = new URL(route.request().url());
+    if (protocol === 'data:' || protocol === 'blob:' || hostname === '127.0.0.1' || hostname === 'localhost') return route.continue();
+    return route.abort();
+  });
+  return ctx;
+}
 
 export interface Pick { productId: number; slug: string; variantId: number; price: number; optionValueIds: number[] }
 export interface Place { wilaya: number; fee: number; communeId: number }
@@ -45,27 +64,41 @@ export function pickPlace(): Place {
   return { wilaya: r.code, fee: r.fee, communeId: c.id };
 }
 
-/** Select the variant in the order form: a control whose value is the variant id, else its option values. */
+/** Pick the variant's option values in the page's picker (product page or order step). */
 export async function chooseVariant(page: Page, p: Pick): Promise<void> {
-  const form = page.locator('form[action="/api/order"]');
-  const byId = form.locator(`option[value="${p.variantId}"], input[value="${p.variantId}"]`);
-  if (await byId.count()) {
-    const el = byId.first();
-    if ((await el.evaluate((e) => e.tagName)) === 'OPTION') {
-      const sel = form.locator('select').filter({ has: page.locator(`option[value="${p.variantId}"]`) }).first();
-      await sel.selectOption(String(p.variantId));
-    } else await el.check({ force: true });
-    return;
-  }
   for (const v of p.optionValueIds) {
-    const opt = form.locator(`option[value="${v}"]`);
-    if (await opt.count()) {
-      await form.locator('select').filter({ has: page.locator(`option[value="${v}"]`) }).first().selectOption(String(v));
-      continue;
-    }
-    const input = form.locator(`input[value="${v}"]`);
-    if (!(await input.count())) throw new Error(`no control for option value ${v} of variant ${p.variantId} (contract: value = option_value id or variant id)`);
-    await input.first().check({ force: true });
+    const radio = page.locator(`input[type="radio"][data-ov="${v}"]`);
+    if (!(await radio.count())) throw new Error(`no picker radio for option value ${v} of variant ${p.variantId} at ${page.url()}`);
+    await radio.first().check({ force: true });
+  }
+}
+
+/** The order step's path for a product (CAT-1 orderStepPath). */
+export const orderStepPath = (lang: string, slug: string): string => `/${lang}/order/${slug}/`;
+
+/**
+ * The customer's way in: open the product page, pick the variant, press the CTA, land on the order
+ * step. With JS the CTA link carries ?v=<variantId>; without JS it is the GET form's button.
+ */
+export async function openOrderStep(page: Page, web: string, lang: string, p: Pick): Promise<void> {
+  const res = await page.goto(`${web}/${lang}/p/${p.slug}/`);
+  if (res?.status() !== 200) throw new Error(`product page /${lang}/p/${p.slug}/: HTTP ${res?.status()} (build the storefront from the seed: HB_SNAPSHOT=seed)`);
+  const buy = page.locator('#cat-buy');
+  if (!(await buy.count())) throw new Error(`/${lang}/p/${p.slug}/ has no #cat-buy form (ORDER-STEP product page)`);
+  await chooseVariant(page, p);
+  const link = page.locator('a.cat-cta:visible');
+  const cta = (await link.count()) ? link.first() : buy.locator('button[type="submit"]').first();
+  const target = orderStepPath(lang, p.slug);
+  await Promise.all([page.waitForURL((u) => u.pathname === target, { timeout: 20_000 }), cta.click()]);
+  await page.waitForLoadState('load');
+}
+
+/** With JS the step preselects the variant from ?v=: every option value of the pick ends up checked. */
+export async function expectPreselected(page: Page, p: Pick): Promise<void> {
+  const v = new URL(page.url()).searchParams.get('v');
+  if (v !== String(p.variantId)) throw new Error(`the CTA did not carry the variant: ?v=${v}, expected ${p.variantId} (${page.url()})`);
+  for (const ov of p.optionValueIds) {
+    await page.waitForFunction(`document.querySelector('input[type="radio"][data-ov="${ov}"]')?.checked === true`, undefined, { timeout: 10_000 });
   }
 }
 
@@ -101,7 +134,7 @@ export async function submitUntilConfirmed(page: Page): Promise<string> {
   for (let i = 0; i < 3; i++) {
     const m = /\/order\/confirmation\/\?ref=(HB-[A-Z0-9]+)/.exec(page.url());
     if (m?.[1]) return m[1];
-    const btn = page.locator('form button[type="submit"], form input[type="submit"]').last();
+    const btn = page.locator('form[action="/api/order"] button[type="submit"], form[action="/api/order"] input[type="submit"]').last();
     await Promise.all([page.waitForURL(/ref=HB-|\/api\/order/, { timeout: 20_000 }).catch(() => {}), btn.click()]);
     await page.waitForLoadState('load');
   }
