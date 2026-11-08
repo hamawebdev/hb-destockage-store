@@ -1,7 +1,8 @@
 // What a deploy ships (rev-f / rev-d, WEB-2 r2): wrangler.jsonc read by wrangler itself the way
 // `wrangler deploy` and `npm run build` (`deploy --dry-run --env=""`) read it. The top level must be
-// production, refuse placeholder (invented, seeded) delivery fees, carry no local hostname, and a
-// Worker running it without its required SITE_HOSTS must fail closed on every /api/* route.
+// production, refuse placeholder (invented, seeded) delivery fees, carry no local hostname, and name
+// the real storefront in SITE_HOSTS. SITE_HOSTS stays required: a Worker running this config without
+// it must fail closed on every /api/* route.
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test, vi } from 'vitest';
@@ -11,24 +12,25 @@ import { ConfigError, readConfig, type Env } from '../src/env.ts';
 import { allowPlaceholderFees } from '../src/fees.ts';
 
 const CONFIG = resolve(dirname(fileURLToPath(import.meta.url)), '../wrangler.jsonc');
+const PRODUCTION_HOST = 'comptoirdeluxe.com';
 const read = (env: string | undefined) => unstable_readConfig({ config: CONFIG, ...(env === undefined ? {} : { env }) }, { hideWarnings: true });
 
 describe('the deployed configuration', () => {
   test.each([
     ['wrangler deploy (no --env)', undefined],
     ['npm run build (--env="")', ''],
-  ])('%s: ENV=production, placeholder fees refused, no local hostname anywhere', (_l, env) => {
+  ])('%s: ENV=production, placeholder fees refused, no local hostname, SITE_HOSTS is the production host', (_l, env) => {
     const c = read(env);
     expect(c.vars['ENV']).toBe('production');
     expect(allowPlaceholderFees({ ENV: c.vars['ENV'] })).toBe(false);
     expect(JSON.stringify(c.vars)).not.toMatch(/localhost|127\.0\.0\.1/);
-    // SITE_HOSTS is required at deploy time: absent from the repo, so readConfig refuses to run.
-    expect(c.vars['SITE_HOSTS']).toBeUndefined();
-    expect(() => readConfig(c.vars as unknown as Env)).toThrow(ConfigError);
+    // The storefront hostname Turnstile verdicts must come from, and readConfig accepts it.
+    expect(c.vars['SITE_HOSTS']).toBe(PRODUCTION_HOST);
+    expect(readConfig(c.vars as unknown as Env)).toMatchObject({ env: 'production', siteHosts: [PRODUCTION_HOST] });
   });
 
-  test('a Worker running the repo config as-is answers 500 on every /api/* and logs config_invalid', async () => {
-    const vars = read('').vars as Record<string, string>;
+  test('a Worker running the repo config without SITE_HOSTS answers 500 on every /api/* and logs config_invalid', async () => {
+    const { SITE_HOSTS: _required, ...vars } = read('').vars as Record<string, string>;
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     try {
       for (const [path, init] of [
@@ -47,9 +49,9 @@ describe('the deployed configuration', () => {
     }
   });
 
-  test('production with the client hostname set at deploy runs', () => {
-    const vars = { ...read('').vars, SITE_HOSTS: 'hbdestockagedz.com,www.hbdestockagedz.com' };
-    expect(readConfig(vars as unknown as Env)).toMatchObject({ env: 'production', siteHosts: ['hbdestockagedz.com', 'www.hbdestockagedz.com'] });
+  test('production with several real hostnames runs', () => {
+    const vars = { ...read('').vars, SITE_HOSTS: `${PRODUCTION_HOST},www.${PRODUCTION_HOST}` };
+    expect(readConfig(vars as unknown as Env)).toMatchObject({ env: 'production', siteHosts: [PRODUCTION_HOST, `www.${PRODUCTION_HOST}`] });
   });
 
   test.each(['localhost', 'shop.dz,127.0.0.1', '::1', 'shop.dz, localhost '])('production with SITE_HOSTS=%j is refused', (hosts) => {
