@@ -7,7 +7,7 @@ import { localPlatform, type LocalPlatform } from './helpers/platform.ts';
 import { applyMigrations } from './helpers/schema.ts';
 
 let p: LocalPlatform<{ DB: D1Database }>;
-const DEPLOY = 'npx wrangler deploy -c apps/web/wrangler.jsonc';
+const DEPLOY = './node_modules/.bin/wrangler deploy --cwd apps/web --env=';
 
 beforeAll(async () => {
   p = await localPlatform();
