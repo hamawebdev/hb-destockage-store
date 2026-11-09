@@ -71,7 +71,7 @@ say() { printf '%s\n' "$*" | tee -a "$log"; }
 # brand/, tools/measure, …) makes Lighthouse run.
 # Test exemptions are package-level test dirs / *.test.* files only; anything under a public/ dir is
 # served, so it always counts (rev-a TOOL-1 r2 Nit).
-no_lh_effect='^(apps/admin/|apps/jobs/|packages/db/|docs/|research-evidence/|team/|artifacts/|\.claude/|\.githooks/|scripts/|tests/e2e/|[^/]+\.md$|\.gitignore$|\.nvmrc$)|^(apps|packages|tools)/[^/]+/test/|^data/[^/]+/test/|\.test\.(ts|mjs)$'
+no_lh_effect='^(apps/admin/|apps/jobs/|packages/db/|packages/couriers/|tools/standins/|docs/|research-evidence/|team/|artifacts/|\.claude/|\.githooks/|scripts/|tests/e2e/|[^/]+\.md$|\.gitignore$|\.nvmrc$)|^(apps|packages|tools)/[^/]+/test/|^data/[^/]+/test/|\.test\.(ts|mjs)$'
 affects_storefront() { # some changed path is served or can change the build
   local files; files="$(changed_files)"
   printf '%s\n' "$files" | grep -q '/public/' && return 0
