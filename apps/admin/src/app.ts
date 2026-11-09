@@ -43,6 +43,7 @@ import fees from './routes/fees/index.tsx';
 import content from './routes/content/index.tsx';
 import media from './routes/media/index.tsx';
 import publish from './routes/publish/index.tsx';
+import sheets from './routes/sheets/index.tsx';
 import auditRoutes from './audit/routes.tsx';
 
 export const MAX_BODY_BYTES = 1024 * 1024;
@@ -122,6 +123,7 @@ export function createApp(opts: AppOptions = {}): Hono<AppEnv> {
   app.route('/content', content);
   app.route('/media', media);
   app.route('/publish', publish);
+  app.route('/sheets', sheets);
   app.route('/audit', auditRoutes);
 
   app.notFound((c) => renderError(c, 404));

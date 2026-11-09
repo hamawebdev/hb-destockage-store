@@ -56,6 +56,9 @@ export const PERMISSIONS = {
   'users.manage': ['owner'],
   'settings.edit': ['owner'],
   'audit.view': ['owner'],
+
+  // Google Sheets connection (sheets): owner only (ADMIN2 brief §5).
+  'sheets.settings': ['owner'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
