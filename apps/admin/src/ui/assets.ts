@@ -5,4 +5,5 @@ export const ASSET = {
   css: '/assets/admin.css',
   print: '/assets/print.css',
   js: '/assets/admin.js',
+  monogram: '/assets/brand/monogram.svg',
 } as const;
