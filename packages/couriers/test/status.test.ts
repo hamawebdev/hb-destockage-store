@@ -1,0 +1,241 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { mapStatus, statusTable, type StatusTable } from '../src/status.ts';
+import { ECOTRACK_ACTIVITY, ECOTRACK_LABELS, ECOTRACK_SLUGS } from '../src/ecotrack/statuses.ts';
+import { YALIDINE_STATUSES } from '../src/yalidine/statuses.ts';
+import { ZR_STATUSES, zrStatus } from '../src/zr-express/statuses.ts';
+import { MAYSTRO_STATUSES, maystroStatus } from '../src/maystro/statuses.ts';
+import { NOEST_KEYS, NOEST_LABELS, NOEST_NON_STATUS_EVENTS } from '../src/noest/statuses.ts';
+import type { CourierStatus } from '../src/types.ts';
+
+interface ListEntry {
+  raw: string;
+  result: CourierStatus;
+  vocabulary?: string;
+}
+
+const readList = (name: string) =>
+  JSON.parse(readFileSync(new URL(`./status-lists/${name}.json`, import.meta.url), 'utf8')) as {
+    statuses: ListEntry[];
+  };
+
+const TABLES: Array<{ name: string; list: string; table: StatusTable; vocabulary?: string }> = [
+  { name: 'yalidine', list: 'yalidine', table: YALIDINE_STATUSES },
+  { name: 'ecotrack slugs', list: 'ecotrack', table: ECOTRACK_SLUGS, vocabulary: 'slug' },
+  { name: 'ecotrack labels', list: 'ecotrack', table: ECOTRACK_LABELS, vocabulary: 'label' },
+  { name: 'ecotrack activity', list: 'ecotrack', table: ECOTRACK_ACTIVITY, vocabulary: 'activity' },
+  { name: 'zr express', list: 'zr-express', table: ZR_STATUSES },
+  { name: 'noest keys', list: 'noest', table: NOEST_KEYS, vocabulary: 'event_key' },
+  { name: 'noest labels', list: 'noest', table: NOEST_LABELS, vocabulary: 'event_label' },
+  { name: 'maystro', list: 'maystro', table: MAYSTRO_STATUSES },
+];
+
+const setOf = (table: StatusTable, status: CourierStatus) =>
+  [...table].filter(([, value]) => value === status).map(([raw]) => raw).sort();
+
+describe.each(TABLES)('$name status table', ({ list, table, vocabulary }) => {
+  const entries = readList(list).statuses.filter((s) => (vocabulary ? s.vocabulary === vocabulary : true));
+
+  it('maps every entry of the list to its result', () => {
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      expect([entry.raw, mapStatus(table, entry.raw)]).toEqual([entry.raw, entry.result]);
+    }
+  });
+
+  it('has exactly the keys of the list', () => {
+    expect([...table.keys()].sort()).toEqual(entries.map((e) => e.raw).sort());
+  });
+
+  it('never maps a delivery in progress to delivered', () => {
+    for (const raw of [
+      'en cours de livraison',
+      'En cours de livraison',
+      'Livraison en cours',
+      'Tentative de livraison',
+      'Non livré',
+      'Echec de livraison',
+    ]) {
+      expect(mapStatus(table, raw)).not.toBe('delivered');
+    }
+  });
+
+  it.each([
+    null,
+    undefined,
+    '',
+    '   ',
+    'xyz',
+    'LIVRE',
+    'constructor',
+    '__proto__',
+    'toString',
+    5,
+    true,
+    ['Livré'],
+    { toString: () => 'Livré' },
+  ])('treats %j as unknown', (raw) => {
+    expect(mapStatus(table, raw)).toBe('unknown');
+  });
+});
+
+describe('exact sets that move an order or restock', () => {
+  it('Yalidine family', () => {
+    expect(setOf(YALIDINE_STATUSES, 'delivered')).toEqual(['Livré']);
+    expect(setOf(YALIDINE_STATUSES, 'returned')).toEqual(['Retourné au vendeur']);
+    expect(setOf(YALIDINE_STATUSES, 'returning')).toEqual(
+      [
+        'Retour vers centre',
+        'Retourné au centre',
+        'Retour transfert',
+        'Retour groupé',
+        'Retour à retirer',
+        'Retour vers vendeur',
+      ].sort(),
+    );
+  });
+
+  it('EcoTrack', () => {
+    expect(setOf(ECOTRACK_SLUGS, 'delivered')).toEqual(
+      ['encaisse_non_paye', 'livre_non_encaisse', 'paiements_prets', 'paye_et_archive', 'payé_et_archivé'].sort(),
+    );
+    expect(setOf(ECOTRACK_SLUGS, 'returned')).toEqual(['retour_archive', 'retour_recu']);
+    expect(setOf(ECOTRACK_SLUGS, 'returning')).toEqual(
+      ['retour_chez_livreur', 'retour_en_traitement', 'retour_transit_entrepot'].sort(),
+    );
+    expect(setOf(ECOTRACK_LABELS, 'delivered')).toEqual(
+      ['Livre encaissé non payé', 'Livre non encaissé', 'Paiement archivé', 'Paiement prêt'].sort(),
+    );
+    expect(setOf(ECOTRACK_LABELS, 'returned')).toEqual(['Retours archivé', 'Retours reçu']);
+    expect(setOf(ECOTRACK_ACTIVITY, 'delivered')).toEqual(['encaissed', 'livred', 'payed']);
+    expect(setOf(ECOTRACK_ACTIVITY, 'returned')).toEqual(['Return_received']);
+  });
+
+  it('EcoTrack out for delivery and held at the courier are not terminal', () => {
+    expect(mapStatus(ECOTRACK_SLUGS, 'en_livraison')).toBe('in_transit');
+    expect(mapStatus(ECOTRACK_SLUGS, 'en_preparation')).toBe('in_transit');
+    expect(mapStatus(ECOTRACK_LABELS, 'En livraison')).toBe('in_transit');
+    expect(mapStatus(ECOTRACK_LABELS, 'Retours en stock')).toBe('exception');
+    expect(mapStatus(ECOTRACK_SLUGS, 'retour_en_traitement')).toBe('returning');
+    expect(mapStatus(ECOTRACK_ACTIVITY, 'return_asked')).toBe('returning');
+  });
+
+  it('EcoTrack remarks are in no table', () => {
+    const list = JSON.parse(readFileSync(new URL('./status-lists/ecotrack.json', import.meta.url), 'utf8')) as {
+      non_status_events: Array<{ raw: string }>;
+    };
+    expect(list.non_status_events.length).toBeGreaterThan(0);
+    for (const { raw } of list.non_status_events) {
+      for (const table of [ECOTRACK_SLUGS, ECOTRACK_LABELS, ECOTRACK_ACTIVITY]) expect(table.has(raw)).toBe(false);
+    }
+  });
+
+  it('ZR Express', () => {
+    expect(setOf(ZR_STATUSES, 'delivered')).toEqual(['encaisse', 'livre', 'recouvert']);
+    expect(setOf(ZR_STATUSES, 'returned')).toEqual(['recupere_par_fournisseur']);
+    expect(setOf(ZR_STATUSES, 'returning')).toEqual(['attente_recuperation_fournisseur', 'retour_expediteur']);
+  });
+
+  it('ZR stock reinjection is not a restock', () => {
+    expect(mapStatus(ZR_STATUSES, 'reinjecte_dans_stock')).toBe('exception');
+    expect(zrStatus('reinjecte_dans_stock', true)).toBe('exception');
+    expect(zrStatus('reinjecte_dans_stock', false)).toBe('exception');
+  });
+
+  it('ZR isReturn turns movement into returning and contradicts delivery', () => {
+    expect(zrStatus('dispatch', true)).toBe('returning');
+    expect(zrStatus('pret_a_expedier', true)).toBe('returning');
+    expect(zrStatus('livre', true)).toBe('exception');
+    expect(zrStatus('recupere_par_fournisseur', true)).toBe('returned');
+    expect(zrStatus('dispatch', false)).toBe('in_transit');
+    expect(zrStatus('dispatch', 'true')).toBe('in_transit');
+    expect(zrStatus('etat_inconnu', true)).toBe('unknown');
+  });
+
+  it('NOEST', () => {
+    expect(setOf(NOEST_KEYS, 'delivered')).toEqual(
+      [
+        'livre',
+        'livred',
+        'validation_reception_cash_by_partener',
+        'verssement_admin_cust',
+        'verssement_admin_cust_canceled',
+        'verssement_hub_cust_canceled',
+      ].sort(),
+    );
+    expect(setOf(NOEST_KEYS, 'returned')).toEqual(['return_validated_by_partener']);
+    expect(setOf(NOEST_LABELS, 'delivered')).toEqual(['Amount received by partner', 'Amount transmitted to partner', 'Delivered'].sort());
+    expect(setOf(NOEST_LABELS, 'returned')).toEqual(['Return received by partner', 'Return validated by partner'].sort());
+  });
+
+  it('NOEST exchange and pick-up events do not count as delivered', () => {
+    for (const raw of ['echange_valide', 'echange_valid_by_hub', 'pickup_picked_recu', 'colis_pickup_transmit_to_partner']) {
+      expect(mapStatus(NOEST_KEYS, raw)).toBe('exception');
+    }
+    for (const raw of ['Exchange validated', 'Exchange validated by hub']) expect(mapStatus(NOEST_LABELS, raw)).toBe('exception');
+  });
+
+  it('NOEST remarks are in no table and match the list', () => {
+    const list = JSON.parse(readFileSync(new URL('./status-lists/noest.json', import.meta.url), 'utf8')) as {
+      non_status_events: Array<{ raw: string }>;
+    };
+    expect([...NOEST_NON_STATUS_EVENTS].sort()).toEqual(list.non_status_events.map((e) => e.raw).sort());
+    for (const raw of NOEST_NON_STATUS_EVENTS) {
+      expect(NOEST_KEYS.has(raw)).toBe(false);
+      expect(NOEST_LABELS.has(raw)).toBe(false);
+    }
+  });
+
+  it('Maystro', () => {
+    expect(setOf(MAYSTRO_STATUSES, 'delivered')).toEqual(['41']);
+    expect(setOf(MAYSTRO_STATUSES, 'returned')).toEqual(['52']);
+    expect(setOf(MAYSTRO_STATUSES, 'returning')).toEqual(['10', '51']);
+  });
+
+  it('Maystro accepts whole numbers only', () => {
+    expect(maystroStatus(41)).toBe('delivered');
+    expect(maystroStatus('41')).toBe('delivered');
+    expect(maystroStatus(52)).toBe('returned');
+    for (const raw of [41.5, true, [41], null, '41 ', 'x', { code: 41 }]) expect(maystroStatus(raw)).toBe('unknown');
+  });
+
+  it('a return on its way is never returned', () => {
+    for (const raw of ['Retour vers vendeur', 'Retour à retirer', 'Retourné au centre']) {
+      expect(mapStatus(YALIDINE_STATUSES, raw)).toBe('returning');
+    }
+  });
+});
+
+describe('normalisation', () => {
+  const table = statusTable({ Livré: 'delivered' });
+
+  it('trims outer whitespace', () => {
+    expect(mapStatus(table, 'Livré ')).toBe('delivered');
+    expect(mapStatus(table, '  Livré')).toBe('delivered');
+  });
+
+  it('treats composed and decomposed forms alike', () => {
+    expect(mapStatus(table, 'Livré'.normalize('NFD'))).toBe('delivered');
+    expect(mapStatus(table, 'Livré'.normalize('NFC'))).toBe('delivered');
+  });
+
+  it('does not fold case or accents', () => {
+    expect(mapStatus(table, 'livré')).toBe('unknown');
+    expect(mapStatus(table, 'Livre')).toBe('unknown');
+  });
+});
+
+// `artifacts/` is gitignored and absent from worktrees, so this runs when the path is given:
+// HB_STATUS_LISTS_DIR="/mnt/data/ecom website/artifacts/delivery-research/status-lists" npm test -w @hb/couriers
+describe('committed lists match the research folder', () => {
+  const dir = process.env['HB_STATUS_LISTS_DIR'];
+
+  it.runIf(dir !== undefined)('the folder exists', () => {
+    expect(existsSync(dir as string)).toBe(true);
+  });
+
+  it.runIf(dir !== undefined).each([...new Set(TABLES.map((t) => t.list))])('%s is identical', (name) => {
+    const committed = readFileSync(new URL(`./status-lists/${name}.json`, import.meta.url), 'utf8');
+    expect(committed).toBe(readFileSync(`${dir as string}/${name}.json`, 'utf8'));
+  });
+});

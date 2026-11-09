@@ -18,14 +18,20 @@ export function isResendSafe(
   lookup: LookupResult,
   attemptEndedAt: number,
   capabilities: Pick<CourierCapabilities, 'verifyAfterSeconds' | 'verifyWithinSeconds'>,
+  /** The attempt's `uncertain` cause. Required, so a caller can't forget it; null if there was none. */
+  attemptCause: string | null,
 ): boolean {
   if (lookup.kind !== 'not_found') return false;
+  if (attemptCause !== null && COURIER_SAYS_IT_EXISTS.has(attemptCause)) return false;
   if (!Number.isFinite(attemptEndedAt) || !Number.isFinite(lookup.checkedAt)) return false;
   const elapsedMs = lookup.checkedAt - attemptEndedAt;
   if (elapsedMs < capabilities.verifyAfterSeconds * 1000) return false;
   const within = capabilities.verifyWithinSeconds;
   return within === null || elapsedMs <= within * 1000;
 }
+
+/** The courier said this reference exists, so a later `not_found` is the one that's wrong. */
+const COURIER_SAYS_IT_EXISTS: ReadonlySet<string> = new Set(['duplicate_external_id', 'duplicate_reference', 'possible_duplicate']);
 
 export type FoundDisposition = 'shipped' | 'draft' | 'person';
 
