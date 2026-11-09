@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { mapStatus, statusTable, type StatusTable } from '../src/status.ts';
+import { ECOTRACK_ACTIVITY, ECOTRACK_LABELS, ECOTRACK_SLUGS } from '../src/ecotrack/statuses.ts';
 import { YALIDINE_STATUSES } from '../src/yalidine/statuses.ts';
 import type { CourierStatus } from '../src/types.ts';
 
@@ -17,6 +18,9 @@ const readList = (name: string) =>
 
 const TABLES: Array<{ name: string; list: string; table: StatusTable; vocabulary?: string }> = [
   { name: 'yalidine', list: 'yalidine', table: YALIDINE_STATUSES },
+  { name: 'ecotrack slugs', list: 'ecotrack', table: ECOTRACK_SLUGS, vocabulary: 'slug' },
+  { name: 'ecotrack labels', list: 'ecotrack', table: ECOTRACK_LABELS, vocabulary: 'label' },
+  { name: 'ecotrack activity', list: 'ecotrack', table: ECOTRACK_ACTIVITY, vocabulary: 'activity' },
 ];
 
 const setOf = (table: StatusTable, status: CourierStatus) =>
@@ -84,6 +88,41 @@ describe('exact sets that move an order or restock', () => {
     );
   });
 
+  it('EcoTrack', () => {
+    expect(setOf(ECOTRACK_SLUGS, 'delivered')).toEqual(
+      ['encaisse_non_paye', 'livre_non_encaisse', 'paiements_prets', 'paye_et_archive', 'payé_et_archivé'].sort(),
+    );
+    expect(setOf(ECOTRACK_SLUGS, 'returned')).toEqual(['retour_archive', 'retour_recu']);
+    expect(setOf(ECOTRACK_SLUGS, 'returning')).toEqual(
+      ['retour_chez_livreur', 'retour_en_traitement', 'retour_transit_entrepot'].sort(),
+    );
+    expect(setOf(ECOTRACK_LABELS, 'delivered')).toEqual(
+      ['Livre encaissé non payé', 'Livre non encaissé', 'Paiement archivé', 'Paiement prêt'].sort(),
+    );
+    expect(setOf(ECOTRACK_LABELS, 'returned')).toEqual(['Retours archivé', 'Retours reçu']);
+    expect(setOf(ECOTRACK_ACTIVITY, 'delivered')).toEqual(['encaissed', 'livred', 'payed']);
+    expect(setOf(ECOTRACK_ACTIVITY, 'returned')).toEqual(['Return_received']);
+  });
+
+  it('EcoTrack out for delivery and held at the courier are not terminal', () => {
+    expect(mapStatus(ECOTRACK_SLUGS, 'en_livraison')).toBe('in_transit');
+    expect(mapStatus(ECOTRACK_SLUGS, 'en_preparation')).toBe('in_transit');
+    expect(mapStatus(ECOTRACK_LABELS, 'En livraison')).toBe('in_transit');
+    expect(mapStatus(ECOTRACK_LABELS, 'Retours en stock')).toBe('exception');
+    expect(mapStatus(ECOTRACK_SLUGS, 'retour_en_traitement')).toBe('returning');
+    expect(mapStatus(ECOTRACK_ACTIVITY, 'return_asked')).toBe('returning');
+  });
+
+  it('EcoTrack remarks are in no table', () => {
+    const list = JSON.parse(readFileSync(new URL('./status-lists/ecotrack.json', import.meta.url), 'utf8')) as {
+      non_status_events: Array<{ raw: string }>;
+    };
+    expect(list.non_status_events.length).toBeGreaterThan(0);
+    for (const { raw } of list.non_status_events) {
+      for (const table of [ECOTRACK_SLUGS, ECOTRACK_LABELS, ECOTRACK_ACTIVITY]) expect(table.has(raw)).toBe(false);
+    }
+  });
+
   it('a return on its way is never returned', () => {
     for (const raw of ['Retour vers vendeur', 'Retour à retirer', 'Retourné au centre']) {
       expect(mapStatus(YALIDINE_STATUSES, raw)).toBe('returning');
@@ -119,7 +158,7 @@ describe('committed lists match the research folder', () => {
     expect(existsSync(dir as string)).toBe(true);
   });
 
-  it.runIf(dir !== undefined).each(TABLES.map((t) => t.list))('%s is identical', (name) => {
+  it.runIf(dir !== undefined).each([...new Set(TABLES.map((t) => t.list))])('%s is identical', (name) => {
     const committed = readFileSync(new URL(`./status-lists/${name}.json`, import.meta.url), 'utf8');
     expect(committed).toBe(readFileSync(`${dir as string}/${name}.json`, 'utf8'));
   });

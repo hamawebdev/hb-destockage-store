@@ -45,11 +45,9 @@ const wilayaName = (geo('wilayas') as Array<{ code: number; name_fr: string }>)
   ?.name_fr.normalize('NFD')
   .replace(/\p{M}/gu, '') as string;
 
-const expectedRegistry = ['yalidine', 'guepex'];
-
 describe('registry', () => {
-  it('lists exactly the built couriers', () => {
-    expect(listCouriers().map((a) => a.id)).toEqual(expectedRegistry);
+  it('lists the Yalidine family', () => {
+    expect(listCouriers().filter((a) => a.family === 'yalidine').map((a) => a.id)).toEqual(['yalidine', 'guepex']);
   });
 
   it('finds an adapter by id', () => {

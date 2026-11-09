@@ -4,9 +4,10 @@
 //   node tools/standins/couriers/server.mjs --port 4401     (0 = ephemeral; prints the port)
 //
 // Point COURIER_STANDIN_URL at http://127.0.0.1:<port>. Each courier lives under its id:
-//   /yalidine/v1/parcels/   /guepex/v1/parcels/
+//   /yalidine/v1/parcels/   /guepex/v1/parcels/   /ecotrack-<tenant>/api/v1/create/order
 //
-// Yalidine and Guepex accept API ID `standin-id`, API token `standin-token`; anything else is 401.
+// Yalidine and Guepex accept API ID `standin-id`, API token `standin-token`; EcoTrack tenants accept
+// API token `standin-token`. Anything else is refused.
 //
 // Control endpoints (JSON bodies):
 //   GET  /__control/<courier>/state                     createCount, readCount, parcels, last request
@@ -25,16 +26,31 @@
 // tracking-empty, tracking-number, success-1, success-string, false-with-tracking, two-rows, or a
 // three-digit HTTP status. `read` scenarios: ok, down, html, bad-json, no-total, none-exact, 401, 429,
 // 503, 503-once.
+// EcoTrack also has: `create` nested-data, nested-order, disagree; `validate` auto, locked, hang, 500;
+// `read` no-last-page, last-page-changes, rows-no-ref, many-pages; `label` ok, not-pdf; `token` auto,
+// not-allowed, odd, 404. Its seed takes {parcels: [{tracking?, reference, status?, created_at?, activity?}]}
+// and its status control takes {status?, activity?}. State adds `validateCount`.
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { sendJson } from './lib.mjs';
+import { createEcotrackTenant } from './ecotrack.mjs';
 import { createYalidineFamily } from './yalidine.mjs';
 
 function createCouriers() {
-  return new Map([
+  const couriers = new Map([
     ['yalidine', createYalidineFamily({ id: 'yalidine', trackingPrefix: 'yal' })],
     ['guepex', createYalidineFamily({ id: 'guepex', trackingPrefix: 'gpx' })],
   ]);
+  return {
+    all: () => couriers.values(),
+    // Any `ecotrack-<tenant>` exists on first use.
+    get(name) {
+      if (!couriers.has(name) && /^ecotrack-[a-z0-9-]+$/.test(name)) {
+        couriers.set(name, createEcotrackTenant({ id: name }));
+      }
+      return couriers.get(name);
+    },
+  };
 }
 
 function readBody(req) {
@@ -55,7 +71,7 @@ export function createStandin() {
       const rawBody = await readBody(req);
 
       if (url.pathname === '/__control/reset' && req.method === 'POST') {
-        for (const courier of couriers.values()) courier.reset();
+        for (const courier of couriers.all()) courier.reset();
         sendJson(res, 200, { reset: true });
         return;
       }
