@@ -21,6 +21,12 @@ export interface Env {
   NOTIFY_LANG?: string;
   /** Producer binding to the notifications DLQ, for permanent failures and malformed messages. */
   ORDER_NOTIFICATIONS_DLQ?: Queue<unknown>;
+
+  // Courier status sync (SHIP-5). Unset or invalid key = no courier is called; D1-only steps still run.
+  /** 32 random bytes, base64 (secret), the same value as the admin's. Opens the sealed courier keys. */
+  COURIER_KEYS_KEY?: string;
+  /** Local courier stand-in. Honoured only when ENV is not `production`. */
+  COURIER_STANDIN_URL?: string;
 }
 
 export const ORDER_NOTIFICATIONS_QUEUE = 'hb-order-notifications';
