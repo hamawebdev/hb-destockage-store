@@ -27,6 +27,8 @@ const blocks: readonly ContentBlock[] = p.page.blocks;
 const meta = p.page.key === 'privacy' ? metaConfig() : null;
 // META_CONSENT_REQUIRED=0: no choice is asked, so the text must not promise one (Addendum 4).
 const metaKeys = meta?.consent === 'off' ? 'privacy.meta.off' : 'privacy.meta';
+// The reset button is last on the page: meta.js reveals it after load, and nothing but the footer sits below it.
+// Both Meta slots sit directly against their neighbours, so with Meta off the page gains no whitespace.
 ---
 <article class="container ct">
   <Breadcrumbs items={p.breadcrumbs} strings={l.strings} />
@@ -35,8 +37,7 @@ const metaKeys = meta?.consent === 'off' ? 'privacy.meta.off' : 'privacy.meta';
     <h1 class="ct-title"><Copy strings={l.strings} text={p.page.title} /></h1>
     <p class="ct-date">{t(l.strings, 'content.lastUpdated', { date })}</p>
   </header>
-  <div class="ct-body reading">
-    {meta && (
+  <div class="ct-body reading">{meta && (
       <Fragment>
         <h2><Copy strings={l.strings} k="privacy.meta.title" /></h2>
         <p><Copy strings={l.strings} k={`${metaKeys}.body1`} /></p>
@@ -66,9 +67,7 @@ const metaKeys = meta?.consent === 'off' ? 'privacy.meta.off' : 'privacy.meta';
             );
         }
       })
-    }
-    {/* Last on the page: meta.js reveals it after load, and nothing but the footer sits below it (no CSS rule, no layout shift). */}
-    {meta && <p><button type="button" class="btn btn-secondary" data-meta-reset hidden>{t(l.strings, 'consent.change')}</button></p>}
+    }{meta && <p><button type="button" class="btn btn-secondary" data-meta-reset hidden>{t(l.strings, 'consent.change')}</button></p>}
   </div>
 </article>
 
