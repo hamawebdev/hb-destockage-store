@@ -22,12 +22,13 @@
 import type { Context } from 'hono';
 import { asc, eq, inArray } from 'drizzle-orm';
 import { communes, settings, updateOrderContact, wilayas, type Db } from '@hb/db';
-import { rolesFor } from '../../auth/permissions.ts';
+import { can, rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import type { AppEnv } from '../../env.ts';
 import { parseForm, readForm, type FormSchema } from '../../lib/forms.ts';
 import { isOrderRef } from '@hb/shared';
 import { canSeeSensitive } from '../../lib/projection.ts';
+import { startOfAlgiersDay } from '../../lib/time.ts';
 import { createRouter } from '../../lib/router.ts';
 import { withFlash } from '../../ui/flash.tsx';
 import { audit, noAudit, withAudit } from '../../audit/audit.ts';
@@ -38,7 +39,7 @@ import { ContactForm, canEditContact, communesOf, contactAudit, feeProviderFor, 
 import { ContactEditPage, ContactReviewPage } from './contact-page.tsx';
 import { fetchOrderByRef, fetchOrderChildren, type OrderDetail } from './detail-data.ts';
 import { OrderDetailPage, type DetailProps, type FormKind } from './detail-page.tsx';
-import { fetchOrdersPage } from './list-data.ts';
+import { fetchOrdersPage, ordersToday, statusCounts } from './list-data.ts';
 import { OrdersListPage } from './list-page.tsx';
 import { SEARCH_MAX_CHARS, parseOrdersFilter } from './list-query.ts';
 import { m } from './messages.ts';
@@ -70,10 +71,26 @@ r.get('/', requirePerm('orders.view'), async (c) => {
   const url = new URL(c.req.url);
   const parsed = parseOrdersFilter(url.searchParams, c.var.user.role);
   const sensitive = canSeeSensitive(c.var.user);
-  const page = await fetchOrdersPage(c.var.db, parsed.filter, sensitive);
+  const now = Date.now();
+  const [page, counts, today] = await Promise.all([
+    fetchOrdersPage(c.var.db, parsed.filter, sensitive),
+    statusCounts(c.var.db),
+    ordersToday(c.var.db, startOfAlgiersDay(now), now),
+  ]);
   const q = (url.searchParams.get('q') ?? '').slice(0, SEARCH_MAX_CHARS);
   return c.render(
-    <OrdersListPage lang={c.var.lang} parsed={parsed} page={page} q={q} url={`${url.pathname}${url.search}`} sensitive={sensitive} />,
+    <OrdersListPage
+      lang={c.var.lang}
+      role={c.var.user.role}
+      parsed={parsed}
+      page={page}
+      counts={counts}
+      today={today}
+      q={q}
+      url={`${url.pathname}${url.search}`}
+      sensitive={sensitive}
+      bulk={can(c.var.user, 'orders.shipping')}
+    />,
     { title: m(c.var.lang)('list.title') },
   );
 });
@@ -180,7 +197,7 @@ r.post('/shipping/ship', requirePerm('orders.shipping'), async (c) => {
     const res = await orderWriter.applyChange(c, order.id, p.plan, now);
     results.push({
       ref,
-      outcome: res.ok ? 'shipped' : res.code === 'version_conflict' ? 'conflict' : res.code === 'forbidden' ? 'forbidden' : res.code === 'not_found' ? 'notFound' : 'notConfirmed',
+      outcome: res.ok ? 'shipped' : (res.code as string) === 'shipment_in_progress' ? 'shipmentBusy' : res.code === 'version_conflict' ? 'conflict' : res.code === 'forbidden' ? 'forbidden' : res.code === 'not_found' ? 'notFound' : 'notConfirmed',
     });
   }
   if (!results.some((r) => r.outcome === 'shipped')) noAudit(c, 'bulk ship: no order changed, nothing written');
@@ -208,7 +225,7 @@ async function renderDetail(
   c: Context<AppEnv>,
   order: OrderDetail,
   status: 200 | 403 | 409 | 422 = 200,
-  extra: Pick<DetailProps, 'form' | 'conflict'> = {},
+  extra: Pick<DetailProps, 'form' | 'conflict' | 'shipmentBusy'> = {},
 ) {
   const children = await fetchOrderChildren(c.var.db, order.id, { withAudit: c.var.user.role === 'owner', sensitive: canSeeSensitive(c.var.user) });
   const tm = m(c.var.lang);
@@ -293,7 +310,11 @@ async function mutate<S extends FormSchema>(
     const back = ret === 'queue' ? '/orders/queue' : ret === 'shipping' ? '/orders/shipping' : `/orders/${order.ref}`;
     return c.redirect(withFlash(back, 'saved'), 303);
   }
-  switch (res.code) {
+  // A parcel is being sent for this order (SHIP-1 refuses the change). The cast compiles both before
+  // and after @hb/db adds the code to its union; the cast can go once SHIP-1b is on main.
+  if ((res.code as string) === 'shipment_in_progress') return renderDetail(c, order, 409, { shipmentBusy: true });
+  const code = res.code as Exclude<typeof res.code, 'shipment_in_progress'>;
+  switch (code) {
     case 'not_found':
       return c.notFound();
     case 'version_conflict':
@@ -463,7 +484,9 @@ r.post(`/${REF}/contact`, requirePerm('orders.edit'), async (c) => {
     { extra: [row] },
   );
   if (res.ok) return c.redirect(withFlash(`/orders/${order.ref}`, 'saved'), 303);
-  switch (res.code) {
+  if ((res.code as string) === 'shipment_in_progress') return renderDetail(c, order, 409, { shipmentBusy: true });
+  const code = res.code as Exclude<typeof res.code, 'shipment_in_progress'>;
+  switch (code) {
     case 'not_found':
       return c.notFound();
     case 'version_conflict':
@@ -487,7 +510,7 @@ r.post(`/${REF}/contact`, requirePerm('orders.edit'), async (c) => {
       return renderContactEdit(c, order, f.values, 422, contactErrors(c, { name: 'contact.err.nameInvalid' }));
     default: {
       // Exhaustive: a new DB-6 result code fails typecheck here instead of falling through.
-      const unhandled: never = res.code;
+      const unhandled: never = code;
       throw new Error(`updateOrderContact: unhandled result code ${String(unhandled)}`);
     }
   }

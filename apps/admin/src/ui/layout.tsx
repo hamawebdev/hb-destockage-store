@@ -1,12 +1,16 @@
 // Page layout for every authenticated admin page. Handlers call
 //   return c.render(<Content />, { title: 'Commandes', breadcrumbs: [...] })
 // `variant: 'print'` drops the chrome (order slips).
+//
+// Shell: a sidebar from 1024 px. Below that a top bar opens the same sidebar as a drawer (native
+// `popover`, no JS needed) and a bottom tab bar keeps the role's four main destinations in reach.
 import type { Child } from 'hono/jsx';
 import type { Context } from 'hono';
 import type { AppEnv } from '../env.ts';
 import { Ui, type UiContext } from './context.ts';
 import { Flash } from './flash.tsx';
-import { activeHref, navFor } from './nav.ts';
+import { Icon } from './icons.tsx';
+import { activeHref, navFor, tabsFor, type NavItem } from './nav.ts';
 import { ASSET } from './assets.ts';
 
 export interface Crumb {
@@ -34,10 +38,11 @@ function Head(props: { title: string; appName: string; variant: 'default' | 'pri
   return (
     <head>
       <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       <meta name="robots" content="noindex, nofollow" />
       <meta name="referrer" content="same-origin" />
       <title>{`${props.title} · ${props.appName}`}</title>
+      <link rel="icon" href={ASSET.monogram} type="image/svg+xml" />
       <link rel="stylesheet" href={ASSET.tokens} />
       <link rel="stylesheet" href={ASSET.css} />
       <link rel="stylesheet" href={ASSET.print} media={props.variant === 'print' ? 'all' : 'print'} />
@@ -46,54 +51,132 @@ function Head(props: { title: string; appName: string; variant: 'default' | 'pri
   );
 }
 
+function NavRow(props: { ui: UiContext; item: NavItem; current: string | undefined; sub?: boolean }) {
+  const { item, ui } = props;
+  return (
+    <a class={props.sub ? 'nav__link nav__link--sub' : 'nav__link'} href={item.href} aria-current={item.href === props.current ? 'page' : undefined}>
+      {props.sub ? null : <Icon name={item.icon} />}
+      <span class="nav__label">{ui.t(item.label)}</span>
+    </a>
+  );
+}
+
 function Nav(props: { ui: UiContext }) {
   const { ui } = props;
   if (!ui.user) return null;
   const groups = navFor(ui.user);
-  const current = activeHref(ui.path, groups.flatMap((g) => g.items));
+  const all = groups.flatMap((g) => g.items);
+  const current = activeHref(ui.path, all);
+  const hrefs = new Set(all.map((i) => i.href));
   return (
     <nav class="nav" aria-label={ui.t('nav.label')}>
       {groups.map((g) => (
         <ul class="nav__group">
-          {g.items.map((i) => (
-            <li>
-              <a class="nav__link" href={i.href} aria-current={i.href === current ? 'page' : undefined}>
-                {ui.t(i.label)}
-              </a>
-            </li>
-          ))}
+          {g.items
+            .filter((i) => i.parent === undefined || !hrefs.has(i.parent))
+            .map((i) => {
+              const kids = g.items.filter((k) => k.parent === i.href);
+              const inSection = i.href === current || kids.some((k) => k.href === current);
+              return (
+                <li class="nav__item">
+                  <NavRow ui={ui} item={i} current={current} />
+                  {kids.length > 0 ? (
+                    <details class="nav__more" open={inSection}>
+                      <summary class="nav__toggle">
+                        <span class="visually-hidden">{ui.t('nav.more', { label: ui.t(i.label) })}</span>
+                        <Icon name="chevron-down" class="ico--sm" />
+                      </summary>
+                      <ul class="nav__sub">
+                        {kids.map((k) => (
+                          <li>
+                            <NavRow ui={ui} item={k} current={current} sub />
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : null}
+                </li>
+              );
+            })}
         </ul>
       ))}
     </nav>
   );
 }
 
-function TopBar(props: { ui: UiContext }) {
+function Brand(props: { ui: UiContext }) {
+  return (
+    <a class="brand" href="/dashboard">
+      <img class="brand__mark" src={ASSET.monogram} width="32" height="32" alt="" />
+      <span class="brand__name"><bdi lang="fr" dir="ltr">HB Destockage</bdi></span>
+      <span class="visually-hidden">{props.ui.t('app.name')}</span>
+    </a>
+  );
+}
+
+/** Sidebar footer: who is signed in, language, logout. */
+function SideFoot(props: { ui: UiContext }) {
   const { ui } = props;
+  if (!ui.user) return null;
   const other = ui.lang === 'fr' ? 'ar' : 'fr';
   return (
-    <header class="topbar">
-      <a class="topbar__brand" href="/dashboard">{ui.t('app.name')}</a>
-      {ui.user ? (
-        <div class="topbar__user">
-          <span class="topbar__who">
-            {ui.t('user.signedInAs')} <bdi dir="ltr">{ui.user.email}</bdi>
-          </span>
-          <form method="post" action="/settings/language" class="inline-form">
-            <input type="hidden" name="_csrf" value={ui.csrfToken} />
-            <input type="hidden" name="lang" value={other} />
-            <input type="hidden" name="return_to" value={ui.path} />
-            {/* No aria-label: the accessible name must contain the visible text (WCAG 2.5.3,
-                review ADMIN-1 r1 F3); the explanation is appended as visually hidden text. */}
-            <button type="submit" class="btn btn--quiet">
-              <span lang={other}>{ui.t('lang.switch')}</span>
-              <span class="visually-hidden"> — {ui.t('lang.switchLabel')}</span>
-            </button>
-          </form>
-          <a class="btn btn--quiet" href={LOGOUT_URL}>{ui.t('user.logout')}</a>
-        </div>
-      ) : null}
-    </header>
+    <div class="side__foot">
+      <p class="who">
+        <span class="visually-hidden">{ui.t('user.signedInAs')} </span>
+        <span class="who__mail"><bdi dir="ltr">{ui.user.email}</bdi></span>
+        <span class="who__role">{ui.t(`role.${ui.user.role}`)}</span>
+      </p>
+      <div class="side__actions">
+        <form method="post" action="/settings/language" class="inline-form">
+          <input type="hidden" name="_csrf" value={ui.csrfToken} />
+          <input type="hidden" name="lang" value={other} />
+          <input type="hidden" name="return_to" value={ui.path} />
+          {/* No aria-label: the accessible name must contain the visible text (WCAG 2.5.3,
+              review ADMIN-1 r1 F3); the explanation is appended as visually hidden text. */}
+          <button type="submit" class="btn btn--quiet">
+            <span lang={other}>{ui.t('lang.switch')}</span>
+            <span class="visually-hidden"> — {ui.t('lang.switchLabel')}</span>
+          </button>
+        </form>
+        <a class="btn btn--quiet" href={LOGOUT_URL}>{ui.t('user.logout')}</a>
+      </div>
+    </div>
+  );
+}
+
+function TabBar(props: { ui: UiContext }) {
+  const { ui } = props;
+  if (!ui.user) return null;
+  const groups = navFor(ui.user);
+  const current = activeHref(ui.path, groups.flatMap((g) => g.items));
+  return (
+    <nav class="tabbar" aria-label={ui.t('nav.tabs')}>
+      {tabsFor(groups).map((i) => (
+        <a class="tabbar__item" href={i.href} aria-current={i.href === current ? 'page' : undefined}>
+          <Icon name={i.icon} />
+          <span class="tabbar__label">{ui.t(i.tabLabel ?? i.label)}</span>
+        </a>
+      ))}
+      <button type="button" class="tabbar__item" popovertarget="side">
+        <Icon name="menu" />
+        <span class="tabbar__label">{ui.t('nav.menu')}</span>
+      </button>
+    </nav>
+  );
+}
+
+/** The styled confirm dialog admin.js opens for `data-confirm` forms (no JS: forms submit directly). */
+function ConfirmDialog(props: { ui: UiContext }) {
+  const { t } = props.ui;
+  return (
+    <dialog class="dialog" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+      <h2 class="dialog__title" id="confirm-title">{t('dialog.title')}</h2>
+      <p id="confirm-text" class="dialog__text"></p>
+      <form method="dialog" class="dialog__actions">
+        <button type="submit" class="btn btn--secondary" value="cancel">{t('dialog.cancel')}</button>
+        <button type="submit" class="btn btn--primary" value="ok">{t('dialog.ok')}</button>
+      </form>
+    </dialog>
   );
 }
 
@@ -110,14 +193,26 @@ export function Layout(props: PageProps & { ui: UiContext; flash: string | undef
           ) : (
             <>
               <a class="skip-link" href="#main">{ui.t('app.skip')}</a>
-              <TopBar ui={ui} />
-              {/* Closed in the HTML: on phones the menu does not push the page down (main starts
-                  under the top bar). From 768 px the nav is always shown (admin.css
-                  ::details-content; admin.js opens it as a fallback). */}
-              <details class="nav-disclosure">
-                <summary class="nav-disclosure__summary">{ui.t('nav.menu')}</summary>
+              <header class="topbar">
+                <Brand ui={ui} />
+                {ui.user ? (
+                  <button type="button" class="btn btn--quiet btn--icon" popovertarget="side">
+                    <Icon name="menu" />
+                    <span class="visually-hidden">{ui.t('nav.menu')}</span>
+                  </button>
+                ) : null}
+              </header>
+              <aside class="side" id="side" popover="auto">
+                <div class="side__head">
+                  <Brand ui={ui} />
+                  <button type="button" class="btn btn--quiet btn--icon side__close" popovertarget="side" popovertargetaction="hide">
+                    <Icon name="close" />
+                    <span class="visually-hidden">{ui.t('nav.close')}</span>
+                  </button>
+                </div>
                 <Nav ui={ui} />
-              </details>
+                <SideFoot ui={ui} />
+              </aside>
               <main id="main" class="main" tabindex={-1}>
                 {props.breadcrumbs && props.breadcrumbs.length > 0 ? (
                   <nav class="breadcrumbs" aria-label={ui.t('nav.breadcrumbs')}>
@@ -135,6 +230,8 @@ export function Layout(props: PageProps & { ui: UiContext; flash: string | undef
                 <Flash code={props.flash} />
                 {props.children}
               </main>
+              <TabBar ui={ui} />
+              <ConfirmDialog ui={ui} />
             </>
           )}
         </Ui.Provider>
