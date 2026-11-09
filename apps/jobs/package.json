@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@hb/catalog": "*",
+    "@hb/couriers": "*",
     "@hb/db": "*",
     "@hb/shared": "*",
     "drizzle-orm": "0.45.4"

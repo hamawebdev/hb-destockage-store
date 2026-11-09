@@ -170,3 +170,11 @@ Rules:
 - Why: client instruction "remove the placeholders... fully ready". Fake products cannot be sold. Fees are the distance-based schedule from data/geo, not courier quotes: the owner chose to open with them, editable in the admin, because the store cannot take orders without fees.
 - Evidence: artifacts/LAUNCH-0/, approved through the pipeline's destructive-migration hash.
 - Status: active
+
+## D-010 — Courier integration, status sync and Sheets start now; D-001 lifted
+- Date: 2026-11-09 · Author: lead (client instruction) · Task: BOOT-6
+- Report says: CLAUDE.md Non-goals "Courier API integration, including the 58-wilaya courier codes, comes later (D-001)".
+- We do instead: the client lifts D-001. The admin sends confirmed orders to couriers directly (Yalidine and the EcoTrack family first, then ZR Express, NOEST and Maystro), with no third-party relay. `wilayas.courier_code` is filled by that integration: orders keep the 69 wilayas, and each courier adapter maps them to the code set that courier uses, so wilayas 59–69 ship through their parent code where the courier still uses 58. Review scope grows to courier, status-sync and Sheets code (REVIEW.md, team/REVIEW-REQUIRED.txt). Delivery fees stay set by the admin; the storefront order form does not change.
+- Why: client instruction, 2026-11-09. Delivery is the admin's largest missing function.
+- Evidence: client instruction, 2026-11-09. Courier references: artifacts/delivery-research/.
+- Status: active. Supersedes: D-001.

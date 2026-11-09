@@ -27,3 +27,13 @@ apps/admin/src/routes/users/**
 apps/admin/src/lib/csrf.ts
 # order step route
 apps/storefront/src/pages/*/order/**
+# delivery, status sync and Sheets (client instruction 2026-11-09; D-010)
+packages/couriers/**
+packages/db/migrations/**
+packages/db/src/schema.ts
+apps/admin/src/routes/delivery/**
+apps/admin/src/routes/sheets/**
+apps/jobs/src/couriers/**
+apps/jobs/src/sheets/**
+apps/web/src/routes/courier-webhook.ts
+apps/web/src/couriers/**

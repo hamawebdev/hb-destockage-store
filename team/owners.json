@@ -50,7 +50,11 @@
     "SHELL": "shell",
     "TOKENS": "tokens",
     "TOOL": "tooling",
-    "WEB": "web"
+    "WEB": "web",
+    "CARR": "carriers",
+    "SHIP": "shipping",
+    "SHEET": "sheets",
+    "UX": "adminui"
   },
   "owners": {
     "tooling": {
@@ -308,6 +312,89 @@
       "paths": [],
       "reviewer": null,
       "portBase": 4360
+    },
+    "carriers": {
+      "paths": [
+        "packages/couriers/**",
+        "tools/standins/**"
+      ],
+      "reviewer": "rev-h",
+      "portBase": 4400
+    },
+    "shipping": {
+      "paths": [
+        "packages/db/**",
+        "apps/admin/src/routes/delivery/**",
+        "apps/admin/test/delivery/**",
+        "apps/jobs/src/couriers/**",
+        "apps/jobs/test/couriers/**",
+        "apps/web/src/routes/courier-webhook.ts",
+        "apps/web/src/couriers/**",
+        "apps/web/test/couriers/**",
+        "apps/web/src/app.ts",
+        "apps/web/src/env.ts",
+        "apps/admin/src/app.ts",
+        "apps/admin/src/env.ts",
+        "apps/admin/src/auth/permissions.ts",
+        "apps/admin/wrangler.jsonc",
+        "apps/admin/.dev.vars.example",
+        "apps/jobs/src/index.ts",
+        "apps/jobs/src/env.ts",
+        "apps/jobs/wrangler.jsonc",
+        "apps/jobs/.dev.vars.example"
+      ],
+      "reviewer": "rev-i",
+      "portBase": 4410
+    },
+    "sheets": {
+      "paths": [
+        "apps/admin/src/routes/sheets/**",
+        "apps/admin/test/sheets/**",
+        "apps/jobs/src/sheets/**",
+        "apps/jobs/test/sheets/**",
+        "tools/standins/sheets/**",
+        "apps/admin/src/app.ts",
+        "apps/admin/src/env.ts",
+        "apps/admin/src/auth/permissions.ts",
+        "apps/admin/wrangler.jsonc",
+        "apps/admin/.dev.vars.example",
+        "apps/jobs/src/index.ts",
+        "apps/jobs/src/env.ts",
+        "apps/jobs/wrangler.jsonc",
+        "apps/jobs/.dev.vars.example"
+      ],
+      "reviewer": "rev-j",
+      "portBase": 4420
+    },
+    "adminui": {
+      "paths": [
+        "apps/admin/**",
+        "packages/ui-tokens/src/admin*"
+      ],
+      "except": [
+        "apps/admin/src/routes/delivery/**",
+        "apps/admin/test/delivery/**",
+        "apps/admin/src/routes/sheets/**",
+        "apps/admin/test/sheets/**"
+      ],
+      "reviewer": "rev-k",
+      "portBase": 4430
+    },
+    "rev-h": {
+      "paths": [],
+      "portBase": 4440
+    },
+    "rev-i": {
+      "paths": [],
+      "portBase": 4450
+    },
+    "rev-j": {
+      "paths": [],
+      "portBase": 4460
+    },
+    "rev-k": {
+      "paths": [],
+      "portBase": 4470
     }
   },
   "forbiddenGlobs": [
