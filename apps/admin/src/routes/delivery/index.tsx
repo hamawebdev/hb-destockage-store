@@ -210,7 +210,7 @@ r.post('/settings/:courier/test', requirePerm('delivery.settings'), async (c) =>
   const same = sameKeys(adapter.id, account!.credentialsCipher!);
   const [res] = await c.var.db.batch([
     c.var.db.update(courierAccounts).set({ lastCheckResult: check.kind, lastCheckAt: now, updatedBy: c.var.user.id }).where(same),
-    audit(c, { action: 'courierAccount.test', entity: 'courier_accounts', entityId: adapter.id, before: null, after: { result: check.kind } }, { when: same }),
+    audit(c, { action: 'courierAccount.test', entity: 'courier_accounts', entityId: adapter.id, before: null, after: { result: check.kind } }, { when: sql`EXISTS (SELECT 1 FROM ${courierAccounts} WHERE ${same})` }),
   ]);
   if (changesOf(res) !== 1) return renderAccount(c, adapter, 409, { errors: { _form: tm('err.keysChanged') } });
   return c.redirect(withFlash(`/delivery/settings/${adapter.id}`, 'saved'), 303);
