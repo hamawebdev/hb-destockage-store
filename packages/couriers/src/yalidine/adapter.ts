@@ -523,7 +523,7 @@ function createFamilyAdapter(config: FamilyConfig): CourierAdapter {
     parseWebhook(rawBody): WebhookParseResult {
       let text: string;
       try {
-        text = new TextDecoder('utf-8', { fatal: true }).decode(rawBody);
+        text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(rawBody);
       } catch {
         return { ok: false, reason: 'malformed' };
       }
