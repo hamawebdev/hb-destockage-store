@@ -4,6 +4,8 @@ import { mapStatus, statusTable, type StatusTable } from '../src/status.ts';
 import { ECOTRACK_ACTIVITY, ECOTRACK_LABELS, ECOTRACK_SLUGS } from '../src/ecotrack/statuses.ts';
 import { YALIDINE_STATUSES } from '../src/yalidine/statuses.ts';
 import { ZR_STATUSES, zrStatus } from '../src/zr-express/statuses.ts';
+import { MAYSTRO_STATUSES, maystroStatus } from '../src/maystro/statuses.ts';
+import { NOEST_KEYS, NOEST_LABELS, NOEST_NON_STATUS_EVENTS } from '../src/noest/statuses.ts';
 import type { CourierStatus } from '../src/types.ts';
 
 interface ListEntry {
@@ -23,6 +25,9 @@ const TABLES: Array<{ name: string; list: string; table: StatusTable; vocabulary
   { name: 'ecotrack labels', list: 'ecotrack', table: ECOTRACK_LABELS, vocabulary: 'label' },
   { name: 'ecotrack activity', list: 'ecotrack', table: ECOTRACK_ACTIVITY, vocabulary: 'activity' },
   { name: 'zr express', list: 'zr-express', table: ZR_STATUSES },
+  { name: 'noest keys', list: 'noest', table: NOEST_KEYS, vocabulary: 'event_key' },
+  { name: 'noest labels', list: 'noest', table: NOEST_LABELS, vocabulary: 'event_label' },
+  { name: 'maystro', list: 'maystro', table: MAYSTRO_STATUSES },
 ];
 
 const setOf = (table: StatusTable, status: CourierStatus) =>
@@ -145,6 +150,53 @@ describe('exact sets that move an order or restock', () => {
     expect(zrStatus('dispatch', false)).toBe('in_transit');
     expect(zrStatus('dispatch', 'true')).toBe('in_transit');
     expect(zrStatus('etat_inconnu', true)).toBe('unknown');
+  });
+
+  it('NOEST', () => {
+    expect(setOf(NOEST_KEYS, 'delivered')).toEqual(
+      [
+        'livre',
+        'livred',
+        'validation_reception_cash_by_partener',
+        'verssement_admin_cust',
+        'verssement_admin_cust_canceled',
+        'verssement_hub_cust_canceled',
+      ].sort(),
+    );
+    expect(setOf(NOEST_KEYS, 'returned')).toEqual(['return_validated_by_partener']);
+    expect(setOf(NOEST_LABELS, 'delivered')).toEqual(['Amount received by partner', 'Amount transmitted to partner', 'Delivered'].sort());
+    expect(setOf(NOEST_LABELS, 'returned')).toEqual(['Return received by partner', 'Return validated by partner'].sort());
+  });
+
+  it('NOEST exchange and pick-up events do not count as delivered', () => {
+    for (const raw of ['echange_valide', 'echange_valid_by_hub', 'pickup_picked_recu', 'colis_pickup_transmit_to_partner']) {
+      expect(mapStatus(NOEST_KEYS, raw)).toBe('exception');
+    }
+    for (const raw of ['Exchange validated', 'Exchange validated by hub']) expect(mapStatus(NOEST_LABELS, raw)).toBe('exception');
+  });
+
+  it('NOEST remarks are in no table and match the list', () => {
+    const list = JSON.parse(readFileSync(new URL('./status-lists/noest.json', import.meta.url), 'utf8')) as {
+      non_status_events: Array<{ raw: string }>;
+    };
+    expect([...NOEST_NON_STATUS_EVENTS].sort()).toEqual(list.non_status_events.map((e) => e.raw).sort());
+    for (const raw of NOEST_NON_STATUS_EVENTS) {
+      expect(NOEST_KEYS.has(raw)).toBe(false);
+      expect(NOEST_LABELS.has(raw)).toBe(false);
+    }
+  });
+
+  it('Maystro', () => {
+    expect(setOf(MAYSTRO_STATUSES, 'delivered')).toEqual(['41']);
+    expect(setOf(MAYSTRO_STATUSES, 'returned')).toEqual(['52']);
+    expect(setOf(MAYSTRO_STATUSES, 'returning')).toEqual(['10', '51']);
+  });
+
+  it('Maystro accepts whole numbers only', () => {
+    expect(maystroStatus(41)).toBe('delivered');
+    expect(maystroStatus('41')).toBe('delivered');
+    expect(maystroStatus(52)).toBe('returned');
+    for (const raw of [41.5, true, [41], null, '41 ', 'x', { code: 41 }]) expect(maystroStatus(raw)).toBe('unknown');
   });
 
   it('a return on its way is never returned', () => {

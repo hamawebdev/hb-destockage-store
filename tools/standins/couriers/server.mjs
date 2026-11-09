@@ -37,10 +37,21 @@
 // Its seed takes {parcels: [{tracking?, externalId, state?, isReturn?, lastStateUpdateAt?, situation?}]};
 // its status control takes {state?, isReturn?, at?, eventType?, situation?, times?, id?} and emits a
 // Svix-signed webhook to `webhookUrl`, with the secret ZR_WEBHOOK_SECRET from zr-express.mjs.
+// NOEST (/noest/api/public/...) accepts Bearer `standin-token` with user_guid `standin-guid`. `create`
+// adds exists, duplicate, duplicate-value, suspended, field-error, mixed, unlisted-422, no-errors-422,
+// other-ref; `validate` auto, hang, 500; `read` adds odd-404, check-422; `label` ok, not-pdf. Its seed
+// takes {parcels: [{tracking?, reference?, activity?}]}; status control takes {event_key?, event?, date?}.
+// Maystro (/maystro/orders-management/... and /maystro/backend/...) accepts `Token standin-token`.
+// `create` adds code:<n>, code-object:<n>, non-integer, no-errors, two-rows, other-external;
+// `read` adds two-rows; `wilayaShape` objects or tuples; `quota` is off by default. Its seed takes
+// {parcels: [{tracking?, status?, updated_at?, alert_reason?, abort_reason?}]}; status control takes
+// {status?, updated_at?}.
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { sendJson } from './lib.mjs';
 import { createEcotrackTenant } from './ecotrack.mjs';
+import { createMaystro } from './maystro.mjs';
+import { createNoest } from './noest.mjs';
 import { createYalidineFamily } from './yalidine.mjs';
 import { createZrExpress } from './zr-express.mjs';
 
@@ -49,6 +60,8 @@ function createCouriers() {
     ['yalidine', createYalidineFamily({ id: 'yalidine', trackingPrefix: 'yal' })],
     ['guepex', createYalidineFamily({ id: 'guepex', trackingPrefix: 'gpx' })],
     ['zr-express', createZrExpress()],
+    ['noest', createNoest()],
+    ['maystro', createMaystro()],
   ]);
   return {
     all: () => couriers.values(),
