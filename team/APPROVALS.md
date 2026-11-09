@@ -292,3 +292,11 @@ META-6 r6 APPROVED tier=low reviewer=rev-g commits=caa6d92256f0c2af0b8c5a60aa083
 META-6 r7 APPROVED tier=low reviewer=rev-g commits=7f016a5afdb4146f44bc3cca02a80162972f4de9 review=artifacts/META-6/review-r7.md
 META-9 r2 APPROVED tier=low reviewer=rev-g commits=d71ba1a07e5311a4d5064d1117add97a9216d7e6 review=artifacts/META-9/review-r2.md
 META-0 r2 APPROVED tier=high reviewer=rev-g commits=47a23c141867d4847dd09ccaf745c805d18e4242 review=artifacts/META-0/merge-review-r2.md
+SHIP-1 r2 APPROVED tier=high reviewer=rev-i commits=53cd7cc6b9046b24e08871803e97dd6be413be4b,adab74315ed0524d6f1c8a9167b178d81b2e001c,9207443a901ceac9cf1df07f848cc4782e987b64 review=artifacts/SHIP-1/review-r2.md
+SHIP-2 r2 APPROVED tier=high reviewer=rev-i commits=fb5526176a536b790d0d5526bd19f648546648f0,1959fdfcf3459cdb3be78be408a2d947411d4afb,6fcd187602b16c0b0260faa962fe0bde8499a5c0 review=artifacts/SHIP-2/review-r2.md
+SHIP-3 r1 APPROVED tier=high reviewer=rev-i commits=cc0b389d6ccb69d61a2b27df43764513832b8a2b,bbf2a0aa912cefa3c7b8ab711d8d9089b3624fce review=artifacts/SHIP-3/review-r1.md
+SHIP-4 r1 APPROVED tier=high reviewer=rev-i commits=a77f6bcb99815cc4f2a15cdde4b288a9c3d913b8 review=artifacts/SHIP-4/review-r1.md
+SHIP-5 r1 APPROVED tier=high reviewer=rev-i commits=4e35d1b97495a3ab6583279972b8889ea87f4923,2078ca5ba5d04a420f9400d380108a43a7be469f review=artifacts/SHIP-5/review-r1.md
+SHIP-6 r1 APPROVED tier=high reviewer=rev-i commits=231c401e9adeaf47e709661ac50f197d02a1ae5c review=artifacts/SHIP-6/review-r1.md
+UX-1 r3 APPROVED tier=low reviewer=rev-k commits=76f787e119c80f1cd380c240f267d1a9452c1132,785cd01fecc689f17ef8430d2a822fc33994a92a review=artifacts/UX-1/review-r3.md
+UX-2 r3 APPROVED tier=low reviewer=rev-k commits=cb8a50513853657fc345c863753fd83a5f1604b4,aa990c65b3550780fb1236bac9264aa208c01702 review=artifacts/UX-1/review-r3.md
