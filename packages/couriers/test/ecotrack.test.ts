@@ -53,6 +53,7 @@ describe('tenant registry', () => {
       'yalidine',
       'guepex',
       ...tenantRows.map((row) => `ecotrack-${slug(row.name)}`),
+      'zr-express',
     ]);
   });
 

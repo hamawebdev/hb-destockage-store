@@ -30,16 +30,25 @@
 // `read` no-last-page, last-page-changes, rows-no-ref, many-pages; `label` ok, not-pdf; `token` auto,
 // not-allowed, odd, 404. Its seed takes {parcels: [{tracking?, reference, status?, created_at?, activity?}]}
 // and its status control takes {status?, activity?}. State adds `validateCount`.
+// ZR Express (/zr-express/api/v1/...) accepts X-Api-Key `standin-key` with X-Tenant `standin-tenant`.
+// `create` adds reject, db-error, unexpected-error, unlisted-error, request-error, zero, other-ref,
+// both, bad-tracking; `validate` auto, hang, 500, other-name; `read` adds no-items, no-total, endless,
+// workflows-down; `pollFilter` honoured or ignored; `noHomeCommunes`, `noPickupCommunes`; `workflows`.
+// Its seed takes {parcels: [{tracking?, externalId, state?, isReturn?, lastStateUpdateAt?, situation?}]};
+// its status control takes {state?, isReturn?, at?, eventType?, situation?, times?, id?} and emits a
+// Svix-signed webhook to `webhookUrl`, with the secret ZR_WEBHOOK_SECRET from zr-express.mjs.
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { sendJson } from './lib.mjs';
 import { createEcotrackTenant } from './ecotrack.mjs';
 import { createYalidineFamily } from './yalidine.mjs';
+import { createZrExpress } from './zr-express.mjs';
 
 function createCouriers() {
   const couriers = new Map([
     ['yalidine', createYalidineFamily({ id: 'yalidine', trackingPrefix: 'yal' })],
     ['guepex', createYalidineFamily({ id: 'guepex', trackingPrefix: 'gpx' })],
+    ['zr-express', createZrExpress()],
   ]);
   return {
     all: () => couriers.values(),
