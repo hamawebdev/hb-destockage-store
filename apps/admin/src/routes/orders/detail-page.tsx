@@ -422,9 +422,7 @@ export function OrderDetailPage(props: DetailProps) {
                 })}
               </p>
             ) : null}
-            <p>
-              <a href={`/customers/${order.customer.id}`}>{tm('detail.customerLink')}</a>
-            </p>
+            <a class="btn btn--secondary" href={`/customers/${order.customer.id}`}>{tm('detail.customerLink')}</a>
           </Section>
 
           <Section title={tm('detail.delivery')} id="delivery">

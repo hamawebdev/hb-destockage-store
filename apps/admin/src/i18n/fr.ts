@@ -28,6 +28,7 @@ export const fr = {
   'dialog.title': 'Confirmer cette action',
   'nav.tab.home': 'Accueil',
   'nav.tab.queue': 'Appels',
+  'nav.tab.shipping': 'Colis',
   'nav.breadcrumbs': 'Fil d’Ariane',
   'user.logout': 'Se déconnecter',
   'lang.switch': 'العربية',

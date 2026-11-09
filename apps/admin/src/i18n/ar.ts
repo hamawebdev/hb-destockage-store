@@ -30,6 +30,7 @@ export const ar = {
   'dialog.title': 'تأكيد هذا الإجراء',
   'nav.tab.home': 'الرئيسية',
   'nav.tab.queue': 'المكالمات',
+  'nav.tab.shipping': 'الطرود',
   'nav.breadcrumbs': 'مسار التنقل',
   'user.logout': 'تسجيل الخروج',
   'lang.switch': 'Français',

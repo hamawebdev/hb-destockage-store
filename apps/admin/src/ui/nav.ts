@@ -28,7 +28,7 @@ export const NAV: readonly NavGroup[] = [
       { href: '/orders', label: 'nav.orders', perm: 'orders.view', icon: 'inbox' },
       { href: '/orders/queue', label: 'nav.queue', perm: 'orders.queue', icon: 'phone', parent: '/orders', tabLabel: 'nav.tab.queue' },
       { href: '/customers', label: 'nav.customers', perm: 'customers.view', icon: 'users', parent: '/orders' },
-      { href: '/orders/shipping', label: 'nav.shipping', perm: 'orders.shipping', icon: 'truck' },
+      { href: '/orders/shipping', label: 'nav.shipping', perm: 'orders.shipping', icon: 'truck', tabLabel: 'nav.tab.shipping' },
     ],
   },
   {

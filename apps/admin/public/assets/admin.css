@@ -123,8 +123,8 @@
   }
   .tabbar__item {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    min-block-size: var(--a-tabbar); padding: var(--space-1); border: 0; background: none; cursor: pointer;
-    font: inherit; font-size: var(--a-caption); line-height: var(--lh-ui);
+    min-block-size: var(--a-tabbar); padding-block: var(--space-1); padding-inline: 2px; border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 0.75rem; line-height: var(--lh-ui);
     color: var(--color-text-secondary); text-decoration: none; min-inline-size: 0;
   }
   .tabbar__label { max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -367,8 +367,10 @@
 
   /* Orders list */
   .cell-main { display: block; }
+  .tbl-orders .c-cust, .order-head__name { overflow-wrap: anywhere; }
   .cell-flags { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-block-start: var(--space-1); }
-  .tbl-orders .c-pick { inline-size: 2.5rem; }
+  .tbl-orders td.c-pick, .tbl-orders th.c-pick { inline-size: var(--tap-min, 44px); padding: 0; position: relative; z-index: 1; }
+  .pick-cell { display: flex; align-items: center; justify-content: center; min-inline-size: var(--tap-min, 44px); min-block-size: var(--tap-min, 44px); block-size: 100%; cursor: pointer; }
   .tbl-orders .c-ref a { font-weight: var(--fw-emphasis); text-decoration: none; white-space: nowrap; }
   .tbl-orders .c-ref a:hover { text-decoration: underline; }
   @media (max-width: 599.98px) {
@@ -377,7 +379,7 @@
     .tbl-orders tr:has(.pick) { grid-template-columns: auto minmax(0, 1fr) auto; }
     .tbl-orders td { display: block; padding: 0; min-inline-size: 0; }
     .tbl-orders td::before { content: none; }
-    .tbl-orders .c-pick { grid-row: 1 / span 3; align-self: center; inline-size: auto; }
+    .tbl-orders td.c-pick { grid-row: 1 / span 3; align-self: stretch; inline-size: auto; }
     .tbl-orders .c-pick:empty { display: none; }
     .tbl-orders .c-cust { grid-column: -3 / -2; grid-row: 1; }
     .tbl-orders .c-status { grid-column: -2 / -1; grid-row: 1; text-align: end; }
@@ -473,9 +475,8 @@
   .order-head__status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--a-small); }
   @media (max-width: 599.98px) { .order-head__call { inline-size: 100%; } }
 
-  .steps { list-style: none; display: flex; margin: 0 0 var(--space-5); padding: 0; overflow-x: auto; scrollbar-width: none; }
-  .steps::-webkit-scrollbar { display: none; }
-  .step { position: relative; flex: 1 0 4.75rem; display: grid; justify-items: center; gap: var(--space-1); text-align: center; color: var(--color-text-secondary); font-size: var(--a-caption); }
+  .steps { list-style: none; display: flex; margin: 0 0 var(--space-5); padding: 0; }
+  .step { position: relative; flex: 1 1 0; min-inline-size: 0; overflow-wrap: anywhere; display: grid; justify-items: center; gap: var(--space-1); text-align: center; color: var(--color-text-secondary); font-size: var(--a-caption); }
   .step + .step::before { content: ""; position: absolute; inset-block-start: 11px; inset-inline-end: 50%; inline-size: 100%; block-size: 2px; background: var(--color-border); }
   .step--done + .step::before, .step--now::before { background: var(--color-text); }
   .step__dot { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; inline-size: 24px; block-size: 24px; border-radius: 50%; border: 2px solid var(--color-border-control); background: var(--color-surface); color: var(--color-on-accent); }

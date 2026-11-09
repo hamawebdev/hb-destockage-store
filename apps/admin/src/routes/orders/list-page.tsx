@@ -81,6 +81,8 @@ function Filters(props: { tm: OrdersMessages; lang: Lang; parsed: ParsedOrdersFi
   const anyFilter = selected.length > 0 || f.wilaya !== null || from !== '' || to !== '' || riskCount > 0 || props.q !== '';
   return (
     <Form action="/orders" method="get" class="filters">
+      {/* On the All tab, filtering must not fall back to the role's default statuses. */}
+      {!parsed.defaulted && f.statuses.length === 0 ? <input type="hidden" name="status" value="any" /> : null}
       <SearchField name="q" label={tm('filter.q')} placeholder={tm('filter.q.hint')} value={props.q} maxlength={64} />
       <div class="chips">
         <FilterChip label={tm('filter.status')} value={selected.length > 0 ? String(selected.length) : undefined} apply={tm('filter.submit')}>
