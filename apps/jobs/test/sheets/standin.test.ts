@@ -157,6 +157,33 @@ describe('OAuth', () => {
     expect(await again.json()).toMatchObject({ error: 'invalid_token' });
   });
 
+  test('r1: revoke kills every token of the account for that client, across consents', async () => {
+    const first = await login();
+    const second = await login();
+    expect(second.refresh_token).not.toBe(first.refresh_token);
+    const form = { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+    expect((await fetch(`${s.url}/revoke`, { ...form, body: new URLSearchParams({ token: first.refresh_token }) })).status).toBe(200);
+    expect(await (await token({ grant_type: 'refresh_token', refresh_token: second.refresh_token })).json()).toMatchObject({ error: 'invalid_grant' });
+    expect((await s.state()).liveRefreshTokens).toBe(0);
+  });
+
+  test('r1: a refresh token comes back only on first consent or with prompt=consent', async () => {
+    const consentCode = async (extra: Record<string, string>): Promise<string> => {
+      await s.post('/consent', { email: 'owner@gmail.com' });
+      const r = await fetch(authUrl(extra), { redirect: 'manual' });
+      return new URL(r.headers.get('location') ?? '').searchParams.get('code') ?? '';
+    };
+    const first = (await exchange(await consentCode({ prompt: '' }))) as Partial<Tokens>;
+    expect(first.refresh_token).toBeTruthy();
+    const repeat = (await exchange(await consentCode({ prompt: '' }))) as Partial<Tokens>;
+    expect(repeat.refresh_token).toBeUndefined();
+    const forced = (await exchange(await consentCode({ prompt: 'consent' }))) as Partial<Tokens>;
+    expect(forced.refresh_token).toBeTruthy();
+    await s.post('/revoke', { email: 'owner@gmail.com' });
+    const afterRevoke = (await exchange(await consentCode({ prompt: '' }))) as Partial<Tokens>;
+    expect(afterRevoke.refresh_token).toBeTruthy();
+  });
+
   test('invalid_client', async () => {
     await s.post('/settings', { clientSecret: 'right' });
     const r = await token({ grant_type: 'refresh_token', refresh_token: 'x' });
@@ -187,6 +214,15 @@ describe('Drive', () => {
     const after = (await (await api(at, 'GET', `/drive/v3/files?q=${q}`)).json()) as { files: { id: string }[] };
     expect(after.files.map((f) => f.id)).toEqual([second]);
     expect(await (await api(at, 'GET', `/drive/v3/files/${first}?fields=trashed`)).json()).toEqual({ trashed: true });
+  });
+
+  test('r1: without orderBy the list is not oldest first', async () => {
+    const { access_token: at } = await login();
+    const first = await createSheet(at, 'k1');
+    const second = await createSheet(at, 'k1');
+    const q = encodeURIComponent("appProperties has { key='hb_create_key' and value='k1' }");
+    const list = (await (await api(at, 'GET', `/drive/v3/files?q=${q}&fields=${encodeURIComponent('files(id)')}`)).json()) as { files: { id: string }[] };
+    expect(list.files.map((f) => f.id)).toEqual([second, first]);
   });
 
   test('unknown file 404 in the Drive envelope, unsupported query 400', async () => {
@@ -276,6 +312,17 @@ describe('Sheets', () => {
     expect(dup.status).toBe(400);
     expect((await s.sheet()).tab).toBe('الطلبات');
     expect((await api(at, 'POST', `/v4/spreadsheets/${id}:batchUpdate`, { requests: [{ deleteSheet: {} }] })).status).toBe(400);
+  });
+
+  test('r1: updateSheetProperties needs fields; ranges and nulls past the grid are refused', async () => {
+    const bad = await api(at, 'POST', `/v4/spreadsheets/${id}:batchUpdate`, { requests: [{ updateSheetProperties: { properties: { sheetId: 0, title: 'X' } } }] });
+    expect(bad.status).toBe(400);
+    const q = (range: string): Promise<Response> => api(at, 'GET', `/v4/spreadsheets/${id}/values:batchGet?ranges=${encodeURIComponent(range)}`);
+    expect((await q("'Feuille 1'!A1:A1001")).status).toBe(400);
+    expect((await q("'Feuille 1'!A1:AA1")).status).toBe(400);
+    expect((await q("'Feuille 1'!A1001")).status).toBe(400);
+    expect((await q("'Feuille 1'!A1:Z1000")).status).toBe(200);
+    expect((await write(at, id, [{ range: "'Feuille 1'!Z1", values: [['x', null]] }])).status).toBe(400);
   });
 
   test('quoted titles with apostrophes', async () => {
@@ -447,6 +494,11 @@ describe('failure modes', () => {
     expect(r.headers.get('location')).toBe('https://sheets.googleapis.com/x');
     await s.mode({ path: '/token', mode: 'tokenError', value: 'invalid_client', times: 1 });
     expect((await token({ grant_type: 'refresh_token', refresh_token: 'x' })).status).toBe(401);
+  });
+
+  test('r1: an unknown mode is refused', async () => {
+    expect((await s.post('/mode', { path: '/v4/', mode: 'dwon' })).status).toBe(400);
+    expect((await s.post('/mode', { path: '/v4/' })).status).toBe(400);
   });
 
   test('call log records method, path, body and status', async () => {

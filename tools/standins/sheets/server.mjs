@@ -6,7 +6,7 @@
 //   node tools/standins/sheets/server.mjs --port 4420     (0 = ephemeral; prints the URL)
 //
 // Control (JSON; row and column numbers are 1-based, as in the Sheets UI):
-//   GET  /__control/state | /__control/calls | /__control/sheet?id=&tab=
+//   GET  /__control/state | /__control/calls | /__control/issued | /__control/sheet?id=&tab=
 //   POST /__control/reset | /__control/calls/clear | /__control/mode/clear
 //   POST /__control/mode     {path, method?, mode, value?, retryAfter?, times?}
 //        modes: down slow 401 429 403rate 500 404 nonJson truncatedJson applyThenDrop redirect
@@ -35,10 +35,12 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 function freshState() {
   return {
     codes: new Map(),
+    grants: new Map(),
     refreshIndex: new Map(),
     accessIndex: new Map(),
     files: new Map(),
     calls: [],
+    issued: [],
     modes: [],
     armed: [],
     consent: null,
@@ -73,6 +75,8 @@ class Bad extends Error {
     this.message = message;
   }
 }
+
+const MODES = new Set(['down', 'slow', '401', '429', '403rate', '500', '404', 'nonJson', 'truncatedJson', 'applyThenDrop', 'redirect', 'sheetsReason', 'driveReason', 'tokenError']);
 
 const surfaceOf = (path) => (path.startsWith('/v4/') ? 'sheets' : path.startsWith('/drive/') ? 'drive' : 'token');
 
@@ -146,10 +150,12 @@ function consentRedirect(p, decision, email, dropScopes, state) {
     scopes,
     email,
     offline: p.get('access_type') === 'offline',
+    forceConsent: (p.get('prompt') ?? '').split(/\s+/).includes('consent'),
     challenge: p.get('code_challenge'),
     challengeMethod: p.get('code_challenge_method'),
   });
   target.searchParams.set('code', code);
+  state.issued.push({ code });
   return { status: 302, text: '', headers: { Location: target.toString() } };
 }
 
@@ -246,11 +252,19 @@ function tokenEndpoint(state, form) {
         return tokenError(400, 'invalid_grant', 'Invalid code verifier.');
       }
     }
-    const grant = { clientId, email: pending.email, sub: subOf(pending.email), scopes: pending.scopes, tokens: new Set() };
+    // One grant per client and account, as at Google: a repeat consent joins it, and a refresh token
+    // comes back only on the first consent or with prompt=consent.
+    const sub = subOf(pending.email);
+    const key = `${clientId}|${sub}`;
+    const earlier = state.grants.get(key);
+    const grant = earlier ?? { key, clientId, email: pending.email, sub, scopes: pending.scopes, tokens: new Set() };
+    grant.scopes = pending.scopes;
+    state.grants.set(key, grant);
     const body = { access_token: issueAccess(state, grant), expires_in: 3599, scope: tokenScope(pending.scopes), token_type: 'Bearer' };
-    if (pending.offline) body.refresh_token = issueRefresh(state, grant);
+    if (pending.offline && (pending.forceConsent || !earlier)) body.refresh_token = issueRefresh(state, grant);
     if (pending.scopes.includes('openid')) body.id_token = idToken(state, grant);
     for (const k of omit) delete body[k];
+    state.issued.push(body);
     state.claims = null;
     return json(200, body);
   }
@@ -260,6 +274,7 @@ function tokenEndpoint(state, form) {
     const body = { access_token: issueAccess(state, grant), expires_in: 3599, scope: tokenScope(grant.scopes), token_type: 'Bearer' };
     if (state.settings.rotateRefresh) body.refresh_token = issueRefresh(state, grant);
     for (const k of omit) delete body[k];
+    state.issued.push(body);
     return json(200, body);
   }
   return tokenError(400, 'unsupported_grant_type', 'Invalid grant_type.');
@@ -277,6 +292,7 @@ function killGrant(state, grant, dropFiles) {
     state.accessIndex.delete(t);
   }
   grant.tokens.clear();
+  state.grants.delete(grant.key);
   if (dropFiles) dropFilesOf(state, grant.sub);
 }
 
@@ -398,7 +414,7 @@ function driveFiles(state, req, url, jsonBody, id) {
     } catch (e) {
       return driveError(400, 'invalid', e.message);
     }
-    files.sort((a, b) => (orderBy === 'createdTime desc' ? b.createdMs - a.createdMs : a.createdMs - b.createdMs));
+    files.sort((a, b) => (orderBy === 'createdTime' ? a.createdMs - b.createdMs : b.createdMs - a.createdMs));
     const listFields = url.searchParams.get('fields') ?? `kind,incompleteSearch,files(${DEFAULT_FILE_FIELDS})`;
     return json(200, pick({ kind: 'drive#fileList', incompleteSearch: false, files: files.map(fileResource) }, listFields));
   }
@@ -456,11 +472,13 @@ function parseRange(ss, a1) {
   if (r0 < 0 || c0 < 0) throw new Bad(`Unable to parse range: ${a1}`);
   if (!hasColon) {
     if (p[1] === undefined || p[2] === undefined) throw new Bad(`Unable to parse range: ${a1}`);
+    if (r0 >= tab.rowCount || c0 >= tab.columnCount) throw new Bad(`Range (${a1}) exceeds grid limits. Max rows: ${tab.rowCount}, max columns: ${tab.columnCount}`);
     return { tab, r0, c0, r1: r0 + 1, c1: c0 + 1, bounded: false };
   }
   const c1 = p[3] !== undefined ? colIndex(p[3]) + 1 : tab.columnCount;
   const r1 = p[4] !== undefined ? Number(p[4]) : tab.rowCount;
   if (r1 <= r0 || c1 <= c0) throw new Bad(`Unable to parse range: ${a1}`);
+  if (r1 > tab.rowCount || c1 > tab.columnCount) throw new Bad(`Range (${a1}) exceeds grid limits. Max rows: ${tab.rowCount}, max columns: ${tab.columnCount}`);
   return { tab, r0, c0, r1, c1, bounded: true };
 }
 
@@ -509,8 +527,7 @@ function checkWrite(rng, values) {
   for (const [ri, row] of values.entries()) {
     if (!Array.isArray(row)) throw new Bad('Invalid value at data.values: expected an array of rows.');
     for (const [ci, value] of row.entries()) {
-      if (value === null) continue;
-      if (!['string', 'number', 'boolean'].includes(typeof value)) throw new Bad('Invalid value in data.values.');
+      if (value !== null && !['string', 'number', 'boolean'].includes(typeof value)) throw new Bad('Invalid value in data.values.');
       const r = rng.r0 + ri;
       const c = rng.c0 + ci;
       if (r >= rng.tab.rowCount || c >= rng.tab.columnCount) {
@@ -579,6 +596,7 @@ function spreadsheetGet(file) {
 function applyUpdateProperties(tabs, u) {
   const tab = tabs.find((t) => t.sheetId === u.properties?.sheetId);
   if (!tab) throw new Bad(`No grid with id: ${u.properties?.sheetId}`);
+  if (!u.fields) throw new Bad("'fields' is required for updateSheetProperties.");
   for (const field of String(u.fields ?? '').split(',').map((f) => f.trim()).filter(Boolean)) {
     if (field === 'title') {
       if (tabs.some((t) => t !== tab && t.title === u.properties.title)) throw new Bad(`A sheet with the name "${u.properties.title}" already exists.`);
@@ -831,6 +849,7 @@ function control(state, reset, method, path, url, body) {
   try {
     if (method === 'GET' && route === '/health') return json(200, { ok: true });
     if (method === 'GET' && route === '/calls') return json(200, { calls: state.calls });
+    if (method === 'GET' && route === '/issued') return json(200, { issued: state.issued });
     if (method === 'GET' && route === '/state') {
       return json(200, {
         files: [...state.files.values()].map((f) => ({ id: f.id, name: f.name, trashed: f.trashed, visibleToApp: f.visibleToApp, appProperties: f.appProperties, tabs: f.spreadsheet?.tabs.map((t) => t.title) ?? [] })),
@@ -858,7 +877,7 @@ function control(state, reset, method, path, url, body) {
       return json(200, { ok: true });
     }
     if (route === '/mode') {
-      if (typeof body?.mode !== 'string') throw new Bad('mode required');
+      if (!MODES.has(body?.mode)) throw new Bad(`unknown mode: ${String(body?.mode)}`);
       state.modes.push({ path: body.path ?? '', ...body });
       return json(200, { ok: true });
     }

@@ -34,6 +34,8 @@ export interface Standin {
   mode(m: Record<string, unknown>): Promise<void>;
   action(a: Record<string, unknown>): Promise<void>;
   calls(): Promise<StandinCall[]>;
+  /** Every code and token value the stand-in has handed out, for log and response scanning. */
+  issuedSecrets(): Promise<string[]>;
   sheet(query?: string): Promise<SheetDump>;
   state(): Promise<{ files: { id: string; name: string; trashed: boolean; visibleToApp: boolean; appProperties: Record<string, string>; tabs: string[] }[]; liveRefreshTokens: number }>;
   reset(): Promise<void>;
@@ -63,6 +65,10 @@ export async function startStandin(): Promise<Standin> {
     mode: (m) => must(post('/mode', m)),
     action: (a) => must(post('/action', a)),
     calls: async () => ((await (await fetch(`${url}/__control/calls`)).json()) as { calls: StandinCall[] }).calls,
+    issuedSecrets: async () => {
+      const { issued } = (await (await fetch(`${url}/__control/issued`)).json()) as { issued: Record<string, unknown>[] };
+      return issued.flatMap((i) => [i['code'], i['access_token'], i['refresh_token'], i['id_token']]).filter((v): v is string => typeof v === 'string');
+    },
     sheet: async (query = '') => (await (await fetch(`${url}/__control/sheet${query}`)).json()) as SheetDump,
     state: async () => (await (await fetch(`${url}/__control/state`)).json()) as Awaited<ReturnType<Standin['state']>>,
     reset: () => must(post('/reset')),
