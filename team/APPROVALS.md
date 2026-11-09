@@ -269,3 +269,12 @@ PAGES-6 r1 APPROVED tier=high reviewer=rev-c commits=550f129d4ffa1579a4c248967e2
 SHELL-8 r1 APPROVED tier=high reviewer=rev-c commits=b74d81e7ca8dfe70cca4394e3e5ce6bbf52fcbe2 review=artifacts/CART-0/review.md
 ORDER-10 r1 APPROVED tier=high reviewer=rev-c commits=7ced556fb84187343637c119a3565bed8ddc69a5 review=artifacts/CART-0/review.md
 ORDER-11 r1 APPROVED tier=high reviewer=rev-c commits=7b61156d74ea9720c5e8c1b0437c5e5021d2f62d review=artifacts/CART-0/review.md
+# META-1 to META-8 reviewed 2026-11-08/09 by rev-g (artifacts/<ID>/review-r<n>.md), latest round per slice.
+META-1 r1 APPROVED tier=low reviewer=rev-g commits=f1ea8f157da3f58904a48c3b5295dfb4bdcbcc98 review=artifacts/META-1/review-r1.md
+META-2 r2 APPROVED tier=low reviewer=rev-g commits=fcc09460dc9c38753dc7a6abfb479966616d0046,3d8e9ebbaf9bd3cdcd7df2d76602dcc1765d89c9 review=artifacts/META-2/review-r2.md
+META-3 r2 APPROVED tier=high reviewer=rev-g commits=8080bca867faa1178d9fc9fba541d6cb68be0044,e9827c598f05879c8e9a891a640f636d6c6f2f72 review=artifacts/META-3/review-r2.md
+META-4 r2 APPROVED tier=high reviewer=rev-g commits=6ef53c6123beef647131b6f862aa83bda506003d review=artifacts/META-4/review-r2.md
+META-5 r6 APPROVED tier=high reviewer=rev-g commits=b1b3e30122780fcebfc09abaacfc07558c6e6750,d2b05e8f08245c516e35042311342e8785693827,b27fc8839d288f2b96b96e24f14bbd1c4111fb0e,a8616005c4fc823f4b7cf6cbd4d39b910a7cf054,b72b6dffceef2ebe27012879488622d69b7318d8,3d3f66673a35da259603ef8727a0013fb91ef3b6 review=artifacts/META-5/review-r6.md
+META-6 r5 APPROVED tier=low reviewer=rev-g commits=5363aee49a0f14b2dbd7e10fe67b7d334980fa8c,d608767bb2776bbd34c4e15be67a38d899313bc4,98322988d129daf8e8b04300cf60bc2d491b3828,9020e3c50814097c63640c1a6f445849acad51c3,22034a7cfbd840a637616008a611a1474b19f106 review=artifacts/META-6/review-r5.md
+META-7 r2 APPROVED tier=high reviewer=rev-g commits=8f1776e506af0018977fe18401f6dcebd51a614b,d00a5f498d8b2b04b17b9a65cadca282a0e8f5c4 review=artifacts/META-7/review-r2.md
+META-8 r3 APPROVED tier=low reviewer=rev-g commits=40bbca62627fffc848d1663ca9454ff1fc38a502,c777703e419f8268a275549497d947bee0248db7,8a6b6276b3b432aeb59c488084f864d709b9aa59,2f8cc8f620ad347bd0fb827169a6f2679db40a8a review=artifacts/META-8/review-r3.md
