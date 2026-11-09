@@ -3,14 +3,14 @@
 // Nothing loads from or is sent to Meta before the visitor accepts. The choice is stored without a cookie.
 // Pure helpers are exported for the tests, as order.js does.
 
-export const CHOICE_KEY = 'hb.meta.consent.v1';
-export const PENDING_KEY = 'hb.meta.purchase';
+const CHOICE_KEY = 'hb.meta.consent.v1';
+const PENDING_KEY = 'hb.meta.purchase';
 /** Same pattern as @hb/shared META_ID_RE (parity test). Checked before anything goes in the order body. */
 export const META_ID_RE = /^fb\.\d\.\d{10,16}\.[\w.-]{1,480}$/;
 /** Same shape as @hb/shared ORDER_REF_RE. */
 export const REF_RE = /^HB-[0-9A-HJKMNP-TV-Z]{5}$/;
 /** Pages where the choice is never shown: nothing may compete with the confirm button. */
-export const NO_CHOICE_TEMPLATES = ['order-step', 'checkout'];
+export const NO_CHOICE = ['order-step', 'checkout'];
 const CLICK_WINDOW_MS = 5000;
 const FBEVENTS = 'https://connect.facebook.net/en_US/fbevents.js';
 
@@ -42,13 +42,7 @@ export function clearChoice(storage = () => localStorage) {
   } catch {}
 }
 
-export function readCookie(all, name) {
-  for (const part of all.split(';')) {
-    const i = part.indexOf('=');
-    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
-  }
-  return null;
-}
+export const readCookie = (all, name) => new RegExp(`(?:^|; *)${name}=([^;]*)`).exec(all)?.[1].trim() ?? null;
 
 /** What goes in the order body: consent, plus _fbp/_fbc only if they have the expected shape. */
 export function signals(cookies) {
@@ -100,7 +94,7 @@ export function takePending(storage = () => sessionStorage) {
 
 /** The Purchase to fire on the confirmation page, or null. */
 export function purchaseFor(ref, pending) {
-  return pending && typeof ref === 'string' && REF_RE.test(ref) && pending.ref === ref ? pending : null;
+  return pending && REF_RE.test(ref) && pending.ref === ref ? pending : null;
 }
 
 /** Resolves after activation (never during a prerender), `load` and idle. */
@@ -114,34 +108,38 @@ export function whenActive(d, w) {
 }
 
 /**
- * Resolves after the first largest-contentful-paint entry: on a thin page `load` and idle can come before LCP.
- * A hidden tab has no LCP, so while hidden nothing counts down; the wait for the entry starts when it becomes visible.
- * Where the API is missing there is nothing to wait for; `ms` caps the wait on a page with no LCP candidate.
+ * Resolves once LCP has settled: on a thin page `load` and idle can come before it, and a page that builds its content
+ * after `load` (checkout) paints a larger entry later. Done when no new entry has arrived for `quiet` ms.
+ * A hidden tab has no LCP, so while hidden nothing counts down; the wait starts when it becomes visible.
+ * Where the API is missing there is nothing to wait for; `cap` bounds the wait on a page with no LCP candidate.
  */
-export function whenLcp(w, ms = 5000, d = w.document) {
+export function whenLcp(w, { cap = 5000, quiet = 500 } = {}, d = w.document) {
   return new Promise((done) => {
     const PO = w.PerformanceObserver;
     if (!PO?.supportedEntryTypes?.includes('largest-contentful-paint')) return done();
     let seen = false;
-    let timer = null;
+    let capTimer = null;
+    let quietTimer = null;
     const visible = () => d.visibilityState !== 'hidden';
     const finish = () => {
       o.disconnect();
-      w.clearTimeout(timer);
-      w.setTimeout(done, 0);
+      w.clearTimeout(capTimer);
+      w.clearTimeout(quietTimer);
+      done();
     };
-    const check = () => {
-      if (seen && visible()) finish();
+    const settle = () => {
+      w.clearTimeout(quietTimer);
+      quietTimer = w.setTimeout(finish, quiet);
     };
     const o = new PO((list) => {
-      if (list.getEntries().length) {
-        seen = true;
-        check();
-      }
+      if (!list.getEntries().length) return;
+      seen = true;
+      if (visible()) settle();
     });
     o.observe({ type: 'largest-contentful-paint', buffered: true });
     const arm = () => {
-      timer = w.setTimeout(finish, ms);
+      capTimer = w.setTimeout(finish, cap);
+      if (seen) settle();
     };
     if (visible()) arm();
     else {
@@ -149,10 +147,18 @@ export function whenLcp(w, ms = 5000, d = w.document) {
         if (!visible()) return;
         d.removeEventListener('visibilitychange', onChange);
         arm();
-        check();
       };
       d.addEventListener('visibilitychange', onChange);
     }
+  });
+}
+
+/** Resolves when the checkout has drawn its rows or shown the empty state: its LCP comes after that. Bounded by `cap`. */
+export function whenRows(d, w, cap = 5000) {
+  return new Promise((done) => {
+    const end = Date.now() + cap;
+    const poll = () => (d.getElementById('of-rows')?.children.length || d.getElementById('of-empty')?.hidden === false || Date.now() > end ? done() : w.setTimeout(poll, 50));
+    poll();
   });
 }
 
@@ -162,7 +168,9 @@ if (pixel) boot(pixel, D.body.dataset.metaConsent !== 'off');
 
 async function boot(id, consentRequired) {
   await whenActive(D, window);
-  await whenLcp(window);
+  const onCheckout = D.documentElement.dataset.tpl === 'checkout';
+  if (onCheckout) await whenRows(D, window);
+  await whenLcp(window, onCheckout ? { quiet: 1500 } : {});
   const root = D.documentElement;
   const tpl = root.dataset.tpl;
   const lang = root.lang;
@@ -238,20 +246,19 @@ async function boot(id, consentRequired) {
     }
   }
 
+  function initiateCheckout(fbq, contents, numItems, value) {
+    if (value !== null) fbq('track', 'InitiateCheckout', { content_type: 'product', contents: contents, num_items: numItems, currency: 'DZD', value: value });
+    else fbq('track', 'InitiateCheckout', { content_type: 'product', contents: contents, num_items: numItems });
+  }
+
   function orderStepCheckout(fbq) {
     const f = D.getElementById('order-form');
     if (!f) return;
     const data = new FormData(f);
     const variant = Number(data.get('variantId'));
     const quantity = Number(data.get('qty')) || 1;
-    if (!variant) {
-      fbq('track', 'InitiateCheckout', { content_type: 'product', num_items: quantity });
-      return;
-    }
-    const price = (f.dataset.variants || '').split(',').map((x) => x.split(':').map(Number)).find((x) => x[0] === variant)?.[1];
-    const contents = [{ id: String(variant), quantity }];
-    if (price) fbq('track', 'InitiateCheckout', { content_type: 'product', contents, num_items: quantity, currency: 'DZD', value: price * quantity });
-    else fbq('track', 'InitiateCheckout', { content_type: 'product', contents, num_items: quantity });
+    const price = variant ? (f.dataset.variants || '').split(',').map((x) => x.split(':').map(Number)).find((x) => x[0] === variant)?.[1] : 0;
+    initiateCheckout(fbq, variant ? [{ id: String(variant), quantity }] : [], quantity, price ? price * quantity : null);
   }
 
   async function cartCheckout(fbq, api) {
@@ -260,11 +267,8 @@ async function boot(id, consentRequired) {
     const products = await Promise.all(lines.map((l) => api.product(l.p).catch(() => null)));
     const prices = lines.map((l, i) => priceOf(products[i], l.v));
     const contents = lines.map((l) => ({ id: String(l.v), quantity: l.q }));
-    const num = lines.reduce((a, l) => a + l.q, 0);
-    if (prices.every((p) => p !== null)) {
-      const value = lines.reduce((a, l, i) => a + prices[i] * l.q, 0);
-      fbq('track', 'InitiateCheckout', { content_type: 'product', contents, num_items: num, currency: 'DZD', value });
-    } else fbq('track', 'InitiateCheckout', { content_type: 'product', contents, num_items: num });
+    const value = prices.every((p) => p !== null) ? lines.reduce((a, l, i) => a + prices[i] * l.q, 0) : null;
+    initiateCheckout(fbq, contents, lines.reduce((a, l) => a + l.q, 0), value);
   }
 
   function watchCart(fbq, api) {
@@ -287,7 +291,7 @@ async function boot(id, consentRequired) {
   }
 
   function arm() {
-    if (NO_CHOICE_TEMPLATES.includes(tpl)) return;
+    if (NO_CHOICE.includes(tpl)) return;
     const events = ['scroll', 'keydown', 'pointerdown'];
     const go = () => {
       events.forEach((e) => removeEventListener(e, go, true));
@@ -307,9 +311,9 @@ async function boot(id, consentRequired) {
     }
     const sheet = new CSSStyleSheet();
     sheet.replaceSync(
-      // Every value has a literal fallback: the build does not scan this file when trimming page CSS, so a token
-      // used only here may be absent, and an unconfigured or configured page must carry the same CSS (§6).
-      'html{scroll-padding-block-end:var(--mc-sp,0)}.mc{position:fixed;inset-inline:0;inset-block-end:var(--mc-off,0);z-index:10;display:grid;gap:12px;padding:8px var(--gutter,1rem) calc(8px + env(safe-area-inset-bottom));background:var(--color-surface,#fff);box-shadow:0 -1px 0 var(--color-border,#d2d2d7);font-size:.875rem}.mc p{margin:0}.mc a{color:var(--color-accent-text,#06c);display:inline-block;padding-block:calc((44px - 1lh)/2 + 1px);margin-block:calc((1lh - 44px)/2 - 1px)}.mc-a{display:flex;gap:8px}.mc-a button{flex:1;min-block-size:44px;font:inherit;color:var(--color-text,#1d1d1f);background:var(--color-surface,#fff);border:1px solid var(--color-border-control,#86868b);border-radius:980px}',
+      // Literal values: the build does not scan this file when trimming page CSS, so a token used only here may be
+      // absent, and an unconfigured or configured page must carry the same CSS (§6).
+      'html{scroll-padding-block-end:var(--mc-sp,0)}.mc{position:fixed;inset-inline:0;inset-block-end:var(--mc-off,0);z-index:10;display:grid;gap:12px;padding:8px 1rem calc(8px + env(safe-area-inset-bottom));background:#fff;box-shadow:0 -1px 0 #d2d2d7;font-size:.875rem}.mc p{margin:0}.mc a{color:#06c;display:inline-block;padding-block:calc((44px - 1lh)/2 + 1px);margin-block:calc((1lh - 44px)/2 - 1px)}.mc-a{display:flex;gap:8px}.mc-a button{flex:1;min-block-size:44px;font:inherit;background:#fff;border:1px solid #86868b;border-radius:99px}',
     );
     D.adoptedStyleSheets = [...D.adoptedStyleSheets, sheet];
     const el = D.createElement('section');

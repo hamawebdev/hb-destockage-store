@@ -5,10 +5,8 @@ import { ORDER_REF_RE } from '@hb/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { metaUiJson } from '../src/lib/meta-data.ts';
 import {
-  CHOICE_KEY,
   META_ID_RE,
-  NO_CHOICE_TEMPLATES,
-  PENDING_KEY,
+  NO_CHOICE,
   REF_RE,
   addedLines,
   clearChoice,
@@ -22,6 +20,7 @@ import {
   signals,
   takePending,
   whenActive,
+  whenRows,
   whenLcp,
 } from '../public/js/meta.js';
 
@@ -36,6 +35,9 @@ function storage(): Storage {
 const thrower = () => {
   throw new Error('storage disabled');
 };
+
+const CHOICE_KEY = 'hb.meta.consent.v1';
+const PENDING_KEY = 'hb.meta.purchase';
 
 describe('parity with @hb/shared', () => {
   it('fbp/fbc pattern', () => expect(META_ID_RE.source).toBe(SHARED_META_ID_RE.source));
@@ -188,24 +190,21 @@ describe('whenActive', () => {
 });
 
 describe('whenLcp', () => {
-  const settled = async (p: Promise<unknown>) => {
+  const settled = async (p: Promise<unknown>, ms = 5) => {
     let done = false;
     void p.then(() => (done = true));
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, ms));
     return done;
   };
   function env(supported = true) {
     let cb: ((l: { getEntries: () => unknown[] }) => void) | undefined;
     class PO {
       static supportedEntryTypes = supported ? ['largest-contentful-paint'] : [];
-      disconnected = false;
       constructor(f: typeof cb) {
         cb = f;
       }
       observe = vi.fn();
-      disconnect() {
-        this.disconnected = true;
-      }
+      disconnect = vi.fn();
     }
     const listeners = new Set<() => void>();
     const d = {
@@ -213,20 +212,21 @@ describe('whenLcp', () => {
       addEventListener: (_e: string, f: () => void) => void listeners.add(f),
       removeEventListener: (_e: string, f: () => void) => void listeners.delete(f),
     };
-    const armed: number[] = [];
+    const caps: number[] = [];
     const w = {
       PerformanceObserver: PO,
       document: d,
+      // The cap never fires by itself here; a quiet window is real time.
       setTimeout: (f: () => void, ms: number) => {
-        if (ms > 0) armed.push(ms);
-        return setTimeout(f, ms === 5000 ? 1_000_000 : 0);
+        if (ms === 5000) caps.push(ms);
+        return setTimeout(f, ms === 5000 ? 1_000_000 : ms);
       },
       clearTimeout,
     };
     return {
       w,
       d,
-      armed,
+      caps,
       emit: (n: number) => cb?.({ getEntries: () => Array(n).fill({}) }),
       show: () => {
         d.visibilityState = 'visible';
@@ -234,37 +234,47 @@ describe('whenLcp', () => {
       },
     };
   }
+  const QUICK = { quiet: 20 };
 
-  it('waits for the first LCP entry, however long load took', async () => {
+  it('waits for an entry, then for it to stay the last one', async () => {
     const x = env();
-    const p = whenLcp(x.w);
+    const p = whenLcp(x.w, QUICK);
     expect(await settled(p)).toBe(false);
     x.emit(0);
     expect(await settled(p)).toBe(false);
     x.emit(1);
-    expect(await settled(p)).toBe(true);
+    expect(await settled(p, 60)).toBe(true);
+  });
+  it('a later, larger entry restarts the quiet window', async () => {
+    const x = env();
+    const p = whenLcp(x.w, { quiet: 80 });
+    x.emit(1);
+    await new Promise((r) => setTimeout(r, 50));
+    x.emit(1); // the checkout rows paint
+    expect(await settled(p, 50)).toBe(false);
+    expect(await settled(p, 100)).toBe(true);
   });
   it('hidden tab: the cap is not armed and an entry does not end the wait while hidden', async () => {
     const x = env();
     x.d.visibilityState = 'hidden';
-    const p = whenLcp(x.w);
+    const p = whenLcp(x.w, QUICK);
     x.emit(1);
-    expect(await settled(p)).toBe(false);
-    expect(x.armed).toEqual([]);
+    expect(await settled(p, 60)).toBe(false);
+    expect(x.caps).toEqual([]);
     x.show();
-    expect(x.armed).toEqual([5000]);
-    expect(await settled(p)).toBe(true); // the entry seen while hidden counts once the tab is visible
+    expect(x.caps).toEqual([5000]);
+    expect(await settled(p, 60)).toBe(true); // the entry seen while hidden counts once the tab is visible
   });
   it('hidden then visible with no entry: waits for the entry, cap counted from visible', async () => {
     const x = env();
     x.d.visibilityState = 'hidden';
-    const p = whenLcp(x.w);
+    const p = whenLcp(x.w, QUICK);
     expect(await settled(p)).toBe(false);
     x.show();
-    expect(x.armed).toEqual([5000]);
+    expect(x.caps).toEqual([5000]);
     expect(await settled(p)).toBe(false);
     x.emit(1);
-    expect(await settled(p)).toBe(true);
+    expect(await settled(p, 60)).toBe(true);
   });
   it('does not wait where the API is missing', async () => {
     expect(await settled(whenLcp(env(false).w))).toBe(true);
@@ -273,12 +283,22 @@ describe('whenLcp', () => {
   it('gives up after the cap on a page with no LCP candidate', async () => {
     const x = env();
     x.w.setTimeout = (f: () => void) => setTimeout(f, 0);
-    expect(await settled(whenLcp(x.w, 1))).toBe(true);
+    expect(await settled(whenLcp(x.w, { cap: 1 }), 20)).toBe(true);
   });
 });
 
+describe('whenRows', () => {
+  const page = (rows: number, emptyHidden: boolean) => ({
+    getElementById: (id: string) => (id === 'of-rows' ? { children: { length: rows } } : id === 'of-empty' ? { hidden: emptyHidden } : null),
+  });
+  const w = { setTimeout: (f: () => void) => setTimeout(f, 1) };
+  it('rows drawn', async () => expect(await whenRows(page(2, true), w)).toBeUndefined());
+  it('empty cart shown', async () => expect(await whenRows(page(0, false), w)).toBeUndefined());
+  it('still neither: bounded', async () => expect(await whenRows(page(0, true), w, 5)).toBeUndefined());
+});
+
 it('no choice on the order pages', () => {
-  expect([...NO_CHOICE_TEMPLATES].sort()).toEqual(['checkout', 'order-step']);
+  expect([...NO_CHOICE].sort()).toEqual(['checkout', 'order-step']);
 });
 
 describe('metaUiJson', () => {
