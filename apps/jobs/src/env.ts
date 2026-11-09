@@ -22,15 +22,19 @@ export interface Env {
   /** Producer binding to the notifications DLQ, for permanent failures and malformed messages. */
   ORDER_NOTIFICATIONS_DLQ?: Queue<unknown>;
 
-  // Google Sheets sync (SHEET-2). Off until all are set; the job records `config_missing` otherwise.
+  // Courier status sync (SHIP-5). Unset or invalid key = no courier is called; D1-only steps still run.
+  /** 32 random bytes, base64 (secret), the same value as the admin's. Opens the sealed courier keys. */
+  COURIER_KEYS_KEY?: string;
+  /** Local courier stand-in. Honoured only when ENV is not `production`. */
+  COURIER_STANDIN_URL?: string;
+
+  // Google Sheets sync (SHEET-2). Off until these and COURIER_KEYS_KEY are set; `config_missing` otherwise.
   /** Secret. */
   GOOGLE_CLIENT_ID?: string;
   /** Secret. */
   GOOGLE_CLIENT_SECRET?: string;
   /** Non-production only: loopback stand-in base URL. Ignored in production. */
   GOOGLE_STANDIN_URL?: string;
-  /** Secret (32 random bytes, base64), shared with the admin. Seals the refresh token. */
-  COURIER_KEYS_KEY?: string;
 }
 
 export const ORDER_NOTIFICATIONS_QUEUE = 'hb-order-notifications';

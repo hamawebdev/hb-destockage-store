@@ -11,6 +11,7 @@ import { D1DeliveryStore } from './notify/deliveries.ts';
 import type { EmailMessageFactory } from './notify/email.ts';
 import { buildProviders, emailEnabled } from './notify/providers.ts';
 import { log } from './log.ts';
+import { runCourierSync } from './couriers/sync.ts';
 
 async function emailFactory(env: Env): Promise<EmailMessageFactory | undefined> {
   if (!emailEnabled(env)) return undefined;
@@ -48,8 +49,8 @@ export default {
         return;
       }
       case CRON_EVERY_MINUTE: {
-        // Courier sync (SHIP-5) and Sheets sync add their run here. allSettled: neither can block the other.
-        await Promise.allSettled([runSheetsSync(env)]);
+        // Courier sync (SHIP-5) and Sheets sync (SHEET-2). allSettled: neither can block the other.
+        await Promise.allSettled([runCourierSync(env), runSheetsSync(env)]);
         return;
       }
       default:

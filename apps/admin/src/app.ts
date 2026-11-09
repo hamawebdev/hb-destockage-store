@@ -43,6 +43,7 @@ import fees from './routes/fees/index.tsx';
 import content from './routes/content/index.tsx';
 import media from './routes/media/index.tsx';
 import publish from './routes/publish/index.tsx';
+import delivery from './routes/delivery/index.tsx';
 import sheets from './routes/sheets/index.tsx';
 import auditRoutes from './audit/routes.tsx';
 
@@ -123,6 +124,7 @@ export function createApp(opts: AppOptions = {}): Hono<AppEnv> {
   app.route('/content', content);
   app.route('/media', media);
   app.route('/publish', publish);
+  app.route('/delivery', delivery);
   app.route('/sheets', sheets);
   app.route('/audit', auditRoutes);
 

@@ -9,7 +9,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { buildQuote, normalizePhone, type AdminRole, type FeeProvider, type OrderStatus } from '@hb/shared';
 import { normalizeName } from '@hb/shared/name';
 import { communes, customers, orderEvents, orderItems, orders, variants } from './schema.ts';
-import { guardedInsertSelect, orderGuard, type OrderBatchItem } from './orders.ts';
+import { classifyConstraintError, guardedInsertSelect, orderGuard, type OrderBatchItem } from './orders.ts';
 import type { Db } from './index.ts';
 
 export interface OrderContactPatch {
@@ -37,7 +37,9 @@ export type UpdateOrderContactResult =
         | 'commune_invalid'
         | 'area_unavailable'
         | 'order_total_out_of_range'
-        | 'nothing_to_change';
+        | 'nothing_to_change'
+        /** A parcel slot is open on this order (open-slot triggers, migration 0012); nothing was written. */
+        | 'shipment_in_progress';
     };
 
 /**
@@ -194,7 +196,13 @@ export async function updateOrderContact(
       .where(and(eq(orders.id, orderId), eq(orders.version, v))),
   );
 
-  const results = (await db.batch(items as [OrderBatchItem, ...OrderBatchItem[]])) as unknown as { meta?: { changes?: number } }[];
+  let results: { meta?: { changes?: number } }[];
+  try {
+    results = (await db.batch(items as [OrderBatchItem, ...OrderBatchItem[]])) as unknown as { meta?: { changes?: number } }[];
+  } catch (err) {
+    if (classifyConstraintError(err) === 'shipment_in_progress') return { ok: false, code: 'shipment_in_progress' };
+    throw err;
+  }
   if ((results.at(-1)?.meta?.changes ?? 0) !== 1) {
     const still = (await db.select({ id: orders.id }).from(orders).where(eq(orders.id, orderId)))[0];
     return { ok: false, code: still ? 'version_conflict' : 'not_found' };

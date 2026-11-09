@@ -194,3 +194,11 @@ Rules:
 - Why: lead ruling on the client's request for each order as one row; the data stays in the account of the admin who connects it.
 - Evidence: artifacts/SHEET-0/approval.md; artifacts/SHEET-0/contract.md §2 and §3; apps/jobs/test/sheets/sync.d1.test.ts (check 23).
 - Status: active
+
+## D-013 — The courier webhook route reads and writes D1, and signatures are checked in jobs
+- Date: 2026-11-09 · Author: shipping · Task: SHIP-4
+- Report says: §2 "Data", CLAUDE.md: D1 is touched only on the order and quote POSTs and in the admin (D-002). ADMIN2/BRIEF §5: the webhook route verifies a signature or per-account token.
+- We do instead: `/api/courier-hook/:courier/:token` on apps/web looks up the account by the SHA-256 of the URL token (one indexed read) and writes the byte-exact body and filtered headers to `courier_webhook_inbox`. A courier's own signature is verified in apps/jobs, not in this route, so the storefront Worker never holds courier secrets. The token is always enforced in the route. Malformed tokens cost no D1 query; bodies are capped at 32 KiB so a row stays within the daily backup's 90,000-byte statement limit. No rate-limit binding (lead ruling).
+- Why: couriers cannot reach the admin behind Cloudflare Access. Webhooks are not visitor page views, so no page depends on D1 here.
+- Evidence: artifacts/SHIP-0/contract.md rules 16 and 16a; lead rulings 2026-11-09, artifacts/SHIP-0/approval.md; apps/web/test/couriers/.
+- Status: active
