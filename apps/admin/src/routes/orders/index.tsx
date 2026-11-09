@@ -38,6 +38,7 @@ import { QueueCallPage, QueueEmptyPage } from './queue-page.tsx';
 import { ContactForm, canEditContact, communesOf, contactAudit, feeProviderFor, previewContact, type ContactCurrent, type ContactErrKey } from './contact.ts';
 import { ContactEditPage, ContactReviewPage } from './contact-page.tsx';
 import { fetchOrderByRef, fetchOrderChildren, type OrderDetail } from './detail-data.ts';
+import { fetchCustomerHistory, type CustomerHistory } from './history.ts';
 import { OrderDetailPage, type DetailProps, type FormKind } from './detail-page.tsx';
 import { fetchOrdersPage, ordersToday, statusCounts } from './list-data.ts';
 import { OrdersListPage } from './list-page.tsx';
@@ -95,6 +96,11 @@ r.get('/', requirePerm('orders.view'), async (c) => {
   );
 });
 
+/** The phone's other orders (UX-7). Order history is sensitive: nothing is read without `customers.sensitive`. */
+function historyOf(c: Context<AppEnv>, order: OrderDetail): Promise<CustomerHistory | undefined> {
+  return order.risk ? fetchCustomerHistory(c.var.db, order.customer.id, order.id) : Promise.resolve(undefined);
+}
+
 // ---------------------------------------------------------------------------------------------
 // Call queue (AORD-3): reads, plus AORD-2's claimOrder.
 
@@ -106,8 +112,11 @@ async function renderQueue(c: Context<AppEnv>, opts: { afterNext?: boolean } = {
   const ref = await myClaim(c.var.db, c.var.user.id, now);
   const order = ref ? await fetchOrderByRef(c.var.db, ref, canSeeSensitive(c.var.user)) : null;
   if (order) {
-    const { items, events } = await fetchOrderChildren(c.var.db, order.id, { withAudit: false, sensitive: canSeeSensitive(c.var.user) });
-    return c.render(<QueueCallPage lang={c.var.lang} user={c.var.user} now={now} order={order} items={items} events={events} />, { title });
+    const [{ items, events }, history] = await Promise.all([
+      fetchOrderChildren(c.var.db, order.id, { withAudit: false, sensitive: canSeeSensitive(c.var.user) }),
+      historyOf(c, order),
+    ]);
+    return c.render(<QueueCallPage lang={c.var.lang} user={c.var.user} now={now} order={order} items={items} events={events} {...(history ? { history } : {})} />, { title });
   }
   const counts = await queueCounts(c.var.db, now);
   const nothingFree = opts.afterNext === true && counts.due + counts.new + counts.unreachable > 0;
@@ -227,11 +236,14 @@ async function renderDetail(
   status: 200 | 403 | 409 | 422 = 200,
   extra: Pick<DetailProps, 'form' | 'conflict' | 'shipmentBusy'> = {},
 ) {
-  const children = await fetchOrderChildren(c.var.db, order.id, { withAudit: c.var.user.role === 'owner', sensitive: canSeeSensitive(c.var.user) });
+  const [children, history] = await Promise.all([
+    fetchOrderChildren(c.var.db, order.id, { withAudit: c.var.user.role === 'owner', sensitive: canSeeSensitive(c.var.user) }),
+    historyOf(c, order),
+  ]);
   const tm = m(c.var.lang);
   c.status(status);
   return c.render(
-    <OrderDetailPage lang={c.var.lang} user={c.var.user} now={Date.now()} order={order} {...children} {...extra} />,
+    <OrderDetailPage lang={c.var.lang} user={c.var.user} now={Date.now()} order={order} {...children} {...extra} {...(history ? { history } : {})} />,
     {
       // LRI … PDI: the ref stays left-to-right inside the Arabic title.
       title: tm('detail.title', { ref: `\u2066${order.ref}\u2069` }),

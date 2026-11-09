@@ -14,6 +14,8 @@ import { CallForm, ClaimButtons } from './detail-page.tsx';
 import { flagLabel } from './list-page.tsx';
 import { m, orderFlagTone, orderStatusLabel, orderStatusTone, type OrdersMessages } from './messages.ts';
 import type { QueueBucket } from './queue.ts';
+import { HistoryBlock, ReturnerBadge } from './history-card.tsx';
+import type { CustomerHistory } from './history.ts';
 
 export function QueueEmptyPage(props: { lang: Lang; counts: Record<QueueBucket, number>; nothingFree?: boolean }) {
   const tm = m(props.lang);
@@ -63,6 +65,7 @@ export function QueueCallPage(props: {
   order: OrderDetail;
   items: readonly OrderItemRow[];
   events: readonly OrderEventRow[];
+  history?: CustomerHistory;
 }) {
   const tm = m(props.lang);
   const { order, lang } = props;
@@ -80,6 +83,7 @@ export function QueueCallPage(props: {
         </div>
         <div class="order-head__status">
           <StatusBadge tone={orderStatusTone(order.status)} label={orderStatusLabel(lang, order.status)} />
+          <ReturnerBadge tm={tm} risk={order.risk} />
           {risk.callAttempts > 0 ? <span class="muted">{tm('status.attempt', { n: risk.callAttempts })}</span> : null}
           {risk.nextCallAt !== null && order.status === 'called' ? (
             <span class="muted">{tm('queue.callbackAt')} <DateTime ms={risk.nextCallAt} /></span>
@@ -111,6 +115,11 @@ export function QueueCallPage(props: {
               <span class="cell-sub">{tm('detail.fee')} <Money dzd={order.feeDzd} /></span>
             </p>
           </Card>
+          {order.risk ? (
+            <Card title={tm('history.title')}>
+              <HistoryBlock tm={tm} lang={lang} risk={order.risk} history={props.history} customerId={order.customer.id} />
+            </Card>
+          ) : null}
           <Card title={tm('detail.delivery')}>
             <p>
               {String(order.wilayaCode).padStart(2, '0')} — {name(order.wilayaFr, order.wilayaAr)} / {name(order.communeFr, order.communeAr)}
