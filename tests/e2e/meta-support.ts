@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 /**
  * Shared helpers for the Meta end-to-end specs (META-8). Run them through tests/e2e/meta-run.sh:
  * it builds, seeds and boots the Worker with fake values only. No check here reaches the real Meta:

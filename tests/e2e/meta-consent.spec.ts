@@ -10,7 +10,7 @@ import { startMetaStandIn, type MetaStandIn } from '../../apps/web/test/support/
 import { TURNSTILE_ORIGIN, META_PIXEL_ORIGIN, META_SCRIPT_ORIGIN, patternMatches, scanHtml } from '../../apps/web/scripts/csp.ts';
 import { chooseVariant, expectNumbersShown, expectPreselected, fillCustomer, openOrderStep, pickPlace, pickVariant, submitUntilConfirmed } from './flows.ts';
 import { DIST } from './harness.ts';
-import { CONFIGURED, LANGS, MODE, STAND_IN_PORT, cspViolations, expectShape, fbqCalls, launchMeta, metaContext, place, showChoice, templateUrls, tracked, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
+import { CONFIGURED, LANGS, MODE, STAND_IN_PORT, cspViolations, expectShape, fbqCalls, launchMeta, metaContext, place, showChoice, templateUrls, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
 
 const web = () => inject('webUrl') as string;
 const stored = (page: Page) => page.evaluate(() => localStorage.getItem('hb.meta.consent.v1'));
@@ -19,11 +19,9 @@ const fbqDefined = (page: Page) => page.evaluate(() => typeof (window as unknown
 async function metaTiming(page: Page) {
   return page.evaluate(() => {
     const entries = performance.getEntriesByType('resource').filter((r) => /facebook\.(net|com)/.test(r.name));
-    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     return {
       firstMeta: entries.length ? Math.min(...entries.map((e) => e.startTime)) : null,
       lcp: (window as unknown as { __lcpTime?: number }).__lcpTime ?? 0,
-      activationStart: nav.activationStart,
     };
   });
 }
