@@ -313,12 +313,13 @@ async function findByReference(
   if (total === 0 && items.length === 0) return { kind: 'not_found', checkedAt: (ctx.now ?? Date.now)() };
   if (body['hasNext'] === true) return { kind: 'unavailable', cause: 'too_many_rows' };
 
-  const exact = items
-    .map(asRecord)
-    .filter((row): row is Record<string, unknown> => row?.['externalId'] === reference && isValidTracking(row['trackingNumber']));
+  const exact = items.map(asRecord).filter((row): row is Record<string, unknown> => row?.['externalId'] === reference);
   const first = exact[0];
   if (first === undefined) return { kind: 'unavailable', cause: 'no_exact_match' };
-  if (exact.length > 1) return { kind: 'multiple', trackings: exact.map((row) => row['trackingNumber'] as string) };
+  if (exact.length > 1) {
+    return { kind: 'multiple', trackings: exact.map((row) => row['trackingNumber']).filter(isValidTracking) };
+  }
+  if (!isValidTracking(first['trackingNumber'])) return { kind: 'unavailable', cause: 'malformed_response' };
   const rawStatus = asRecord(first['state'])?.['name'];
   const name = typeof rawStatus === 'string' ? rawStatus : '';
   return {
@@ -586,7 +587,7 @@ export const zrExpress: CourierAdapter = {
     if (!result.ok) return result;
     const items: CourierCommune[] = [];
     for (const row of result.items) {
-      if (typeof row['name'] === 'string' && typeof row['id'] === 'string') {
+      if (typeof row['name'] === 'string' && typeof row['id'] === 'string' && row['parentId'] === parent.id) {
         const offered = delivery(row);
         items.push({
           id: row['id'],

@@ -378,6 +378,12 @@ describe('findByReference', () => {
     expect((await fullState()).readCount).toBe(1);
   });
 
+  it('two exact rows are multiple even if one has an unusable tracking', async () => {
+    const body = { items: [{ externalId: 'R', trackingNumber: '16-A-ZR' }, { externalId: 'R', trackingNumber: 'bad,one' }], totalCount: 2, hasNext: false };
+    const result = await adapter.findByReference('R', { attemptedAt: 1 }, GOOD, ctx({ fetch: async () => new Response(JSON.stringify(body)) }));
+    expect(result).toEqual({ kind: 'multiple', trackings: ['16-A-ZR'] });
+  });
+
   it('two exact rows are multiple', async () => {
     await seed([{ externalId: 'HB-DUP' }, { externalId: 'HB-DUP' }]);
     expect((await find('HB-DUP')).kind).toBe('multiple');
