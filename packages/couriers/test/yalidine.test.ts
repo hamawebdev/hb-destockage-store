@@ -290,6 +290,12 @@ describe.each<[string, CourierAdapter]>([
       expect(await find()).toMatchObject({ kind: 'unavailable', retryAfterMs: 9000 });
     });
 
+    it('two exact rows are multiple even if one has an unusable tracking', async () => {
+      const body = { has_more: false, total_data: 2, data: [{ order_id: 'R', tracking: 'yal-1', last_status: 'Livré' }, { order_id: 'R', tracking: 'bad,one' }] };
+      const result = await adapter.findByReference('R', { attemptedAt: 1 }, GOOD, ctx({ fetch: async () => new Response(JSON.stringify(body)) }));
+      expect(result).toEqual({ kind: 'multiple', trackings: ['yal-1'] });
+    });
+
     it('two exact rows are multiple, not the first', async () => {
       await standin.control(`${courier}/seed`, {
         parcels: [{ order_id: 'HB-7K2Q9' }, { order_id: 'HB-7K2Q9' }],
@@ -635,7 +641,44 @@ describe.each<[string, CourierAdapter]>([
     });
   });
 
+  describe('list rows from elsewhere', () => {
+    const answering = (data: unknown[]): typeof fetch =>
+      (async () => new Response(JSON.stringify({ has_more: false, total_data: data.length, data }))) as typeof fetch;
+
+    it('a desk from another wilaya never reaches an order', async () => {
+      const centers = [
+        { center_id: 5001, name: 'Agence Batna', address: 'a', commune_name: 'Batna', wilaya_id: 5, wilaya_name: 'Batna' },
+        { center_id: 16001, name: 'Agence Alger', address: 'b', commune_name: 'Hydra', wilaya_id: 16, wilaya_name: 'Alger' },
+      ];
+      const desks = await adapter.listStopDesks(16, GOOD, ctx({ fetch: answering(centers) }));
+      if (!desks.ok) throw new Error(desks.cause);
+      expect(desks.items.map((d) => d.id)).toEqual(['16001']);
+      const lists: CourierLists = { wilayas: [{ code: 16, name: 'Alger', deliverable: true }], communes: [], stopDesks: desks.items };
+      expect(adapter.prepare(input({ wilayaCode: 16, originWilayaCode: 16, deliveryType: 'stop_desk', stopDeskId: '5001' }), lists)).toMatchObject({
+        ok: false,
+        code: 'stop_desk_mismatch',
+      });
+    });
+
+    it('a commune from another wilaya is dropped, and one naming no wilaya too', async () => {
+      const rows = [
+        { name: 'Batna', wilaya_id: 5 },
+        { name: 'Hydra', wilaya_id: 16 },
+        { name: 'Sans wilaya' },
+      ];
+      const communesFound = await adapter.listCommunes(16, GOOD, ctx({ fetch: answering(rows) }));
+      if (!communesFound.ok) throw new Error(communesFound.cause);
+      expect(communesFound.items.map((c) => c.name)).toEqual(['Hydra']);
+    });
+  });
+
   describe('labels', () => {
+    it('refuses a row for another parcel', async () => {
+      const other = (async () =>
+        new Response(JSON.stringify({ data: [{ tracking: 'yal-OTHER', label: 'https://yalidine.app/x' }] }))) as typeof fetch;
+      expect(await adapter.getLabel('yal-1', GOOD, { env: 'production', fetch: other })).toEqual({ kind: 'unavailable', cause: 'no_label' });
+    });
+
     it('returns the stand-in waybill URL, with no token in it', async () => {
       const created = await adapter.createParcel(await prepared(), GOOD, ctx());
       if (created.kind !== 'accepted') throw new Error('not accepted');
@@ -647,6 +690,7 @@ describe.each<[string, CourierAdapter]>([
     it('drops a javascript or off-list label', async () => {
       const body = (label: string) =>
         (async () => new Response(JSON.stringify({ data: [{ tracking: 'yal-1', label }] }))) as typeof fetch;
+      // The tracking matches: only the label itself is at fault here.
       for (const label of ['javascript:alert(1)', 'https://evil.test/x']) {
         expect(await adapter.getLabel('yal-1', GOOD, ctx({ fetch: body(label) }))).toEqual({
           kind: 'unavailable',

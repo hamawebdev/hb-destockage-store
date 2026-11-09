@@ -53,6 +53,9 @@ describe('tenant registry', () => {
       'yalidine',
       'guepex',
       ...tenantRows.map((row) => `ecotrack-${slug(row.name)}`),
+      'zr-express',
+      'noest',
+      'maystro',
     ]);
   });
 
@@ -746,8 +749,49 @@ describe('fixtures replayed through the adapter', () => {
     const entries = fixture('getStopDesks/by-wilaya-name.native.json');
     const result = await adapter.listStopDesks(16, GOOD, ctx(answer(entries[1])));
     if (!result.ok) throw new Error(result.cause);
-    expect(result.items.map((d) => d.id)).toEqual(expect.arrayContaining(['1625', '1640']));
-    expect(result.items.map((d) => d.id)).not.toContain('1617');
+    expect(result.items.map((d) => d.id)).toEqual(['1625', '1640']);
+  });
+
+  it('a desk from another wilaya in the answer never reaches an order', async () => {
+    const entries = fixture('getStopDesks/by-wilaya-name.native.json');
+    const desks = await adapter.listStopDesks(16, GOOD, ctx(answer(entries[1])));
+    if (!desks.ok) throw new Error(desks.cause);
+    const lists: CourierLists = {
+      wilayas: [{ code: 16, name: 'Alger', deliverable: true }],
+      communes: [],
+      stopDesks: desks.items,
+    };
+    const order: ParcelInput = {
+      reference: 'R-1',
+      recipientName: 'Amina',
+      phone: '0560417403',
+      wilayaCode: 16,
+      commune: { nameFr: 'x', nameAr: 'y' },
+      deliveryType: 'stop_desk',
+      stopDeskId: '501',
+      codTotalDzd: 100,
+      productLabel: 'x',
+    };
+    expect(adapter.prepare(order, lists)).toMatchObject({ ok: false, code: 'stop_desk_mismatch' });
+  });
+
+  it('communes from another wilaya are dropped', async () => {
+    const result = await adapter.listCommunes(16, GOOD, ctx(answer(fixture('getCommunes/index-keyed.native.json')[0])));
+    if (!result.ok) throw new Error(result.cause);
+    expect(result.items.map((c) => c.name)).not.toContain('Batna');
+  });
+
+  it('two exact rows are multiple even if one tracking is unusable, and junk is left out', async () => {
+    const body = {
+      current_page: 1,
+      last_page: 1,
+      data: [
+        { reference: 'R', tracking: 'ECGOOD1', status: 'en_hub' },
+        { reference: 'R', status: 'en_hub' },
+      ],
+    };
+    const result = await adapter.findByReference('R', { attemptedAt: 1 }, GOOD, ctx(async () => new Response(JSON.stringify(body))));
+    expect(result).toEqual({ kind: 'multiple', trackings: ['ECGOOD1'] });
   });
 
   it('wilayas parse', async () => {

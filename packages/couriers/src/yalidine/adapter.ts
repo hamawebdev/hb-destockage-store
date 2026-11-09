@@ -83,6 +83,9 @@ const asRecord = (value: unknown): Record<string, unknown> | undefined =>
     : undefined;
 
 const isOn = (value: unknown): boolean => value === 1 || value === true;
+
+/** Lists can answer with rows from elsewhere; a row counts only under the wilaya it names. */
+const inWilaya = (row: Record<string, unknown>, code: number): boolean => Number(row['wilaya_id']) === code;
 const isNotOff = (value: unknown): boolean => value !== 0 && value !== false;
 
 function errorMessage(body: string): unknown {
@@ -298,12 +301,13 @@ function createFamilyAdapter(config: FamilyConfig): CourierAdapter {
       return { kind: 'not_found', checkedAt: (ctx.now ?? Date.now)() };
     }
     if (body['has_more'] === true) return { kind: 'unavailable', cause: 'too_many_rows' };
-    const exact = rows
-      .map(asRecord)
-      .filter((row): row is Record<string, unknown> => row?.['order_id'] === reference && isValidTracking(row['tracking']));
+    const exact = rows.map(asRecord).filter((row): row is Record<string, unknown> => row?.['order_id'] === reference);
     const first = exact[0];
     if (first === undefined) return { kind: 'unavailable', cause: 'no_exact_match' };
-    if (exact.length > 1) return { kind: 'multiple', trackings: exact.map((row) => row['tracking'] as string) };
+    if (exact.length > 1) {
+      return { kind: 'multiple', trackings: exact.map((row) => row['tracking']).filter(isValidTracking) };
+    }
+    if (!isValidTracking(first['tracking'])) return { kind: 'unavailable', cause: 'malformed_response' };
     const rawStatus = typeof first['last_status'] === 'string' ? first['last_status'] : '';
     return {
       kind: 'found',
@@ -422,7 +426,7 @@ function createFamilyAdapter(config: FamilyConfig): CourierAdapter {
         'communes/',
         new URLSearchParams({ wilaya_id: String(mapped.code) }),
         (row) =>
-          typeof row['name'] === 'string'
+          typeof row['name'] === 'string' && inWilaya(row, mapped.code)
             ? {
                 name: row['name'],
                 wilayaCode: mapped.code,
@@ -442,6 +446,7 @@ function createFamilyAdapter(config: FamilyConfig): CourierAdapter {
         'centers/',
         new URLSearchParams({ wilaya_id: String(mapped.code) }),
         (row) =>
+          inWilaya(row, mapped.code) &&
           typeof row['center_id'] === 'number' &&
           typeof row['name'] === 'string' &&
           typeof row['commune_name'] === 'string' &&
@@ -479,7 +484,9 @@ function createFamilyAdapter(config: FamilyConfig): CourierAdapter {
       }
       const rows = parseObject(result.text)?.['data'];
       const row = Array.isArray(rows) ? asRecord(rows[0]) : undefined;
-      const url = safeLabelUrl(row?.['label'], config.labelHosts, ctx);
+      // The waybill printed must be this parcel's.
+      if (row?.['tracking'] !== tracking) return { kind: 'unavailable', cause: 'no_label' };
+      const url = safeLabelUrl(row['label'], config.labelHosts, ctx);
       return url ? { kind: 'url', url } : { kind: 'unavailable', cause: 'no_label' };
     },
 

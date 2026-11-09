@@ -272,7 +272,7 @@ function createTenantAdapter(tenant: EcotrackTenant): CourierAdapter {
     const first = exact[0];
     if (first === undefined) return { kind: 'not_found', checkedAt: (ctx.now ?? Date.now)() };
     if (exact.length > 1) {
-      return { kind: 'multiple', trackings: exact.map((row) => String(row['tracking'])) };
+      return { kind: 'multiple', trackings: exact.map((row) => row['tracking']).filter(isValidTracking) };
     }
     if (!isValidTracking(first['tracking'])) return { kind: 'unavailable', cause: 'malformed_response' };
     const rawStatus = typeof first['status'] === 'string' ? first['status'] : '';
@@ -372,7 +372,9 @@ function createTenantAdapter(tenant: EcotrackTenant): CourierAdapter {
       return { ok: false, cause: 'malformed_response' };
     }
     const rows = parseCommunes(body);
-    return rows === null ? { ok: false, cause: 'malformed_response' } : { ok: true, items: rows, code: mapped.code };
+    if (rows === null) return { ok: false, cause: 'malformed_response' };
+    // `wilaya_id` is optional on the request, so a row counts only under the wilaya it names.
+    return { ok: true, items: rows.filter((row) => Number(row['wilaya_id']) === mapped.code), code: mapped.code };
   }
 
   return {
