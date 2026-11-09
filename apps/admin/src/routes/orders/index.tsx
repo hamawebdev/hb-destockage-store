@@ -62,7 +62,7 @@ import {
 } from './workflow.ts';
 import { orderGuard, orderWriter } from './writer.ts';
 import { MAX_BATCH, fetchSlips, shippingCounts, shippingQuery } from './shipping-data.ts';
-import { ShippingPage, SlipsPage, type ShipResult } from './shipping-page.tsx';
+import { ShippingPage, SlipsPage, type ShipKept, type ShipResult } from './shipping-page.tsx';
 
 const r = createRouter({ roles: rolesFor('orders.view') });
 
@@ -145,7 +145,7 @@ r.post('/queue/next', requirePerm('orders.queue'), async (c) => {
 // ---------------------------------------------------------------------------------------------
 // Shipping hand-off (AORD-5). Plan: artifacts/AORD-5/plan.md (approved: slips only, no CSV).
 
-async function renderShipping(c: Context<AppEnv>, status: 200 | 422 = 200, extra: { error?: string; results?: ShipResult[] } = {}) {
+async function renderShipping(c: Context<AppEnv>, status: 200 | 422 = 200, extra: { error?: string; results?: ShipResult[]; kept?: ShipKept } = {}) {
   const [ready, out, counts] = await Promise.all([shippingQuery(c.var.db, 'confirmed'), shippingQuery(c.var.db, 'shipped'), shippingCounts(c.var.db)]);
   c.status(status);
   return c.render(<ShippingPage lang={c.var.lang} ready={ready} out={out} counts={counts} send={can(c.var.user, 'delivery.send')} {...extra} />, { title: m(c.var.lang)('ship.title') });
@@ -171,7 +171,9 @@ r.post('/shipping/ship', requirePerm('orders.shipping'), async (c) => {
   const courierName = str('courierName').trim();
   const refuse = (key: 'ship.err.none' | 'ship.err.tooMany' | 'err.courierRequired' | 'form.tooLong') => {
     noAudit(c, 'bulk ship refused before any write');
-    return renderShipping(c, 422, { error: key === 'form.tooLong' ? c.var.t('form.tooLong', { max: 80 }) : tm(key) });
+    // What was ticked and typed comes back, so fixing the courier name costs nothing (review UX-4 r2 N1).
+    const kept: ShipKept = { refs, courierName: str('courierName').slice(0, 80), tracking: Object.fromEntries(refs.map((r) => [r, str(`tracking_${r}`).slice(0, 80)])) };
+    return renderShipping(c, 422, { error: key === 'form.tooLong' ? c.var.t('form.tooLong', { max: 80 }) : tm(key), kept });
   };
   if (refs.length === 0) return refuse('ship.err.none');
   if (refs.length > MAX_BATCH) return refuse('ship.err.tooMany');

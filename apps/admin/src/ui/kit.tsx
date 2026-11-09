@@ -99,10 +99,10 @@ export function BulkBar(props: { selected: string; children: Child }) {
 }
 
 /** Row checkbox of a bulk table. */
-export function Pick(props: { name: string; value: string; label: string }) {
+export function Pick(props: { name: string; value: string; label: string; checked?: boolean }) {
   return (
     <label class="pick-cell">
-      <input type="checkbox" class="check pick" name={props.name} value={props.value} aria-label={props.label} />
+      <input type="checkbox" class="check pick" name={props.name} value={props.value} aria-label={props.label} checked={props.checked} />
     </label>
   );
 }

@@ -15,6 +15,13 @@ import { SHIPPING_PAGE_SIZE } from './shipping-data.ts';
 /** National form `0XXXXXXXXX` (what couriers dial). */
 export const nationalPhone = (e164: string) => e164.replace(/^\+213/, '0');
 
+/** A refused bulk ship re-renders with what was ticked and typed. */
+export interface ShipKept {
+  refs: readonly string[];
+  courierName: string;
+  tracking: Readonly<Record<string, string>>;
+}
+
 export type ShipResult = { ref: string; outcome: 'shipped' | 'conflict' | 'forbidden' | 'notFound' | 'notConfirmed' | 'shipmentBusy' };
 
 export function ShippingPage(props: {
@@ -26,6 +33,7 @@ export function ShippingPage(props: {
   send?: boolean;
   error?: string;
   results?: readonly ShipResult[];
+  kept?: ShipKept;
 }) {
   const tm = m(props.lang);
   const place = (r: ShippingRow) => `${String(r.wilayaCode).padStart(2, '0')} ${props.lang === 'ar' ? r.wilayaAr : r.wilayaFr} / ${props.lang === 'ar' ? r.communeAr : r.communeFr}`;
@@ -71,7 +79,7 @@ export function ShippingPage(props: {
                     label: tm('ship.select'),
                     cell: (r) => (
                       <>
-                        <Pick name="ref" value={r.ref} label={tm('ship.selectRef', { ref: r.ref })} />
+                        <Pick name="ref" value={r.ref} label={tm('ship.selectRef', { ref: r.ref })} checked={props.kept?.refs.includes(r.ref) ?? false} />
                         <input type="hidden" name={`version_${r.ref}`} value={String(r.version)} />
                       </>
                     ),
@@ -103,14 +111,14 @@ export function ShippingPage(props: {
                     key: 'tracking',
                     header: tm('ship.tracking'),
                     cell: (r) => (
-                      <input class="input" type="text" name={`tracking_${r.ref}`} maxlength={80} dir="ltr" autocomplete="off" aria-label={tm('ship.trackingFor', { ref: r.ref })} />
+                      <input class="input" type="text" name={`tracking_${r.ref}`} value={props.kept?.tracking[r.ref] ?? ''} maxlength={80} dir="ltr" autocomplete="off" aria-label={tm('ship.trackingFor', { ref: r.ref })} />
                     ),
                   },
                 ]}
               />
               {props.counts.confirmed > SHIPPING_PAGE_SIZE ? <p class="muted list-note">{tm('ship.more')}</p> : null}
               <div class="ship-fields">
-                <TextInput name="courierName" label={tm('ship.courier')} maxlength={80} dir="auto" required />
+                <TextInput name="courierName" label={tm('ship.courier')} value={props.kept?.courierName ?? ''} error={props.kept && props.kept.courierName.trim() === '' ? tm('err.courierRequired') : undefined} maxlength={80} dir="auto" required />
                 <div class="field">
                   <label class="field__label" for="f-size">{tm('ship.size')}</label>
                   <select id="f-size" class="input input--select" name="size">
