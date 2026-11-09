@@ -27,6 +27,14 @@ export interface Env {
   COURIER_KEYS_KEY?: string;
   /** Local courier stand-in. Honoured only when ENV is not `production`. */
   COURIER_STANDIN_URL?: string;
+
+  // Google Sheets sync (SHEET-2). Off until these and COURIER_KEYS_KEY are set; `config_missing` otherwise.
+  /** Secret. */
+  GOOGLE_CLIENT_ID?: string;
+  /** Secret. */
+  GOOGLE_CLIENT_SECRET?: string;
+  /** Non-production only: loopback stand-in base URL. Ignored in production. */
+  GOOGLE_STANDIN_URL?: string;
 }
 
 export const ORDER_NOTIFICATIONS_QUEUE = 'hb-order-notifications';

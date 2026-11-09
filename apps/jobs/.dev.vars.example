@@ -1,5 +1,11 @@
 # Local only. Courier and Google HTTP is held to loopback unless ENV is exactly "production".
 ENV=development
-# Courier sync (SHIP-5): the same COURIER_KEYS_KEY as apps/admin; the stand-in on loopback only.
-# COURIER_KEYS_KEY=
+
+# Courier sync (SHIP-5) and Sheets sync: the same COURIER_KEYS_KEY as apps/admin (local placeholder).
+COURIER_KEYS_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 # COURIER_STANDIN_URL=http://127.0.0.1:4410
+
+# Google Sheets against the local stand-in (node tools/standins/sheets/server.mjs --port 4420).
+GOOGLE_CLIENT_ID=standin-client
+GOOGLE_CLIENT_SECRET=standin-secret
+GOOGLE_STANDIN_URL=http://127.0.0.1:4420

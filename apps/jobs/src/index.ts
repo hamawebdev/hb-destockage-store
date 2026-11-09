@@ -5,6 +5,7 @@ import { backupHealthCheck, backupJob } from './backup/job.ts';
 import { CRON_BACKUP_HEALTH, CRON_DAILY_BACKUP, CRON_EVERY_MINUTE, CRON_RUM_ROLLUP, ORDER_NOTIFICATIONS_DLQ, ORDER_NOTIFICATIONS_QUEUE, type Env } from './env.ts';
 import { handleDeadLetters } from './notify/dead.ts';
 import { rumJob } from './rum/rollup.ts';
+import { runSheetsSync } from './sheets/run.ts';
 import { handleOrderNotifications } from './notify/consumer.ts';
 import { D1DeliveryStore } from './notify/deliveries.ts';
 import type { EmailMessageFactory } from './notify/email.ts';
@@ -48,8 +49,8 @@ export default {
         return;
       }
       case CRON_EVERY_MINUTE: {
-        // Courier sync (SHIP-5) and Sheets sync. allSettled: neither can block the other.
-        await Promise.allSettled([runCourierSync(env)]);
+        // Courier sync (SHIP-5) and Sheets sync (SHEET-2). allSettled: neither can block the other.
+        await Promise.allSettled([runCourierSync(env), runSheetsSync(env)]);
         return;
       }
       default:
