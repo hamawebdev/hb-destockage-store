@@ -28,6 +28,8 @@ import {
   type DeadSummary,
   type Tile,
 } from './data.ts';
+import { DEFAULT_DELAY_DAYS, delayDaysSetting, delayedCount } from '../parcels/data.ts';
+import { pm } from '../parcels/messages.ts';
 
 const r = createRouter({ roles: rolesFor('dashboard.view') });
 
@@ -37,6 +39,7 @@ export const TILE_ACCESS = {
   toCall: (u: Pick<CurrentUser, 'role'>) => can(u, 'orders.queue'),
   flagged: (u: Pick<CurrentUser, 'role'>) => can(u, 'customers.sensitive'),
   toShip: (u: Pick<CurrentUser, 'role'>) => can(u, 'orders.shipping'),
+  delayed: (u: Pick<CurrentUser, 'role'>) => can(u, 'orders.view'),
   lowStock: (u: Pick<CurrentUser, 'role'>) => can(u, 'stock.edit'),
   placeholderFees: (u: Pick<CurrentUser, 'role'>) => can(u, 'fees.edit'),
   backup: (u: Pick<CurrentUser, 'role'>) => u.role === 'owner',
@@ -124,12 +127,18 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
   const skip = <T,>(): Promise<Tile<T> | null> => Promise.resolve(null);
   const { today, week } = dayWindows(now);
 
-  const [ordersToday, orders7d, toCall, flagged, toShip, lowStock, fees, backup, dead, publish] = await Promise.all([
+  const [ordersToday, orders7d, toCall, flagged, toShip, delayed, lowStock, fees, backup, dead, publish] = await Promise.all([
     show('orders') ? safeTile('ordersToday', () => ordersByStatus(db, today)) : skip<Map<string, number>>(),
     show('orders') ? safeTile('orders7d', () => ordersByStatus(db, week)) : skip<Map<string, number>>(),
     show('toCall') ? safeTile('toCall', () => toCallCount(db, now)) : skip<number>(),
     show('flagged') ? safeTile('flagged', () => flaggedOpenCount(db)) : skip<number>(),
     show('toShip') ? safeTile('toShip', () => toShipCount(db)) : skip<number>(),
+    show('delayed')
+      ? safeTile('delayed', async () => {
+          const days = await delayDaysSetting(db);
+          return { days, n: await delayedCount(db, now, days) };
+        })
+      : skip<{ days: number; n: number }>(),
     show('lowStock')
       ? safeTile('lowStock', async () => {
           const threshold = await lowStockThreshold(db);
@@ -159,6 +168,13 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
   }
   if (toShip) {
     work.push(<Card name="toShip" title={t('dash.toShip')} href="/orders/shipping">{toShip.ok ? <Big value={toShip.value} /> : <Unavailable t={t} />}</Card>);
+  }
+  if (delayed) {
+    work.push(
+      <Card name="delayed" title={pm(c.var.lang)('delayed.dashTitle', { days: delayed.ok ? delayed.value.days : DEFAULT_DELAY_DAYS })} href="/parcels/delayed" tone={delayed.ok && delayed.value.n > 0 ? 'warning' : 'neutral'}>
+        {delayed.ok ? <Big value={delayed.value.n} /> : <Unavailable t={t} />}
+      </Card>,
+    );
   }
   if (lowStock) {
     work.push(
