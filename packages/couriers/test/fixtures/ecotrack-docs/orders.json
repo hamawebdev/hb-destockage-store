@@ -1,0 +1,11 @@
+{
+ "current_page": 1,
+ "data": [
+ { "tracking": "ECG4SU2112195902", "reference": null, "client": "kas", "phone": "0560351041", "phone_2": null, "adresse": "Alger", "commune": "Ain Taya", "wilaya_id": 16, "montant": "500", "tarif_prestation": "400", "tarif_retour": "200", "type_id": 1, "created_at": "2021-12-19", "payment_id": null, "return_id": null, "status": "prete_a_expedier", "products": "Prod 1" },
+ { "tracking": "ECG4SU2111175434", "reference": "REF123", "client": "client 1", "phone": "0500000000", "phone_2": null, "adresse": "ouled fayet", "commune": "Ouled Fayet", "wilaya_id": 16, "montant": "21900", "tarif_prestation": "400", "tarif_retour": "200", "type_id": 1, "created_at": "2021-11-16", "payment_id": 312, "return_id": null, "status": "payé_et_archivé", "products": "Prod 1" }
+ ],
+ "last_page": 1,
+ "per_page": 2,
+ "to": 2,
+ "total": 2
+}

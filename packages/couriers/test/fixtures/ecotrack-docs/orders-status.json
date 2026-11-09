@@ -1,0 +1,35 @@
+{
+ "data": {
+ "ECLWIT2505052286": {
+ "status": "en_preparation",
+ "order_id": "1237",
+ "desk_phone": "",
+ "desk_commune": "",
+ "desk_map_link": "",
+ "desk_address": "",
+ "activity": [
+ { "reason": "Client ne réponds pas", "details": "", "station": "Station principale", "driver": "HINI Djamel", "date": "2025-07-16", "time": "02:08:51", "postponed_to": null },
+ { "reason": "Le client est absent", "details": "test 000029", "station": "Station principale", "driver": "HINI Djamel", "date": "2025-07-16", "time": "02:09:11", "postponed_to": "2025-07-19" },
+ { "reason": "Écrire une remarque", "details": "another test", "station": "Station principale", "driver": "HINI Djamel", "date": "2025-07-16", "time": "02:09:20", "postponed_to": "2025-07-19" }
+ ]
+ },
+ "ECLWIT2507162547": {
+ "status": "en_livraison",
+ "order_id": "",
+ "driver_phone": "0123456789",
+ "desk_phone": "",
+ "desk_commune": "",
+ "desk_map_link": "",
+ "desk_address": "",
+ "activity": [
+ { "reason": "Remarque", "details": "Colis a livrer le 23 juillet", "station": "Station principale", "driver": "", "date": "2025-07-16", "time": "02:31:15", "postponed_to": "2025-07-23" }
+ ]
+ },
+ "ECLWIT2505052287": {
+ "status": "encaisse_non_paye",
+ "order_id": "",
+ "estimated_fee": 700,
+ "activity": []
+ }
+ }
+}

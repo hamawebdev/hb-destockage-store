@@ -1,0 +1,169 @@
+{
+ "source": "https://docs.zrexpress.app/reference/searchworkflowsendpoint (core states) and https://docs.zrexpress.app/reference/getsupplierparcelsstatsendpoint (example states)",
+ "completeness": "INCOMPLETE: workflows are configurable per tenant. Read the real list from POST /api/v1/workflows/search on connect and diff against this. Only the 14 'official' states are documented with meanings. If parcel.isReturn is true and a state maps to in_transit or pending, report returning (inferred rule).",
+ "result_rules": "returned = physically back with the merchant only. returning = a return on its way back. exception = needs a person. Unlisted raw value = unknown; log it and keep the raw string. Result set: pending, in_transit, delivered, returning, returned, exception, unknown.",
+ "statuses": [
+  {
+   "raw": "commande_recue",
+   "meaning": "Parcel created (default state, OrderReceived)",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "en_traitement",
+   "meaning": "Acknowledged, awaiting validation",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "appel_confirmation",
+   "meaning": "Call center confirming with the customer",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "commande_confirmee",
+   "meaning": "Order confirmed with the customer",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "en_preparation",
+   "meaning": "Merchant packing; NOT the EcoTrack meaning",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "pret_a_expedier",
+   "meaning": "Ready for pickup from the supplier (ReadyToDispatch)",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "confirme_au_bureau",
+   "meaning": "Arrived at a hub or stop desk",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "dispatch",
+   "meaning": "Sorting for delivery in the same wilaya",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "vers_wilaya",
+   "meaning": "Moving to another wilaya",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "en_livraison",
+   "meaning": "Assigned to a delivery person; NOT delivered",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "sortie_en_livraison",
+   "meaning": "Driver on the road; NOT delivered",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "livre",
+   "meaning": "Handed to the customer and COD received",
+   "result": "delivered",
+   "provenance": "official"
+  },
+  {
+   "raw": "encaisse",
+   "meaning": "Payment deposited at the hub",
+   "result": "delivered",
+   "provenance": "official"
+  },
+  {
+   "raw": "recouvert",
+   "meaning": "Funds cleared for supplier payout",
+   "result": "delivered",
+   "provenance": "official"
+  },
+  {
+   "raw": "colis_recuperer",
+   "meaning": "Parcel collected; meaning not defined in the docs, inferred",
+   "result": "in_transit",
+   "provenance": "official-example"
+  },
+  {
+   "raw": "en_attente_dechange",
+   "meaning": "Waiting for an exchange: new parcel leaves only after the old one is received",
+   "result": "pending",
+   "provenance": "official-example"
+  },
+  {
+   "raw": "attente_recuperation_fournisseur",
+   "meaning": "Return waiting for the supplier to collect; not back yet",
+   "result": "returning",
+   "provenance": "official-example"
+  },
+  {
+   "raw": "recupere_par_fournisseur",
+   "meaning": "Collected by the supplier; physically back",
+   "result": "returned",
+   "provenance": "official-example"
+  },
+  {
+   "raw": "reinjecte_dans_stock",
+   "meaning": "Items returned to inventory; the docs do not say whose premises, and ZR has its own storage hubs, so must not trigger restocking",
+   "result": "exception",
+   "provenance": "official-example"
+  },
+  {
+   "raw": "OrderReceived",
+   "meaning": "Docs alias of commande_recue",
+   "result": "pending",
+   "provenance": "official-alias"
+  },
+  {
+   "raw": "ReadyToDispatch",
+   "meaning": "Docs alias of pret_a_expedier",
+   "result": "pending",
+   "provenance": "official-alias"
+  },
+  {
+   "raw": "OnDelivery",
+   "meaning": "Docs alias, a delivery person is assigned",
+   "result": "in_transit",
+   "provenance": "official-alias"
+  },
+  {
+   "raw": "OutForDelivery",
+   "meaning": "Docs alias; NOT delivered",
+   "result": "in_transit",
+   "provenance": "official-alias"
+  },
+  {
+   "raw": "Out for Delivery",
+   "meaning": "Display name in the webhook example; NOT delivered",
+   "result": "in_transit",
+   "provenance": "official-alias"
+  },
+  {
+   "raw": "annule",
+   "meaning": "Cancelled; seen only in dz-delivery fixtures",
+   "result": "exception",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "supprimee",
+   "meaning": "Deleted; seen only in dz-delivery fixtures",
+   "result": "exception",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "retour_expediteur",
+   "meaning": "Return to sender; seen only in dz-delivery fixtures, inferred",
+   "result": "returning",
+   "provenance": "sdk-only"
+  }
+ ]
+}
