@@ -10,27 +10,18 @@
     "fr": "Conditions générales de vente"
   },
   "summary": {
-    "ar": "شروط البيع في HB Destockage: الطلب، الأسعار، الدفع عند الاستلام، التوصيل والإرجاع.",
-    "fr": "Conditions de vente HB Destockage : commande, prix, paiement à la livraison, livraison et retours."
+    "ar": "كيف يتم الطلب في HB Destockage: الأسعار، تأكيد الطلب، الدفع عند الاستلام والتوصيل.",
+    "fr": "Comment se passe une commande chez HB Destockage : prix, confirmation, paiement à la livraison et livraison."
   },
   "body": {
     "ar": [
       {
-        "type": "p",
-        "text": "[PLACEHOLDER: نص قانوني يحرّره ويصادق عليه المستشار القانوني لـ HB Destockage، طبقاً للتشريع الجزائري المعمول به. النقاط أدناه تصف طريقة عمل المتجر فقط.]"
-      },
-      {
         "type": "h2",
-        "text": "البائع"
+        "text": "الأسعار"
       },
       {
         "type": "p",
-        "text": "HB Destockage. [PLACEHOLDER: الاسم التجاري، رقم السجل التجاري، رقم التعريف الجبائي، العنوان]"
-      },
-      {
-        "type": "link",
-        "text": "0560 41 74 03",
-        "href": "tel:+213560417403"
+        "text": "الأسعار معروضة بالدينار الجزائري. يختلف سعر التوصيل حسب الولاية ويظهر قبل تأكيد طلبك."
       },
       {
         "type": "h2",
@@ -38,15 +29,7 @@
       },
       {
         "type": "p",
-        "text": "يتم الطلب عبر الاستمارة الموجودة في صفحة المنتج. يصبح الطلب نهائياً بعد اتصال التأكيد."
-      },
-      {
-        "type": "h2",
-        "text": "الأسعار"
-      },
-      {
-        "type": "p",
-        "text": "الأسعار بالدينار الجزائري. يُضاف سعر التوصيل حسب الولاية، ويظهر قبل التأكيد. [PLACEHOLDER: الرسوم]"
+        "text": "نتصل بك لتأكيد كل طلب قبل إرساله."
       },
       {
         "type": "h2",
@@ -54,11 +37,15 @@
       },
       {
         "type": "p",
-        "text": "الدفع نقداً عند الاستلام، لعامل التوصيل."
+        "text": "الدفع عند الاستلام، عندما يصلك الطرد."
       },
       {
         "type": "h2",
         "text": "التوصيل"
+      },
+      {
+        "type": "p",
+        "text": "نوصل إلى 69 ولاية."
       },
       {
         "type": "link",
@@ -70,13 +57,17 @@
         "text": "الإرجاع والاستبدال"
       },
       {
+        "type": "p",
+        "text": "تواصل معنا عبر الهاتف أو واتساب. تُعالَج كل حالة على حدة."
+      },
+      {
         "type": "link",
         "text": "الإرجاع والاستبدال",
         "href": "/ar/al-irjaa/"
       },
       {
         "type": "h2",
-        "text": "المعطيات الشخصية"
+        "text": "البيانات الشخصية"
       },
       {
         "type": "link",
@@ -85,25 +76,7 @@
       },
       {
         "type": "h2",
-        "text": "النزاعات"
-      },
-      {
-        "type": "p",
-        "text": "[PLACEHOLDER: يحرّره المستشار القانوني]"
-      }
-    ],
-    "fr": [
-      {
-        "type": "p",
-        "text": "[PLACEHOLDER : texte juridique à rédiger et valider par le conseil juridique de HB Destockage, conformément à la législation algérienne en vigueur. Les points ci-dessous décrivent seulement le fonctionnement de la boutique.]"
-      },
-      {
-        "type": "h2",
-        "text": "Le vendeur"
-      },
-      {
-        "type": "p",
-        "text": "HB Destockage. [PLACEHOLDER : raison sociale, numéro de registre du commerce, NIF, adresse]"
+        "text": "للتواصل معنا"
       },
       {
         "type": "link",
@@ -111,32 +84,43 @@
         "href": "tel:+213560417403"
       },
       {
+        "type": "link",
+        "text": "+213 779 942 022",
+        "href": "https://wa.me/213779942022"
+      }
+    ],
+    "fr": [
+      {
         "type": "h2",
-        "text": "La commande"
+        "text": "Prix"
       },
       {
         "type": "p",
-        "text": "La commande se fait avec le formulaire de la page produit. Elle devient définitive après l'appel de confirmation."
+        "text": "Les prix sont affichés en dinars algériens. Les frais de livraison dépendent de la wilaya et s'affichent avant que vous confirmiez la commande."
       },
       {
         "type": "h2",
-        "text": "Les prix"
+        "text": "Commande"
       },
       {
         "type": "p",
-        "text": "Les prix sont en dinars algériens. Les frais de livraison, qui dépendent de la wilaya, s'ajoutent et s'affichent avant la confirmation. [PLACEHOLDER : taxes]"
+        "text": "Nous vous appelons pour confirmer chaque commande avant de l'expédier."
       },
       {
         "type": "h2",
-        "text": "Le paiement"
+        "text": "Paiement"
       },
       {
         "type": "p",
-        "text": "Le paiement se fait en espèces à la livraison, au livreur."
+        "text": "Le paiement se fait à la livraison, quand vous recevez votre colis."
       },
       {
         "type": "h2",
-        "text": "La livraison"
+        "text": "Livraison"
+      },
+      {
+        "type": "p",
+        "text": "Nous livrons dans les 69 wilayas."
       },
       {
         "type": "link",
@@ -146,6 +130,10 @@
       {
         "type": "h2",
         "text": "Retours et échanges"
+      },
+      {
+        "type": "p",
+        "text": "Contactez-nous par téléphone ou sur WhatsApp. Chaque demande est traitée au cas par cas."
       },
       {
         "type": "link",
@@ -163,16 +151,22 @@
       },
       {
         "type": "h2",
-        "text": "Litiges"
+        "text": "Nous contacter"
       },
       {
-        "type": "p",
-        "text": "[PLACEHOLDER : à rédiger par le conseil juridique]"
+        "type": "link",
+        "text": "0560 41 74 03",
+        "href": "tel:+213560417403"
+      },
+      {
+        "type": "link",
+        "text": "+213 779 942 022",
+        "href": "https://wa.me/213779942022"
       }
     ]
   },
   "sort": 60,
   "active": true,
-  "placeholder": true,
-  "updatedAt": 1793750400000
+  "placeholder": false,
+  "updatedAt": 1794182400000
 }
