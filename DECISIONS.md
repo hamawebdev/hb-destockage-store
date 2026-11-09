@@ -162,3 +162,11 @@ Rules:
 - Why: client request, 2026-11-08 (artifacts/CART-0/plan.md): first paint must not pay for a sheet most visitors never open. A constructable stylesheet needs no change to the hash-based `style-src`; a `<link>` would have needed `'self'`.
 - Evidence: measured on the seed build of this commit: sheet CSS 5,544 B raw, 1,318 B brotli (inside cart-sheet.js, 3,978 B brotli in all); cart.js 1,431 B brotli on every page after LCP. The sheet is tested in Chrome under the served CSP (no violations). Per-template byte and Lighthouse deltas are in the CART proof run.
 - Status: active
+
+## D-009 — Launch: placeholders withdrawn, not relabelled
+- Date: 2026-11-09 · Author: lead (client gave full ownership of the decision) · Task: LAUNCH-0
+- Report says: CLAUDE.md "clearly mark every placeholder"; D-006 no invented fees in production.
+- We do instead: production migration 0010 archives the demo products, hides empty categories, makes the 69 delivery fees live, cancels the two test orders and rewrites the content pages to what the store can stand behind. Nothing is deleted. Seed data keeps its placeholder marks for development.
+- Why: client instruction "remove the placeholders... fully ready". Fake products cannot be sold. Fees are the distance-based schedule from data/geo, not courier quotes: the owner chose to open with them, editable in the admin, because the store cannot take orders without fees.
+- Evidence: artifacts/LAUNCH-0/, approved through the pipeline's destructive-migration hash.
+- Status: active
