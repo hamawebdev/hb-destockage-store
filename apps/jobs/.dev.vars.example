@@ -1,0 +1,2 @@
+# Local only. Courier and Google HTTP is held to loopback unless ENV is exactly "production".
+ENV=development
