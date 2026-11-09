@@ -21,7 +21,7 @@ export function cartItem(p: OrderStepProps): CartItemJson {
     id: p.product.id,
     name: p.product.name,
     href: p.product.href,
-    img: p.image ? { src: p.image.src, srcset: p.image.srcset } : null,
+    img: p.cartImage ? { src: p.cartImage.src, srcset: p.cartImage.srcset } : null,
     options: p.options.map((o) => ({ id: o.id, name: o.name, values: o.values.map((v) => ({ id: v.id, label: v.label })) })),
     variants: p.variants.map((v) => ({ id: v.id, label: v.label, price: v.price.amountDzd, max: v.maxQty, ok: v.available, ovs: [...v.optionValueIds] })),
   };
