@@ -36,7 +36,8 @@ export function desktopSpans(n: number): DesktopSpan[] {
 
 /** Real rendered width of a tile: container (max 1200 px, fluid gutter) divided by its span. */
 function tileSizes(mobile: MobileSpan, desktop: DesktopSpan): string {
-  const fraction = desktop / 6;
+  // A lone category (span 6) renders as a band: its photo takes half the width.
+  const fraction = desktop === 6 ? 0.5 : desktop / 6;
   const desk = `(min-width: 1280px) ${Math.round(1200 * fraction)}px, (min-width: 768px) calc((100vw - 5rem) * ${fraction.toFixed(4)})`;
   const phone = mobile === 'full' ? 'calc(100vw - 2rem)' : 'calc(50vw - 1.375rem)';
   return `${desk}, ${phone}`;
