@@ -38,6 +38,14 @@ describe('isResendSafe', () => {
     expect(isResendSafe({ kind: 'not_found', checkedAt: Number.NaN }, T0, open)).toBe(false);
   });
 
+  it.each(['duplicate_external_id', 'duplicate_reference', 'possible_duplicate'])('refuses after the courier said it exists (%s)', (cause) => {
+    expect(isResendSafe(notFoundAt(1000), T0, open, cause)).toBe(false);
+  });
+
+  it('other causes change nothing', () => {
+    expect(isResendSafe(notFoundAt(1000), T0, open, 'timeout')).toBe(true);
+  });
+
   it('refuses an attempt time after the lookup', () => {
     expect(isResendSafe(notFoundAt(1000), T0 + 2_000_000, open)).toBe(false);
   });

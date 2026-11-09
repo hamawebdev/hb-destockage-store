@@ -252,7 +252,8 @@ async function validateParcel(tracking: string, credentials: CourierCredentials,
   if (failedRead || current.kind !== 'response') return failedRead ?? { kind: 'uncertain', cause: 'malformed_response' };
   const parcel = parseObject(current.text);
   const state = asRecord(parcel?.['state']);
-  if (!parcel || typeof parcel['id'] !== 'string' || !state) return { kind: 'uncertain', cause: 'malformed_response' };
+  // The id goes into a path on the next call, so it has to look like one.
+  if (!parcel || !isValidTracking(parcel['id']) || !state) return { kind: 'uncertain', cause: 'malformed_response' };
   if (typeof state['name'] === 'string' && ZR_READY_STATES.includes(state['name'])) return { kind: 'validated' };
   // Anything already moving (or that we can't read) must never be pushed back to the ready state.
   if (zrStatus(state['name'], parcel['isReturn']) !== 'pending') {

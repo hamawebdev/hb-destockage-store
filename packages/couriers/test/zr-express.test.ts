@@ -337,6 +337,13 @@ describe('validateParcel', () => {
     expect(await adapter.validateParcel(tracking, options, GOOD, ctx())).toEqual({ kind: 'uncertain', cause: 'malformed_response' });
   });
 
+  it('a parcel id that could change the path is uncertain, with no write', async () => {
+    const answers = [JSON.stringify({ id: '../../admin', state: { id: 's', name: 'commande_recue' } })];
+    const spy = vi.fn<typeof fetch>(async () => new Response(answers[0]));
+    expect(await adapter.validateParcel('16-A-ZR', options, GOOD, ctx({ fetch: spy }))).toEqual({ kind: 'uncertain', cause: 'malformed_response' });
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
   it('refuses an invalid tracking without calling out', async () => {
     const spy = vi.fn<typeof fetch>();
     expect(await adapter.validateParcel('../x', options, GOOD, ctx({ fetch: spy }))).toMatchObject({ code: 'bad_request' });
