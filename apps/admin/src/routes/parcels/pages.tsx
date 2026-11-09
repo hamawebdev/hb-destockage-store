@@ -254,7 +254,7 @@ export function PerformancePage(props: { lang: Lang; period: Period; courier: st
                       <>
                         <span dir="auto">{courierLabel(tm, r.key)}</span>
                         {byCourier.length > 1 ? (
-                          <a class="cell-sub" href={perfHref(period, r.key)} aria-current={r.key === props.courier ? 'true' : undefined}>
+                          <a class="cell-sub cell-link" href={perfHref(period, r.key)} aria-current={r.key === props.courier ? 'true' : undefined}>
                             {tm('perf.byWilayaLink')}
                           </a>
                         ) : null}

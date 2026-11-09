@@ -519,6 +519,7 @@
   .page-lead { margin: 0 0 var(--space-4); color: var(--color-text-secondary); font-size: var(--a-small); max-inline-size: 70ch; }
   .delay { color: var(--color-warning); font-weight: var(--fw-emphasis); }
   .tel-link { display: flex; inline-size: fit-content; align-items: center; min-block-size: var(--tap-min, 44px); position: relative; z-index: 1; }
+  .cell-link { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); }
   .rate { display: grid; gap: var(--space-1); min-inline-size: 8rem; }
   .rate__value { font-variant-numeric: tabular-nums; }
   .rate__bar { inline-size: 100%; max-inline-size: 10rem; block-size: 6px; border: 0; border-radius: var(--radius-pill); background: var(--color-surface-alt); }

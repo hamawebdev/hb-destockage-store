@@ -13,7 +13,7 @@ import type { AppEnv } from '../../env.ts';
 import { DEFAULT_PAGE_SIZE, offsetOf, pageCount, parsePage } from '../../lib/pagination.ts';
 import { EmptyState, StatusBadge } from '../../ui/badge.tsx';
 import { useUi } from '../../ui/context.ts';
-import { Form, NumberInput, Submit } from '../../ui/form.tsx';
+import { ErrorSummary, Form, NumberInput, Submit } from '../../ui/form.tsx';
 import { Code, Num } from '../../ui/format.tsx';
 import { Stats } from '../../ui/kit.tsx';
 import { Pagination } from '../../ui/pagination.tsx';
@@ -82,7 +82,7 @@ export function daysLeft(stock: number, sold: number): number | null {
   return Math.floor(stock / (sold / SALES_WINDOW_DAYS));
 }
 
-function AlertsPage(props: { rows: readonly AlertRow[]; total: number; out: number; threshold: number; page: number; pages: number; canSettings: boolean }) {
+function AlertsPage(props: { rows: readonly AlertRow[]; total: number; out: number; threshold: number; page: number; pages: number; canSettings: boolean; errors?: Record<string, string> | undefined }) {
   const { lang } = useUi();
   const tm = m(lang);
   const back = props.page > 1 ? `/products/stock/alerts?page=${props.page}` : '/products/stock/alerts';
@@ -94,6 +94,7 @@ function AlertsPage(props: { rows: readonly AlertRow[]; total: number; out: numb
   return (
     <>
       <p class="page-lead">{tm('alerts.lead', { threshold: props.threshold })}</p>
+      <ErrorSummary errors={props.errors} />
       {props.total === 0 ? (
         <EmptyState
           icon="check"
@@ -166,7 +167,8 @@ function AlertsPage(props: { rows: readonly AlertRow[]; total: number; out: numb
         </>
       )}
       <div class="form-actions">
-        <a class="btn btn--quiet" href="/products/stock">{tm('alerts.allStock')}</a>
+        {/* The empty state already offers "all stock". */}
+        {props.total > 0 ? <a class="btn btn--quiet" href="/products/stock">{tm('alerts.allStock')}</a> : null}
         {props.canSettings ? <a class="btn btn--quiet" href="/settings#f-lowStockThreshold">{tm('alerts.settings')}</a> : null}
       </div>
     </>
@@ -174,14 +176,16 @@ function AlertsPage(props: { rows: readonly AlertRow[]; total: number; out: numb
 }
 
 export function mountStockAlertRoutes(r: Hono<AppEnv>): void {
-  r.get('/stock/alerts', requirePerm('stock.edit'), async (c) => {
-    const tm = m(c.var.lang);
-    const threshold = await lowStockThreshold(c.var.db);
-    const page = parsePage(c);
-    const { rows, total, out } = await stockAlerts(c, threshold, page, Date.now());
-    return c.render(
-      <AlertsPage rows={rows} total={total} out={out} threshold={threshold} page={page} pages={pageCount(total)} canSettings={can(c.var.user, 'settings.edit')} />,
-      { title: tm('alerts.title'), breadcrumbs: [{ label: tm('title'), href: '/products' }, { label: tm('stock.title'), href: '/products/stock' }] },
-    );
-  });
+  r.get('/stock/alerts', requirePerm('stock.edit'), (c) => renderAlerts(c, parsePage(c)));
+}
+
+/** The alerts list; also the re-render of a refused quick "set" posted from it (errors at the top). */
+export async function renderAlerts(c: Context<AppEnv>, page: number, errors?: Record<string, string>) {
+  const tm = m(c.var.lang);
+  const threshold = await lowStockThreshold(c.var.db);
+  const { rows, total, out } = await stockAlerts(c, threshold, page, Date.now());
+  return c.render(
+    <AlertsPage rows={rows} total={total} out={out} threshold={threshold} page={page} pages={pageCount(total)} canSettings={can(c.var.user, 'settings.edit')} errors={errors} />,
+    { title: tm('alerts.title'), breadcrumbs: [{ label: tm('title'), href: '/products' }, { label: tm('stock.title'), href: '/products/stock' }] },
+  );
 }

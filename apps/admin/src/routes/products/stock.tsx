@@ -30,6 +30,7 @@ import { fieldMessages } from './lib/field-messages.ts';
 import { guard, isGuardAbort } from './lib/guard.ts';
 import { cleanText } from './lib/text.ts';
 import { m } from './messages.ts';
+import { renderAlerts } from './alerts.tsx';
 
 type Ctx = Context<AppEnv>;
 
@@ -356,8 +357,13 @@ export function mountStockRoutes(r: Hono<AppEnv>): void {
   r.get('/stock', requirePerm('stock.edit'), (c) => renderList(c));
 
   /** Re-renders the stock list with the error at the top (the POST has no filters: default view). */
-  const fail = async (c: Ctx, status: 409 | 422, _back: string, errors: Record<string, string>) => {
+  const fail = async (c: Ctx, status: 409 | 422, back: string, errors: Record<string, string>) => {
     c.status(status);
+    // Posted from the alerts list (UX-9): stay on it (review UX-7 r1 N1).
+    if (back === '/products/stock/alerts' || back.startsWith('/products/stock/alerts?')) {
+      const p = Number(new URL(back, 'http://x').searchParams.get('page') ?? '1');
+      return renderAlerts(c, Number.isSafeInteger(p) && p >= 1 ? p : 1, errors);
+    }
     return renderList(c, errors);
   };
 

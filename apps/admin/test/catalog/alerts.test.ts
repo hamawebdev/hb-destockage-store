@@ -79,6 +79,13 @@ describe('/products/stock/alerts', () => {
     expect(res.headers.get('Location')).toMatch(/^\/products\/stock\/alerts(\?|$)/);
     expect(await (await h.as(USERS.owner, '/products/stock/alerts')).text()).not.toContain('SKU-LOW-Q');
   });
+  test('review UX-7 r1 N1: a refused quick set stays on the alerts page with the error', async () => {
+    const res = await postAs(h, USERS.owner, '/products/stock/set', { variant_id: String(V.out), stock: '-4', was: '0', back: '/products/stock/alerts' });
+    expect(res.status).toBe(422);
+    const html = await res.text();
+    expect(html).toContain('<title>Alertes de stock');
+    expect(html).toContain('SKU-OUT');
+  });
   test('roles: logistics and content see it, without the settings link; confirmer gets 403', async () => {
     const lg = await h.as(USERS.logistics, '/products/stock/alerts');
     expect(lg.status).toBe(200);
