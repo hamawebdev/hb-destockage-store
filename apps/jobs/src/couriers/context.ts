@@ -12,6 +12,8 @@ export const SYNC_LIMITS = {
   /** One courier request. */
   CALL_MS: 8_000,
   INBOX_BATCH: 50,
+  /** The inbox drain's share of a run, so a backlog can't starve the other steps (SHIP-5 review nit 1). */
+  INBOX_MS: 10_000,
   LEASE_MS: 120_000,
   INBOX_MAX_ATTEMPTS: 5,
   /** A webhook whose tracking we don't hold yet is retried this long before a person sees it. */

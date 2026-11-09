@@ -5,6 +5,7 @@ import { foundDisposition, getCourier, isResendSafe, type CourierAdapter, type L
 import {
   autoResolveItem,
   casShipment,
+  classifyConstraintError,
   claimValidate,
   clip,
   deliveryExceptions,
@@ -215,7 +216,8 @@ async function settleLookup(ctx: SyncContext, account: SyncAccount, sh: Shipment
       const moved = await casShipment(ctx.db, sh.id, 'uncertain', { state: 'draft', tracking: lookup.tracking, verifyNextAt: null, verifyInconclusiveSince: null, errorCode: null, errorDetail: null, updatedAt: now });
       if (moved) await autoClose('parcel_found');
       return moved;
-    } catch {
+    } catch (err) {
+      if (classifyConstraintError(err) !== 'duplicate_tracking') throw err;
       await duplicateTracking(ctx, sh, 'uncertain', lookup.tracking);
       return true;
     }

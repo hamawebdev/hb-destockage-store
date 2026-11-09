@@ -57,7 +57,7 @@ export async function runCourierSync(env: SyncEnv & { readonly DB: D1Database },
   await step('accounts', async () => void (accounts = await loadAccounts(ctx)));
 
   // D1 only.
-  report.inbox = await step('inbox', () => drainInbox(ctx, accounts, deadline()));
+  report.inbox = await step('inbox', () => drainInbox(ctx, accounts, Math.min(deadline(), ctx.now() + ctx.limits.INBOX_MS)));
   report.swept = await step('sweep', () => sweepStale(ctx));
   report.unapplied = await step('unapplied', () => applyUnapplied(ctx, deadline()));
   report.parked = await step('park', () => parkUnverifiable(ctx, accounts));

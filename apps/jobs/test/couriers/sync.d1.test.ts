@@ -428,6 +428,15 @@ describe('webhooks from the inbox', () => {
     expect(await statusEvents(parcel.id)).toHaveLength(1);
   });
 
+  test('an inbox backlog gets only its share of the run; polling still delivers in the same run (review nit 1)', async () => {
+    const parcel = await shippedParcel(yal);
+    await move(parcel.tracking, 'Livré');
+    for (let i = 0; i < 30; i++) await inboxRow(yal, webhookBody(`yal-BACK${i}`, 'Livré'));
+    await run({ limits: { INBOX_MS: 1, INBOX_BATCH: 5 } });
+    expect(await orderOf(parcel.id)).toMatchObject({ status: 'delivered' });
+    expect((await one(`select count(*) n from courier_webhook_inbox where state = 'pending'`))['n']).toBeGreaterThan(0);
+  });
+
   test('done and rejected rows are purged after 14 days; pending ones are kept (check 17c)', async () => {
     const old = Date.now() - 15 * 86_400_000;
     await db().batch([
