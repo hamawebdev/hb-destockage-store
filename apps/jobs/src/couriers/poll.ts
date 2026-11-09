@@ -1,7 +1,7 @@
 // SHIP-5 (SHIP-0 contract rules 13a, 13d, 17): polling one account, least recently polled parcels
 // first, and keeping the courier lists the sending page reads from D1 fresh.
 import { courierAccounts, DIRECTORY_MAX_AGE_MS, orders, raiseExceptionOnceItem, readDirectory, refreshDirectory, shipments, type DirectoryTask } from '@hb/db';
-import { and, asc, eq, inArray, isNotNull, isNull, lt, notInArray, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, notInArray, or, sql } from 'drizzle-orm';
 import { log } from '../log.ts';
 import { changesOf, courierCtx, type SyncAccount, type SyncContext } from './context.ts';
 import { appendEvent } from './events.ts';
@@ -28,8 +28,10 @@ export async function pollAccount(ctx: SyncContext, account: SyncAccount): Promi
 
   let added = 0;
   try {
-    const parcels = await ctx.db
-      .select({ id: shipments.id, tracking: shipments.tracking, firstAbsentAt: shipments.firstAbsentAt, orderId: shipments.orderId })
+    const cols = { id: shipments.id, tracking: shipments.tracking, firstAbsentAt: shipments.firstAbsentAt, orderId: shipments.orderId };
+    const leastRecent = [sql`${shipments.lastPolledAt} IS NOT NULL`, asc(shipments.lastPolledAt), asc(shipments.id)] as const;
+    const open = await ctx.db
+      .select(cols)
       .from(shipments)
       .where(
         and(
@@ -39,8 +41,31 @@ export async function pollAccount(ctx: SyncContext, account: SyncAccount): Promi
           or(isNull(shipments.courierStatus), notInArray(shipments.courierStatus, ['delivered', 'returned'])),
         ),
       )
-      .orderBy(sql`${shipments.lastPolledAt} IS NOT NULL`, asc(shipments.lastPolledAt), asc(shipments.id))
+      .orderBy(...leastRecent)
       .limit(caps.pollBatchSize);
+    // Lead ruling (SHIP-5 review nit 2): delivered parcels stay watched for 14 days, only in the room
+    // the open ones leave in this one batch, so a courier's later return correction reaches a person
+    // as a terminal_conflict. It moves nothing by itself.
+    const room = caps.pollBatchSize - open.length;
+    const watched =
+      room > 0
+        ? await ctx.db
+            .select(cols)
+            .from(shipments)
+            .where(
+              and(
+                eq(shipments.accountId, row.id),
+                eq(shipments.state, 'accepted'),
+                isNotNull(shipments.tracking),
+                eq(shipments.courierStatus, 'delivered'),
+                gte(shipments.courierStatusAt, now - ctx.limits.DELIVERED_WATCH_MS),
+              ),
+            )
+            .orderBy(...leastRecent)
+            .limit(room)
+        : [];
+    const watchedIds = new Set(watched.map((p) => p.id));
+    const parcels = [...open, ...watched];
     if (parcels.length === 0) {
       await ctx.db.update(courierAccounts).set({ pollLeaseUntil: null, lastPolledAt: now }).where(eq(courierAccounts.id, row.id));
       return 0;
@@ -66,7 +91,7 @@ export async function pollAccount(ctx: SyncContext, account: SyncAccount): Promi
     const absent = new Set(result.absent);
     const items = [];
     for (const p of parcels) {
-      if (absent.has(p.tracking!)) {
+      if (absent.has(p.tracking!) && !watchedIds.has(p.id)) {
         const since = p.firstAbsentAt ?? at;
         items.push(ctx.db.update(shipments).set({ lastPolledAt: at, firstAbsentAt: since }).where(eq(shipments.id, p.id)));
         if (at - since >= ctx.limits.ABSENT_MS) {

@@ -250,6 +250,25 @@ describe('status events by polling', () => {
     expect(conflicts[0]).toMatchObject({ subject: `s:${b.sid}`, state: 'open' });
   });
 
+  test('a delivered parcel stays watched for 14 days: a later return correction goes to a person, nothing moves (lead ruling)', async () => {
+    const parcel = await shippedParcel(yal);
+    await move(parcel.tracking, 'Livré');
+    await run();
+    expect(await orderOf(parcel.id)).toMatchObject({ status: 'delivered', version: 1 });
+    const s0 = await stock();
+    await move(parcel.tracking, 'Retourné au vendeur');
+    await run();
+    expect(await orderOf(parcel.id)).toMatchObject({ status: 'delivered', version: 1 });
+    expect(await stock()).toBe(s0);
+    const conflicts = await exceptions('terminal_conflict');
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]).toMatchObject({ subject: `s:${parcel.sid}`, raw_status: 'Retourné au vendeur', state: 'open' });
+    // Past 14 days it is no longer polled.
+    await db().prepare('update shipments set courier_status_at = ?, last_polled_at = null where id = ?').bind(Date.now() - 15 * 86_400_000, parcel.sid).run();
+    await run();
+    expect((await shipmentRow(parcel.sid))['last_polled_at']).toBeNull();
+  });
+
   test('an older terminal event after a newer non-terminal one still moves the order (check 15b)', async () => {
     const parcel = await shippedParcel(yal);
     await inboxRow(yal, webhookBody(parcel.tracking, 'En transit', Date.now()));

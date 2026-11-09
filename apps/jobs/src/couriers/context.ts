@@ -28,6 +28,8 @@ export const SYNC_LIMITS = {
   UNAPPLIED_GRACE_MS: 30_000,
   POLL_BACKOFF_MS: 60_000,
   PURGE_MS: 14 * 86_400_000,
+  /** Delivered parcels are still polled this long, for a late return correction (lead ruling). */
+  DELIVERED_WATCH_MS: 14 * 86_400_000,
   REFRESH_BUDGET_MS: 5_000,
   REFRESH_WILAYAS: 10,
 } as const;
