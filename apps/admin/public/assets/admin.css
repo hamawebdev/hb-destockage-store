@@ -530,6 +530,12 @@
   .rate__bar:-moz-meter-sub-optimum::-moz-meter-bar { background: var(--color-warning); }
   .rate__bar:-moz-meter-sub-sub-optimum::-moz-meter-bar { background: var(--color-danger); }
 
+  /* Stock alerts (UX-9) */
+  .stock-cell { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-variant-numeric: tabular-nums; }
+  .inline-set { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); }
+  .inline-set .field { margin: 0; flex: 0 1 7rem; }
+  .inline-set .field__label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
   /* Call queue and shipping */
   .queue-start { display: grid; gap: var(--space-4); justify-items: start; }
   .queue-start .empty { justify-self: stretch; }

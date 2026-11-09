@@ -16,6 +16,7 @@ export const ar = {
   'nav.customers': 'الزبائن',
   'nav.products': 'المنتجات',
   'nav.categories': 'الأصناف',
+  'nav.stockAlerts': 'تنبيهات المخزون',
   'nav.fees': 'تكاليف التوصيل',
   'nav.content': 'الصفحات',
   'nav.media': 'الوسائط',

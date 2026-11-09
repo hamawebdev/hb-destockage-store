@@ -75,7 +75,7 @@ export interface StockRow {
   labelAr: string | null;
 }
 
-const labelSql = (col: 'fr' | 'ar') =>
+export const labelSql = (col: 'fr' | 'ar') =>
   col === 'fr'
     ? sql<string | null>`(select group_concat(ov.value_fr, ' / ') from variant_option_values vov join option_values ov on ov.id = vov.option_value_id where vov.variant_id = ${variants.id})`
     : sql<string | null>`(select group_concat(ov.value_ar, ' / ') from variant_option_values vov join option_values ov on ov.id = vov.option_value_id where vov.variant_id = ${variants.id})`;
@@ -144,7 +144,7 @@ const stockIs = (c: Ctx, id: number, expected: number | null) =>
 // ---------------------------------------------------------------------------------------------
 
 /** "Fixer à (HB-P)": the SKU in an LTR isolate (LRI…PDI), so each row's fields have a distinct name. */
-const withSku = (text: string, sku: string): string => `${text} (\u2066${sku}\u2069)`;
+export const withSku = (text: string, sku: string): string => `${text} (\u2066${sku}\u2069)`;
 
 const label = (r: StockRow, lang: 'fr' | 'ar') => {
   const name = lang === 'ar' ? r.productNameAr : r.productNameFr;
@@ -297,7 +297,13 @@ export function safeBack(raw: string | undefined): string {
   } catch {
     return fallback;
   }
-  if (u.origin !== 'http://x' || u.pathname !== '/products/stock') return fallback;
+  if (u.origin !== 'http://x') return fallback;
+  // The alerts view (UX-9) posts its quick "set" form here too and comes back to itself.
+  if (u.pathname === '/products/stock/alerts') {
+    const p = u.searchParams.get('page');
+    return p !== null && /^\d{1,6}$/.test(p) ? `/products/stock/alerts?page=${p}` : '/products/stock/alerts';
+  }
+  if (u.pathname !== '/products/stock') return fallback;
   const out = new URLSearchParams();
   for (const k of ['q', 'category', 'state', 'archived', 'page']) {
     const val = u.searchParams.get(k);

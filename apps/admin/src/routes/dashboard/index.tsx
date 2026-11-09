@@ -178,7 +178,7 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
   }
   if (lowStock) {
     work.push(
-      <Card name="lowStock" title={t('dash.lowStock', { threshold: lowStock.ok ? lowStock.value.threshold : 3 })} href="/products?lowStock=1" tone={lowStock.ok && lowStock.value.n > 0 ? 'warning' : 'neutral'}>
+      <Card name="lowStock" title={t('dash.lowStock', { threshold: lowStock.ok ? lowStock.value.threshold : 3 })} href="/products/stock/alerts" tone={lowStock.ok && lowStock.value.n > 0 ? 'warning' : 'neutral'}>
         {lowStock.ok ? <Big value={lowStock.value.n} /> : <Unavailable t={t} />}
       </Card>,
     );

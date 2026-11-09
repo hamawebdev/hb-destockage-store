@@ -14,6 +14,7 @@ export const fr = {
   'nav.customers': 'Clients',
   'nav.products': 'Produits',
   'nav.categories': 'Catégories',
+  'nav.stockAlerts': 'Alertes de stock',
   'nav.fees': 'Frais de livraison',
   'nav.content': 'Pages',
   'nav.media': 'Médias',

@@ -41,6 +41,7 @@ export const NAV: readonly NavGroup[] = [
     items: [
       { href: '/products', label: 'nav.products', perm: 'catalog.view', icon: 'box' },
       { href: '/categories', label: 'nav.categories', perm: 'catalog.view', icon: 'tag', parent: '/products' },
+      { href: '/products/stock/alerts', label: 'nav.stockAlerts', perm: 'stock.edit', icon: 'alert', parent: '/products' },
       { href: '/media', label: 'nav.media', perm: 'media.edit', icon: 'image', parent: '/products' },
     ],
   },
