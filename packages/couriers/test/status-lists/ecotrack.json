@@ -1,0 +1,391 @@
+{
+ "source": "/mnt/data/ecom stores/honeystore/google-sheets-order-management/documentation-ecotack/sections/04-suivi-des-commandes.md (saved copy of https://documenter.getpostman.com/view/14517169/Tz5je15g)",
+ "completeness": "Official documented lists (activity keys, French labels, order-status slugs). Tenants can customise French labels, so prefer slugs. Meanings of the labels and slugs are inferred except for activity keys, which the docs define.",
+ "result_rules": "returned = physically back with the merchant only. returning = a return on its way back. exception = needs a person. Unlisted raw value = unknown; log it and keep the raw string. Result set: pending, in_transit, delivered, returning, returned, exception, unknown.",
+ "non_status_events": [
+  {
+   "raw": "notification_on_order",
+   "meaning": "Remark added to the parcel; appears in the docs' activity example but not in the documented list. Must not change the status."
+  }
+ ],
+ "statuses": [
+  {
+   "raw": "order_information_received_by_carrier",
+   "meaning": "Registered and validated by the seller",
+   "result": "pending",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "picked",
+   "meaning": "Collected by the courier",
+   "result": "in_transit",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "accepted_by_carrier",
+   "meaning": "Received by the sorting center (hub or station)",
+   "result": "in_transit",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "dispatched_to_driver",
+   "meaning": "Assigned to the driver",
+   "result": "in_transit",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "attempt_delivery",
+   "meaning": "Delivery attempt; outcome not stated by the docs, inferred as needing attention",
+   "result": "exception",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "return_asked",
+   "meaning": "Return initiated by the sorting center",
+   "result": "returning",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "return_in_transit",
+   "meaning": "Return in transit",
+   "result": "returning",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "Return_received",
+   "meaning": "Return received by the seller; physically back (capital R is verbatim)",
+   "result": "returned",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "livred",
+   "meaning": "Delivered",
+   "result": "delivered",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "encaissed",
+   "meaning": "Delivered and cash collected",
+   "result": "delivered",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "payed",
+   "meaning": "Delivered and paid out",
+   "result": "delivered",
+   "vocabulary": "activity",
+   "provenance": "official"
+  },
+  {
+   "raw": "Prêt à expédier",
+   "meaning": "Ready to ship",
+   "result": "pending",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Prêt à préparer",
+   "meaning": "Ready to prepare",
+   "result": "pending",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "En ramassage",
+   "meaning": "Pickup in progress, not collected yet",
+   "result": "pending",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Stock en préparation",
+   "meaning": "Being prepared from stock",
+   "result": "pending",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Vers hub",
+   "meaning": "On the way to a hub",
+   "result": "in_transit",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "En hub",
+   "meaning": "At a hub",
+   "result": "in_transit",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Vers wilaya",
+   "meaning": "On the way to the wilaya",
+   "result": "in_transit",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "En préparation",
+   "meaning": "At the destination station; NOT pending",
+   "result": "in_transit",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "En livraison",
+   "meaning": "Out for delivery; NOT delivered",
+   "result": "in_transit",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Suspendus",
+   "meaning": "On hold",
+   "result": "exception",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Retours chez livreur",
+   "meaning": "Return held by the driver",
+   "result": "returning",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Retours en traitement",
+   "meaning": "Return being processed",
+   "result": "returning",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Retours prêts",
+   "meaning": "Return ready for the seller",
+   "result": "returning",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Retours reçu",
+   "meaning": "Return received by the seller; physically back",
+   "result": "returned",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Retours à dispatcher vers stock",
+   "meaning": "Return to be sent to the courier's stock warehouse",
+   "result": "returning",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Retours en transit stock",
+   "meaning": "Return moving to the courier's stock warehouse",
+   "result": "returning",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Retours en stock",
+   "meaning": "Return back in the seller's stock held at the courier; not with the merchant, so must not trigger restocking",
+   "result": "exception",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Livre non encaissé",
+   "meaning": "Delivered, cash not collected yet",
+   "result": "delivered",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Livre encaissé non payé",
+   "meaning": "Delivered, cash collected, seller not paid",
+   "result": "delivered",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Paiement prêt",
+   "meaning": "Delivered, payment ready",
+   "result": "delivered",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Paiement archivé",
+   "meaning": "Delivered, payment archived",
+   "result": "delivered",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "Retours archivé",
+   "meaning": "Return archived after receipt",
+   "result": "returned",
+   "vocabulary": "label",
+   "provenance": "official"
+  },
+  {
+   "raw": "prete_a_expedier",
+   "meaning": "Ready to ship",
+   "result": "pending",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "en_ramassage",
+   "meaning": "Pickup in progress",
+   "result": "pending",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "en_preparation_stock",
+   "meaning": "Being prepared from stock",
+   "result": "pending",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "vers_hub",
+   "meaning": "On the way to a hub",
+   "result": "in_transit",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "en_hub",
+   "meaning": "At a hub",
+   "result": "in_transit",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "vers_wilaya",
+   "meaning": "On the way to the wilaya",
+   "result": "in_transit",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "en_preparation",
+   "meaning": "At the destination station; NOT pending",
+   "result": "in_transit",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "en_livraison",
+   "meaning": "Out for delivery; NOT delivered",
+   "result": "in_transit",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "suspendu",
+   "meaning": "On hold",
+   "result": "exception",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "livre_non_encaisse",
+   "meaning": "Delivered, cash not collected yet",
+   "result": "delivered",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "encaisse_non_paye",
+   "meaning": "Delivered, cash collected, seller not paid",
+   "result": "delivered",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "paiements_prets",
+   "meaning": "Delivered, payment ready",
+   "result": "delivered",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "paye_et_archive",
+   "meaning": "Delivered, paid, archived",
+   "result": "delivered",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "retour_chez_livreur",
+   "meaning": "Return held by the driver",
+   "result": "returning",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "retour_transit_entrepot",
+   "meaning": "Return moving to the warehouse",
+   "result": "returning",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "retour_en_traitement",
+   "meaning": "Return being processed",
+   "result": "returning",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "retour_recu",
+   "meaning": "Return received; physically back",
+   "result": "returned",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "retour_archive",
+   "meaning": "Return archived after receipt",
+   "result": "returned",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "annule",
+   "meaning": "Cancelled",
+   "result": "exception",
+   "vocabulary": "slug",
+   "provenance": "official"
+  },
+  {
+   "raw": "payé_et_archivé",
+   "meaning": "Delivered, paid, archived; spelling seen in the get/orders example, conflicts with the enum",
+   "result": "delivered",
+   "vocabulary": "slug",
+   "provenance": "official-example"
+  },
+  {
+   "raw": "prete_a_preparer",
+   "meaning": "Ready to prepare; slug seen only in dz-delivery fixtures",
+   "result": "pending",
+   "vocabulary": "slug",
+   "provenance": "sdk-only"
+  }
+ ]
+}

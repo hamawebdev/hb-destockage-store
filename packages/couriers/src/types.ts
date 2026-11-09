@@ -252,6 +252,7 @@ export type PrepareCode =
   | 'phone_invalid'
   | 'amount_out_of_range'
   | 'origin_missing'
+  | 'recipient_required'
   | 'lists_missing';
 
 export interface PreparedParcel {
