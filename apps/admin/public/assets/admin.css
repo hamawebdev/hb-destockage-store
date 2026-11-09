@@ -567,6 +567,9 @@
 
   .thumb { border-radius: var(--radius-sm); }
   .photo-list { list-style: none; margin: 0 0 var(--space-4); padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--space-3); }
+  /* Captions are R2 keys with no spaces: they wrap inside their cell (review UX-4 r1 I1). */
+  .photo-list > li { min-inline-size: 0; }
+  .photo-list code { overflow-wrap: anywhere; white-space: normal; }
   .photo-list img { display: block; inline-size: 100%; block-size: auto; border-radius: var(--radius-sm); background: var(--color-surface-alt); }
 
   /* Rows of inputs under a header row: the column header (or the stacked card label) names the field. */

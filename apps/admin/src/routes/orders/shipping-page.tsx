@@ -110,7 +110,7 @@ export function ShippingPage(props: {
               />
               {props.counts.confirmed > SHIPPING_PAGE_SIZE ? <p class="muted list-note">{tm('ship.more')}</p> : null}
               <div class="ship-fields">
-                <TextInput name="courierName" label={tm('ship.courier')} maxlength={80} dir="auto" />
+                <TextInput name="courierName" label={tm('ship.courier')} maxlength={80} dir="auto" required />
                 <div class="field">
                   <label class="field__label" for="f-size">{tm('ship.size')}</label>
                   <select id="f-size" class="input input--select" name="size">
@@ -120,8 +120,9 @@ export function ShippingPage(props: {
                 </div>
               </div>
               <BulkBar selected={tm('bulk.selected')}>
-                {props.send ? <button type="submit" class="btn btn--primary" formaction="/delivery/send">{tm('bulk.send')}</button> : null}
-                <button type="submit" class="btn btn--secondary" formaction="/orders/shipping/slips" formtarget="_blank">{tm('ship.print')}</button>
+                {/* Only "mark shipped" needs the typed courier: the other two skip the browser's required check. */}
+                {props.send ? <button type="submit" class="btn btn--primary" formaction="/delivery/send" formnovalidate>{tm('bulk.send')}</button> : null}
+                <button type="submit" class="btn btn--secondary" formaction="/orders/shipping/slips" formtarget="_blank" formnovalidate>{tm('ship.print')}</button>
                 <Submit variant={props.send ? 'secondary' : 'primary'}>{tm('ship.markShipped')}</Submit>
               </BulkBar>
             </Form>

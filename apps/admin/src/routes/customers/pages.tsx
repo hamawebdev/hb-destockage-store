@@ -87,16 +87,19 @@ export function CustomersListPage(props: {
     <>
       <Form action="/customers" method="get" class="filters">
         <SearchField name="q" label={t('filter.q')} placeholder={t('filter.q.hint')} value={props.q} maxlength={64} />
-        {props.sensitive ? (
-          <div class="chips">
+        <div class="chips">
+          {props.sensitive ? (
             <FilterChip label={t('col.flags')} value={riskCount > 0 ? String(riskCount) : undefined} apply={t('filter.submit')}>
               <Checkbox name="blocked" label={t('filter.blocked')} checked={props.filter.blocked} />
               <Checkbox name="flagged" label={t('filter.flagged')} checked={props.filter.flagged} />
               <Checkbox name="returns" label={t('filter.returns')} checked={props.filter.returns} />
             </FilterChip>
-            {riskCount > 0 || props.q !== '' ? <a class="chips__clear" href="/customers">{t('filter.reset')}</a> : null}
-          </div>
-        ) : null}
+          ) : (
+            // No risk filters for this role: an explicit search button (Enter also works).
+            <button type="submit" class="btn btn--secondary">{t('filter.submit')}</button>
+          )}
+          {riskCount > 0 || props.q !== '' ? <a class="chips__clear" href="/customers">{t('filter.reset')}</a> : null}
+        </div>
       </Form>
       {props.invalid.length > 0 ? (
         <p class="flash flash--danger" role="status">

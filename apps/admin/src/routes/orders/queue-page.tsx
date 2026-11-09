@@ -142,9 +142,7 @@ export function QueueCallPage(props: {
             </Card>
           ) : null}
           <LastCalls tm={tm} events={props.events} />
-          <p>
-            <a href={`/orders/${order.ref}`}>{tm('queue.openOrder')}</a>
-          </p>
+          <a class="btn btn--secondary" href={`/orders/${order.ref}`}>{tm('queue.openOrder')}</a>
         </div>
       </div>
     </>
