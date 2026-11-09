@@ -10,14 +10,14 @@
     "fr": "Politique de confidentialité"
   },
   "summary": {
-    "ar": "بيانات طلبك: الاسم والهاتف والعنوان تُستعمل فقط لمعالجة طلبك.",
-    "fr": "Vos données de commande : le nom, le téléphone et l'adresse servent uniquement à traiter votre commande."
+    "ar": "بيانات طلبك: الاسم والهاتف والعنوان تُستعمل لمعالجة طلبك.",
+    "fr": "Vos données de commande : le nom, le téléphone et l'adresse servent à traiter votre commande."
   },
   "body": {
     "ar": [
       {
         "type": "p",
-        "text": "اسمك ورقم هاتفك وعنوانك تُستعمل فقط لمعالجة طلبك."
+        "text": "اسمك ورقم هاتفك وعنوانك تُستعمل لمعالجة طلبك. وإذا قبلت قياس إعلاناتنا مع ميتا، يُرسل رقم هاتفك أيضاً إلى ميتا بصيغة مجزّأة."
       },
       {
         "type": "ul",
@@ -49,7 +49,7 @@
     "fr": [
       {
         "type": "p",
-        "text": "Votre nom, votre numéro de téléphone et votre adresse servent uniquement à traiter votre commande."
+        "text": "Votre nom, votre numéro de téléphone et votre adresse servent à traiter votre commande. Si vous acceptez la mesure de nos publicités avec Meta, votre numéro est aussi transmis à Meta sous forme hachée."
       },
       {
         "type": "ul",

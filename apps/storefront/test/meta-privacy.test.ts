@@ -41,7 +41,7 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
     const p = privacyProps(lang);
     const html = await render(p);
     expect(html).toContain(p.layout.strings['privacy.meta.title']);
-    expect(html).toMatch(/data-placeholder="privacy\.meta\.body1"/);
+    expect(html).toMatch(/data-legal-review="privacy\.meta\.body1">\[[^\]]+\] /);
     expect(html).toMatch(/<button[^>]*data-meta-reset[^>]*hidden/);
     // Last in the body, after the page's own text, so revealing it moves nothing above the footer.
     expect(html.indexOf('data-meta-reset')).toBeGreaterThan(html.lastIndexOf('</ul>'));
@@ -53,7 +53,7 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
     vi.stubEnv('META_PIXEL_ID', PIXEL);
     const p = privacyProps(lang);
     const html = await render(p);
-    expect(html).toMatch(/data-placeholder="privacy\.meta\.body1"/);
+    expect(html).toMatch(/data-legal-review="privacy\.meta\.body1">\[[^\]]+\] /);
     expect(html).toContain(stripMark(p.layout.strings['privacy.meta.body2']!));
     expect(html).not.toContain(stripMark(p.layout.strings['privacy.meta.off.body2']!));
   });
@@ -63,10 +63,19 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
     vi.stubEnv('META_CONSENT_REQUIRED', '0');
     const p = privacyProps(lang);
     const html = await render(p);
-    expect(html).toMatch(/data-placeholder="privacy\.meta\.off\.body1"/);
+    expect(html).toMatch(/data-legal-review="privacy\.meta\.off\.body1">\[[^\]]+\] /);
     expect(html).toContain(stripMark(p.layout.strings['privacy.meta.off.body2']!));
     expect(html).not.toContain(stripMark(p.layout.strings['privacy.meta.body2']!));
     expect(html).toMatch(/<button[^>]*data-meta-reset[^>]*hidden/);
+  });
+
+  it('the legal-review mark is plain text: no dev pill, so no new CSS on the page', async () => {
+    vi.stubEnv('META_PIXEL_ID', PIXEL);
+    const html = await render(privacyProps(lang));
+    const last = html.lastIndexOf('data-legal-review');
+    const section = html.slice(html.indexOf('data-legal-review'), html.indexOf('</p>', last));
+    expect(section).not.toContain('dev-ph');
+    expect(section).not.toContain('[PLACEHOLDER');
   });
 
   it('only on the privacy page', async () => {
