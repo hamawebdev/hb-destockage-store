@@ -276,8 +276,8 @@ export type WebhookVerification =
   | { readonly ok: false; readonly reason: WebhookFailure };
 
 export interface WebhookInput {
-  /** Byte-exact request body. */
-  readonly rawBody: string;
+  /** The request body as received. Bytes, because a signature covers bytes, not decoded text. */
+  readonly rawBody: Uint8Array;
   readonly headers: Readonly<Record<string, string>>;
   readonly secret: string;
 }
@@ -355,5 +355,5 @@ export interface CourierAdapter {
   /** No credentials: it answers the courier's URL check on the public route. */
   webhookHandshake(query: Readonly<Record<string, string>>): WebhookHandshakeResponse | null;
   verifyWebhook(input: WebhookInput): Promise<WebhookVerification>;
-  parseWebhook(rawBody: string): WebhookParseResult;
+  parseWebhook(rawBody: Uint8Array): WebhookParseResult;
 }
