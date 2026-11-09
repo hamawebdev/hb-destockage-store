@@ -157,20 +157,6 @@ const trim4 = cards.length >= 4 ? cards.length - (cards.length % 4) : cards.leng
       .hm-tile-name { font-size: var(--fs-lead); }
     }
 
-    /* Products: the same soft surface as the tiles, on the home page only (ProductCard itself is untouched). */
-    .hm-products .cat-grid { gap: var(--grid-gap); }
-    .hm-products .cat-card { gap: 0; block-size: 100%; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-surface-alt); }
-    .hm-products .cat-card-media { border-radius: 0; }
-    .hm-products .cat-card-body { padding: var(--space-3); }
-    .hm-products .cat-card-link:focus-visible::after { outline-offset: calc(-1 * var(--focus-width)); }
-    @media (max-width: 767.98px) { .hm-g2-odd li:last-child { display: none; } }
-    @media (min-width: 768px) and (max-width: 1023.98px) {
-      .hm-g3-3 li:nth-child(n + 4), .hm-g3-6 li:nth-child(n + 7), .hm-g3-9 li:nth-child(n + 10), .hm-g3-12 li:nth-child(n + 13), .hm-g3-15 li:nth-child(n + 16) { display: none; }
-    }
-    @media (min-width: 1024px) {
-      .hm-g4-4 li:nth-child(n + 5), .hm-g4-8 li:nth-child(n + 9), .hm-g4-12 li:nth-child(n + 13), .hm-g4-16 li:nth-child(n + 17) { display: none; }
-    }
-
     /* One compact reassurance, then a quiet contact line. */
     .hm-assure { padding-block: var(--section-block) var(--space-8); text-align: center; }
     .hm-assure-list { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2) var(--space-6); padding: 0; font-size: var(--fs-small); }
@@ -178,5 +164,23 @@ const trim4 = cards.length >= 4 ? cards.length - (cards.length % 4) : cards.leng
     .hm-assure-item .icon { color: var(--color-text-secondary); }
     .hm-contact { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 var(--space-2); margin-block-start: var(--space-4); color: var(--color-text-secondary); font-size: var(--fs-small); }
     .hm-contact-a { display: inline-flex; align-items: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); justify-content: center; color: var(--color-accent-text); }
+  }
+</style>
+
+<style is:global>
+  /* Products: the same soft surface as the tiles, on the home page only (ProductCard itself is untouched).
+     Outside @layer on purpose: ProductCard's own rules are unlayered and would beat any layered override. */
+  .hm-products .cat-grid { gap: var(--grid-gap); }
+  .hm-products .cat-card { gap: 0; block-size: 100%; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-surface-alt); }
+  .hm-products .cat-card-media { border-radius: 0; }
+  .hm-products .cat-card-body { padding: var(--space-3); }
+  /* overflow: hidden above would clip the card link's outset ring: keep it inside the card. */
+  .hm-products .cat-card-link:focus-visible::after { outline-offset: calc(-1 * var(--focus-width)); }
+  @media (max-width: 767.98px) { .hm-g2-odd li:last-child { display: none; } }
+  @media (min-width: 768px) and (max-width: 1023.98px) {
+    .hm-g3-3 li:nth-child(n + 4), .hm-g3-6 li:nth-child(n + 7), .hm-g3-9 li:nth-child(n + 10), .hm-g3-12 li:nth-child(n + 13), .hm-g3-15 li:nth-child(n + 16) { display: none; }
+  }
+  @media (min-width: 1024px) {
+    .hm-g4-4 li:nth-child(n + 5), .hm-g4-8 li:nth-child(n + 9), .hm-g4-12 li:nth-child(n + 13), .hm-g4-16 li:nth-child(n + 17) { display: none; }
   }
 </style>
