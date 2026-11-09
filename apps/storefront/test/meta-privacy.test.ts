@@ -43,6 +43,7 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
     expect(html).toContain(p.layout.strings['privacy.meta.title']);
     expect(html).toMatch(/data-placeholder="privacy\.meta\.body1"/);
     expect(html).toMatch(/<button[^>]*data-meta-reset[^>]*hidden/);
+    expect(html).toMatch(/<p class="ct-reset"><button/); // its place is held, so revealing it shifts nothing
     expect(html).toContain(p.layout.strings['consent.change']);
   });
 
