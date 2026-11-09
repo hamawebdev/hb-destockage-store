@@ -13,6 +13,8 @@
 //   POST /send/confirm                     the real send, per-order results
 //   GET  /shipments/:id/waybill            one label call                     (delivery.view)
 //   POST /shipments/:id/validate           retry a draft's validation         (delivery.send)
+//   GET  /exceptions[?state=resolved]      what needs a person                (delivery.view)
+//   POST /exceptions/:id/resolve           one audited decision               (delivery.send)
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { canEnable, getCourier, listCouriers, type CourierAdapter, type CourierCredentials } from '@hb/couriers';
@@ -34,6 +36,7 @@ import { AccountPage, SettingsListPage, type AccountView } from './settings-page
 import { fetchSendOrders, listsOf, parcelInput, refreshLists, runSend, SEND_LIMITS, validateDraft, type SendFields, type SendOrder, type SendRun } from './send.ts';
 import { SendPage, SendResultsPage, type SendRow } from './send-page.tsx';
 import { sm } from './send-messages.ts';
+import { registerExceptions } from './exceptions.tsx';
 
 const r = createRouter({ roles: rolesFor('delivery.view') });
 
@@ -488,5 +491,7 @@ r.post('/shipments/:id/validate', requirePerm('delivery.send'), async (c) => {
   if (!c.var.audited) noAudit(c, 'validate: already claimed by another attempt');
   return c.redirect(`${withFlash(`/orders/${ctx.ref}`, 'saved')}#shipment`, 303);
 });
+
+registerExceptions(r);
 
 export default r;
