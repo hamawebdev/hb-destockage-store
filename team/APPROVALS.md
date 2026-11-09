@@ -286,3 +286,9 @@ CARR-5 r2 APPROVED tier=high reviewer=rev-h commits=e92deb2bdc0780dc86ae9fc04054
 CARR-4 r2 APPROVED tier=high reviewer=rev-h commits=51eccfa591d861aae61abd11c02e8d2e21e51118 review=artifacts/CARR-5/review-r2.md
 SHIP-1 r1 APPROVED tier=high reviewer=rev-i commits=53cd7cc6b9046b24e08871803e97dd6be413be4b,adab74315ed0524d6f1c8a9167b178d81b2e001c review=artifacts/SHIP-1/review-r1.md
 SHIP-2 r1 APPROVED tier=high reviewer=rev-i commits=fb5526176a536b790d0d5526bd19f648546648f0 review=artifacts/SHIP-2/review-r1.md
+META-5 r7 APPROVED tier=high reviewer=rev-g commits=739d28e29b50a33f60ef8277bd570d5b812810d6 review=artifacts/META-5/review-r7.md
+META-5 r9 APPROVED tier=high reviewer=rev-g commits=d51fecfb480728b65fb99548609ffdffb7438cb1,6e9255e503e3de2d27acb1b7dc6fef5d9341f2b6 review=artifacts/META-5/review-r9.md
+META-6 r6 APPROVED tier=low reviewer=rev-g commits=caa6d92256f0c2af0b8c5a60aa083749cbfacde1 review=artifacts/META-6/review-r6.md
+META-6 r7 APPROVED tier=low reviewer=rev-g commits=7f016a5afdb4146f44bc3cca02a80162972f4de9 review=artifacts/META-6/review-r7.md
+META-9 r2 APPROVED tier=low reviewer=rev-g commits=d71ba1a07e5311a4d5064d1117add97a9216d7e6 review=artifacts/META-9/review-r2.md
+META-0 r2 APPROVED tier=high reviewer=rev-g commits=47a23c141867d4847dd09ccaf745c805d18e4242 review=artifacts/META-0/merge-review-r2.md
