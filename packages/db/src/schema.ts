@@ -16,6 +16,7 @@
 import { relations, sql, type SQL } from 'drizzle-orm';
 import type { OrderFlag } from '@hb/shared';
 import {
+  blob,
   check,
   index,
   integer,
@@ -30,7 +31,12 @@ import {
   ACTOR_TYPES,
   ADMIN_ROLES,
   CONTENT_PAGE_KEYS,
+  COURIER_CHECK_RESULTS,
+  COURIER_DIRECTORY_KINDS,
+  DELIVERY_EXCEPTION_KINDS,
+  DELIVERY_EXCEPTION_STATES,
   DELIVERY_STATUSES,
+  DELIVERY_TYPES,
   type DbLang,
   type ContentBlockJson,
   LANGS,
@@ -42,7 +48,13 @@ import {
   PUBLISH_STATUSES,
   RUM_METRICS,
   RUM_RATINGS,
+  SHEETS_CONNECTION_STATUSES,
+  SHIPMENT_COURIER_STATUSES,
+  SHIPMENT_EVENT_SOURCES,
+  SHIPMENT_EVENT_STATES,
+  SHIPMENT_STATES,
   TURNSTILE_RESULTS,
+  WEBHOOK_INBOX_STATES,
 } from './enums.ts';
 
 // ---------------------------------------------------------------------------------------------
@@ -490,6 +502,8 @@ export const orders = sqliteTable(
     index('orders_customer_created_idx').on(t.customerId, t.createdAt),
     index('orders_commune_idx').on(t.communeId),
     index('orders_flagged_created_idx').on(t.createdAt, t.id).where(sql`${c(t.flags)} <> '[]'`),
+    // Sheets' per-minute change gate reads MAX(updated_at) from the index alone (SHEET-0).
+    index('orders_updated_at_idx').on(t.updatedAt),
     check('orders_phone_e164', phoneCheck(t.phoneE164)),
     check('orders_lang_enum', oneOf(t.lang, LANGS)),
     check('orders_status_enum', oneOf(t.status, ORDER_STATUSES)),
@@ -821,6 +835,304 @@ export const notificationDeliveries = sqliteTable(
 );
 
 // ---------------------------------------------------------------------------------------------
+// Delivery (SHIP-0 contract, D-010)
+// ---------------------------------------------------------------------------------------------
+
+/** One account per courier id. Credentials are AES-GCM sealed (`secret-box.ts`), never plain. */
+export const courierAccounts = sqliteTable(
+  'courier_accounts',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    /** `@hb/couriers` registry id; appears in the public webhook path. */
+    courier: text('courier').notNull(),
+    /** A courier is off until its keys are set and the owner enables it. */
+    enabled: bool('enabled', false),
+    credentialsCipher: text('credentials_cipher'),
+    credentialsIv: text('credentials_iv'),
+    keyVersion: integer('key_version'),
+    /** Masked metadata only (`field → hint`); never a whole secret. */
+    credentialsHint: text('credentials_hint', { mode: 'json' }).$type<Record<string, string>>().notNull().default(sql`'{}'`),
+    /** Non-secret settings: origin wilaya, `askCollection`, defaults. */
+    config: text('config', { mode: 'json' }).$type<Record<string, unknown>>().notNull().default(sql`'{}'`),
+    /** SHA-256 (hex) of the webhook URL token. The token itself is shown once and never stored. */
+    webhookTokenHash: text('webhook_token_hash'),
+    pollLeaseUntil: integer('poll_lease_until'),
+    pollBackoffUntil: integer('poll_backoff_until'),
+    lastPolledAt: integer('last_polled_at'),
+    lastCheckResult: text('last_check_result', { enum: COURIER_CHECK_RESULTS }),
+    lastCheckAt: integer('last_check_at'),
+    updatedBy: integer('updated_by').references(() => adminUsers.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('courier_accounts_courier_uq').on(t.courier),
+    uniqueIndex('courier_accounts_webhook_token_uq').on(t.webhookTokenHash),
+    check('courier_accounts_enabled_bool', isBool(t.enabled)),
+    check('courier_accounts_hint_json', isJson(t.credentialsHint)),
+    check('courier_accounts_config_json', isJson(t.config)),
+    check('courier_accounts_cipher_pair', sql`(${c(t.credentialsCipher)} is null) = (${c(t.credentialsIv)} is null)`),
+    check('courier_accounts_check_enum', sql`${c(t.lastCheckResult)} is null or ${oneOf(t.lastCheckResult, COURIER_CHECK_RESULTS)}`),
+  ],
+);
+
+/**
+ * One attempt to hand an order to a courier. Partial unique index: at most one live parcel per
+ * order, any courier. A row that holds the slot also blocks the order (triggers, migration 0012).
+ */
+export const shipments = sqliteTable(
+  'shipments',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    orderId: integer('order_id')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'restrict' }),
+    courier: text('courier').notNull(),
+    accountId: integer('account_id')
+      .notNull()
+      .references(() => courierAccounts.id, { onDelete: 'restrict' }),
+    state: text('state', { enum: SHIPMENT_STATES }).notNull().default('reserved'),
+    /** Our order ref as sent to the courier. A resend reuses it, so a lookup can find an earlier parcel. */
+    reference: text('reference').notNull(),
+    tracking: text('tracking'),
+    labelUrl: text('label_url'),
+    /** Normalised status (`@hb/couriers` CourierStatus); NULL until the first event. */
+    courierStatus: text('courier_status', { enum: SHIPMENT_COURIER_STATUSES }),
+    courierStatusRaw: text('courier_status_raw'),
+    courierStatusAt: integer('courier_status_at'),
+    deliveryType: text('delivery_type', { enum: DELIVERY_TYPES }).notNull().default('home'),
+    stopDeskId: text('stop_desk_id'),
+    stopDeskName: text('stop_desk_name'),
+    // Snapshot taken by the same version-guarded statement as the reservation.
+    address: text('address'),
+    codAmountDzd: integer('cod_amount_dzd').notNull(),
+    feeDzd: integer('fee_dzd').notNull(),
+    wilayaCode: integer('wilaya_code').notNull(),
+    communeId: integer('commune_id').notNull(),
+    errorCode: text('error_code'),
+    errorDetail: text('error_detail'),
+    attemptedAt: integer('attempted_at'),
+    attemptEndedAt: integer('attempt_ended_at'),
+    validateAttemptedAt: integer('validate_attempted_at'),
+    acceptedAt: integer('accepted_at'),
+    /** Set in the batch that moved the order to `shipped`; closes the slot. */
+    appliedAt: integer('applied_at'),
+    /** NULL = the cron no longer tries to verify this row. */
+    verifyNextAt: integer('verify_next_at'),
+    /** When lookups started being inconclusive (`unavailable`, or `not_found` not resend-safe). */
+    verifyInconclusiveSince: integer('verify_inconclusive_since'),
+    verifyLeaseUntil: integer('verify_lease_until'),
+    firstAbsentAt: integer('first_absent_at'),
+    lastPolledAt: integer('last_polled_at'),
+    createdBy: integer('created_by')
+      .notNull()
+      .references(() => adminUsers.id, { onDelete: 'restrict' }),
+    createdAt: createdAt(),
+    /** Bumped on every `state` or `courier_status` change; Sheets compares it. */
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('shipments_one_live_uq')
+      .on(t.orderId)
+      .where(sql`${c(t.state)} in ('reserved', 'sending', 'draft', 'accepted', 'uncertain')`),
+    uniqueIndex('shipments_tracking_uq').on(t.courier, t.tracking).where(sql`${c(t.tracking)} is not null`),
+    index('shipments_order_idx').on(t.orderId, t.id),
+    index('shipments_account_idx').on(t.accountId),
+    index('shipments_state_idx').on(t.state, t.attemptedAt),
+    index('shipments_poll_idx').on(t.accountId, t.lastPolledAt).where(sql`${c(t.state)} in ('draft', 'accepted') and ${c(t.tracking)} is not null`),
+    index('shipments_unapplied_idx').on(t.state).where(sql`${c(t.state)} = 'accepted' and ${c(t.appliedAt)} is null`),
+    index('shipments_updated_at_idx').on(t.updatedAt),
+    check('shipments_state_enum', oneOf(t.state, SHIPMENT_STATES)),
+    check('shipments_courier_status_enum', sql`${c(t.courierStatus)} is null or ${oneOf(t.courierStatus, SHIPMENT_COURIER_STATUSES)}`),
+    check('shipments_delivery_type_enum', oneOf(t.deliveryType, DELIVERY_TYPES)),
+    check('shipments_stop_desk_has_id', sql`${c(t.deliveryType)} <> 'stop_desk' or ${c(t.stopDeskId)} is not null`),
+    check('shipments_money_nonneg', sql`${c(t.codAmountDzd)} >= 0 and ${c(t.feeDzd)} >= 0`),
+    check('shipments_accepted_has_tracking', sql`${c(t.state)} not in ('draft', 'accepted') or ${c(t.tracking)} is not null`),
+  ],
+);
+
+/** Courier status events, deduped per shipment. One path for webhook and poll. */
+export const shipmentEvents = sqliteTable(
+  'shipment_events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    shipmentId: integer('shipment_id')
+      .notNull()
+      .references(() => shipments.id, { onDelete: 'restrict' }),
+    dedupeKey: text('dedupe_key').notNull(),
+    rawStatus: text('raw_status').notNull(),
+    mapped: text('mapped', { enum: SHIPMENT_COURIER_STATUSES }).notNull(),
+    reason: text('reason'),
+    occurredAt: integer('occurred_at'),
+    receivedAt: integer('received_at').notNull().default(NOW_MS),
+    source: text('source', { enum: SHIPMENT_EVENT_SOURCES }).notNull(),
+    state: text('state', { enum: SHIPMENT_EVENT_STATES }).notNull().default('pending'),
+    appliedAt: integer('applied_at'),
+  },
+  (t) => [
+    uniqueIndex('shipment_events_dedupe_uq').on(t.shipmentId, t.dedupeKey),
+    index('shipment_events_pending_idx').on(t.shipmentId, t.id).where(sql`${c(t.state)} = 'pending'`),
+    check('shipment_events_mapped_enum', oneOf(t.mapped, SHIPMENT_COURIER_STATUSES)),
+    check('shipment_events_source_enum', oneOf(t.source, SHIPMENT_EVENT_SOURCES)),
+    check('shipment_events_state_enum', oneOf(t.state, SHIPMENT_EVENT_STATES)),
+  ],
+);
+
+/** Raw webhook requests, written by the public route, processed by jobs. */
+export const courierWebhookInbox = sqliteTable(
+  'courier_webhook_inbox',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    accountId: integer('account_id')
+      .notNull()
+      .references(() => courierAccounts.id, { onDelete: 'restrict' }),
+    courier: text('courier').notNull(),
+    /** Byte-exact request body: a signature is computed over the original bytes. */
+    body: blob('body', { mode: 'buffer' }).notNull(),
+    /** Request headers minus cookies, auth and client-IP headers. */
+    headers: text('headers', { mode: 'json' }).$type<Record<string, string>>().notNull().default(sql`'{}'`),
+    state: text('state', { enum: WEBHOOK_INBOX_STATES }).notNull().default('pending'),
+    attempts: integer('attempts').notNull().default(0),
+    leaseUntil: integer('lease_until'),
+    nextAttemptAt: integer('next_attempt_at'),
+    receivedAt: integer('received_at').notNull().default(NOW_MS),
+    processedAt: integer('processed_at'),
+  },
+  (t) => [
+    index('courier_webhook_inbox_work_idx').on(t.state, t.nextAttemptAt).where(sql`${c(t.state)} in ('pending', 'held')`),
+    index('courier_webhook_inbox_account_open_idx').on(t.accountId).where(sql`${c(t.state)} in ('pending', 'held')`),
+    index('courier_webhook_inbox_account_idx').on(t.accountId),
+    index('courier_webhook_inbox_purge_idx').on(t.processedAt).where(sql`${c(t.state)} in ('done', 'rejected')`),
+    check('courier_webhook_inbox_state_enum', oneOf(t.state, WEBHOOK_INBOX_STATES)),
+    check('courier_webhook_inbox_headers_json', isJson(t.headers)),
+    check('courier_webhook_inbox_body_size', sql`length(${c(t.body)}) <= 65536`),
+    check('courier_webhook_inbox_attempts_nonneg', nonNeg(t.attempts)),
+  ],
+);
+
+/** What a person has to deal with (`/delivery/exceptions`). */
+export const deliveryExceptions = sqliteTable(
+  'delivery_exceptions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    kind: text('kind', { enum: DELIVERY_EXCEPTION_KINDS }).notNull(),
+    /** What the row is about: `s:<shipment id>`, `t:<courier>|<tracking>`, `c:<courier>`, `i:<inbox id>`. */
+    subject: text('subject').notNull(),
+    shipmentId: integer('shipment_id').references(() => shipments.id, { onDelete: 'restrict' }),
+    orderId: integer('order_id').references(() => orders.id, { onDelete: 'restrict' }),
+    courier: text('courier'),
+    /** '' when the exception is not about a status; part of the open-row key. */
+    rawStatus: text('raw_status').notNull().default(''),
+    detail: text('detail'),
+    /** How many times this was hit while open. */
+    count: integer('count').notNull().default(1),
+    state: text('state', { enum: DELIVERY_EXCEPTION_STATES }).notNull().default('open'),
+    resolution: text('resolution'),
+    resolutionNote: text('resolution_note'),
+    resolvedBy: integer('resolved_by').references(() => adminUsers.id, { onDelete: 'restrict' }),
+    resolvedAt: integer('resolved_at'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('delivery_exceptions_open_uq')
+      .on(t.kind, t.subject, t.rawStatus)
+      .where(sql`${c(t.state)} = 'open'`),
+    index('delivery_exceptions_list_idx').on(t.state, t.createdAt),
+    index('delivery_exceptions_shipment_idx').on(t.shipmentId),
+    index('delivery_exceptions_order_idx').on(t.orderId),
+    index('delivery_exceptions_subject_idx').on(t.kind, t.subject),
+    index('delivery_exceptions_resolved_by_idx').on(t.resolvedBy),
+    check('delivery_exceptions_kind_enum', oneOf(t.kind, DELIVERY_EXCEPTION_KINDS)),
+    check('delivery_exceptions_state_enum', oneOf(t.state, DELIVERY_EXCEPTION_STATES)),
+    check('delivery_exceptions_count_pos', sql`${c(t.count)} > 0`),
+  ],
+);
+
+/** Cached courier lists. `wilaya_code` 0 for the courier-wide wilaya list. */
+export const courierDirectory = sqliteTable(
+  'courier_directory',
+  {
+    courier: text('courier').notNull(),
+    kind: text('kind', { enum: COURIER_DIRECTORY_KINDS }).notNull(),
+    wilayaCode: integer('wilaya_code').notNull().default(0),
+    payload: text('payload', { mode: 'json' }).$type<unknown[]>().notNull(),
+    fetchedAt: integer('fetched_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.courier, t.kind, t.wilayaCode] }),
+    check('courier_directory_kind_enum', oneOf(t.kind, COURIER_DIRECTORY_KINDS)),
+    check('courier_directory_payload_json', isJson(t.payload)),
+  ],
+);
+
+// ---------------------------------------------------------------------------------------------
+// Google Sheets (SHEET-0 contract)
+// ---------------------------------------------------------------------------------------------
+
+/** Singleton (`id = 1`, row inserted by the migration). */
+export const sheetsConnection = sqliteTable(
+  'sheets_connection',
+  {
+    id: integer('id').primaryKey(),
+    status: text('status', { enum: SHEETS_CONNECTION_STATUSES }).notNull().default('disconnected'),
+    googleEmail: text('google_email'),
+    googleSub: text('google_sub'),
+    connectedBy: integer('connected_by').references(() => adminUsers.id, { onDelete: 'set null' }),
+    refreshTokenEnc: text('refresh_token_enc'),
+    createKey: text('create_key'),
+    spreadsheetId: text('spreadsheet_id'),
+    tabId: integer('tab_id'),
+    lang: text('lang', { enum: LANGS }),
+    generation: integer('generation').notNull().default(1),
+    leaseOwner: text('lease_owner'),
+    leaseUntil: integer('lease_until'),
+    failureCount: integer('failure_count').notNull().default(0),
+    nextAttemptAt: integer('next_attempt_at'),
+    lastSuccessAt: integer('last_success_at'),
+    lastErrorCode: text('last_error_code'),
+    lastErrorAt: integer('last_error_at'),
+    layoutNote: text('layout_note'),
+    scanFingerprint: text('scan_fingerprint'),
+    lastScanAt: integer('last_scan_at'),
+    connectedAt: integer('connected_at'),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [
+    check('sheets_connection_singleton', sql`${c(t.id)} = 1`),
+    check('sheets_connection_status_enum', oneOf(t.status, SHEETS_CONNECTION_STATUSES)),
+    check('sheets_connection_lang_enum', sql`${c(t.lang)} is null or ${oneOf(t.lang, LANGS)}`),
+    check('sheets_connection_failure_nonneg', nonNeg(t.failureCount)),
+  ],
+);
+
+/** One row per order written to the sheet. */
+export const sheetsRows = sqliteTable('sheets_rows', {
+  orderId: integer('order_id')
+    .primaryKey()
+    .references(() => orders.id, { onDelete: 'restrict' }),
+  generation: integer('generation').notNull(),
+  sourceVersion: integer('source_version').notNull(),
+  shipmentStamp: integer('shipment_stamp'),
+  rowHash: text('row_hash').notNull(),
+  syncedAt: integer('synced_at').notNull(),
+});
+
+/** Refresh tokens awaiting revocation at Google. */
+export const sheetsRevocations = sqliteTable(
+  'sheets_revocations',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    tokenEnc: text('token_enc').notNull(),
+    googleSub: text('google_sub').notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    nextAttemptAt: integer('next_attempt_at'),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [index('sheets_revocations_next_idx').on(t.nextAttemptAt), check('sheets_revocations_attempts_nonneg', nonNeg(t.attempts))],
+);
+
+// ---------------------------------------------------------------------------------------------
 // Relations (for `db.query.*` relational queries)
 // ---------------------------------------------------------------------------------------------
 
@@ -907,6 +1219,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
   items: many(orderItems),
   events: many(orderEvents),
   deliveries: many(notificationDeliveries),
+  shipments: many(shipments),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
@@ -934,4 +1247,27 @@ export const publishRunsRelations = relations(publishRuns, ({ one }) => ({
 
 export const notificationDeliveriesRelations = relations(notificationDeliveries, ({ one }) => ({
   order: one(orders, { fields: [notificationDeliveries.orderId], references: [orders.id] }),
+}));
+
+export const courierAccountsRelations = relations(courierAccounts, ({ one, many }) => ({
+  updatedByUser: one(adminUsers, { fields: [courierAccounts.updatedBy], references: [adminUsers.id] }),
+  shipments: many(shipments),
+}));
+
+export const shipmentsRelations = relations(shipments, ({ one, many }) => ({
+  order: one(orders, { fields: [shipments.orderId], references: [orders.id] }),
+  account: one(courierAccounts, { fields: [shipments.accountId], references: [courierAccounts.id] }),
+  createdByUser: one(adminUsers, { fields: [shipments.createdBy], references: [adminUsers.id] }),
+  events: many(shipmentEvents),
+  exceptions: many(deliveryExceptions),
+}));
+
+export const shipmentEventsRelations = relations(shipmentEvents, ({ one }) => ({
+  shipment: one(shipments, { fields: [shipmentEvents.shipmentId], references: [shipments.id] }),
+}));
+
+export const deliveryExceptionsRelations = relations(deliveryExceptions, ({ one }) => ({
+  shipment: one(shipments, { fields: [deliveryExceptions.shipmentId], references: [shipments.id] }),
+  order: one(orders, { fields: [deliveryExceptions.orderId], references: [orders.id] }),
+  resolvedByUser: one(adminUsers, { fields: [deliveryExceptions.resolvedBy], references: [adminUsers.id] }),
 }));

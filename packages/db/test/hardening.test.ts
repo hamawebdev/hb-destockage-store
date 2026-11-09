@@ -135,6 +135,9 @@ describe('DB-2 indexes', () => {
       'order_events.actor_user_id',
       'orders.claimed_by_user_id',
       'publish_runs.requested_by',
+      'courier_accounts.updated_by',
+      'shipments.created_by',
+      'sheets_connection.connected_by',
     ]);
     expect(missing.filter((m) => !allowed.has(m))).toEqual([]);
   });
@@ -394,6 +397,8 @@ describe('DB-2 triggers exist with the expected names', () => {
       'order_events_no_update',
       'orders_commune_in_wilaya_ins',
       'orders_commune_in_wilaya_upd',
+      'orders_open_slot_contact',
+      'orders_open_slot_status',
       'orders_ref_format_ins',
       'orders_ref_format_upd',
       ...['variants', 'orders', 'order_items', 'delivery_fees', 'pack_items'].flatMap((x) => [`${x}_int_types_ins`, `${x}_int_types_upd`]),

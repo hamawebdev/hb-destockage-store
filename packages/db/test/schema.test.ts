@@ -32,6 +32,16 @@ const BRIEF_TABLES = [
   // Added for consumers (jobs: JOBS-2, JOBS-5).
   'rum_daily',
   'notification_deliveries',
+  // Delivery and Sheets (SHIP-1).
+  'courier_accounts',
+  'shipments',
+  'shipment_events',
+  'courier_webhook_inbox',
+  'delivery_exceptions',
+  'courier_directory',
+  'sheets_connection',
+  'sheets_rows',
+  'sheets_revocations',
 ].sort();
 
 /** Insert the smallest valid graph: category → product → variant, geo, customer, order. */
