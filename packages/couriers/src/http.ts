@@ -167,6 +167,6 @@ export async function guardedFetch(
   try {
     return await Promise.race([work, timeout]);
   } finally {
-    clearTimeout(timer);
+    if (timer !== undefined) clearTimeout(timer);
   }
 }

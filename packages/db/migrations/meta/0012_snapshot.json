@@ -1,6 +1,6 @@
 {
-  "id": "e931e357-be44-49ef-b32c-de24d12c6191",
-  "prevId": "e59eee9a-b2e2-4acf-bd75-8bc384aee674",
+  "id": "f2a2ab0f-a38e-43b2-bc3b-787c0bf591ee",
+  "prevId": "40b68993-cbc7-4d6b-b4ef-f99841581894",
   "version": "6",
   "dialect": "sqlite",
   "tables": {
@@ -937,6 +937,10 @@
         "courier_directory_payload_json": {
           "name": "courier_directory_payload_json",
           "value": "json_valid(\"payload\")"
+        },
+        "courier_directory_payload_size": {
+          "name": "courier_directory_payload_size",
+          "value": "length(cast(\"payload\" as blob)) <= 80000"
         }
       }
     },
@@ -1087,7 +1091,11 @@
         },
         "courier_webhook_inbox_body_size": {
           "name": "courier_webhook_inbox_body_size",
-          "value": "length(\"body\") <= 65536"
+          "value": "length(\"body\") <= 32768"
+        },
+        "courier_webhook_inbox_headers_size": {
+          "name": "courier_webhook_inbox_headers_size",
+          "value": "length(cast(\"headers\" as blob)) <= 8192"
         },
         "courier_webhook_inbox_attempts_nonneg": {
           "name": "courier_webhook_inbox_attempts_nonneg",

@@ -34,7 +34,8 @@ CREATE TABLE `courier_directory` (
 	`fetched_at` integer NOT NULL,
 	PRIMARY KEY(`courier`, `kind`, `wilaya_code`),
 	CONSTRAINT "courier_directory_kind_enum" CHECK("kind" in ('wilayas', 'communes', 'stop_desks')),
-	CONSTRAINT "courier_directory_payload_json" CHECK(json_valid("payload"))
+	CONSTRAINT "courier_directory_payload_json" CHECK(json_valid("payload")),
+	CONSTRAINT "courier_directory_payload_size" CHECK(length(cast("payload" as blob)) <= 80000)
 );
 --> statement-breakpoint
 CREATE TABLE `courier_webhook_inbox` (
@@ -52,7 +53,8 @@ CREATE TABLE `courier_webhook_inbox` (
 	FOREIGN KEY (`account_id`) REFERENCES `courier_accounts`(`id`) ON UPDATE no action ON DELETE restrict,
 	CONSTRAINT "courier_webhook_inbox_state_enum" CHECK("state" in ('pending', 'held', 'done', 'rejected', 'poison')),
 	CONSTRAINT "courier_webhook_inbox_headers_json" CHECK(json_valid("headers")),
-	CONSTRAINT "courier_webhook_inbox_body_size" CHECK(length("body") <= 65536),
+	CONSTRAINT "courier_webhook_inbox_body_size" CHECK(length("body") <= 32768),
+	CONSTRAINT "courier_webhook_inbox_headers_size" CHECK(length(cast("headers" as blob)) <= 8192),
 	CONSTRAINT "courier_webhook_inbox_attempts_nonneg" CHECK("attempts" >= 0)
 );
 --> statement-breakpoint

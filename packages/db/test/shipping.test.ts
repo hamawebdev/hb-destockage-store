@@ -7,6 +7,9 @@ import Database from 'better-sqlite3';
 import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { applyOrderChange, buildOrderChange, classifyConstraintError, orderGuard, type OrderBatchItem, type OrderChange } from '../src/orders.ts';
+import { updateOrderContact } from '../src/order-contact.ts';
+import { createAdminTableFeeProvider } from '../src/fees.ts';
+import type { FeeProvider } from '@hb/shared';
 import { importSecretBoxKey, openSecret, sealSecret, SecretBoxKeyError, SecretBoxOpenError } from '../src/secret-box.ts';
 import { courierAccounts, orderEvents, orders, shipments, variants, type Db } from '../src/index.ts';
 import { buildSeedStatements } from '../src/seed/build.ts';
@@ -141,12 +144,20 @@ describe('open-slot triggers (SQLite)', () => {
     expect(() => sqlite.exec(`update shipments set state = 'lost' where id = 1`)).toThrow(/shipments_state_enum/);
   });
 
-  test('a body over 64 KiB is refused by the database', () => {
+  test('a body over 32 KiB and oversized headers are refused by the database', () => {
     const { sqlite } = freshDb();
     sqlite.exec(FIXTURE);
-    const ins = sqlite.prepare(`insert into courier_webhook_inbox (account_id, courier, body) values (1, 'yalidine', ?)`);
-    ins.run(Buffer.alloc(65536));
-    expect(() => ins.run(Buffer.alloc(65537))).toThrow(/courier_webhook_inbox_body_size/);
+    const ins = sqlite.prepare(`insert into courier_webhook_inbox (account_id, courier, body, headers) values (1, 'yalidine', ?, ?)`);
+    ins.run(Buffer.alloc(32768), '{}');
+    expect(() => ins.run(Buffer.alloc(32769), '{}')).toThrow(/courier_webhook_inbox_body_size/);
+    expect(() => ins.run(Buffer.alloc(1), JSON.stringify({ a: 'x'.repeat(8192) }))).toThrow(/courier_webhook_inbox_headers_size/);
+  });
+
+  test('a directory payload too big for one backup statement is refused, counted in bytes', () => {
+    const { sqlite } = freshDb();
+    const ins = sqlite.prepare(`insert into courier_directory (courier, kind, wilaya_code, payload, fetched_at) values ('yalidine', 'communes', ?, ?, 1)`);
+    ins.run(16, JSON.stringify(['x'.repeat(79_000)]));
+    expect(() => ins.run(31, JSON.stringify(['\u0628'.repeat(40_500)]))).toThrow(/courier_directory_payload_size/);
   });
 
   test('sheets_connection holds exactly its singleton row', () => {
@@ -345,14 +356,32 @@ describe('order changes on real D1', () => {
       expect(await eventCount(id)).toBe(0);
     });
 
-    test('the abort reaches the caller classified, and rolls the whole batch back', async () => {
+    test('applyOrderChange returns shipment_in_progress, and the whole batch is rolled back (SHIP-1b)', async () => {
       const id = await makeOrder('confirmed');
       await reserve(id, 'uncertain');
-      await expect(
-        applyOrderChange(db, { orderId: id, expectedVersion: 0, actor: { userId: 1, role: 'owner' }, hops: [['confirmed', 'cancelled']] }),
-      ).rejects.toSatisfy((e) => classifyConstraintError(e) === 'shipment_in_progress');
+      const res = await applyOrderChange(db, { orderId: id, expectedVersion: 0, actor: { userId: 1, role: 'owner' }, hops: [['confirmed', 'cancelled']] });
+      expect(res).toEqual({ ok: false, code: 'shipment_in_progress' });
       expect(await status(id)).toEqual({ s: 'confirmed', v: 0 });
       expect(await eventCount(id)).toBe(0);
+    });
+
+    test('updateOrderContact returns shipment_in_progress and writes nothing (SHIP-1b)', async () => {
+      const id = await makeOrder('confirmed');
+      await reserve(id, 'draft');
+      const fees: FeeProvider = createAdminTableFeeProvider(db);
+      const res = await updateOrderContact(db, id, { address: 'Rue 9', name: 'Karim' }, fees, { userId: 1, role: 'owner' }, 0);
+      expect(res).toEqual({ ok: false, code: 'shipment_in_progress' });
+      expect(await status(id)).toEqual({ s: 'confirmed', v: 0 });
+      const row = (await d1.prepare('select name, address from orders where id = ?').bind(id).first<{ name: string; address: string | null }>())!;
+      expect(row.name).not.toBe('Karim');
+      expect((await d1.prepare(`select count(*) n from order_events where order_id = ? and type = 'note'`).bind(id).first<{ n: number }>())!.n).toBe(0);
+    });
+
+    test('any other batch failure still throws', async () => {
+      const id = await makeOrder('confirmed');
+      const broken = new Proxy(db, { get: (t, k) => (k === 'batch' ? () => Promise.reject(new Error('D1_ERROR: something else')) : Reflect.get(t, k)) });
+      await expect(applyOrderChange(broken, { orderId: id, expectedVersion: 0, actor: { userId: 1, role: 'owner' }, hops: [['confirmed', 'cancelled']] })).rejects.toThrow('something else');
+      expect(classifyConstraintError(new Error('D1_ERROR: something else'))).toBeNull();
     });
   });
 

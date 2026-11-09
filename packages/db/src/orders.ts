@@ -42,7 +42,7 @@ type Item = OrderBatchItem;
 // Error classification (lead guard 1): identify the constraint exactly; anything else rethrows.
 // ---------------------------------------------------------------------------------------------
 
-export type ConstraintHit = 'idempotency_key' | 'ref' | 'stock' | 'shipment_in_progress';
+export type ConstraintHit = 'idempotency_key' | 'ref' | 'stock' | 'shipment_in_progress' | 'duplicate_tracking';
 
 const PATTERNS: readonly [ConstraintHit, RegExp][] = [
   ['idempotency_key', /\bUNIQUE constraint failed: orders\.idempotency_key(?![\w.])/],
@@ -50,6 +50,7 @@ const PATTERNS: readonly [ConstraintHit, RegExp][] = [
   ['stock', /\bCHECK constraint failed: variants_stock_nonneg(?!\w)/],
   // RAISE(ABORT) from the open-slot triggers (migration 0012).
   ['shipment_in_progress', /\bshipment_in_progress\b/],
+  ['duplicate_tracking', /\bUNIQUE constraint failed: shipments\.courier, shipments\.tracking(?![\w.])/],
 ];
 
 /** Driver messages along the `cause` chain, excluding Drizzle's "Failed query: <sql>" wrapper text. */
@@ -385,7 +386,8 @@ export interface OrderSnapshot {
 export type OrderChangeRefusal = 'illegal_transition' | 'forbidden' | 'not_callable';
 export type ApplyOrderChangeResult =
   | { readonly ok: true; readonly version: number; readonly status: OrderStatus }
-  | { readonly ok: false; readonly code: 'not_found' | 'version_conflict' | OrderChangeRefusal };
+  /** `shipment_in_progress`: a parcel slot is open on this order (open-slot triggers, migration 0012). */
+  | { readonly ok: false; readonly code: 'not_found' | 'version_conflict' | 'shipment_in_progress' | OrderChangeRefusal };
 
 /** `EXISTS (order :id at version :v)` — guard for callers' own `extra` statements. */
 export function orderGuard(orderId: number, version: number): SQL {
@@ -515,7 +517,7 @@ export function buildOrderChange(
   return { ok: true, items: items as [Item, ...Item[]], status };
 }
 
-async function readSnapshot(db: Db, orderId: number): Promise<OrderSnapshot | undefined> {
+export async function readOrderSnapshot(db: Db, orderId: number): Promise<OrderSnapshot | undefined> {
   const r = await db.get<{ id: number; status: OrderStatus; version: number; customer_id: number }>(
     sql`SELECT id, status, version, customer_id FROM orders WHERE id = ${orderId}`,
   );
@@ -524,14 +526,21 @@ async function readSnapshot(db: Db, orderId: number): Promise<OrderSnapshot | un
 
 /** Reads the order, builds the change, runs ONE batch. A stale version changes nothing. */
 export async function applyOrderChange(db: Db, change: OrderChange, extra: readonly Item[] = [], opts: OrderChangeOptions = {}): Promise<ApplyOrderChangeResult> {
-  const current = await readSnapshot(db, change.orderId);
+  const current = await readOrderSnapshot(db, change.orderId);
   if (!current) return { ok: false, code: 'not_found' };
   if (current.version !== change.expectedVersion) return { ok: false, code: 'version_conflict' };
   const built = buildOrderChange(db, current, change, extra, opts);
   if (!built.ok) return built;
-  const results = (await db.batch(built.items)) as unknown as { meta?: { changes?: number } }[];
+  let results: { meta?: { changes?: number } }[];
+  try {
+    results = (await db.batch(built.items)) as unknown as { meta?: { changes?: number } }[];
+  } catch (err) {
+    // The open-slot trigger aborted the whole batch: nothing was written.
+    if (classifyConstraintError(err) === 'shipment_in_progress') return { ok: false, code: 'shipment_in_progress' };
+    throw err;
+  }
   if ((results.at(-1)?.meta?.changes ?? 0) !== 1) {
-    return (await readSnapshot(db, change.orderId)) ? { ok: false, code: 'version_conflict' } : { ok: false, code: 'not_found' };
+    return (await readOrderSnapshot(db, change.orderId)) ? { ok: false, code: 'version_conflict' } : { ok: false, code: 'not_found' };
   }
   return { ok: true, version: change.expectedVersion + 1, status: built.status };
 }
@@ -547,7 +556,7 @@ export async function transitionOrder(
   extra: readonly Item[] = [],
   now?: number,
 ): Promise<ApplyOrderChangeResult> {
-  const current = await readSnapshot(db, orderId);
+  const current = await readOrderSnapshot(db, orderId);
   if (!current) return { ok: false, code: 'not_found' };
   return applyOrderChange(
     db,

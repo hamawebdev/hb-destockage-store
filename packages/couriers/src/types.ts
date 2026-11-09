@@ -143,7 +143,11 @@ export type LookupResult =
   | LookupUnavailable;
 
 export type CredentialCheck =
-  | { readonly kind: 'valid' }
+  | {
+      readonly kind: 'valid';
+      /** Statuses in the merchant's own workflow that we have no mapping for. */
+      readonly unlistedStatuses?: readonly string[];
+    }
   | { readonly kind: 'invalid'; readonly detail: string }
   /** The courier is down or answered oddly. Never read this as a bad key. */
   | { readonly kind: 'unavailable'; readonly cause: string }
@@ -184,11 +188,15 @@ export type LabelResult =
 export interface CourierWilaya {
   /** The courier's code (1..58 for couriers on the old scheme). */
   readonly code: number;
+  /** The courier's own id, where it addresses wilayas by id. */
+  readonly id?: string;
   readonly name: string;
   readonly deliverable: boolean;
 }
 
 export interface CourierCommune {
+  /** The courier's own id, where it addresses communes by id. */
+  readonly id?: string;
   readonly name: string;
   readonly wilayaCode: number;
   readonly hasStopDesk: boolean;
@@ -197,6 +205,8 @@ export interface CourierCommune {
 
 export interface CourierStopDesk {
   readonly id: string;
+  /** The courier's id for the desk's commune, when the courier tags one. */
+  readonly communeId?: string;
   readonly name: string;
   readonly address: string;
   readonly communeName: string;
@@ -252,6 +262,7 @@ export type PrepareCode =
   | 'phone_invalid'
   | 'amount_out_of_range'
   | 'origin_missing'
+  | 'recipient_required'
   | 'lists_missing';
 
 export interface PreparedParcel {
@@ -280,6 +291,11 @@ export interface WebhookInput {
   readonly rawBody: Uint8Array;
   readonly headers: Readonly<Record<string, string>>;
   readonly secret: string;
+  /**
+   * When the webhook arrived (the inbox row's `received_at`, epoch ms). Couriers that sign a
+   * timestamp compare against this, so a webhook that waited in the inbox still verifies.
+   */
+  readonly now?: number;
 }
 
 export type WebhookParseResult =

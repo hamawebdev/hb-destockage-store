@@ -1,2 +1,5 @@
 # Local only. Courier and Google HTTP is held to loopback unless ENV is exactly "production".
 ENV=development
+# Courier sync (SHIP-5): the same COURIER_KEYS_KEY as apps/admin; the stand-in on loopback only.
+# COURIER_KEYS_KEY=
+# COURIER_STANDIN_URL=http://127.0.0.1:4410

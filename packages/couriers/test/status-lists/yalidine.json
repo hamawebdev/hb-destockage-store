@@ -1,0 +1,253 @@
+{
+ "source": "Official list is login-gated (https://yalidine.app/app/dev/docs/api/index.php, 403 to this research). 30 'docs-transcribed' values from https://github.com/syscli/yalidine-node/blob/main/src/types.ts, which states they are verbatim from the docs. 11 'sdk-only' values from https://github.com/developing-off/dz-delivery docs/PROVIDERS.md and docs/fixtures/yalidine/statuses.json.",
+ "completeness": "INCOMPLETE/UNOFFICIAL: not read from the official page. Meanings are inferred from the French wording; no source defines them. Must be compared with the official docs by someone with a merchant login.",
+ "result_rules": "returned = physically back with the merchant only. returning = a return on its way back. exception = needs a person. Unlisted raw value = unknown; log it and keep the raw string. Result set: pending, in_transit, delivered, returning, returned, exception, unknown.",
+ "statuses": [
+  {
+   "raw": "Pas encore expédié",
+   "meaning": "Created, not shipped yet",
+   "result": "pending",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "A vérifier",
+   "meaning": "Flagged for verification before handling",
+   "result": "pending",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "En préparation",
+   "meaning": "Created, merchant still preparing; only state where edit/delete is allowed",
+   "result": "pending",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Pas encore ramassé",
+   "meaning": "Waiting for courier pickup",
+   "result": "pending",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Prêt à expédier",
+   "meaning": "Ready to ship, not handed over",
+   "result": "pending",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Ramassé",
+   "meaning": "Picked up by the courier",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Bloqué",
+   "meaning": "Held or blocked in the network",
+   "result": "exception",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Débloqué",
+   "meaning": "Released after a block",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Transfert",
+   "meaning": "Being transferred between centers",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Expédié",
+   "meaning": "Shipped",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Centre",
+   "meaning": "At a center",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "En localisation",
+   "meaning": "At destination, being located or assigned",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Vers Wilaya",
+   "meaning": "On the way to the destination wilaya",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Reçu à Wilaya",
+   "meaning": "Received in the destination wilaya",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "En attente du client",
+   "meaning": "Waiting for the customer, usually at a stop desk",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Prêt pour livreur",
+   "meaning": "Ready for a driver",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Sorti en livraison",
+   "meaning": "Out for delivery; NOT delivered",
+   "result": "in_transit",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "En attente",
+   "meaning": "On hold, usually after a postponed attempt",
+   "result": "exception",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "En alerte",
+   "meaning": "Alert raised on the parcel",
+   "result": "exception",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Tentative échouée",
+   "meaning": "Delivery attempt failed",
+   "result": "exception",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Livré",
+   "meaning": "Delivered to the customer",
+   "result": "delivered",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Echèc livraison",
+   "meaning": "Delivery failed; spelling with è is verbatim",
+   "result": "exception",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Retour vers centre",
+   "meaning": "Return started, on the way to a center",
+   "result": "returning",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Retourné au centre",
+   "meaning": "Return reached a center, not yet the merchant",
+   "result": "returning",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Retour transfert",
+   "meaning": "Return being transferred",
+   "result": "returning",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Retour groupé",
+   "meaning": "Return grouped for dispatch",
+   "result": "returning",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Retour à retirer",
+   "meaning": "Return ready for the merchant to collect; not back yet",
+   "result": "returning",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Retour vers vendeur",
+   "meaning": "Return on the way to the merchant",
+   "result": "returning",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Retourné au vendeur",
+   "meaning": "Physically back with the merchant",
+   "result": "returned",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "Echange échoué",
+   "meaning": "Exchange failed",
+   "result": "exception",
+   "provenance": "docs-transcribed"
+  },
+  {
+   "raw": "En passation",
+   "meaning": "Handover in progress, before pickup",
+   "result": "pending",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "En transit",
+   "meaning": "In transit",
+   "result": "in_transit",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "Vers Station",
+   "meaning": "On the way to a station",
+   "result": "in_transit",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "En station",
+   "meaning": "At a station",
+   "result": "in_transit",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "En attente de transfert",
+   "meaning": "Waiting for a transfer between centers",
+   "result": "in_transit",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "Dispatché",
+   "meaning": "Assigned to a driver",
+   "result": "in_transit",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "Alerte résolue",
+   "meaning": "Alert resolved, parcel moving again",
+   "result": "in_transit",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "Retour non retiré",
+   "meaning": "Return not collected by the merchant; not confirmed back",
+   "result": "exception",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "Colis abandonné",
+   "meaning": "Parcel abandoned",
+   "result": "exception",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "Annulé",
+   "meaning": "Cancelled",
+   "result": "exception",
+   "provenance": "sdk-only"
+  },
+  {
+   "raw": "Supprimé",
+   "meaning": "Deleted",
+   "result": "exception",
+   "provenance": "sdk-only"
+  }
+ ]
+}

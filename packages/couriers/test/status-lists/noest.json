@@ -1,0 +1,438 @@
+{
+ "source": "https://github.com/developing-off/dz-delivery docs/fixtures/noest/statuses.json and docs/PROVIDERS.md (derived from the NOEST Public API PDF v2.3, which is not public)",
+ "completeness": "INCOMPLETE/UNOFFICIAL: the official PDF could not be read. Meanings inferred from English labels. French labels on real accounts are not covered and map to unknown.",
+ "result_rules": "returned = physically back with the merchant only. returning = a return on its way back. exception = needs a person. Unlisted raw value = unknown; log it and keep the raw string. Result set: pending, in_transit, delivered, returning, returned, exception, unknown.",
+ "non_status_events": [
+  {
+   "raw": "edited_informations",
+   "meaning": "Remark or edit event; must not change the status."
+  },
+  {
+   "raw": "edit_price",
+   "meaning": "Remark or edit event; must not change the status."
+  },
+  {
+   "raw": "edit_wilaya",
+   "meaning": "Remark or edit event; must not change the status."
+  },
+  {
+   "raw": "extra_fee",
+   "meaning": "Remark or edit event; must not change the status."
+  }
+ ],
+ "statuses": [
+  {
+   "raw": "upload",
+   "meaning": "Uploaded to system",
+   "result": "pending",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "customer_validation",
+   "meaning": "Validated by the merchant, not yet collected",
+   "result": "pending",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "validation_collect_colis",
+   "meaning": "Package picked up",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "validation_reception_admin",
+   "meaning": "Reception validated at a hub, inferred",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "validation_reception",
+   "meaning": "Reception validated, inferred",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "fdr_activated",
+   "meaning": "Out for delivery; NOT delivered",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "sent_to_redispatch",
+   "meaning": "Sent for redispatch",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "nouvel_tentative_asked_by_customer",
+   "meaning": "New attempt requested by the seller",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "mise_a_jour",
+   "meaning": "Delivery attempt logged",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "colis_suspendu",
+   "meaning": "Suspended",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "return_redispatched_to_livraison",
+   "meaning": "Return put back for delivery",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "pickedup",
+   "meaning": "Picked up by driver",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "valid_return_pickup",
+   "meaning": "Return pickup validated; pick-up service, inferred",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "livre",
+   "meaning": "Delivered",
+   "result": "delivered",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "livred",
+   "meaning": "Delivered",
+   "result": "delivered",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "verssement_admin_cust",
+   "meaning": "Finance: amount transmitted to the partner, after delivery",
+   "result": "delivered",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "verssement_admin_cust_canceled",
+   "meaning": "Finance: transfer cancelled, parcel still delivered",
+   "result": "delivered",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "verssement_hub_cust_canceled",
+   "meaning": "Finance: hub transfer cancelled, parcel still delivered",
+   "result": "delivered",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "validation_reception_cash_by_partener",
+   "meaning": "Finance: amount received by the partner",
+   "result": "delivered",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "echange_valide",
+   "meaning": "Exchange validated; not a customer delivery, and we send only type_id 1, so must not mark an order delivered",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "echange_valid_by_hub",
+   "meaning": "Exchange validated by hub; not a customer delivery, and we send only type_id 1, so must not mark an order delivered",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "pickup_picked_recu",
+   "meaning": "Pick-up service: received; not a customer delivery, and we send only type_id 1, so must not mark an order delivered",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "colis_pickup_transmit_to_partner",
+   "meaning": "Pick-up service: transmitted to partner; not a customer delivery, and we send only type_id 1, so must not mark an order delivered",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "return_asked_by_customer",
+   "meaning": "Return requested by the seller",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "return_asked_by_hub",
+   "meaning": "Return requested by the hub",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "return_dispatched_to_partenaire",
+   "meaning": "Return dispatched to the partner",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "retour_dispatched_to_partenaires",
+   "meaning": "Return in transit to partners",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "colis_retour_transmit_to_partner",
+   "meaning": "Return package transmitted; not confirmed received",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "return_dispatched_to_warehouse",
+   "meaning": "Return dispatched to warehouse",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "annulation_dispatch_retour",
+   "meaning": "Return dispatch cancelled",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "cancel_return_dispatched_to_partenaire",
+   "meaning": "Return dispatch to partner cancelled",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "livraison_echoue_recu",
+   "meaning": "Failed delivery received back at the hub, inferred",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "return_validated_by_partener",
+   "meaning": "Return validated by the partner; used as physically back, inferred",
+   "result": "returned",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "ask_to_delete_by_admin",
+   "meaning": "Deletion requested by admin",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "ask_to_delete_by_hub",
+   "meaning": "Deletion requested by hub",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_key"
+  },
+  {
+   "raw": "Uploaded to system",
+   "meaning": "Fallback label for upload",
+   "result": "pending",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Validated",
+   "meaning": "Fallback label for customer_validation",
+   "result": "pending",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Package Picked Up",
+   "meaning": "Fallback label",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Reception validated",
+   "meaning": "Fallback label",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Picked up by driver",
+   "meaning": "Fallback label",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Out for delivery",
+   "meaning": "Fallback label; NOT delivered",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Sent for redispatch",
+   "meaning": "Fallback label",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "New attempt requested by seller",
+   "meaning": "Fallback label",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Delivery attempt",
+   "meaning": "Fallback label",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Suspended",
+   "meaning": "Fallback label",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Return put back for delivery",
+   "meaning": "Fallback label",
+   "result": "in_transit",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Delivered",
+   "meaning": "Fallback label",
+   "result": "delivered",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Amount transmitted to partner",
+   "meaning": "Fallback label, finance",
+   "result": "delivered",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Amount received by partner",
+   "meaning": "Fallback label, finance",
+   "result": "delivered",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Exchange validated",
+   "meaning": "Fallback label; not a customer delivery, and we send only type_id 1, so must not mark an order delivered",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Exchange validated by hub",
+   "meaning": "Fallback label; not a customer delivery, and we send only type_id 1, so must not mark an order delivered",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Return requested by partner",
+   "meaning": "Fallback label",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Return in transit",
+   "meaning": "Fallback label",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Return dispatched to partner",
+   "meaning": "Fallback label",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Return package transmitted to partner",
+   "meaning": "Fallback label; not confirmed received",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Return dispatched to warehouse",
+   "meaning": "Fallback label",
+   "result": "returning",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Return received by partner",
+   "meaning": "Fallback label; physically back",
+   "result": "returned",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Return validated by partner",
+   "meaning": "Fallback label; physically back",
+   "result": "returned",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  },
+  {
+   "raw": "Deletion requested",
+   "meaning": "Fallback label",
+   "result": "exception",
+   "provenance": "sdk-transcribed",
+   "vocabulary": "event_label"
+  }
+ ]
+}

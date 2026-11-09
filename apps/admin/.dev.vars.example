@@ -1,3 +1,7 @@
 # Copy to apps/admin/.dev.vars (gitignored). Local development only.
 CSRF_SECRET=dev-only-csrf-secret-change-me-0123456789abcdef
 DEV_SESSION_SECRET=dev-only-session-secret-change-me-0123456789abcdef
+# Seals courier keys: `openssl rand -base64 32`. Unset = couriers off, the admin still works.
+# COURIER_KEYS_KEY=
+# Local courier stand-in: node tools/standins/couriers/server.mjs --port <p>
+# COURIER_STANDIN_URL=http://127.0.0.1:4410

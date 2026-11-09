@@ -1,0 +1,133 @@
+{
+ "source": "https://maystro.gitbook.io/maystro-delivery-documentation/reference/maystro-delivery-api-reference/orders/order-status",
+ "completeness": "Official and complete code table (18 codes). The docs give names only; meanings are from dz-delivery docs/PROVIDERS.md and the name. 'raw' is the numeric code as a string, as sent by webhooks; 'name' is the documented name.",
+ "result_rules": "returned = physically back with the merchant only. returning = a return on its way back. exception = needs a person. Unlisted raw value = unknown; log it and keep the raw string. Result set: pending, in_transit, delivered, returning, returned, exception, unknown.",
+ "statuses": [
+  {
+   "raw": "4",
+   "name": "CREATED",
+   "meaning": "Registered, not handed over",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "5",
+   "name": "PICK_UP_REQUESTED",
+   "meaning": "Pickup requested, not collected",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "6",
+   "name": "IN_PROCESS",
+   "meaning": "Being processed by Maystro",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "8",
+   "name": "WAITING_TRANSIT",
+   "meaning": "At a hub, waiting for transfer",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "9",
+   "name": "IN_TRANSIT_TO_BE_SHIPPED",
+   "meaning": "In transit towards delivery",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "10",
+   "name": "IN_TRANSIT_TO_BE_RETURNED",
+   "meaning": "In transit back for return",
+   "result": "returning",
+   "provenance": "official"
+  },
+  {
+   "raw": "11",
+   "name": "PENDING",
+   "meaning": "On hold before preparation",
+   "result": "pending",
+   "provenance": "official"
+  },
+  {
+   "raw": "12",
+   "name": "OUT_OF_STOCK",
+   "meaning": "Premium store: cannot be prepared",
+   "result": "exception",
+   "provenance": "official"
+  },
+  {
+   "raw": "15",
+   "name": "READY_TO_SHIP",
+   "meaning": "Held by Maystro, ready for a driver",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "22",
+   "name": "ASSIGNED",
+   "meaning": "Assigned to a driver",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "31",
+   "name": "SHIPPED",
+   "meaning": "Out for delivery; NOT delivered",
+   "result": "in_transit",
+   "provenance": "official"
+  },
+  {
+   "raw": "32",
+   "name": "ALERTED",
+   "meaning": "Delivery problem raised",
+   "result": "exception",
+   "provenance": "official"
+  },
+  {
+   "raw": "41",
+   "name": "DELIVERED",
+   "meaning": "Delivered",
+   "result": "delivered",
+   "provenance": "official"
+  },
+  {
+   "raw": "42",
+   "name": "POSTPONED",
+   "meaning": "Delivery postponed",
+   "result": "exception",
+   "provenance": "official"
+  },
+  {
+   "raw": "50",
+   "name": "ABORTED",
+   "meaning": "Cancelled; can occur before or after shipping",
+   "result": "exception",
+   "provenance": "official"
+  },
+  {
+   "raw": "51",
+   "name": "READY_TO_RETURN",
+   "meaning": "Ready to be returned to the store",
+   "result": "returning",
+   "provenance": "official"
+  },
+  {
+   "raw": "52",
+   "name": "TAKEN_BY_STORE",
+   "meaning": "Return taken back by the store; physically back",
+   "result": "returned",
+   "provenance": "official"
+  },
+  {
+   "raw": "53",
+   "name": "NOT_RECEIVED",
+   "meaning": "Store reports the return was not received",
+   "result": "exception",
+   "provenance": "official"
+  }
+ ]
+}
