@@ -230,6 +230,10 @@ export function createMaystro() {
     if (req.method !== 'GET') return sendJson(res, 404, { detail: 'Not found' });
 
     if (rest === '/orders-management/api/base/wilayas/') {
+      // Without these the real list is in Arabic and isn't limited to Algeria.
+      if (url.searchParams.get('language') !== 'fr' || url.searchParams.get('country') !== '1') {
+        return sendJson(res, 400, { detail: 'language and country are required' });
+      }
       if (scenario.wilayaShape === 'tuples') return sendJson(res, 200, served.map((w) => [w.code, w.name]));
       return sendJson(res, 200, served.map((w) => ({ display_id: w.code, code: w.code, name_lt: w.name, name_ar: w.name, country: 1 })));
     }

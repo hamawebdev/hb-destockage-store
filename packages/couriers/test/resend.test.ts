@@ -13,33 +13,42 @@ const notFoundAt = (seconds: number): LookupResult => ({
 
 describe('isResendSafe', () => {
   it('refuses a lookup before the window, however late it is evaluated', () => {
-    expect(isResendSafe(notFoundAt(10), T0, open)).toBe(false);
-    expect(isResendSafe(notFoundAt(299), T0, open)).toBe(false);
+    expect(isResendSafe(notFoundAt(10), T0, open, null)).toBe(false);
+    expect(isResendSafe(notFoundAt(299), T0, open, null)).toBe(false);
   });
 
   it('allows a lookup at or after the window', () => {
-    expect(isResendSafe(notFoundAt(300), T0, open)).toBe(true);
-    expect(isResendSafe(notFoundAt(1_000_000), T0, open)).toBe(true);
+    expect(isResendSafe(notFoundAt(300), T0, open, null)).toBe(true);
+    expect(isResendSafe(notFoundAt(1_000_000), T0, open, null)).toBe(true);
   });
 
   it('enforces the upper bound on scan-based couriers', () => {
-    expect(isResendSafe(notFoundAt(86_400), T0, bounded)).toBe(true);
-    expect(isResendSafe(notFoundAt(86_401), T0, bounded)).toBe(false);
+    expect(isResendSafe(notFoundAt(86_400), T0, bounded, null)).toBe(true);
+    expect(isResendSafe(notFoundAt(86_401), T0, bounded, null)).toBe(false);
   });
 
   it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
     'refuses a non-finite attempt time %s',
     (attempt) => {
-      expect(isResendSafe(notFoundAt(1000), attempt, open)).toBe(false);
+      expect(isResendSafe(notFoundAt(1000), attempt, open, null)).toBe(false);
     },
   );
 
   it('refuses a non-finite checkedAt', () => {
-    expect(isResendSafe({ kind: 'not_found', checkedAt: Number.NaN }, T0, open)).toBe(false);
+    expect(isResendSafe({ kind: 'not_found', checkedAt: Number.NaN }, T0, open, null)).toBe(false);
+  });
+
+  it.each(['duplicate_external_id', 'duplicate_reference', 'possible_duplicate'])('refuses after the courier said it exists (%s)', (cause) => {
+    expect(isResendSafe(notFoundAt(1000), T0, open, cause)).toBe(false);
+  });
+
+  it('other causes change nothing', () => {
+    expect(isResendSafe(notFoundAt(1000), T0, open, 'timeout')).toBe(true);
+    expect(isResendSafe(notFoundAt(1000), T0, open, null)).toBe(true);
   });
 
   it('refuses an attempt time after the lookup', () => {
-    expect(isResendSafe(notFoundAt(1000), T0 + 2_000_000, open)).toBe(false);
+    expect(isResendSafe(notFoundAt(1000), T0 + 2_000_000, open, null)).toBe(false);
   });
 
   it.each<LookupResult>([
@@ -47,7 +56,7 @@ describe('isResendSafe', () => {
     { kind: 'multiple', trackings: ['a', 'b'] },
     { kind: 'unavailable', cause: 'down' },
   ])('refuses $kind', (lookup) => {
-    expect(isResendSafe(lookup, T0 - 10_000_000, open)).toBe(false);
+    expect(isResendSafe(lookup, T0 - 10_000_000, open, null)).toBe(false);
   });
 });
 

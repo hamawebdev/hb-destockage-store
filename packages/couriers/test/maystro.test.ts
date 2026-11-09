@@ -147,7 +147,7 @@ describe('no lookup by reference', () => {
     const result = await adapter.findByReference('X', { attemptedAt: 1 }, GOOD, ctx({ fetch: spy }));
     expect(result).toEqual({ kind: 'unavailable', cause: 'unsupported' });
     expect(spy).not.toHaveBeenCalled();
-    expect(isResendSafe(result, 0, adapter.capabilities)).toBe(false);
+    expect(isResendSafe(result, 0, adapter.capabilities, null)).toBe(false);
   });
 });
 
@@ -287,6 +287,27 @@ describe('prepare and lists', () => {
   it('only the served wilayas are listed', () => {
     expect(lists.wilayas).toHaveLength(50);
     expect(lists.wilayas.some((w) => w.code === 11)).toBe(false);
+  });
+
+  it('asks for the Algerian list in French, and the stand-in refuses a bare request', async () => {
+    await adapter.listWilayas(GOOD, ctx());
+    expect((await fullState()).lastUrl).toContain('language=fr&country=1');
+    const bare = await fetch(`${standin.url}/maystro/orders-management/api/base/wilayas/`, { headers: { Authorization: 'Token standin-token' } });
+    expect(bare.status).toBe(400);
+  });
+
+  it('a row from another country never reaches an order', async () => {
+    const rows = [
+      { code: 16, name_lt: 'Tunis-gov', country: 2 },
+      { code: 16, name_lt: 'Alger', country: 1 },
+      { code: 31, name_lt: 'Oran' },
+    ];
+    const found = await adapter.listWilayas(GOOD, ctx({ fetch: async () => new Response(JSON.stringify(rows)) }));
+    if (!found.ok) throw new Error(found.cause);
+    expect(found.items.map((w) => w.name)).toEqual(['Alger', 'Oran']);
+    const communesOf16: CourierLists['communes'] = [{ id: '554', name: 'Hydra', wilayaCode: 16, hasStopDesk: true, deliverable: true }];
+    const result = adapter.prepare(input({ wilayaCode: 16, commune: { nameFr: 'Hydra', nameAr: 'x' } }), { wilayas: found.items, communes: communesOf16, stopDesks: [] });
+    expect(result.ok && result.parcel.payload['wilaya']).toBe('Alger');
   });
 
   it('reads tuple-shaped wilayas too', async () => {

@@ -219,7 +219,7 @@ describe('a create that may or may not have happened', () => {
     const attemptEndedAt = Date.now();
     const early = await lookup();
     expect(early.kind).toBe('not_found');
-    expect(isResendSafe(early, attemptEndedAt, adapter.capabilities)).toBe(false);
+    expect(isResendSafe(early, attemptEndedAt, adapter.capabilities, null)).toBe(false);
     await new Promise((resolve) => setTimeout(resolve, 800));
     expect((await lookup()).kind).toBe('found');
   });
@@ -335,6 +335,13 @@ describe('validateParcel', () => {
     const tracking = await created();
     await standin.scenario(courier, { validate: 'other-name' });
     expect(await adapter.validateParcel(tracking, options, GOOD, ctx())).toEqual({ kind: 'uncertain', cause: 'malformed_response' });
+  });
+
+  it('a parcel id that could change the path is uncertain, with no write', async () => {
+    const answers = [JSON.stringify({ id: '../../admin', state: { id: 's', name: 'commande_recue' } })];
+    const spy = vi.fn<typeof fetch>(async () => new Response(answers[0]));
+    expect(await adapter.validateParcel('16-A-ZR', options, GOOD, ctx({ fetch: spy }))).toEqual({ kind: 'uncertain', cause: 'malformed_response' });
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('refuses an invalid tracking without calling out', async () => {

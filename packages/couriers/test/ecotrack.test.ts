@@ -271,7 +271,7 @@ describe.each(['Anderson Delivery', 'Atlas Express'])('%s', (name) => {
       const attemptEndedAt = Date.now();
       const early = await lookup();
       expect(early.kind).toBe('not_found');
-      expect(isResendSafe(early, attemptEndedAt, adapter.capabilities)).toBe(false);
+      expect(isResendSafe(early, attemptEndedAt, adapter.capabilities, null)).toBe(false);
       await new Promise((resolve) => setTimeout(resolve, 800));
       expect((await lookup()).kind).toBe('found');
     });
@@ -418,7 +418,7 @@ describe.each(['Anderson Delivery', 'Atlas Express'])('%s', (name) => {
     it('a not_found past the upper bound is not safe', async () => {
       const attemptEndedAt = 1_000_000;
       const checkedAt = attemptEndedAt + 86_401_000;
-      expect(isResendSafe({ kind: 'not_found', checkedAt }, attemptEndedAt, adapter.capabilities)).toBe(false);
+      expect(isResendSafe({ kind: 'not_found', checkedAt }, attemptEndedAt, adapter.capabilities, null)).toBe(false);
     });
   });
 

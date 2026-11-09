@@ -151,7 +151,7 @@ describe('no lookup by reference', () => {
     const result = await adapter.findByReference('HB-NE001', { attemptedAt: 1 }, GOOD, ctx({ fetch: spy }));
     expect(result).toEqual({ kind: 'unavailable', cause: 'unsupported' });
     expect(spy).not.toHaveBeenCalled();
-    expect(isResendSafe(result, 0, adapter.capabilities)).toBe(false);
+    expect(isResendSafe(result, 0, adapter.capabilities, null)).toBe(false);
   });
 });
 

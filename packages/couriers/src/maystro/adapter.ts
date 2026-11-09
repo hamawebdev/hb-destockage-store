@@ -297,7 +297,7 @@ export const maystro: CourierAdapter = {
   },
 
   async listWilayas(credentials, ctx) {
-    const result = await read(`${orders(ctx)}/api/base/wilayas/`, headers(credentials), ctx, startDeadline(ctx));
+    const result = await read(`${orders(ctx)}/api/base/wilayas/?language=fr&country=1`, headers(credentials), ctx, startDeadline(ctx));
     if (result.kind !== 'response' || result.status !== 200) return listFailure(result);
     const rows = parseJson(result.text);
     if (!Array.isArray(rows)) return { ok: false, cause: 'malformed_response' };
@@ -305,6 +305,8 @@ export const maystro: CourierAdapter = {
     for (const raw of rows) {
       // Two shapes are in use: [id, name] tuples and objects.
       const row = asRecord(raw);
+      // The list spans countries (2 is Tunisia), and a code alone doesn't tell them apart.
+      if (row && row['country'] !== undefined && row['country'] !== 1) continue;
       const code = Array.isArray(raw) ? raw[0] : row?.['code'];
       const name = Array.isArray(raw) ? raw[1] : row?.['name_lt'];
       if (typeof code === 'number' && typeof name === 'string') items.push({ code, name, deliverable: true });
