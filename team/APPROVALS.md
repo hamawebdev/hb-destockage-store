@@ -284,3 +284,5 @@ CARR-3 r2 APPROVED tier=high reviewer=rev-h commits=0774ff8baef17458783826b05882
 CARR-4 r1 APPROVED tier=high reviewer=rev-h commits=94595ba15e5936977fa8a16973dce4db70dc0acd review=artifacts/CARR-4/review-r1.md
 CARR-5 r2 APPROVED tier=high reviewer=rev-h commits=e92deb2bdc0780dc86ae9fc0405403b152b2ceef,e4ca9fd54bfa472ee979ac0dc75bd73102320164,98a2e9064b8f7bd790d82d153a701fcbbae23752 review=artifacts/CARR-5/review-r2.md
 CARR-4 r2 APPROVED tier=high reviewer=rev-h commits=51eccfa591d861aae61abd11c02e8d2e21e51118 review=artifacts/CARR-5/review-r2.md
+SHIP-1 r1 APPROVED tier=high reviewer=rev-i commits=53cd7cc6b9046b24e08871803e97dd6be413be4b,adab74315ed0524d6f1c8a9167b178d81b2e001c review=artifacts/SHIP-1/review-r1.md
+SHIP-2 r1 APPROVED tier=high reviewer=rev-i commits=fb5526176a536b790d0d5526bd19f648546648f0 review=artifacts/SHIP-2/review-r1.md
