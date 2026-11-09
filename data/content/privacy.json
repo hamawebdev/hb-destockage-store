@@ -23,7 +23,8 @@
         "type": "ul",
         "items": [
           "لا يستعمل الموقع أي ملفات تعريف ارتباط (كوكيز).",
-          "لا نستعمل أدوات تحليل أو إعلانات: يقيس الموقع سرعة عرض صفحاته فقط، دون كوكيز أو أي معرّف."
+          "لا نستعمل أدوات تحليل أو إعلانات: يقيس الموقع سرعة عرض صفحاته فقط، دون كوكيز أو أي معرّف.",
+          "لرصد الطلبات الآلية أو المتكررة، تستعمل استمارة الطلب خدمة Cloudflare Turnstile وعنوان IP الخاص بك، ولا نحتفظ مع الطلب إلا ببصمة لا يمكن عكسها لهذا العنوان."
         ]
       },
       {
@@ -54,7 +55,8 @@
         "type": "ul",
         "items": [
           "Le site n'utilise aucun cookie.",
-          "Aucun outil d'analyse ni de publicité : le site mesure seulement sa vitesse d'affichage, sans cookie ni identifiant."
+          "Aucun outil d'analyse ni de publicité : le site mesure seulement sa vitesse d'affichage, sans cookie ni identifiant.",
+          "Pour repérer les envois automatisés ou répétés, le formulaire de commande utilise Cloudflare Turnstile et votre adresse IP : seule une empreinte non réversible de cette adresse est conservée avec la commande."
         ]
       },
       {
