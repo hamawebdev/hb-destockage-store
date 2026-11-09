@@ -1,11 +1,14 @@
 ---
-// Home (ar). Body: components/home/HomeView.astro (type-led hero, no LCP image → no `lcp`).
-// og:image: brand's default, not the hero product photo (burned-in prices; data/photos/README.md). Owner: shell.
+// Home (ar). Body: components/home/HomeView.astro. LCP: the first category tile's photo (tiles.ts), preloaded;
+// og:image: brand's default, never a product photo (burned-in prices; data/photos/README.md). Owner: shell.
 import Base from '../../layouts/Base.astro';
 import HomeView from '../../components/home/HomeView.astro';
+import { categoryTiles } from '../../components/home/tiles.ts';
 import { pageProps } from '../../lib/catalog.ts';
 const props = pageProps('home', 'ar');
+const tiles = categoryTiles(props.categories);
+const lcpImage = tiles[0]?.image ?? null;
 ---
-<Base layout={{ ...props.layout, ogImage: null }}>
-  <HomeView props={props} />
+<Base layout={{ ...props.layout, ogImage: null, lcpImage }} lcp={lcpImage !== null}>
+  <HomeView props={props} tiles={tiles} />
 </Base>
