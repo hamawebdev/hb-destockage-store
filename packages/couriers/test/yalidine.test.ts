@@ -262,7 +262,7 @@ describe.each<[string, CourierAdapter]>([
       const attemptEndedAt = Date.now();
       const early = await attemptLookup();
       expect(early.kind).toBe('not_found');
-      expect(isResendSafe(early, attemptEndedAt, adapter.capabilities)).toBe(false);
+      expect(isResendSafe(early, attemptEndedAt, adapter.capabilities, null)).toBe(false);
       await new Promise((resolve) => setTimeout(resolve, 800));
       expect((await attemptLookup()).kind).toBe('found');
     });

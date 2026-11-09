@@ -18,11 +18,11 @@ export function isResendSafe(
   lookup: LookupResult,
   attemptEndedAt: number,
   capabilities: Pick<CourierCapabilities, 'verifyAfterSeconds' | 'verifyWithinSeconds'>,
-  /** The attempt's `uncertain` cause, when there was one. */
-  attemptCause?: string,
+  /** The attempt's `uncertain` cause. Required, so a caller can't forget it; null if there was none. */
+  attemptCause: string | null,
 ): boolean {
   if (lookup.kind !== 'not_found') return false;
-  if (attemptCause !== undefined && COURIER_SAYS_IT_EXISTS.has(attemptCause)) return false;
+  if (attemptCause !== null && COURIER_SAYS_IT_EXISTS.has(attemptCause)) return false;
   if (!Number.isFinite(attemptEndedAt) || !Number.isFinite(lookup.checkedAt)) return false;
   const elapsedMs = lookup.checkedAt - attemptEndedAt;
   if (elapsedMs < capabilities.verifyAfterSeconds * 1000) return false;

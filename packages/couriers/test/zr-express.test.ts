@@ -219,7 +219,7 @@ describe('a create that may or may not have happened', () => {
     const attemptEndedAt = Date.now();
     const early = await lookup();
     expect(early.kind).toBe('not_found');
-    expect(isResendSafe(early, attemptEndedAt, adapter.capabilities)).toBe(false);
+    expect(isResendSafe(early, attemptEndedAt, adapter.capabilities, null)).toBe(false);
     await new Promise((resolve) => setTimeout(resolve, 800));
     expect((await lookup()).kind).toBe('found');
   });
