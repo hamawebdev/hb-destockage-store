@@ -43,7 +43,6 @@ const metaKeys = meta?.consent === 'off' ? 'privacy.meta.off' : 'privacy.meta';
         <p><Copy strings={l.strings} k={`${metaKeys}.body2`} /></p>
         <p><Copy strings={l.strings} k={`${metaKeys}.body3`} /></p>
         <p><Copy strings={l.strings} k={`${metaKeys}.body4`} /></p>
-        <p class="ct-reset"><button type="button" class="btn btn-secondary" data-meta-reset hidden>{t(l.strings, 'consent.change')}</button></p>
       </Fragment>
     )}
     {
@@ -68,6 +67,8 @@ const metaKeys = meta?.consent === 'off' ? 'privacy.meta.off' : 'privacy.meta';
         }
       })
     }
+    {/* Last on the page: meta.js reveals it after load, and nothing but the footer sits below it (no CSS rule, no layout shift). */}
+    {meta && <p><button type="button" class="btn btn-secondary" data-meta-reset hidden>{t(l.strings, 'consent.change')}</button></p>}
   </div>
 </article>
 
@@ -87,8 +88,6 @@ const metaKeys = meta?.consent === 'off' ? 'privacy.meta.off' : 'privacy.meta';
     .ct-date { margin-block-start: var(--space-2); color: var(--color-text-secondary); font-size: var(--fs-small); }
     .ct-body { display: flex; flex-direction: column; gap: var(--space-4); }
     .ct-body h2 { margin-block-start: var(--space-6); font-size: var(--fs-h3); }
-    /* Holds the reset button's place: meta.js reveals it after load, and that must not move the text below. */
-    .ct-reset { min-block-size: var(--tap-min); }
     .ct-body ul, .ct-body ol { display: flex; flex-direction: column; gap: var(--space-2); padding-inline-start: var(--space-6); }
     .ct-link a { display: inline-flex; align-items: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); }
   }
