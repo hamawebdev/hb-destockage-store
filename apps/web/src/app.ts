@@ -8,6 +8,7 @@
 import { Hono } from 'hono';
 import { ConfigError, readConfig, type Env } from './env.ts';
 import { apiError, apiHeaders, log } from './http.ts';
+import { COURIER_HOOK_PREFIX, registerCourierWebhook } from './routes/courier-webhook.ts';
 import { registerOrder } from './routes/order.ts';
 import { registerQuote } from './routes/quote.ts';
 import { registerRum } from './routes/rum.ts';
@@ -54,6 +55,9 @@ registerOrder(app);
 // --- /api/rum (WEB-5) ---------------------------------------------------------------------------
 registerRum(app);
 
+// --- /api/courier-hook (SHIP-4) -------------------------------------------------------------------
+registerCourierWebhook(app);
+
 // --- Fallbacks ----------------------------------------------------------------------------------
 app.notFound((c) => {
   if (c.req.path.startsWith('/api/')) return apiError(c, 404, 'not_found');
@@ -62,7 +66,9 @@ app.notFound((c) => {
 });
 
 app.onError((err, c) => {
-  log('unhandled_error', { path: c.req.path, error: errorName(err) });
+  // The webhook path carries a secret token, and Drizzle's or D1's message can carry bound values.
+  if (c.req.path.startsWith(COURIER_HOOK_PREFIX)) log('unhandled_error', { path: `${COURIER_HOOK_PREFIX}[redacted]`, error: err instanceof Error ? err.name : 'unknown' });
+  else log('unhandled_error', { path: c.req.path, error: errorName(err) });
   const status = err instanceof ConfigError ? 500 : 503;
   if (c.req.path.startsWith('/api/')) {
     // The apiHeaders middleware still wraps this response (Hono runs onError inside the chain).
