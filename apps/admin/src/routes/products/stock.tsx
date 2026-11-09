@@ -18,6 +18,7 @@ import { parseForm, vCheckbox, vOptionalInt, vOptionalText, vPicklist } from '..
 import { DEFAULT_PAGE_SIZE, offsetOf, pageCount, parsePage } from '../../lib/pagination.ts';
 import { useUi } from '../../ui/context.ts';
 import { Code, Num } from '../../ui/format.tsx';
+import { EmptyState } from '../../ui/badge.tsx';
 import { Table } from '../../ui/table.tsx';
 import { ErrorSummary, Form, FormActions, NumberInput, Select, Submit, TextInput, type FieldErrors } from '../../ui/form.tsx';
 import { withFlash } from '../../ui/flash.tsx';
@@ -165,7 +166,7 @@ function StockPage(props: {
   const tm = m(lang);
   return (
     <>
-      <Form action="/products/stock" method="get" class="form">
+      <Form action="/products/stock" method="get" class="form form--filters">
         <TextInput name="q" type="search" label={tm('filter.q')} value={props.filters['q']} maxlength={100} />
         <Select name="category" label={tm('filter.category')} value={props.filters['category']} options={[{ value: '', label: tm('filter.all') }, ...props.categoryOptions]} />
         <Select name="state" label={tm('stock.filter.state')} value={props.filters['state']} options={STATES.map((s) => ({ value: s, label: tm(`stock.state.${s}`) }))} />
@@ -176,7 +177,7 @@ function StockPage(props: {
       </Form>
       <ErrorSummary errors={props.errors} />
       {props.rows.length === 0 ? (
-        <p class="empty">{tm('empty')}</p>
+        <EmptyState icon="box">{tm('empty')}</EmptyState>
       ) : (
         // A table from 600 px, label/value cards below (kit Table `stack`, CSS only): every control
         // stays on screen at 360 px. Field labels carry the SKU (LTR-isolated), so N rows never share

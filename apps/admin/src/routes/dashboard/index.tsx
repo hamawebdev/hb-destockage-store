@@ -56,6 +56,15 @@ function Card(props: { name: TileName; title: string; href?: string; tone?: 'neu
   );
 }
 
+function Group(props: { title: string; name: string; children: Child[] }) {
+  return (
+    <section class="tile-group" aria-labelledby={`dash-${props.name}`}>
+      <h2 class="tile-group__title" id={`dash-${props.name}`}>{props.title}</h2>
+      <div class={`tiles tiles--${props.name}`}>{props.children}</div>
+    </section>
+  );
+}
+
 function Unavailable(props: { t: Translator }) {
   return <p class="muted">{props.t('dash.unavailable')}</p>;
 }
@@ -133,31 +142,33 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
     show('publish') ? safeTile('publish', () => lastPublish(db)) : skip<{ status: string; at: number } | null>(),
   ]);
 
-  const tiles: Child[] = [];
+  const work: Child[] = [];
+  const ordersGroup: Child[] = [];
+  const health: Child[] = [];
   if (ordersToday) {
-    tiles.push(<Card name="orders" title={t('dash.ordersToday')} href="/orders">{ordersToday.ok ? <StatusCounts t={t} counts={ordersToday.value} /> : <Unavailable t={t} />}</Card>);
+    ordersGroup.push(<Card name="orders" title={t('dash.ordersToday')} href="/orders">{ordersToday.ok ? <StatusCounts t={t} counts={ordersToday.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (orders7d) {
-    tiles.push(<Card name="orders" title={t('dash.orders7d')} href="/orders">{orders7d.ok ? <StatusCounts t={t} counts={orders7d.value} /> : <Unavailable t={t} />}</Card>);
+    ordersGroup.push(<Card name="orders" title={t('dash.orders7d')} href="/orders">{orders7d.ok ? <StatusCounts t={t} counts={orders7d.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (toCall) {
-    tiles.push(<Card name="toCall" title={t('dash.toCall')} href="/orders/queue" tone={toCall.ok && toCall.value > 0 ? 'warning' : 'neutral'}>{toCall.ok ? <Big value={toCall.value} /> : <Unavailable t={t} />}</Card>);
+    work.push(<Card name="toCall" title={t('dash.toCall')} href="/orders/queue" tone={toCall.ok && toCall.value > 0 ? 'warning' : 'neutral'}>{toCall.ok ? <Big value={toCall.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (flagged) {
-    tiles.push(<Card name="flagged" title={t('dash.flagged')} href="/orders?flagged=1" tone={flagged.ok && flagged.value > 0 ? 'warning' : 'neutral'}>{flagged.ok ? <Big value={flagged.value} /> : <Unavailable t={t} />}</Card>);
+    work.push(<Card name="flagged" title={t('dash.flagged')} href="/orders?flagged=1" tone={flagged.ok && flagged.value > 0 ? 'warning' : 'neutral'}>{flagged.ok ? <Big value={flagged.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (toShip) {
-    tiles.push(<Card name="toShip" title={t('dash.toShip')} href="/orders/shipping">{toShip.ok ? <Big value={toShip.value} /> : <Unavailable t={t} />}</Card>);
+    work.push(<Card name="toShip" title={t('dash.toShip')} href="/orders/shipping">{toShip.ok ? <Big value={toShip.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (lowStock) {
-    tiles.push(
+    work.push(
       <Card name="lowStock" title={t('dash.lowStock', { threshold: lowStock.ok ? lowStock.value.threshold : 3 })} href="/products?lowStock=1" tone={lowStock.ok && lowStock.value.n > 0 ? 'warning' : 'neutral'}>
         {lowStock.ok ? <Big value={lowStock.value.n} /> : <Unavailable t={t} />}
       </Card>,
     );
   }
   if (fees) {
-    tiles.push(
+    work.push(
       <Card name="placeholderFees" title={t('dash.placeholderFees')} href="/fees" tone={fees.ok && fees.value > 0 ? 'warning' : 'neutral'}>
         {fees.ok ? (
           <>
@@ -172,17 +183,17 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
   }
   if (backup) {
     const tone = !backup.ok || backup.value.state === 'never' || backup.value.state === 'stale' || backup.value.state === 'unavailable' ? 'danger' : 'success';
-    tiles.push(<Card name="backup" title={t('dash.backup')} tone={tone}>{backup.ok ? <BackupBody t={t} view={backup.value} /> : <Unavailable t={t} />}</Card>);
+    health.push(<Card name="backup" title={t('dash.backup')} tone={tone}>{backup.ok ? <BackupBody t={t} view={backup.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (dead) {
-    tiles.push(
+    health.push(
       <Card name="deadNotifications" title={t('dash.deadNotifications')} href="/orders" tone={dead.ok && (dead.value.orders > 0 || dead.value.invalidMessages > 0) ? 'danger' : 'neutral'}>
         {dead.ok ? <DeadBody t={t} dead={dead.value} /> : <Unavailable t={t} />}
       </Card>,
     );
   }
   if (publish) {
-    tiles.push(
+    health.push(
       <Card name="publish" title={t('dash.lastPublish')} href="/publish" tone={publish.ok && publish.value?.status === 'failed' ? 'danger' : 'neutral'}>
         {!publish.ok ? (
           <Unavailable t={t} />
@@ -201,7 +212,9 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
   const deadList = dead?.ok && dead.value.recent.length > 0 ? dead.value.recent : null;
   return c.render(
     <>
-      <div class="tiles">{tiles}</div>
+      {work.length > 0 ? <Group title={t('dash.group.work')} name="work">{work}</Group> : null}
+      {ordersGroup.length > 0 ? <Group title={t('dash.group.orders')} name="orders">{ordersGroup}</Group> : null}
+      {health.length > 0 ? <Group title={t('dash.group.health')} name="health">{health}</Group> : null}
       {deadList ? (
         <Table
           caption={t('dash.deadList')}

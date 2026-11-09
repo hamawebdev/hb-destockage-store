@@ -6,6 +6,8 @@ import type { Lang } from '../../i18n/index.ts';
 import { StatusBadge } from '../../ui/badge.tsx';
 import { Checkbox, ErrorSummary, Form, FormActions, Submit, TextInput, Textarea } from '../../ui/form.tsx';
 import { Bdi, DateTime, Money } from '../../ui/format.tsx';
+import { Icon } from '../../ui/icons.tsx';
+import { FilterChip, SearchField, Stats } from '../../ui/kit.tsx';
 import { CursorPagination } from '../../ui/pagination.tsx';
 import { Table, type Column } from '../../ui/table.tsx';
 import { flagLabel } from '../orders/list-page.tsx';
@@ -80,29 +82,28 @@ export function CustomersListPage(props: {
       },
     );
   }
+  const riskCount = [props.filter.blocked, props.filter.flagged, props.filter.returns].filter(Boolean).length;
   return (
     <>
-      <Form action="/customers" method="get">
-        <h2>{t('filter.legend')}</h2>
-        <TextInput name="q" type="search" label={t('filter.q')} hint={t('filter.q.hint')} value={props.q} maxlength={64} dir="auto" />
+      <Form action="/customers" method="get" class="filters">
+        <SearchField name="q" label={t('filter.q')} placeholder={t('filter.q.hint')} value={props.q} maxlength={64} />
         {props.sensitive ? (
-          <>
-            <Checkbox name="blocked" label={t('filter.blocked')} checked={props.filter.blocked} />
-            <Checkbox name="flagged" label={t('filter.flagged')} checked={props.filter.flagged} />
-            <Checkbox name="returns" label={t('filter.returns')} checked={props.filter.returns} />
-          </>
+          <div class="chips">
+            <FilterChip label={t('col.flags')} value={riskCount > 0 ? String(riskCount) : undefined} apply={t('filter.submit')}>
+              <Checkbox name="blocked" label={t('filter.blocked')} checked={props.filter.blocked} />
+              <Checkbox name="flagged" label={t('filter.flagged')} checked={props.filter.flagged} />
+              <Checkbox name="returns" label={t('filter.returns')} checked={props.filter.returns} />
+            </FilterChip>
+            {riskCount > 0 || props.q !== '' ? <a class="chips__clear" href="/customers">{t('filter.reset')}</a> : null}
+          </div>
         ) : null}
-        <FormActions>
-          <Submit>{t('filter.submit')}</Submit>
-          <a class="btn btn--secondary" href="/customers">{t('filter.reset')}</a>
-        </FormActions>
       </Form>
       {props.invalid.length > 0 ? (
         <p class="flash flash--danger" role="status">
           {t('filter.invalid', { fields: props.invalid.map((k) => t(`filter.invalid.${k}`)).join(', ') })}
         </p>
       ) : null}
-      <Table stack caption={t('list.caption')} columns={cols} rows={props.rows} rowKey={(r) => r.id} empty={t('list.empty')} />
+      <Table stack caption={t('list.caption')} columns={cols} rows={props.rows} rowKey={(r) => r.id} empty={t('list.empty')} emptyIcon="users" />
       <CursorPagination next={props.next} baseUrl={props.url} isFirst={props.filter.after === null} />
     </>
   );
@@ -110,9 +111,11 @@ export function CustomersListPage(props: {
 
 function Section(props: { title: string; id: string; children: Child }) {
   return (
-    <section aria-labelledby={props.id}>
-      <h2 id={props.id}>{props.title}</h2>
-      {props.children}
+    <section class="card" aria-labelledby={props.id}>
+      <div class="card__head">
+        <h2 class="card__title" id={props.id}>{props.title}</h2>
+      </div>
+      <div class="card__body">{props.children}</div>
     </section>
   );
 }
@@ -147,13 +150,18 @@ export function CustomerDetailPage(props: {
   return (
     <>
       {x.top ? <p class="flash flash--danger" role="alert">{x.top}</p> : null}
-      <p>
-        <Bdi ltr={false}>{c.name}</Bdi> · <Bdi>{formatPhoneDisplay(c.phoneE164)}</Bdi>{' '}
-        <a class="btn btn--secondary" href={`tel:${c.phoneE164}`}>{t('detail.call')}</a>
-      </p>
-      <p class="muted">
-        {t('col.created')} <DateTime ms={c.createdAt} withTime={false} />
-      </p>
+      <div class="order-head">
+        <div class="order-head__who">
+          <p class="order-head__name"><Bdi ltr={false}>{c.name}</Bdi></p>
+          <p class="order-head__meta">
+            <Bdi>{formatPhoneDisplay(c.phoneE164)}</Bdi> · {t('col.created')} <DateTime ms={c.createdAt} withTime={false} />
+          </p>
+        </div>
+        <a class="btn btn--primary order-head__call" href={`tel:${c.phoneE164}`}>
+          <Icon name="phone" />
+          {t('detail.call')}
+        </a>
+      </div>
 
       {props.sensitive ? (
         <>
@@ -173,18 +181,15 @@ export function CustomerDetailPage(props: {
           ) : null}
 
           <Section title={t('detail.counts')} id="counts">
-            <dl>
-              <dt>{t('col.orders')}</dt>
-              <dd>{String(c.orderCount ?? 0)}</dd>
-              <dt>{t('col.delivered')}</dt>
-              <dd>{String(c.deliveredCount ?? 0)}</dd>
-              <dt>{t('col.returned')}</dt>
-              <dd>{String(c.returnedCount ?? 0)}</dd>
-              <dt>{t('col.cancelled')}</dt>
-              <dd>{String(c.cancelledCount ?? 0)}</dd>
-              <dt>{t('col.lastOrder')}</dt>
-              <dd>{c.lastOrderAt ? <DateTime ms={c.lastOrderAt} /> : '—'}</dd>
-            </dl>
+            <Stats
+              items={[
+                { label: t('col.orders'), value: String(c.orderCount ?? 0) },
+                { label: t('col.delivered'), value: String(c.deliveredCount ?? 0) },
+                { label: t('col.returned'), value: String(c.returnedCount ?? 0) },
+                { label: t('col.cancelled'), value: String(c.cancelledCount ?? 0) },
+                { label: t('col.lastOrder'), value: c.lastOrderAt ? <DateTime ms={c.lastOrderAt} withTime={false} /> : '—' },
+              ]}
+            />
           </Section>
 
           <Section title={t('detail.flags')} id="flags">

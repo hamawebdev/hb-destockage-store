@@ -1,6 +1,7 @@
 // Media views (ACAT-3): the Photos section shown on product and category edit pages, the recent
 // list, and the delete confirm page. No JS: reorder with up/down buttons, upload with a plain
 // multipart form (CSRF token added by the kit's Form).
+import { EmptyState } from '../../ui/badge.tsx';
 import type { Image } from '@hb/db';
 import { useUi } from '../../ui/context.ts';
 import { StatusBadge } from '../../ui/badge.tsx';
@@ -39,7 +40,7 @@ export function PhotosSection(props: { owner: Owner; images: readonly Image[]; c
     <section class="panel" aria-labelledby="sec-photos" id="photos">
       <h2 id="sec-photos">{tm('section')}</h2>
       <ErrorSummary errors={props.errors} />
-      {props.images.length === 0 ? <p class="empty">{tm('empty')}</p> : null}
+      {props.images.length === 0 ? <EmptyState icon="image">{tm('empty')}</EmptyState> : null}
       <ol class="photo-list">
         {props.images.map((img, i) => {
           const groupLabel = tm('photoN', { n: i + 1 });
@@ -110,7 +111,7 @@ export function PhotosSection(props: { owner: Owner; images: readonly Image[]; c
 export function RecentList(props: { images: readonly Image[] }) {
   const { lang } = useUi();
   const tm = m(lang);
-  if (props.images.length === 0) return <p class="empty">{tm('empty')}</p>;
+  if (props.images.length === 0) return <EmptyState icon="image">{tm('empty')}</EmptyState>;
   return (
     <ol class="photo-list">
       {props.images.map((img) => (

@@ -357,7 +357,9 @@
     .tbl-stack tbody tr:first-child { border-block-start: 0; }
     .tbl-stack td { display: grid; grid-template-columns: minmax(7rem, 40%) 1fr; gap: var(--space-2); border: 0; padding-block: var(--space-1); text-align: start; }
     .tbl-stack td.num { text-align: start; }
-    .tbl-stack td > * { justify-self: start; }
+    .tbl-stack td > * { justify-self: start; min-inline-size: 0; max-inline-size: 100%; }
+    .tbl-stack td .input { inline-size: 100%; }
+    .tbl-stack td a:not(.btn):not(.row-link) { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); }
     .tbl-stack td::before { content: attr(data-label); color: var(--color-text-secondary); font-size: var(--a-caption); }
     .tbl-stack td[data-label=""]::before { content: none; }
     .table-wrap:has(.tbl-stack) { overflow-x: visible; }
@@ -448,6 +450,15 @@
   .tile__list a { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); }
   .tile__body > :last-child { margin-block-end: 0; }
 
+  .tile-group { margin-block-end: var(--space-6); }
+  .tile-group__title { font-size: var(--a-h3); margin-block-end: var(--space-3); }
+  .tile-group .tiles { margin-block-end: 0; }
+  /* Work tiles open the work: the whole tile is the link. */
+  .tiles--work .tile { position: relative; }
+  .tiles--work .tile:hover { background: var(--a-hover); }
+  .tiles--work .tile__link::after { content: ""; position: absolute; inset: 0; }
+  .tiles--orders .tile__list { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); }
+
   /* Empty state */
   .empty { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-10) var(--space-6); text-align: center; color: var(--color-text-secondary); background: var(--color-surface); border: var(--bw-hairline) dashed var(--color-border); border-radius: var(--radius-md); margin: 0; }
   .empty__icon { display: inline-flex; padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface-alt); color: var(--color-text); }
@@ -482,6 +493,19 @@
   .card__body:has(> .empty) { padding: var(--space-3); }
   .card .form + .form { margin-block-start: var(--space-4); padding-block-start: var(--space-4); border-block-start: var(--bw-hairline) solid var(--color-border); }
 
+  /* Call queue and shipping */
+  .queue-start { display: grid; gap: var(--space-4); justify-items: start; }
+  .queue-start .empty { justify-self: stretch; }
+  .queue-counts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); font-size: var(--a-body); }
+  .queue-start__action { max-inline-size: none; }
+  .queue-total { margin: var(--space-3) 0 0; padding-block-start: var(--space-3); border-block-start: var(--bw-hairline) solid var(--color-border); }
+  .plain-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); font-size: var(--a-small); }
+  .ship-fields { display: grid; gap: var(--space-3); padding: var(--space-4); }
+  @media (min-width: 768px) { .ship-fields { grid-template-columns: 2fr 1fr; } }
+  .row-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .card__body:has(> .bulk-form) { padding: 0; }
+  .card .bulk { margin: var(--space-2) var(--space-3) var(--space-3); }
+
   /* Timeline */
   .timeline { list-style: none; margin: 0 0 var(--space-3); padding: 0; font-size: var(--a-small); }
   .timeline > li { position: relative; padding-inline-start: var(--space-5); padding-block-end: var(--space-4); border-inline-start: 2px solid var(--color-border); margin-inline-start: 5px; }
@@ -499,4 +523,10 @@
   .dialog__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
 
   .thumb { border-radius: var(--radius-sm); }
+  .photo-list { list-style: none; margin: 0 0 var(--space-4); padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--space-3); }
+  .photo-list img { display: block; inline-size: 100%; block-size: auto; border-radius: var(--radius-sm); background: var(--color-surface-alt); }
+
+  /* Rows of inputs under a header row: the column header (or the stacked card label) names the field. */
+  /* Fees: selected from the form, so the review-required fees code stays untouched. */
+  form[action^="/fees"] .table .field__label, .table--bare-fields .field__label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
