@@ -9,7 +9,8 @@ import { DateTime } from '../../ui/format.tsx';
 import { Checkbox, ErrorSummary, Form, FormActions, Select, Submit, TextInput, fieldId, type FieldErrors, type Option } from '../../ui/form.tsx';
 import { Table } from '../../ui/table.tsx';
 import type { KeyState } from './keys.ts';
-import { m, type DeliveryMessage } from './messages.ts';
+import { WEBHOOK_SECRET_FIELD } from './keys.ts';
+import { hasDeliveryMessage, m, type DeliveryMessage } from './messages.ts';
 
 type KeyProblem = Extract<KeyState, { ok: false }>['reason'] | null;
 
@@ -25,8 +26,6 @@ function stateOf(v: AccountView): { tone: Tone; key: DeliveryMessage } {
   if (!v.account?.credentialsCipher) return { tone: 'neutral', key: 'state.noKeys' };
   return v.account.enabled ? { tone: 'success', key: 'state.on' } : { tone: 'warning', key: 'state.off' };
 }
-
-const hasMessage = (code: string): code is DeliveryMessage & `note.${string}` => code !== '';
 
 function KeyBanner(props: { problem: KeyProblem }) {
   const tm = m(useUi().lang);
@@ -122,7 +121,10 @@ export function AccountPage(props: AccountPageProps) {
   const s = stateOf(props.view);
   const conf = adapter.confidence;
   const canWrite = props.keyProblem === null;
-  const noteText = (code: string) => (hasMessage(code) ? tm(`note.${code}` as DeliveryMessage) : code);
+  const noteText = (code: string) => {
+    const key = `note.${code}`;
+    return hasDeliveryMessage(key) ? tm(key) : code;
+  };
   return (
     <>
       <KeyBanner problem={props.keyProblem} />
@@ -175,6 +177,14 @@ export function AccountPage(props: AccountPageProps) {
                 />
               );
             })}
+            {caps.webhook === 'hmac' ? (
+              <SecretInput
+                name={`cred_${WEBHOOK_SECRET_FIELD}`}
+                label={tm('field.webhookSecret')}
+                hint={`${tm('field.webhookSecretHint')} ${hints[WEBHOOK_SECRET_FIELD] === undefined ? tm('field.notSet') : hints[WEBHOOK_SECRET_FIELD] === '' ? tm('field.set') : tm('field.setHint', { hint: hints[WEBHOOK_SECRET_FIELD] })}`}
+                error={props.errors?.[`cred_${WEBHOOK_SECRET_FIELD}`]}
+              />
+            ) : null}
             <FormActions>
               <Submit>{tm('keys.save')}</Submit>
             </FormActions>

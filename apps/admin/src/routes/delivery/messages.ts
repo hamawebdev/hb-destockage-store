@@ -1,8 +1,7 @@
 // Strings for /delivery. Arabic: [PLACEHOLDER] until `brand` reviews the admin tone.
 import { defineMessages } from '../../i18n/index.ts';
 
-export const m = defineMessages({
-  fr: {
+const FR = {
     'settings.title': 'Transporteurs',
     'settings.caption': 'Transporteurs disponibles',
     'settings.intro': 'Un transporteur reste inactif tant que ses clés ne sont pas enregistrées et qu’il n’est pas activé ici.',
@@ -37,6 +36,9 @@ export const m = defineMessages({
     'err.keyConfig': 'La clé de chiffrement n’est pas disponible.',
     'err.notConfirmed': 'Ce transporteur n’est pas confirmé : il faut un test de connexion réussi avant de l’activer.',
     'err.originNeeded': 'Choisissez d’abord la wilaya de départ.',
+    'err.keysChanged': 'Les clés ont changé pendant l’opération : testez à nouveau la connexion.',
+    'field.webhookSecret': 'Secret de signature des notifications',
+    'field.webhookSecretHint': 'Facultatif. Copiez-le depuis l’espace du transporteur : sans lui, les notifications sont refusées et le suivi passe par interrogation régulière.',
     'config.origin': 'Wilaya de départ',
     'config.originPick': 'Choisir une wilaya',
     'config.askCollection': 'Demander un ramassage à la validation',
@@ -80,7 +82,25 @@ export const m = defineMessages({
     'note.status_meanings_inferred': 'Le sens de certains statuts est déduit de leur nom.',
     'note.tenant_url_unconfirmed': 'L’adresse de ce transporteur n’a pas pu être vérifiée.',
     'note.amount_split_unconfirmed': 'À confirmer sur le premier vrai colis : la répartition du montant entre produit et livraison.',
-  },
+    'note.docs_private_pdf': 'La documentation n’est qu’un PDF privé : à comparer avec un vrai compte.',
+    'note.error_codes_partly_undocumented': 'Une partie des codes d’erreur n’est pas documentée.',
+    'note.hosts_conflict_in_docs': 'La documentation donne des adresses de service différentes : à confirmer avec le transporteur.',
+    'note.key_expires': 'La clé API expire (de 7 à 365 jours) : pensez à la renouveler, sinon les envois et le suivi s’arrêtent.',
+    'note.label_call_unconfirmed': 'L’appel des bordereaux n’est pas confirmé.',
+    'note.no_lookup_by_reference': 'Impossible de rechercher un colis par notre référence : un envoi sans réponse est toujours confié à une personne.',
+    'note.return_received_inferred': 'Le statut « retour reçu », qui remet le stock, est déduit de son nom : à confirmer sur le premier retour.',
+    'note.return_rule_inferred': 'La règle qui reconnaît un retour est déduite : à confirmer sur le premier retour.',
+    'note.starter_store_flow_unconfirmed': 'Le parcours pour une boutique débutante n’est pas confirmé.',
+    'note.state_names_unconfirmed': 'Les noms des statuts ne sont pas confirmés.',
+    'note.status_french_labels_unmapped': 'Les libellés de statut en français ne sont pas utilisés : seuls les codes le sont.',
+    'note.status_list_tenant_configurable': 'Chaque compte peut configurer ses propres statuts : un statut inconnu sera confié à une personne.',
+    'note.stop_desk_is_commune_level': 'Le point relais se choisit par commune, pas par bureau.',
+    'note.webhooks_not_used': 'Les notifications de ce transporteur ne sont pas utilisées : le suivi passe par des interrogations régulières.',
+    'note.wilaya_field_conflict': 'La documentation se contredit sur le champ de la wilaya : à confirmer sur le premier vrai colis.',
+} as const;
+
+export const m = defineMessages({
+  fr: FR,
   ar: {
     'settings.title': 'شركات التوصيل',
     'settings.caption': 'شركات التوصيل المتاحة',
@@ -116,6 +136,9 @@ export const m = defineMessages({
     'err.keyConfig': 'مفتاح التشفير غير متوفر.',
     'err.notConfirmed': 'شركة التوصيل هذه غير مؤكَّدة: يلزم اختبار اتصال ناجح قبل تفعيلها.',
     'err.originNeeded': 'اختر ولاية الانطلاق أولًا.',
+    'err.keysChanged': 'تغيّرت المفاتيح أثناء العملية: أعد اختبار الاتصال.',
+    'field.webhookSecret': 'سرّ توقيع الإشعارات',
+    'field.webhookSecretHint': 'اختياري. انسخه من فضاء شركة التوصيل: بدونه تُرفض الإشعارات وتتم المتابعة بالاستعلام الدوري.',
     'config.origin': 'ولاية الانطلاق',
     'config.originPick': 'اختر ولاية',
     'config.askCollection': 'طلب الاستلام عند التأكيد',
@@ -159,7 +182,25 @@ export const m = defineMessages({
     'note.status_meanings_inferred': 'معنى بعض الحالات مستنتج من اسمها.',
     'note.tenant_url_unconfirmed': 'تعذّر التحقق من عنوان شركة التوصيل هذه.',
     'note.amount_split_unconfirmed': 'يجب التأكد عند أول طرد حقيقي: توزيع المبلغ بين المنتج والتوصيل.',
+    'note.docs_private_pdf': 'الوثائق مجرد ملف PDF خاص: يجب مقارنتها بحساب حقيقي.',
+    'note.error_codes_partly_undocumented': 'جزء من رموز الأخطاء غير موثَّق.',
+    'note.hosts_conflict_in_docs': 'تذكر الوثائق عناوين خدمة مختلفة: يجب التأكد منها مع شركة التوصيل.',
+    'note.key_expires': 'مفتاح API تنتهي صلاحيته (من 7 إلى 365 يومًا): جدِّده، وإلا يتوقف الإرسال والمتابعة.',
+    'note.label_call_unconfirmed': 'طلب بوالص الشحن غير مؤكَّد.',
+    'note.no_lookup_by_reference': 'لا يمكن البحث عن طرد بمرجعنا: أي إرسال بلا رد يُحال دائمًا إلى شخص.',
+    'note.return_received_inferred': 'حالة «تم استلام المرتجع»، التي تعيد المخزون، مستنتجة من اسمها: يجب التأكد منها عند أول مرتجع.',
+    'note.return_rule_inferred': 'قاعدة التعرّف على المرتجع مستنتجة: يجب التأكد منها عند أول مرتجع.',
+    'note.starter_store_flow_unconfirmed': 'مسار المتاجر المبتدئة غير مؤكَّد.',
+    'note.state_names_unconfirmed': 'أسماء الحالات غير مؤكَّدة.',
+    'note.status_french_labels_unmapped': 'لا تُستعمل تسميات الحالات بالفرنسية: تُستعمل الرموز فقط.',
+    'note.status_list_tenant_configurable': 'يمكن لكل حساب ضبط حالاته الخاصة: أي حالة غير معروفة تُحال إلى شخص.',
+    'note.stop_desk_is_commune_level': 'يُختار مكتب الاستلام حسب البلدية وليس حسب المكتب.',
+    'note.webhooks_not_used': 'لا تُستعمل إشعارات شركة التوصيل هذه: تتم المتابعة بالاستعلام الدوري.',
+    'note.wilaya_field_conflict': 'الوثائق متناقضة بشأن حقل الولاية: يجب التأكد عند أول طرد حقيقي.',
   },
 });
 
 export type DeliveryMessage = Parameters<ReturnType<typeof m>>[0];
+
+/** True when `key` has a string (courier notes come from @hb/couriers and may be new). */
+export const hasDeliveryMessage = (key: string): key is DeliveryMessage => Object.hasOwn(FR, key);

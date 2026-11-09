@@ -9,7 +9,7 @@
 //   POST /settings/:courier/enable|disable
 //   POST /settings/:courier/remove-keys
 //   POST /settings/:courier/webhook-token[/remove]   the URL token, shown once
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { canEnable, getCourier, listCouriers, type CourierAdapter, type CourierCredentials } from '@hb/couriers';
 import { courierAccounts, hashWebhookToken, newWebhookToken, wilayas, type CourierAccount } from '@hb/db';
@@ -22,7 +22,7 @@ import { createRouter } from '../../lib/router.ts';
 import { renderError } from '../../ui/error-page.tsx';
 import { withFlash } from '../../ui/flash.tsx';
 import type { FieldErrors, Option } from '../../ui/form.tsx';
-import { courierContext, credentialHint, openCredentials, readKeyState, sealCredentials, type KeyState } from './keys.ts';
+import { courierContext, credentialHint, openCredentials, readKeyState, sealCredentials, WEBHOOK_SECRET_FIELD, type KeyState } from './keys.ts';
 import { m } from './messages.ts';
 import { AccountPage, SettingsListPage, type AccountView } from './settings-page.tsx';
 
@@ -34,6 +34,9 @@ const SEARCH_MAX = 60;
 
 type Ctx = Context<AppEnv>;
 const problemOf = (state: KeyState) => (state.ok ? null : state.reason);
+const changesOf = (result: unknown): number => (result as { meta?: { changes?: number } }).meta?.changes ?? 0;
+/** The account still holds exactly the sealed keys this request read. */
+const sameKeys = (courier: string, cipher: string) => and(eq(courierAccounts.courier, courier), eq(courierAccounts.credentialsCipher, cipher))!;
 
 async function accountOf(c: Ctx, courier: string): Promise<CourierAccount | undefined> {
   return (await c.var.db.select().from(courierAccounts).where(eq(courierAccounts.courier, courier)))[0];
@@ -113,6 +116,16 @@ r.post('/settings/:courier/keys', requirePerm('delivery.settings'), async (c) =>
       errors[name] = c.var.t('form.required');
     }
   }
+  if (adapter.capabilities.webhook === 'hmac') {
+    // Optional: blank keeps what is stored, absent stays absent.
+    const name = `cred_${WEBHOOK_SECRET_FIELD}`;
+    const given = (values[name] ?? '').trim();
+    if ([...given].length > MAX_CREDENTIAL_CHARS) errors[name] = c.var.t('form.tooLong', { max: MAX_CREDENTIAL_CHARS });
+    else if (given !== '') {
+      merged[WEBHOOK_SECRET_FIELD] = given;
+      fieldsSet.push(WEBHOOK_SECRET_FIELD);
+    } else if (stored?.[WEBHOOK_SECRET_FIELD] !== undefined) merged[WEBHOOK_SECRET_FIELD] = stored[WEBHOOK_SECRET_FIELD]!;
+  }
   if (Object.keys(errors).length > 0) {
     noAudit(c, 'credentials form refused, nothing written');
     return renderAccount(c, adapter, 422, { errors });
@@ -181,11 +194,13 @@ r.post('/settings/:courier/test', requirePerm('delivery.settings'), async (c) =>
   }
   const check = await adapter.checkCredentials(credentials, courierContext(c.env, CHECK_TIMEOUT_MS));
   const now = Date.now();
-  await withAudit(
-    c,
-    { action: 'courierAccount.test', entity: 'courier_accounts', entityId: adapter.id, before: null, after: { result: check.kind } },
-    c.var.db.update(courierAccounts).set({ lastCheckResult: check.kind, lastCheckAt: now, updatedBy: c.var.user.id }).where(eq(courierAccounts.courier, adapter.id)),
-  );
+  // The result belongs to the keys that were tested: a save in the meantime makes it count for nothing.
+  const same = sameKeys(adapter.id, account!.credentialsCipher!);
+  const [res] = await c.var.db.batch([
+    c.var.db.update(courierAccounts).set({ lastCheckResult: check.kind, lastCheckAt: now, updatedBy: c.var.user.id }).where(same),
+    audit(c, { action: 'courierAccount.test', entity: 'courier_accounts', entityId: adapter.id, before: null, after: { result: check.kind } }, { when: same }),
+  ]);
+  if (changesOf(res) !== 1) return renderAccount(c, adapter, 409, { errors: { _form: tm('err.keysChanged') } });
   return c.redirect(withFlash(`/delivery/settings/${adapter.id}`, 'saved'), 303);
 });
 
@@ -202,11 +217,13 @@ r.post('/settings/:courier/enable', requirePerm('delivery.settings'), async (c) 
   if (!state.ok || !account || (await openCredentials(state.key, account)) === null) return refuse('err.keysNeeded');
   if (!canEnable(adapter, account.lastCheckResult)) return refuse('err.notConfirmed');
   if (adapter.capabilities.needsOriginWilaya && typeof account.config['originWilaya'] !== 'number') return refuse('err.originNeeded');
-  await withAudit(
-    c,
-    { action: 'courierAccount.enable', entity: 'courier_accounts', entityId: adapter.id, before: { enabled: account.enabled }, after: { enabled: true } },
-    c.var.db.update(courierAccounts).set({ enabled: true, updatedBy: c.var.user.id }).where(eq(courierAccounts.courier, adapter.id)),
-  );
+  // Enable the keys and check result that were read above, not whatever a concurrent save stored.
+  const same = and(sameKeys(adapter.id, account.credentialsCipher!), account.lastCheckResult === null ? isNull(courierAccounts.lastCheckResult) : eq(courierAccounts.lastCheckResult, account.lastCheckResult))!;
+  const [res] = await c.var.db.batch([
+    c.var.db.update(courierAccounts).set({ enabled: true, updatedBy: c.var.user.id }).where(same),
+    audit(c, { action: 'courierAccount.enable', entity: 'courier_accounts', entityId: adapter.id, before: { enabled: account.enabled }, after: { enabled: true } }, { when: sql`EXISTS (SELECT 1 FROM ${courierAccounts} WHERE ${same} AND ${courierAccounts.enabled} = 1)` }),
+  ]);
+  if (changesOf(res) !== 1) return renderAccount(c, adapter, 409, { errors: { _form: tm('err.keysChanged') } });
   return c.redirect(withFlash(`/delivery/settings/${adapter.id}`, 'saved'), 303);
 });
 

@@ -103,6 +103,22 @@ describe('saving keys', () => {
     expect(logs.join('\n')).not.toContain('SENTINEL');
   });
 
+  test('webhook signing secret: optional, sealed with the keys, kept when blank, never echoed (SHIP-5)', async () => {
+    await saveKeys();
+    expect((await account())!['credentials_hint']).not.toContain('webhookSecret');
+    const res = await post(USERS.owner, '/delivery/settings/yalidine/keys', { cred_apiId: '', cred_apiToken: '', cred_webhookSecret: 'SENTINEL-webhook-secret-777' });
+    expect(res.status).toBe(303);
+    const row = (await account())!;
+    expect(JSON.parse(String(row['credentials_hint']))).toMatchObject({ webhookSecret: '-777', apiId: '' });
+    expect(String(row['credentials_cipher'])).not.toContain('SENTINEL');
+    await post(USERS.owner, '/delivery/settings/yalidine/keys', { cred_apiId: 'standin-id2', cred_apiToken: '' });
+    expect(JSON.parse(String((await account())!['credentials_hint']))).toMatchObject({ webhookSecret: '-777' });
+    const { html } = await page(USERS.owner, '/delivery/settings/yalidine');
+    expect(html).toContain('cred_webhookSecret');
+    expect(html).not.toContain('SENTINEL-webhook');
+    expect((await page(USERS.owner, '/delivery/settings/ecotrack-ab-delivery')).html).not.toContain('cred_webhookSecret');
+    expect(JSON.stringify(await auditRows())).not.toContain('SENTINEL');
+  });
   test('a short value shows only "set"', async () => {
     await saveKeys('yalidine', 'abc', 'defghi');
     const hint = JSON.parse(String((await account())!['credentials_hint']));
@@ -185,6 +201,18 @@ describe('test connection and enabling (check 22b)', () => {
     expect((await post(USERS.owner, '/delivery/settings/yalidine/test')).status).toBe(303);
     expect(await lastCheck()).toBe('valid');
     expect((await page(USERS.owner, '/delivery/settings/yalidine')).html).toContain('Connexion réussie');
+  });
+  test('keys saved during a test: the result is not recorded against the new keys (review r1 nit 1)', async () => {
+    await saveKeys();
+    await standin.control('yalidine/scenario', { slowMs: 800 });
+    const testing = post(USERS.owner, '/delivery/settings/yalidine/test');
+    await new Promise((r) => setTimeout(r, 300));
+    await saveKeys('yalidine', 'other-id', 'other-token');
+    const res = await testing;
+    expect(res.status).toBe(409);
+    expect(await res.text()).toContain('Les clés ont changé');
+    expect(await lastCheck()).toBeNull();
+    expect((await auditRows()).filter((r) => r.action === 'courierAccount.test')).toHaveLength(0);
   });
   test('refused keys are invalid', async () => {
     await saveKeys('yalidine', 'wrong', 'wrong');
@@ -291,6 +319,18 @@ describe('courier settings form', () => {
   test('the confidence notes of a courier are on its page', async () => {
     const { html } = await page(USERS.owner, '/delivery/settings/guepex');
     expect(html).toContain('Liste de statuts reprise de Yalidine');
+  });
+  test('every confidence note of every courier has French and Arabic text (review r1 nit 2)', async () => {
+    const { listCouriers } = await import('@hb/couriers');
+    const { m, hasDeliveryMessage } = await import('../../src/routes/delivery/messages.ts');
+    const codes = new Set(listCouriers().flatMap((a) => a.confidence.notes));
+    for (const code of codes) {
+      expect(hasDeliveryMessage(`note.${code}`), code).toBe(true);
+      for (const lang of ['fr', 'ar'] as const) expect(m(lang)(`note.${code}` as never), `${lang} ${code}`).not.toContain('note.');
+    }
+    for (const id of ['noest', 'maystro', 'zr-express']) {
+      for (const email of [USERS.owner, USERS.ownerAr]) expect((await page(email, `/delivery/settings/${id}`)).html).not.toMatch(/note\.[a-z_]+/);
+    }
   });
   test('Arabic page renders', async () => {
     const { status, html } = await page(USERS.ownerAr, '/delivery/settings');

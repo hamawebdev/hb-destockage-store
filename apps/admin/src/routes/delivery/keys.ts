@@ -4,6 +4,13 @@ import { importSecretBoxKey, openSecret, SecretBoxOpenError, sealSecret, type Co
 import type { CourierContext, CourierCredentials } from '@hb/couriers';
 import type { Env } from '../../env.ts';
 
+/**
+ * The owner's webhook signing secret (couriers with `webhook: 'hmac'`), sealed with the other keys and
+ * read by apps/jobs to verify webhooks. Optional: without it every webhook is rejected and polling
+ * carries the load.
+ */
+export const WEBHOOK_SECRET_FIELD = 'webhookSecret';
+
 export type KeyState = { ok: true; key: SecretBoxKey } | { ok: false; reason: 'missing' | 'invalid' };
 
 export async function readKeyState(env: Pick<Env, 'COURIER_KEYS_KEY'>): Promise<KeyState> {
