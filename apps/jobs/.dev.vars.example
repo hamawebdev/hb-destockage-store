@@ -1,2 +1,8 @@
 # Local only. Courier and Google HTTP is held to loopback unless ENV is exactly "production".
 ENV=development
+
+# Google Sheets against the local stand-in (node tools/standins/sheets/server.mjs --port 4420).
+GOOGLE_CLIENT_ID=standin-client
+GOOGLE_CLIENT_SECRET=standin-secret
+GOOGLE_STANDIN_URL=http://127.0.0.1:4420
+COURIER_KEYS_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=

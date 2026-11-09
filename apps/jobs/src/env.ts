@@ -21,6 +21,16 @@ export interface Env {
   NOTIFY_LANG?: string;
   /** Producer binding to the notifications DLQ, for permanent failures and malformed messages. */
   ORDER_NOTIFICATIONS_DLQ?: Queue<unknown>;
+
+  // Google Sheets sync (SHEET-2). Off until all are set; the job records `config_missing` otherwise.
+  /** Secret. */
+  GOOGLE_CLIENT_ID?: string;
+  /** Secret. */
+  GOOGLE_CLIENT_SECRET?: string;
+  /** Non-production only: loopback stand-in base URL. Ignored in production. */
+  GOOGLE_STANDIN_URL?: string;
+  /** Secret (32 random bytes, base64), shared with the admin. Seals the refresh token. */
+  COURIER_KEYS_KEY?: string;
 }
 
 export const ORDER_NOTIFICATIONS_QUEUE = 'hb-order-notifications';
