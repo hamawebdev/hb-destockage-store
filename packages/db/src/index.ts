@@ -93,3 +93,5 @@ export * from './fees.ts';
 export * from './order-contact.ts';
 export * from './secret-box.ts';
 export * from './webhook-token.ts';
+export * from './shipments.ts';
+export * from './courier-directory.ts';

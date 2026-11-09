@@ -9,22 +9,31 @@
 //   POST /settings/:courier/enable|disable
 //   POST /settings/:courier/remove-keys
 //   POST /settings/:courier/webhook-token[/remove]   the URL token, shown once
+//   POST /send                             the sending page; writes nothing   (delivery.send)
+//   POST /send/confirm                     the real send, per-order results
+//   GET  /shipments/:id/waybill            one label call                     (delivery.view)
+//   POST /shipments/:id/validate           retry a draft's validation         (delivery.send)
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { canEnable, getCourier, listCouriers, type CourierAdapter, type CourierCredentials } from '@hb/couriers';
-import { courierAccounts, hashWebhookToken, newWebhookToken, wilayas, type CourierAccount } from '@hb/db';
+import { courierAccounts, hashWebhookToken, newWebhookToken, orders, readDirectory, shipments, wilayas, type CourierAccount, type DeliveryType } from '@hb/db';
+import { isOrderRef } from '@hb/shared';
 import { audit, noAudit, withAudit } from '../../audit/audit.ts';
-import { rolesFor } from '../../auth/permissions.ts';
+import { can, rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import type { AppEnv } from '../../env.ts';
 import { readForm } from '../../lib/forms.ts';
 import { createRouter } from '../../lib/router.ts';
 import { renderError } from '../../ui/error-page.tsx';
+import { Bdi } from '../../ui/format.tsx';
 import { withFlash } from '../../ui/flash.tsx';
 import type { FieldErrors, Option } from '../../ui/form.tsx';
 import { courierContext, credentialHint, openCredentials, readKeyState, sealCredentials, WEBHOOK_SECRET_FIELD, type KeyState } from './keys.ts';
 import { m } from './messages.ts';
 import { AccountPage, SettingsListPage, type AccountView } from './settings-page.tsx';
+import { fetchSendOrders, listsOf, parcelInput, refreshLists, runSend, SEND_LIMITS, validateDraft, type SendFields, type SendOrder, type SendRun } from './send.ts';
+import { SendPage, SendResultsPage, type SendRow } from './send-page.tsx';
+import { sm } from './send-messages.ts';
 
 const r = createRouter({ roles: rolesFor('delivery.view') });
 
@@ -281,6 +290,203 @@ r.post('/settings/:courier/webhook-token/remove', requirePerm('delivery.settings
     c.var.db.update(courierAccounts).set({ webhookTokenHash: null, updatedBy: c.var.user.id }).where(eq(courierAccounts.courier, adapter.id)),
   );
   return c.redirect(withFlash(`/delivery/settings/${adapter.id}`, 'saved'), 303);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Sending
+
+interface EnabledCourier {
+  adapter: CourierAdapter;
+  account: CourierAccount;
+}
+
+async function enabledCouriers(c: Ctx): Promise<EnabledCourier[]> {
+  const accounts = await c.var.db.select().from(courierAccounts).where(eq(courierAccounts.enabled, true));
+  return accounts.flatMap((account) => {
+    const adapter = getCourier(account.courier);
+    return adapter && account.credentialsCipher ? [{ adapter, account }] : [];
+  });
+}
+
+interface ParsedSend {
+  refs: string[];
+  version: (ref: string) => number;
+  rawVersion: (ref: string) => string;
+  str: (key: string) => string;
+  courier: string | null;
+}
+
+async function parseSendBody(c: Ctx): Promise<ParsedSend> {
+  const body = await c.req.parseBody({ all: true });
+  const raw = body['ref'];
+  const list = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).filter((x): x is string => typeof x === 'string');
+  const str = (key: string) => {
+    const val = body[key];
+    return typeof val === 'string' ? val.trim() : '';
+  };
+  const courier = str('courier');
+  return { refs: [...new Set(list.filter((x) => isOrderRef(x)))], version: (ref) => Number(str(`version_${ref}`)), rawVersion: (ref) => str(`version_${ref}`), str, courier: courier === '' ? null : courier };
+}
+
+function fieldsOf(parsed: ParsedSend, order: SendOrder, firstRender: boolean): SendFields {
+  const ref = order.ref;
+  const typed = parsed.str(`address_${ref}`);
+  const type: DeliveryType = parsed.str(`type_${ref}`) === 'stop_desk' ? 'stop_desk' : 'home';
+  return {
+    ref,
+    version: parsed.version(ref),
+    address: firstRender ? order.address : typed === '' ? null : typed,
+    deliveryType: type,
+    stopDeskId: type === 'stop_desk' && parsed.str(`desk_${ref}`) !== '' ? parsed.str(`desk_${ref}`) : null,
+    communeName: parsed.str(`commune_${ref}`) === '' ? null : parsed.str(`commune_${ref}`),
+  };
+}
+
+const courierOptions = (list: readonly EnabledCourier[]): Option[] => list.map((e) => ({ value: e.adapter.id, label: e.adapter.displayName }));
+
+async function renderSend(c: Ctx, status: 200 | 409 | 422, parsed: ParsedSend, opts: { error?: string; firstRender: boolean }) {
+  const enabled = await enabledCouriers(c);
+  const chosen = enabled.find((e) => e.adapter.id === parsed.courier) ?? (enabled.length === 1 ? enabled[0] : undefined);
+  const tm = sm(c.var.lang);
+  const title = tm('title');
+  const orderRows = chosen ? await fetchSendOrders(c.var.db, parsed.refs) : [];
+  const rows: SendRow[] = [];
+  let canStopDesk = false;
+  if (chosen) {
+    const { adapter, account } = chosen;
+    canStopDesk = adapter.capabilities.stopDesk;
+    const state = await readKeyState(c.env);
+    const credentials = state.ok ? await openCredentials(state.key, account) : null;
+    const codes = orderRows.map((o) => o.wilayaCode);
+    let directory = await readDirectory(c.var.db, adapter.id, codes);
+    if (credentials) {
+      await refreshLists(c, adapter, credentials, codes, directory);
+      directory = await readDirectory(c.var.db, adapter.id, codes);
+    }
+    const byRef = new Map(orderRows.map((o) => [o.ref, o]));
+    for (const ref of parsed.refs) {
+      const order = byRef.get(ref);
+      if (!order) continue;
+      const fields = fieldsOf(parsed, order, opts.firstRender);
+      const lists = listsOf(directory, order.wilayaCode);
+      const p = adapter.prepare(parcelInput(order, fields, account), lists);
+      rows.push({ order, fields, problem: p.ok ? null : { code: p.code, detail: p.detail }, communes: lists.communes, stopDesks: lists.stopDesks });
+    }
+  }
+  c.status(status);
+  return c.render(
+    <SendPage
+      couriers={courierOptions(enabled)}
+      courier={chosen?.adapter.id ?? null}
+      rows={rows}
+      carry={parsed.refs.map((ref) => ({ ref, version: parsed.rawVersion(ref) }))}
+      canStopDesk={canStopDesk}
+      canConfigure={can(c.var.user, 'delivery.settings')}
+      {...(opts.error ? { error: opts.error } : {})}
+    />,
+    { title },
+  );
+}
+
+r.post('/send', requirePerm('delivery.send'), async (c) => {
+  noAudit(c, 'sending page: renders only, writes no order or shipment');
+  const parsed = await parseSendBody(c);
+  const tm = sm(c.var.lang);
+  if (parsed.refs.length === 0) return renderSend(c, 422, parsed, { error: tm('none'), firstRender: true });
+  if (parsed.refs.length > SEND_LIMITS.MAX_ORDERS) return renderSend(c, 422, { ...parsed, refs: [] }, { error: tm('tooMany'), firstRender: true });
+  // First arrival from a list has no per-order fields yet; a "Check" post carries them.
+  const firstRender = !parsed.refs.some((ref) => parsed.str(`type_${ref}`) !== '');
+  return renderSend(c, 200, parsed, { firstRender });
+});
+
+r.post('/send/confirm', requirePerm('delivery.send'), async (c) => {
+  const parsed = await parseSendBody(c);
+  const tm = sm(c.var.lang);
+  const refuse = (status: 409 | 422, error: string) => {
+    noAudit(c, 'send refused before any write');
+    return renderSend(c, status, parsed, { error, firstRender: false });
+  };
+  if (parsed.refs.length === 0) return refuse(422, tm('none'));
+  if (parsed.refs.length > SEND_LIMITS.MAX_ORDERS) return refuse(422, tm('tooMany'));
+  const chosen = (await enabledCouriers(c)).find((e) => e.adapter.id === parsed.courier);
+  if (!chosen) return refuse(422, tm('courier.needed'));
+  const state = await readKeyState(c.env);
+  const credentials = state.ok ? await openCredentials(state.key, chosen.account) : null;
+  if (!credentials) return refuse(409, tm('courier.needed'));
+  const items: SendFields[] = [];
+  for (const ref of parsed.refs) {
+    const version = parsed.version(ref);
+    if (!Number.isSafeInteger(version)) return refuse(422, tm('refused.stale'));
+    const address = parsed.str(`address_${ref}`);
+    if ([...address].length > SEND_LIMITS.ADDRESS_MAX) return refuse(422, tm('addressTooLong'));
+    const type: DeliveryType = parsed.str(`type_${ref}`) === 'stop_desk' ? 'stop_desk' : 'home';
+    const desk = parsed.str(`desk_${ref}`);
+    const commune = parsed.str(`commune_${ref}`);
+    items.push({ ref, version, address: address === '' ? null : address, deliveryType: type, stopDeskId: type === 'stop_desk' && desk !== '' ? desk.slice(0, 64) : null, communeName: commune === '' ? null : commune.slice(0, 120) });
+  }
+  const run: SendRun = { adapter: chosen.adapter, account: chosen.account, credentials, items };
+  const results = await runSend(c, run);
+  if (!c.var.audited) noAudit(c, 'send: every order was refused before any write');
+  return c.render(<SendResultsPage results={results} backHref="/orders/shipping" />, { title: tm('results.title') });
+});
+
+// ---------------------------------------------------------------------------------------------
+// One shipment
+
+const shipmentIdParam = (c: Ctx): number | null => {
+  const id = Number(c.req.param('id'));
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+};
+
+async function shipmentContext(c: Ctx, id: number) {
+  const row = (await c.var.db.select().from(shipments).where(eq(shipments.id, id)))[0];
+  if (!row) return null;
+  const adapter = getCourier(row.courier);
+  if (!adapter) return null;
+  const account = await accountOf(c, adapter.id);
+  const state = await readKeyState(c.env);
+  const credentials = state.ok ? await openCredentials(state.key, account) : null;
+  const ref = (await c.var.db.select({ ref: orders.ref }).from(orders).where(eq(orders.id, row.orderId)))[0]!.ref;
+  return { row, adapter, account, credentials, ref };
+}
+
+const WAYBILL_TIMEOUT_MS = 8000;
+
+r.get('/shipments/:id/waybill', requirePerm('delivery.view'), async (c) => {
+  const id = shipmentIdParam(c);
+  const ctx = id === null ? null : await shipmentContext(c, id);
+  if (!ctx || !ctx.row.tracking) return renderError(c, 404);
+  const tm = sm(c.var.lang);
+  const label = ctx.credentials ? await ctx.adapter.getLabel(ctx.row.tracking, ctx.credentials, courierContext(c.env, WAYBILL_TIMEOUT_MS)) : ({ kind: 'unavailable', cause: 'no_keys' } as const);
+  if (label.kind === 'url') return c.redirect(label.url, 302);
+  if (label.kind === 'pdf') {
+    return new Response(label.bytes.slice().buffer as ArrayBuffer, { headers: { 'Content-Type': 'application/pdf', 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' } });
+  }
+  c.status(503);
+  return c.render(
+    <>
+      <p class="callout callout--warning">{tm('waybill.failed')}</p>
+      <p><a class="btn btn--secondary" href={`/delivery/shipments/${id}/waybill`}>{tm('waybill.retry')}</a> <a href={`/orders/${ctx.ref}#shipment`}><Bdi>{ctx.ref}</Bdi></a></p>
+    </>,
+    { title: tm('waybill.open') },
+  );
+});
+
+r.post('/shipments/:id/validate', requirePerm('delivery.send'), async (c) => {
+  const id = shipmentIdParam(c);
+  const ctx = id === null ? null : await shipmentContext(c, id);
+  if (!ctx) {
+    noAudit(c, 'validate refused: unknown shipment');
+    return renderError(c, 404);
+  }
+  if (ctx.row.state !== 'draft' || !ctx.row.tracking || !ctx.account || !ctx.credentials) {
+    noAudit(c, 'validate refused: not a draft with readable keys');
+    return c.redirect(`${withFlash(`/orders/${ctx.ref}`, 'error')}#shipment`, 303);
+  }
+  const run: SendRun = { adapter: ctx.adapter, account: ctx.account, credentials: ctx.credentials, items: [] };
+  await validateDraft(c, run, ctx.row, ctx.ref, ctx.row.tracking, { retryAfterMs: 60_000 });
+  if (!c.var.audited) noAudit(c, 'validate: already claimed by another attempt');
+  return c.redirect(`${withFlash(`/orders/${ctx.ref}`, 'saved')}#shipment`, 303);
 });
 
 export default r;
