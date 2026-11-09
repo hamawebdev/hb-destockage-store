@@ -55,6 +55,8 @@ export function DelayedPage(props: {
   couriers: readonly string[];
   rows: readonly DelayedRow[];
   total: number;
+  /** `delivery.settings`: the empty state links to the courier settings. */
+  canConfigure?: boolean;
 }) {
   const tm = pm(props.lang);
   const { lang, now, days } = props;
@@ -97,7 +99,13 @@ export function DelayedPage(props: {
       </Form>
 
       {props.couriers.length === 0 && props.courier === null ? (
-        <EmptyState icon="truck" title={tm('delayed.none.title')}>{tm('delayed.none')}</EmptyState>
+        <EmptyState
+          icon="truck"
+          title={tm('delayed.none.title')}
+          {...(props.canConfigure ? { action: <a class="btn btn--secondary" href="/delivery/settings">{tm('delayed.none.configure')}</a> } : {})}
+        >
+          {tm('delayed.none')}
+        </EmptyState>
       ) : props.total === 0 ? (
         <EmptyState icon="check" title={tm('delayed.empty.title')}>{tm('delayed.empty', { days })}</EmptyState>
       ) : (

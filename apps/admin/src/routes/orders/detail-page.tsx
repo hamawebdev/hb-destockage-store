@@ -19,6 +19,7 @@ import { CALL_CANCEL_REASONS, MANUAL_CANCEL_REASONS, manualTargets } from './wor
 import { canEditContact } from './contact.ts';
 import { HistoryBlock, ReturnerBadge } from './history-card.tsx';
 import type { CustomerHistory } from './history.ts';
+import { ShipmentPanel, type ShipmentPanelData } from '../delivery/panel.tsx';
 
 export type FormKind = 'call' | 'transition' | 'note';
 
@@ -38,6 +39,28 @@ export interface DetailProps {
   shipmentBusy?: boolean;
   /** The phone's other orders (UX-7); only read with `customers.sensitive`. */
   history?: CustomerHistory;
+  /** The order's latest parcel (shipping's panel); undefined without `delivery.view`, null if never sent. */
+  shipment?: ShipmentPanelData | null;
+}
+
+/** "Send to a courier" (shipping's POST /delivery/send): confirmed orders, `delivery.send`. */
+function SendCard(props: { tm: OrdersMessages; order: OrderDetail }) {
+  const { tm, order } = props;
+  return (
+    <Section title={tm('send.title')} id="send">
+      <p class="muted">{tm('send.lead')}</p>
+      <Form action="/delivery/send">
+        <input type="hidden" name="ref" value={order.ref} />
+        <input type="hidden" name={`version_${order.ref}`} value={String(order.version)} />
+        <FormActions>
+          <Submit>
+            <Icon name="send" />
+            {tm('send.button')}
+          </Submit>
+        </FormActions>
+      </Form>
+    </Section>
+  );
 }
 
 /** Errors that belong to a field of the form (the rest are shown at the top of the page). */
@@ -312,6 +335,8 @@ export function OrderDetailPage(props: DetailProps) {
   const claimActive = risk !== null && risk.claimedUntil !== null && risk.claimedUntil > props.now && risk.claimedByUserId !== null;
   const canCall = can(user, 'orders.call') && CALLABLE_STATUSES.includes(order.status);
   const targets = manualTargets(order.status, user.role);
+  // A parcel already on its way (or being sent): no second "send" button.
+  const liveShipment = props.shipment != null && props.shipment.shipment.state !== 'failed';
 
   // Errors not tied to a visible field (whole form, or a transition that has no form for this
   // status) go in one alert at the top.
@@ -381,7 +406,11 @@ export function OrderDetailPage(props: DetailProps) {
         <div class="order-main">
           {canCall ? <ClaimButtons {...props} tm={tm} claimActive={claimActive} /> : null}
           {canCall ? <CallForm {...props} tm={tm} /> : null}
+          {order.status === 'confirmed' && can(user, 'delivery.send') && !liveShipment ? <SendCard tm={tm} order={order} /> : null}
           {targets.length > 0 ? <TransitionForms {...props} tm={tm} targets={targets} /> : null}
+          {props.shipment !== undefined && (props.shipment !== null || order.status === 'confirmed') ? (
+            <ShipmentPanel lang={lang} user={user} data={props.shipment} now={props.now} />
+          ) : null}
 
           <Section title={tm('detail.items')} id="items">
             <Table

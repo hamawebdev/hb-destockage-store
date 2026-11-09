@@ -39,7 +39,7 @@ export const TILE_ACCESS = {
   toCall: (u: Pick<CurrentUser, 'role'>) => can(u, 'orders.queue'),
   flagged: (u: Pick<CurrentUser, 'role'>) => can(u, 'customers.sensitive'),
   toShip: (u: Pick<CurrentUser, 'role'>) => can(u, 'orders.shipping'),
-  delayed: (u: Pick<CurrentUser, 'role'>) => can(u, 'orders.view'),
+  delayed: (u: Pick<CurrentUser, 'role'>) => can(u, 'delivery.view'),
   lowStock: (u: Pick<CurrentUser, 'role'>) => can(u, 'stock.edit'),
   placeholderFees: (u: Pick<CurrentUser, 'role'>) => can(u, 'fees.edit'),
   backup: (u: Pick<CurrentUser, 'role'>) => u.role === 'owner',

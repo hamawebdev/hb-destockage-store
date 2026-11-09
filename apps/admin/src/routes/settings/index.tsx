@@ -8,7 +8,7 @@ import { formatPhoneInternational, normalizePhone } from '@hb/shared';
 import type { AppEnv } from '../../env.ts';
 import { withFlash } from '../../ui/flash.tsx';
 import { ErrorSummary, Form, FormActions, LocalizedField, NumberInput, PhoneInput, Submit, TextInput } from '../../ui/form.tsx';
-import { rolesFor } from '../../auth/permissions.ts';
+import { can, rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import { audit, noAudit, withAudit } from '../../audit/audit.ts';
 import { LANGS } from '../../i18n/index.ts';
@@ -143,7 +143,20 @@ function renderStore(c: Context<AppEnv>, values: Record<string, string | undefin
       <NumberInput name="unreachableRetryMinutes" label={t('settings.unreachableRetryMinutes')} value={values['unreachableRetryMinutes']} error={errors?.['unreachableRetryMinutes']} required hint={t('settings.range', { min: 15, max: 10080 })} />
       <h2>{t('settings.stock')}</h2>
       <NumberInput name="lowStockThreshold" label={t('settings.lowStockThreshold')} value={values['lowStockThreshold']} error={errors?.['lowStockThreshold']} required hint={t('settings.range', { min: 0, max: 1000 })} />
+      {can(c.var.user, 'sheets.settings') ? (
+        <>
+          <h2>{t('settings.sheets')}</h2>
+          <p class="field__hint">
+            {t('settings.sheetsHint')} <a href="/sheets">{t('settings.sheetsLink')}</a>
+          </p>
+        </>
+      ) : null}
       <h2>{t('settings.delivery')}</h2>
+      {can(c.var.user, 'delivery.settings') ? (
+        <p class="field__hint">
+          {t('settings.couriersHint')} <a href="/delivery/settings">{t('settings.couriersLink')}</a>
+        </p>
+      ) : null}
       <NumberInput name="delayedParcelDays" label={t('settings.delayedParcelDays')} value={values['delayedParcelDays']} error={errors?.['delayedParcelDays']} required hint={t('settings.delayedParcelDaysHint', { min: DELAY_MIN, max: DELAY_MAX })} />
       <FormActions>
         <Submit>{t('common.save')}</Submit>

@@ -1,6 +1,6 @@
 // UX-8 / UX-10 — parcel follow-up reads: delayed parcels (no courier update for too long) and the
 // delivery success rate by courier and by wilaya. Read-only; delivery fields only (no customers
-// columns, no flags), so every role with orders.view may see them.
+// columns, no flags), so every role with delivery.view may see them.
 
 import { and, asc, count, eq, gte, inArray, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { orders, shipments, wilayas, type Db } from '@hb/db';

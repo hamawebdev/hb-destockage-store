@@ -287,6 +287,8 @@ export function OrdersListPage(props: {
   sensitive: boolean;
   /** can(user, 'orders.shipping'): row checkboxes and the bulk bar. */
   bulk: boolean;
+  /** `delivery.send`: the bulk bar offers shipping's send page for the ticked orders. */
+  send: boolean;
 }) {
   const tm = m(props.lang);
   const { parsed, page, today } = props;
@@ -321,6 +323,7 @@ export function OrdersListPage(props: {
         <Form action="/orders/shipping/slips" class="bulk-form">
           {table}
           <BulkBar selected={tm('bulk.selected')}>
+            {props.send ? <button type="submit" class="btn btn--primary" formaction="/delivery/send">{tm('bulk.send')}</button> : null}
             <button type="submit" class="btn btn--secondary" formaction="/orders/shipping/slips" formtarget="_blank">{tm('ship.print')}</button>
           </BulkBar>
         </Form>

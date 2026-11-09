@@ -22,6 +22,8 @@ export function ShippingPage(props: {
   ready: readonly ShippingRow[];
   out: readonly ShippingRow[];
   counts: { confirmed: number; shipped: number };
+  /** `delivery.send`: offer shipping's send page for the ticked orders. */
+  send?: boolean;
   error?: string;
   results?: readonly ShipResult[];
 }) {
@@ -118,8 +120,9 @@ export function ShippingPage(props: {
                 </div>
               </div>
               <BulkBar selected={tm('bulk.selected')}>
+                {props.send ? <button type="submit" class="btn btn--primary" formaction="/delivery/send">{tm('bulk.send')}</button> : null}
                 <button type="submit" class="btn btn--secondary" formaction="/orders/shipping/slips" formtarget="_blank">{tm('ship.print')}</button>
-                <Submit>{tm('ship.markShipped')}</Submit>
+                <Submit variant={props.send ? 'secondary' : 'primary'}>{tm('ship.markShipped')}</Submit>
               </BulkBar>
             </Form>
           )}

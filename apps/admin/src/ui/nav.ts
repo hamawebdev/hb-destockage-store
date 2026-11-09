@@ -33,8 +33,9 @@ export const NAV: readonly NavGroup[] = [
   {
     items: [
       { href: '/orders/shipping', label: 'nav.shipping', perm: 'orders.shipping', icon: 'truck', tabLabel: 'nav.tab.shipping' },
-      { href: '/parcels/delayed', label: 'nav.delayed', perm: 'orders.view', icon: 'clock', parent: '/orders/shipping' },
-      { href: '/parcels/performance', label: 'nav.performance', perm: 'orders.view', icon: 'chart', parent: '/orders/shipping' },
+      { href: '/delivery/exceptions', label: 'nav.exceptions', perm: 'delivery.view', icon: 'alert', parent: '/orders/shipping' },
+      { href: '/parcels/delayed', label: 'nav.delayed', perm: 'delivery.view', icon: 'clock', parent: '/orders/shipping' },
+      { href: '/parcels/performance', label: 'nav.performance', perm: 'delivery.view', icon: 'chart', parent: '/orders/shipping' },
     ],
   },
   {
@@ -56,6 +57,8 @@ export const NAV: readonly NavGroup[] = [
     items: [
       { href: '/users', label: 'nav.users', perm: 'users.manage', icon: 'users' },
       { href: '/settings', label: 'nav.settings', perm: 'settings.edit', icon: 'sliders' },
+      { href: '/delivery/settings', label: 'nav.deliverySettings', perm: 'delivery.settings', icon: 'truck', parent: '/settings' },
+      { href: '/sheets', label: 'nav.sheets', perm: 'sheets.settings', icon: 'sheet', parent: '/settings' },
       { href: '/audit', label: 'nav.audit', perm: 'audit.view', icon: 'list' },
     ],
   },

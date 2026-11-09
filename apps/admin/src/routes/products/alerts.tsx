@@ -165,10 +165,10 @@ function AlertsPage(props: { rows: readonly AlertRow[]; total: number; out: numb
           <Pagination page={props.page} pages={props.pages} baseUrl="/products/stock/alerts" />
         </>
       )}
-      <p class="list-note">
-        <a href="/products/stock">{tm('alerts.allStock')}</a>
-        {props.canSettings ? <> · <a href="/settings#f-lowStockThreshold">{tm('alerts.settings')}</a></> : null}
-      </p>
+      <div class="form-actions">
+        <a class="btn btn--quiet" href="/products/stock">{tm('alerts.allStock')}</a>
+        {props.canSettings ? <a class="btn btn--quiet" href="/settings#f-lowStockThreshold">{tm('alerts.settings')}</a> : null}
+      </div>
     </>
   );
 }

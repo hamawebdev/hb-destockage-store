@@ -25,6 +25,8 @@ import media from '../src/routes/media/index.tsx';
 import publish from '../src/routes/publish/index.tsx';
 import auditRoutes from '../src/audit/routes.tsx';
 import parcels from '../src/routes/parcels/index.tsx';
+import delivery from '../src/routes/delivery/index.tsx';
+import sheets from '../src/routes/sheets/index.tsx';
 import { form, harness, postAs, testIdentify, tokenFor, USERS, type Harness } from './helpers.ts';
 
 // Real D1 (workerd) requests take seconds on the loaded shared machine: explicit budgets instead
@@ -57,6 +59,8 @@ describe('F1: deny-by-default inside every mounted router', () => {
     ['/publish', publish],
     ['/audit', auditRoutes],
     ['/parcels', parcels],
+    ['/delivery', delivery],
+    ['/sheets', sheets],
   ];
   let app: Hono<AppEnv>;
   beforeAll(() => {

@@ -3,6 +3,7 @@
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { daysLeft } from '../../src/routes/products/alerts.tsx';
 import { harness, postAs, USERS, type Harness } from '../helpers.ts';
+import { refOf } from '../orders/fixtures.ts';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
 
@@ -35,8 +36,8 @@ beforeAll(async () => {
     i++;
     const o = (await one<{ id: number }>(
       `insert into orders (ref, idempotency_key, customer_id, name, phone_e164, wilaya_code, commune_id, lang, status, subtotal_dzd, fee_dzd, total_dzd, fee_source, created_at, updated_at)
-       values (?, ?, ?, 'A', '+213560417403', 16, 1601, 'fr', ?, ?, 0, ?, 'test', ?, ?) returning id`,
-      `HB-AL00${i}`, `k${i}`, cust, status, qty * 1000, qty * 1000, now - 86_400_000, now - 86_400_000,
+       values (?, ?, ?, 'A', '+213560417403', 16, 1601, 'fr', ?, ?, 0, ?, 'table', ?, ?) returning id`,
+      refOf(900 + i), `k${i}`, cust, status, qty * 1000, qty * 1000, now - 86_400_000, now - 86_400_000,
     ))!.id;
     await h.db
       .prepare("insert into order_items (order_id, variant_id, product_id, name_fr, name_ar, sku, unit_price_dzd, qty, line_total_dzd) select ?, id, product_id, 'x', 'x', sku, 1000, ?, ? from variants where id = ?")

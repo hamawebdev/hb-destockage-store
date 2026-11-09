@@ -502,9 +502,9 @@
   .history > * { margin: 0; }
   .history__warn { margin: 0; }
   .history__warn-title { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-1); color: var(--color-danger); }
-  .history__counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin: 0; background: var(--color-border); border: var(--bw-hairline) solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
+  .history__counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 0; background: var(--color-border); border: var(--bw-hairline) solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
   .history__counts > div { background: var(--color-surface); padding: var(--space-2); min-inline-size: 0; text-align: center; }
-  .history__counts dt { font-size: var(--a-caption); color: var(--color-text-secondary); overflow-wrap: anywhere; }
+  .history__counts dt { font-size: var(--a-caption); color: var(--color-text-secondary); overflow-wrap: break-word; }
   .history__counts dd { margin: 0; font-size: 1.125rem; font-weight: var(--fw-emphasis); font-variant-numeric: tabular-nums; }
   .history__count--bad dd { color: var(--color-danger); }
   .history__rate { font-size: var(--a-small); }
@@ -518,7 +518,7 @@
   /* Parcel follow-up (UX-8 delayed parcels, UX-10 success rate) */
   .page-lead { margin: 0 0 var(--space-4); color: var(--color-text-secondary); font-size: var(--a-small); max-inline-size: 70ch; }
   .delay { color: var(--color-warning); font-weight: var(--fw-emphasis); }
-  .tel-link { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); position: relative; z-index: 1; }
+  .tel-link { display: flex; inline-size: fit-content; align-items: center; min-block-size: var(--tap-min, 44px); position: relative; z-index: 1; }
   .rate { display: grid; gap: var(--space-1); min-inline-size: 8rem; }
   .rate__value { font-variant-numeric: tabular-nums; }
   .rate__bar { inline-size: 100%; max-inline-size: 10rem; block-size: 6px; border: 0; border-radius: var(--radius-pill); background: var(--color-surface-alt); }
