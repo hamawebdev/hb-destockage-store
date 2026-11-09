@@ -1,9 +1,9 @@
 /** The consent choice does not delay, shift or block anything (contract §11 row 14; lead Addendum 2). */
 import { AxeBuilder } from '@axe-core/playwright';
-import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
 import { expectPreselected, fillCustomer, openOrderStep } from './flows.ts';
-import { CONFIGURED, LANGS, launchMeta, metaContext, place, showChoice, templateUrls, until, variant } from './meta-support.ts';
+import { expectNoUnexpectedRequests, CONFIGURED, LANGS, launchMeta, metaContext, place, showChoice, templateUrls, until, variant } from './meta-support.ts';
 
 const web = () => inject('webUrl') as string;
 const SMALL = { width: 360, height: 800 };
@@ -25,6 +25,8 @@ describe.runIf(CONFIGURED)('the consent bar', () => {
   afterAll(async () => {
     await browser?.close();
   });
+
+  afterEach(expectNoUnexpectedRequests);
 
   describe.each(LANGS)('/%s/ at 360 px', (lang) => {
     it('every template: bar visible, no layout shift from it, and it is never the LCP element', async () => {

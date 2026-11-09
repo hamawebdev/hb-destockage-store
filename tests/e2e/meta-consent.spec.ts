@@ -4,13 +4,13 @@
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
 import { startMetaStandIn, type MetaStandIn } from '../../apps/web/test/support/meta-stand-in.ts';
 import { TURNSTILE_ORIGIN, META_PIXEL_ORIGIN, META_SCRIPT_ORIGIN, patternMatches, scanHtml } from '../../apps/web/scripts/csp.ts';
 import { chooseVariant, expectNumbersShown, expectPreselected, fillCustomer, openOrderStep, pickPlace, pickVariant, submitUntilConfirmed } from './flows.ts';
 import { DIST } from './harness.ts';
-import { CONFIGURED, LANGS, MODE, STAND_IN_PORT, cspViolations, expectShape, fbqCalls, launchMeta, metaContext, place, showChoice, templateUrls, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
+import { CONFIGURED, LANGS, MODE, STAND_IN_PORT, cspViolations, expectNoUnexpectedRequests, expectShape, fbqCalls, launchMeta, metaContext, place, seedCart, showChoice, simpleProducts, templateUrls, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
 
 const web = () => inject('webUrl') as string;
 const stored = (page: Page) => page.evaluate(() => localStorage.getItem('hb.meta.consent.v1'));
@@ -26,6 +26,47 @@ async function metaTiming(page: Page) {
   });
 }
 
+type Csp = Map<string, Set<string>>;
+const parseCsp = (csp: string): Csp => new Map(csp.split('; ').map((d) => { const [name, ...values] = d.split(' '); return [name!, new Set(values)]; }));
+const readUnconfiguredHeaders = () => readFileSync(path.join(process.env['HB_META_ARTIFACTS'] ?? '', 'unconfigured', '_headers'), 'utf8');
+
+/** The CSP a path ends up with, reading _headers as the platform does: the last matching rule wins. */
+function cspFor(headers: string, p: string): Csp {
+  let csp = '';
+  let match = false;
+  for (const line of headers.split('\n')) {
+    if (line.startsWith('#') || line === '') continue;
+    if (!line.startsWith(' ')) match = patternMatches(line, p);
+    else if (match) {
+      const t = line.trim();
+      if (t === '! Content-Security-Policy') csp = '';
+      else if (t.startsWith('Content-Security-Policy: ')) csp = t.slice('Content-Security-Policy: '.length);
+    }
+  }
+  return parseCsp(csp);
+}
+
+/** Lead's row 15 (Addendum 1): marked pages add exactly the three Meta origins; a token may be lost only if the page's HTML does not use it. */
+function expectOnlyMetaAdditions(on: Csp, off: Csp, scan: ReturnType<typeof scanHtml>, marked: boolean, label: string, mayLose = true): void {
+  for (const [dir, offValues] of off) {
+    const onValues = on.get(dir) ?? new Set<string>();
+    const added = [...onValues].filter((v) => !offValues.has(v));
+    const allowed = marked && dir === 'script-src' ? [META_SCRIPT_ORIGIN] : marked && (dir === 'img-src' || dir === 'connect-src') ? [META_PIXEL_ORIGIN] : [];
+    expect(added.filter((v) => !allowed.includes(v)), `${label} ${dir} added`).toEqual([]);
+    const lost = [...offValues].filter((v) => !onValues.has(v));
+    if (!mayLose) expect(lost, `${label} ${dir} lost`).toEqual([]);
+    for (const v of lost) {
+      const used = scan.scriptHashes.includes(v) || scan.styleHashes.includes(v) || (v === TURNSTILE_ORIGIN && scan.hasOrderForm);
+      expect(used, `${label} lost ${v}, which its HTML uses`).toBe(false);
+    }
+  }
+  if (marked) {
+    expect(on.get('script-src')?.has(META_SCRIPT_ORIGIN), `${label} script-src`).toBe(true);
+    expect(on.get('connect-src')?.has(META_PIXEL_ORIGIN), `${label} connect-src`).toBe(true);
+    expect(on.get('img-src')?.has(META_PIXEL_ORIGIN), `${label} img-src`).toBe(true);
+  }
+}
+
 describe.runIf(CONFIGURED)('Meta consent', () => {
   let browser: Browser;
   let standIn: MetaStandIn;
@@ -38,6 +79,7 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
     await standIn?.close().catch(() => {});
   });
   beforeEach(() => standIn.reset());
+  afterEach(expectNoUnexpectedRequests);
 
   /** Places an order through the browser and returns its ref. */
   async function order(page: Page, lang: Lang) {
@@ -117,8 +159,11 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
     });
 
     it('every template: no Meta request before LCP, no CSP violation, no console error', async () => {
-      const { ctx, net } = await metaContext(browser, { consent: 'granted' });
-      for (const { url, template } of templateUrls(lang)) {
+      const { ctx } = await metaContext(browser, { consent: 'granted' });
+      const [a, b] = simpleProducts(lang);
+      await seedCart(ctx, [{ p: a!.id, v: a!.variantId, q: 1 }, { p: b!.id, v: b!.variantId, q: 1 }]);
+      const pages = [...templateUrls(lang), { template: 'order-step', url: `/${lang}/order/${variant(lang).slug}/` }, { template: 'checkout (two lines)', url: `/${lang}/checkout/` }];
+      for (const { url, template } of pages) {
         const page = await ctx.newPage();
         const errors = watchPage(page);
         await page.goto(`${web()}${url}`);
@@ -133,12 +178,13 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
         expectShape(await fbqCalls(page));
         await page.close();
       }
-      expect(net.unexpected).toEqual([]);
       await ctx.close();
     });
 
     it('name and phone never reach Meta, on the order step and checkout, and autoConfig stays off', async () => {
       const { ctx, net } = await metaContext(browser, { consent: 'granted' });
+      const [a] = simpleProducts(lang);
+      await seedCart(ctx, [{ p: a!.id, v: a!.variantId, q: 1 }]);
       for (const path_ of ['order', 'checkout'] as const) {
         const page = await ctx.newPage();
         const v = variant(lang);
@@ -151,11 +197,10 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
           await page.goto(`${web()}/${lang}/checkout/`);
         }
         const form = page.locator('form[action="/api/order"]');
-        if (await form.isVisible()) {
-          await form.locator('[name="name"]').fill(typedName);
-          await form.locator('[name="phone"]').fill(typedPhone);
-          await form.locator('select[name="wilayaCode"]').selectOption(String(where.wilaya));
-        }
+        await form.waitFor({ state: 'visible', timeout: 20_000 }); // the checkout form is hidden while the cart is empty
+        await form.locator('[name="name"]').fill(typedName);
+        await form.locator('[name="phone"]').fill(typedPhone);
+        await form.locator('select[name="wilayaCode"]').selectOption(String(where.wilaya));
         await waitTracked(page, 'PageView');
         await new Promise((ok) => setTimeout(ok, 300));
         const calls = await fbqCalls(page);
@@ -173,11 +218,10 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
       const { ctx } = await metaContext(browser, { consent: 'granted' });
       const page = await ctx.newPage();
       const response = await page.goto(`${web()}/${lang}/order/confirmation/?ref=HB-AAAAA`);
-      const csp = response!.headers()['content-security-policy'] ?? '';
-      expect(csp).toContain(`script-src 'self'`);
-      expect(csp).toContain(META_SCRIPT_ORIGIN);
-      expect(csp).toContain(`connect-src 'self' ${META_PIXEL_ORIGIN}`);
-      expect(csp).toContain(`img-src 'self' ${META_PIXEL_ORIGIN}`);
+      const csp = parseCsp(response!.headers()['content-security-policy'] ?? '');
+      const off = cspFor(readUnconfiguredHeaders(), `/${lang}/order/confirmation/`);
+      const scan = scanHtml(readFileSync(path.join(DIST, lang, 'order/confirmation/index.html'), 'utf8'), `/${lang}/order/confirmation/`);
+      expectOnlyMetaAdditions(csp, off, scan, true, `confirmation (${lang})`);
       await waitTracked(page, 'PageView');
       expect(await cspViolations(page)).toEqual([]);
       await ctx.close();
@@ -217,9 +261,11 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
     });
   });
 
-  it('under CPU and network throttling, still no Meta request before LCP (/ar/)', async () => {
+  it('under CPU and network throttling, still no Meta request before the final LCP (/ar/ home and product, populated checkout in both languages)', async () => {
     const { ctx } = await metaContext(browser, { consent: 'granted' });
-    for (const url of ['/ar/', `/ar/p/${variant('ar').slug}/`]) {
+    const [a, b] = simpleProducts('ar');
+    await seedCart(ctx, [{ p: a!.id, v: a!.variantId, q: 1 }, { p: b!.id, v: b!.variantId, q: 1 }]);
+    for (const url of ['/ar/', `/ar/p/${variant('ar').slug}/`, '/ar/checkout/', '/fr/checkout/']) {
       const page = await ctx.newPage();
       const cdp = await ctx.newCDPSession(page);
       await cdp.send('Network.enable');
@@ -234,7 +280,7 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
       await page.close();
     }
     await ctx.close();
-  }, 180_000);
+  }, 300_000);
 
   // Not run (lead Addendum 3): under automation Chrome refuses every prerender with
   // PrerenderingDisabledByDevTools, even with Page.setPrerenderingAllowed. The unit test in
@@ -242,23 +288,8 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
   it.skip('a real Chrome prerender: not runnable under automation (PrerenderingDisabledByDevTools)', () => {});
 
   it('the generated CSP grows only by the three origins; review and confirmation lose only tokens their HTML does not use', () => {
-    const offFile = path.join(process.env['HB_META_ARTIFACTS'] ?? '', 'unconfigured', '_headers');
-    const off = readFileSync(offFile, 'utf8');
+    const off = readUnconfiguredHeaders();
     const on = readFileSync(path.join(DIST, '_headers'), 'utf8');
-    const cspFor = (headers: string, p: string): Map<string, Set<string>> => {
-      let csp = '';
-      let match = false;
-      for (const line of headers.split('\n')) {
-        if (line.startsWith('#') || line === '') continue;
-        if (!line.startsWith(' ')) match = patternMatches(line, p);
-        else if (match) {
-          const t = line.trim();
-          if (t === '! Content-Security-Policy') csp = '';
-          else if (t.startsWith('Content-Security-Policy: ')) csp = t.slice('Content-Security-Policy: '.length);
-        }
-      }
-      return new Map(csp.split('; ').map((d) => { const [name, ...values] = d.split(' '); return [name!, new Set(values)]; }));
-    };
     for (const lang of LANGS) {
       const paths = [...templateUrls(lang).map((t) => t.url.split('?')[0]!), `/${lang}/checkout/`, `/${lang}/order/${variant(lang).slug}/`, `/${lang}/order/review/`, `/${lang}/404.html`];
       for (const p of paths) {
@@ -270,23 +301,7 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
         const loses = review || p.endsWith('/order/confirmation/');
         const file = p.endsWith('/') ? `${p.slice(1)}index.html` : p.slice(1);
         const scan = scanHtml(readFileSync(path.join(DIST, file), 'utf8'), p);
-        for (const [dir, offValues] of a) {
-          const onValues = b.get(dir) ?? new Set<string>();
-          const added = [...onValues].filter((v) => !offValues.has(v));
-          const allowed = marked && dir === 'script-src' ? [META_SCRIPT_ORIGIN] : marked && (dir === 'img-src' || dir === 'connect-src') ? [META_PIXEL_ORIGIN] : [];
-          expect(added.filter((v) => !allowed.includes(v)), `${p} ${dir} added`).toEqual([]);
-          const lost = [...offValues].filter((v) => !onValues.has(v));
-          if (!loses) expect(lost, `${p} ${dir} lost`).toEqual([]);
-          for (const v of lost) {
-            const used = scan.scriptHashes.includes(v) || scan.styleHashes.includes(v) || (v === TURNSTILE_ORIGIN && scan.hasOrderForm);
-            expect(used, `${p} lost ${v}, which its HTML uses`).toBe(false);
-          }
-        }
-        if (marked) {
-          expect(b.get('script-src')?.has(META_SCRIPT_ORIGIN), `${p} script-src`).toBe(true);
-          expect(b.get('connect-src')?.has(META_PIXEL_ORIGIN), `${p} connect-src`).toBe(true);
-          expect(b.get('img-src')?.has(META_PIXEL_ORIGIN), `${p} img-src`).toBe(true);
-        }
+        expectOnlyMetaAdditions(b, a, scan, marked, p, loses);
       }
     }
   });
@@ -294,6 +309,7 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
 
 describe.runIf(MODE === 'consent-off')('META_CONSENT_REQUIRED=0', () => {
   let browser: Browser;
+  afterEach(expectNoUnexpectedRequests);
   beforeAll(async () => {
     browser = await launchMeta();
   });

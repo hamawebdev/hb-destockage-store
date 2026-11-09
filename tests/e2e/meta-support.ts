@@ -43,6 +43,14 @@ export interface Network {
   readonly unexpected: string[];
 }
 
+const allNetworks: Network[] = [];
+
+/** Contract §10: any request off loopback, other than the Meta hosts and the Turnstile stand-in, fails the test. */
+export function expectNoUnexpectedRequests(): void {
+  const unexpected = allNetworks.splice(0).flatMap((n) => n.unexpected);
+  expect(unexpected).toEqual([]);
+}
+
 export interface MetaContext {
   readonly ctx: BrowserContext;
   readonly net: Network;
@@ -60,6 +68,7 @@ export async function metaContext(browser: Browser, opts: ContextOptions = {}): 
     ...(opts.viewport ? { viewport: opts.viewport } : {}),
   });
   const net: Network = { meta: [], unexpected: [] };
+  allNetworks.push(net);
   await ctx.route('**/*', async (route) => {
     const { protocol, hostname, pathname } = new URL(route.request().url());
     if (protocol === 'data:' || protocol === 'blob:' || hostname === '127.0.0.1' || hostname === 'localhost') return route.continue();
@@ -187,6 +196,11 @@ export function templateUrls(lang: Lang): { template: string; url: string }[] {
     { template: 'content', url: `/${lang}/${privacy}/` },
     { template: 'order-confirmed', url: `/${lang}/order/confirmation/?ref=HB-AAAAA` },
   ];
+}
+
+/** Puts lines in the cart before the page's scripts run (cart.js reads hb.cart.v1). */
+export async function seedCart(ctx: BrowserContext, lines: { p: number; v: number; q: number }[]): Promise<void> {
+  await ctx.addInitScript((value) => localStorage.setItem('hb.cart.v1', value), JSON.stringify({ v: 1, lines }));
 }
 
 export const scanForToken = (r: Request | Response, text: string): void => {

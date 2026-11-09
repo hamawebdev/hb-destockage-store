@@ -3,11 +3,11 @@
  * Phone digests are computed here with node:crypto, independently of the code under test.
  */
 import { createHash } from 'node:crypto';
-import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
 import { startMetaStandIn, type MetaStandIn } from '../../apps/web/test/support/meta-stand-in.ts';
 import { expectNumbersShown, expectPreselected, fillCustomer, openOrderStep, orderByRef, submitUntilConfirmed } from './flows.ts';
-import { CONFIGURED, LANGS, STAND_IN_PORT, cspViolations, expectShape, fbqCalls, launchMeta, metaContext, place, scanForToken, tracked, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
+import { expectNoUnexpectedRequests, CONFIGURED, LANGS, STAND_IN_PORT, cspViolations, expectShape, fbqCalls, launchMeta, metaContext, place, scanForToken, tracked, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
 
 const FBP = 'fb.1.1596403881668.1116446470';
 const digest = (phone: string) => createHash('sha256').update(`213${phone.slice(1)}`, 'utf8').digest('hex');
@@ -26,6 +26,7 @@ describe.runIf(CONFIGURED)('Meta order, consent given', () => {
     await standIn?.close().catch(() => {});
   });
   beforeEach(() => standIn.reset());
+  afterEach(expectNoUnexpectedRequests);
 
   async function order(page: Page, lang: Lang, seed: number, v = variant(lang)) {
     const where = place();
@@ -62,15 +63,14 @@ describe.runIf(CONFIGURED)('Meta order, consent given', () => {
       expect((purchase![3] as { eventID: string }).eventID).toBe(r.ref);
       expect(purchase![2]).toEqual({ currency: 'DZD', value: r.total, content_type: 'product', contents: [{ id: String(r.variantId), quantity: 1 }] });
       expectShape(await fbqCalls(page));
+      expect(await cspViolations(page), 'the page Purchase fired on').toEqual([]);
+      expect(errors).toEqual([]);
 
       await page.reload();
       await waitTracked(page, 'PageView');
       await new Promise((ok) => setTimeout(ok, 500));
       expect(await tracked(page, 'Purchase')).toHaveLength(0); // a fresh document: nothing fired again
       expect(standIn.events()).toHaveLength(1);
-
-      expect(await cspViolations(page)).toEqual([]);
-      expect(errors).toEqual([]);
       await ctx.close();
     });
 
@@ -125,7 +125,7 @@ describe.runIf(CONFIGURED)('Meta order, consent given', () => {
       const pending: Promise<void>[] = [];
       page.on('request', (q) => scanForToken(q, `${q.url()} ${q.postData() ?? ''} ${JSON.stringify(q.headers())}`));
       page.on('response', (s) => {
-        if (s.url().includes('/api/') || s.request().resourceType() === 'document') pending.push(s.text().then((t) => scanForToken(s, `${t} ${JSON.stringify(s.headers())}`), () => {}));
+        pending.push(s.text().then((t) => scanForToken(s, `${t} ${JSON.stringify(s.headers())}`), () => {}));
       });
       await order(page, lang, uniqueSeed());
       await Promise.all(pending);

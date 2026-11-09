@@ -1,7 +1,7 @@
 /** With no Meta configuration: no script, no choice, no request (contract §11 row 3d; lead condition 1). */
-import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vitest';
 import type { Browser } from 'playwright';
-import { LANGS, MODE, launchMeta, metaContext, templateUrls, watchPage } from './meta-support.ts';
+import { expectNoUnexpectedRequests, LANGS, MODE, launchMeta, metaContext, templateUrls, watchPage } from './meta-support.ts';
 import { expectNumbersShown, expectPreselected, fillCustomer, openOrderStep, submitUntilConfirmed } from './flows.ts';
 import { place, uniqueSeed, variant } from './meta-support.ts';
 
@@ -15,6 +15,8 @@ describe.runIf(MODE === 'unconfigured')('Meta not configured', () => {
   afterAll(async () => {
     await browser?.close();
   });
+
+  afterEach(expectNoUnexpectedRequests);
 
   it.each(LANGS)('/%s/: no script, no choice, no request', async (lang) => {
     const { ctx, net } = await metaContext(browser);

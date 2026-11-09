@@ -1,9 +1,9 @@
 /** The shopper's path in both languages, exact counts and parameters (contract §11 rows 8, 9). */
-import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
 import { startMetaStandIn, type MetaStandIn } from '../../apps/web/test/support/meta-stand-in.ts';
 import { expectNumbersShown, expectPreselected, fillCustomer, openOrderStep, orderByRef, submitUntilConfirmed } from './flows.ts';
-import { CONFIGURED, LANGS, STAND_IN_PORT, expectShape, fbqCalls, launchMeta, metaContext, place, simpleProducts, tracked, uniqueSeed, until, variant, waitTracked, type Lang } from './meta-support.ts';
+import { expectNoUnexpectedRequests, CONFIGURED, LANGS, STAND_IN_PORT, expectShape, fbqCalls, launchMeta, metaContext, place, simpleProducts, tracked, uniqueSeed, until, variant, waitTracked, type Lang } from './meta-support.ts';
 
 describe.runIf(CONFIGURED)('Meta funnel', () => {
   let browser: Browser;
@@ -18,6 +18,7 @@ describe.runIf(CONFIGURED)('Meta funnel', () => {
     await standIn?.close().catch(() => {});
   });
   beforeEach(() => standIn.reset());
+  afterEach(expectNoUnexpectedRequests);
 
   async function addToCart(page: Page, p: { slug: string }, lang: Lang, expectAdded: number) {
     await page.goto(`${web()}/${lang}/p/${p.slug}/`);
