@@ -782,6 +782,22 @@ describe('connection problems', () => {
     expect(await conn()).toMatchObject({ status: 'sheet_lost', last_error_code: 'not_found' });
   });
 
+  test('16: trashed with its tab also deleted: sheet_lost, no tab added, nothing refilled', async () => {
+    await insertOrders(db, [1]);
+    const id = await ready();
+    await tick();
+    const before = await conn();
+    await s.action({ action: 'addTab', title: 'x' });
+    await s.action({ action: 'deleteTab', tab: 'Commandes' });
+    await s.action({ action: 'trash', id });
+    await bump(1, "status='confirmed'");
+    await s.post('/calls/clear');
+    await tick();
+    expect(await conn()).toMatchObject({ status: 'sheet_lost', last_error_code: 'trashed', generation: before['generation'], tab_id: before['tab_id'] });
+    expect((await s.state()).files[0]!.tabs).toEqual(['x']);
+    expect((await googleCalls()).filter((c) => c.method === 'POST' && c.path !== '/token')).toEqual([]);
+  });
+
   test('16: tab deleted: new tab, new tab_id, refilled; a second tab holding our title', async () => {
     await insertOrders(db, [1, 2]);
     await ready();

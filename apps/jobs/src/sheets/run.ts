@@ -378,9 +378,10 @@ function refPositions(values: readonly string[][] | undefined): { rows: Map<stri
 async function writeRun(run: Run, api: GoogleApi, conn: Connection, lang: SheetLang, orders: readonly SelectedOrder[], fp: string): Promise<void> {
   const spreadsheetId = conn.spreadsheet_id!;
   const tabs = await api.tabs(spreadsheetId);
+  // Trash first: a trashed file is lost even if its tab was also deleted, and must not be refilled.
+  if (await api.isTrashed(spreadsheetId)) throw new GoogleError(failure('sheet_lost', 'trashed'));
   const tab = tabs.find((t) => t.sheetId === conn.tab_id);
   if (!tab) return recreateTab(run, api, spreadsheetId, tabs, lang);
-  if (await api.isTrashed(spreadsheetId)) throw new GoogleError(failure('sheet_lost', 'trashed'));
 
   const q = quoteTitle(tab.title);
   const [headerRange] = await api.read(spreadsheetId, [`${q}!1:1`]);
