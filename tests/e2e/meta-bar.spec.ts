@@ -98,6 +98,29 @@ describe.runIf(CONFIGURED)('the consent bar', () => {
       await ctx.close();
     });
 
+    it.each([360, 1440])('every footer link stays reachable and uncovered at %i px while the bar shows', async (width) => {
+      const { ctx } = await metaContext(browser, { viewport: { width, height: 800 } });
+      const page = await ctx.newPage();
+      await page.goto(`${web()}/${lang}/`);
+      await page.waitForLoadState('load');
+      await showChoice(page);
+      const bad = await page.evaluate(async () => {
+        const out: string[] = [];
+        const bar = document.querySelector('.mc') as HTMLElement;
+        for (const a of document.querySelectorAll<HTMLAnchorElement>('footer a[href]')) {
+          a.focus();
+          await new Promise((ok) => setTimeout(ok, 50));
+          const r = a.getBoundingClientRect();
+          const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          const inView = r.top >= 0 && r.bottom <= window.innerHeight;
+          if (document.activeElement !== a || !inView || !at || !(at === a || a.contains(at)) || r.bottom > bar.getBoundingClientRect().top) out.push(`${a.getAttribute('href')}`);
+        }
+        return out;
+      });
+      expect(bad, 'footer links focused while the bar shows').toEqual([]);
+      await ctx.close();
+    });
+
     it('no bar on the order step or checkout, confirm control reachable', async () => {
       const { ctx } = await metaContext(browser, { viewport: SMALL });
       const page = await ctx.newPage();
