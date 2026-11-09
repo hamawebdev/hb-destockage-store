@@ -4,7 +4,8 @@
 const D = document;
 const B = D.body;
 const id = B.dataset.metaPixel;
-if (id) {
+
+function run() {
   const consentOff = B.dataset.metaConsent === 'off';
   let choice = null;
   try {
@@ -34,4 +35,10 @@ if (id) {
       events.forEach((e) => addEventListener(e, go, { capture: true, passive: true }));
     }
   }
+}
+
+// A prerendered page reads the choice only once it is shown: it may be made in another tab meanwhile.
+if (id) {
+  if (D.prerendering) D.addEventListener('prerenderingchange', run, { once: true });
+  else run();
 }
