@@ -40,6 +40,16 @@ describe('t', () => {
       else process.env['HB_STRICT_COPY'] = prev;
     }
   });
+  test('HB_PUBLISH=1 (the deploy pipeline): dev markers are off even without strict copy', () => {
+    const prev = process.env['HB_PUBLISH'];
+    try {
+      process.env['HB_PUBLISH'] = '1';
+      expect(showDevMarkers()).toBe(false);
+    } finally {
+      if (prev === undefined) delete process.env['HB_PUBLISH'];
+      else process.env['HB_PUBLISH'] = prev;
+    }
+  });
 });
 
 describe('parts', () => {

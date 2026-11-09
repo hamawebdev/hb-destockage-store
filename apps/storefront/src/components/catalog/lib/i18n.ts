@@ -55,10 +55,11 @@ export function tp(
 
 /**
  * Whether QA markers (the `dev.*` strings: [PLACEHOLDER] pills, banner, missing-photo text) are
- * rendered. Never in a strict (production) build: there the markers are dropped, not looked up.
+ * rendered. Never in a strict build or a publish build (HB_PUBLISH=1, set by the deploy pipeline's
+ * publish step): there the markers are dropped, not looked up, so no customer sees one.
  */
 export function showDevMarkers(): boolean {
-  return process.env['HB_STRICT_COPY'] !== '1';
+  return process.env['HB_STRICT_COPY'] !== '1' && process.env['HB_PUBLISH'] !== '1';
 }
 
 const numberFormats = new Map<Lang, Intl.NumberFormat>();
