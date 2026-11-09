@@ -1,79 +1,63 @@
 ---
 /**
- * Home page body (both languages). Apple-like: one idea per band, generous air, light surfaces.
- *  1. Type-led hero (eyebrow, display headline, lead, two pill CTAs). The LCP is the headline:
- *     no image on the critical path. Why not the hero photo: the seed's hero product (101) has only
- *     one client photo and it shows two burned-in prices (13 600 and 14 600 DA) for a 14 600 DA
- *     product; the lead's rule forbids such a photo as LCP (data/photos/README.md). Type-led also
- *     keeps the critical path to HTML (+ the Arabic font on /ar/).
- *  2. Trust strip (cash on delivery, 69 wilayas, confirmation call, WhatsApp).
- *  3. Category tiles (top-level categories, product counts).
- *  4. Featured products (pages' ProductGrid/ProductCard, CAT-1 ProductCard props).
- *  5. How ordering works (3 steps).
- *  6. WhatsApp / phone band (plain links, never a widget).
- * Owner: shell. Plan: artifacts/SHELL-0/plan.md §4 (LCP), SHELL-3.
+ * Home page body (both languages). HOME-0, artifacts/HOME-0/. One idea per band, soft rounded surfaces:
+ *  1. Type-led hero: one headline, one short line, one button. No photo: most photos are placeholders and the one real
+ *     clean photo is a phone shot of hardware, not a hero image (artifacts/HOME-0/measure/report.md).
+ *  2. Category tiles (tiles.ts): photo + name, the whole tile is the link. The first tile is the LCP.
+ *  3. Products (pages' ProductGrid/ProductCard, unchanged), softened by the scoped rules below only on this page.
+ *  4. One compact reassurance plus a quiet contact line (WhatsApp and phone remain plain links).
+ * Owner: shell.
  */
 import type { HomeProps } from '@hb/catalog';
 import Icon from '../Icon.astro';
+import Picture from '../Picture.astro';
 import ProductGrid from '../catalog/ProductGrid.astro';
-import { tp } from '../catalog/lib/i18n.ts';
+import { showDevMarkers } from '../catalog/lib/i18n.ts';
 import { groupPhone, t } from '../../lib/strings.ts';
+import type { Tile } from './tiles.ts';
 
 interface Props {
   props: HomeProps;
+  tiles: readonly Tile[];
 }
-const { props: p } = Astro.props;
+const { props: p, tiles } = Astro.props;
 const l = p.layout;
 const s = (key: string) => t(l.strings, key);
-const trust = [
+const reassurance = [
   { icon: 'check', key: 'trust.cod' },
   { icon: 'truck', key: 'trust.delivery69' },
   { icon: 'phone', key: 'trust.call' },
-  { icon: 'whatsapp', key: 'trust.whatsapp' },
 ];
-const steps = [1, 2, 3];
+const dev = showDevMarkers();
 const featuredIds = new Set(p.featured.map((c) => c.id));
 const morePacks = p.packs.filter((c) => !featuredIds.has(c.id));
+const cards = [...p.featured, ...morePacks];
+// Whole rows of cards at 2, 3 and 4 columns: a short last row reads as unfinished.
+const trim2 = cards.length - (cards.length % 2);
+const trim3 = cards.length >= 3 ? cards.length - (cards.length % 3) : cards.length;
+const trim4 = cards.length >= 4 ? cards.length - (cards.length % 4) : cards.length;
 ---
 <section class="hm-hero" aria-labelledby="hm-title">
   <div class="container hm-hero-in">
-    <p class="hm-eyebrow">{s('home.heroEyebrow')}</p>
-    <h1 id="hm-title" class="hero-title hm-title">{s('home.heroTitle')}</h1>
-    <p class="lead hm-lead">{s('home.heroLead')}</p>
-    <p class="hm-ctas">
-      <a class="btn btn-primary" href="#hm-featured">{s('home.heroCta')}</a>
-      <a class="btn btn-secondary" href="#hm-how">{s('home.heroSecondaryCta')}</a>
-    </p>
+    <h1 id="hm-title" class="hm-title">{s('home.heroTitle')}</h1>
+    <p class="hm-lead">{s('home.heroLead')}</p>
+    <p class="hm-ctas"><a class="btn btn-primary" href="#hm-featured">{s('home.heroCta')}</a></p>
   </div>
 </section>
 
-<div class="container hm-trust">
-  <ul role="list" class="hm-trust-list">
-    {
-      trust.map((x) => (
-        <li class="hm-trust-item">
-          <span class="hm-trust-ic"><Icon name={x.icon} /></span>
-          <span>
-            <strong class="hm-trust-t">{s(x.key)}</strong>
-            <span class="hm-trust-b">{s(`${x.key}Body`)}</span>
-          </span>
-        </li>
-      ))
-    }
-  </ul>
-</div>
-
 {
-  p.categories.length > 0 && (
-    <section class="container hm-sec" aria-labelledby="hm-cats">
+  tiles.length > 0 && (
+    <section class="container hm-cats-sec" aria-labelledby="hm-cats">
       <h2 id="hm-cats" class="hm-h2">{s('home.categoriesTitle')}</h2>
-      <ul role="list" class="hm-cats">
-        {p.categories.map((c) => (
-          <li>
-            <a class="hm-cat" href={c.href}>
-              <span class="hm-cat-name">{c.name}</span>
-              <span class="hm-cat-n">{tp(l.strings, l.lang, 'catalog.count', c.count)}</span>
-              <span class="hm-cat-go"><Icon name="chevron-end" class="icon-sm" /></span>
+      <ul role="list" class="hm-tiles">
+        {tiles.map(({ category: c, mobile, desktop, image }) => (
+          <li class:list={['hm-t', `hm-t-m-${mobile}`, `hm-t-d-${desktop}`]}>
+            <a class="hm-tile" href={c.href}>
+              <span class="hm-tile-photo">
+                <Picture image={image} />
+                {dev && (c.placeholder || image.placeholder) && <span class="cat-flag cat-flag--ph hm-tile-flag">{s('dev.placeholder')}</span>}
+              </span>
+              <span class="hm-tile-name">{c.name}</span>
             </a>
           </li>
         ))}
@@ -83,125 +67,121 @@ const morePacks = p.packs.filter((c) => !featuredIds.has(c.id));
 }
 
 {
-  p.featured.length > 0 && (
+  cards.length > 0 && (
     <section id="hm-featured" class="container hm-sec" aria-labelledby="hm-feat">
       <h2 id="hm-feat" class="hm-h2">{s('home.featuredTitle')}</h2>
-      <p class="hm-sub">{s('home.featuredLead')}</p>
-      <ProductGrid cards={[...p.featured, ...morePacks]} lang={l.lang} strings={l.strings} level={3} addable />
+      <div class:list={['hm-products', { 'hm-g2-odd': trim2 !== cards.length }, `hm-g3-${trim3}`, `hm-g4-${trim4}`]}>
+        <ProductGrid cards={cards} lang={l.lang} strings={l.strings} level={3} addable />
+      </div>
     </section>
   )
 }
 
-<section id="hm-how" class="hm-how" aria-labelledby="hm-how-t">
-  <div class="container">
-    <h2 id="hm-how-t" class="hm-h2">{s('home.howTitle')}</h2>
-    <ol role="list" class="hm-steps">
-      {
-        steps.map((n) => (
-          <li class="hm-step">
-            <span class="hm-step-n nums" aria-hidden="true">{n}</span>
-            <h3 class="hm-step-t">{s(`home.howStep${n}Title`)}</h3>
-            <p class="hm-step-b">{s(`home.howStep${n}Body`)}</p>
-          </li>
-        ))
-      }
-    </ol>
-  </div>
-</section>
-
-<section class="container hm-sec" aria-labelledby="hm-wa">
-  <div class="hm-wa">
-    <div>
-      <h2 id="hm-wa" class="hm-wa-t">{s('home.whatsappTitle')}</h2>
-      <p class="hm-wa-b">{s('home.whatsappBody')}</p>
-    </div>
-    <p class="hm-wa-ctas">
-      <a class="btn btn-primary" href={l.contact.whatsappHref}><Icon name="whatsapp" />{s('home.whatsappCta')}</a>
-      <a class="hm-wa-tel" href={l.contact.phoneHref}><Icon name="phone" /><bdi dir="ltr" class="nums">{groupPhone(l.contact.phoneDisplay)}</bdi></a>
-    </p>
-  </div>
+<section class="container hm-assure" aria-labelledby="hm-assure-t">
+  <h2 id="hm-assure-t" class="visually-hidden">{s('home.howTitle')}</h2>
+  <ul role="list" class="hm-assure-list">
+    {
+      reassurance.map((x) => (
+        <li class="hm-assure-item">
+          <Icon name={x.icon} class="icon-sm" />
+          <span>{s(x.key)}</span>
+        </li>
+      ))
+    }
+  </ul>
+  <p class="hm-contact">
+    <span>{s('footer.contact')}</span>
+    <a class="hm-contact-a" href={l.contact.phoneHref}><bdi dir="ltr" class="nums">{groupPhone(l.contact.phoneDisplay)}</bdi></a>
+    <span aria-hidden="true">·</span>
+    <a class="hm-contact-a" href={l.contact.whatsappHref}>{s('footer.whatsapp')}</a>
+  </p>
 </section>
 
 <style is:global>
   @layer components {
-    /* 1. Hero: centred type on a soft band (reference: apple.com product heroes). */
-    .hm-hero { background: var(--color-surface-alt); text-align: center; }
-    .hm-hero-in { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding-block: var(--space-16) var(--space-16); }
-    @media (min-width: 768px) { .hm-hero-in { padding-block: var(--space-24); } }
-    .hm-eyebrow { font-size: var(--fs-small); font-weight: var(--fw-emphasis); color: var(--color-accent-text); }
-    .hm-title { max-inline-size: 18ch; }
-    .hm-lead { max-inline-size: 36ch; color: var(--color-text-secondary); }
-    .hm-ctas { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-block-start: var(--space-4); }
-
-    /* 2. Trust strip */
-    .hm-trust { padding-block: var(--space-8); border-block-end: var(--bw-hairline) solid var(--color-border); }
-    .hm-trust-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6) var(--space-4); padding: 0; }
-    @media (min-width: 1024px) { .hm-trust-list { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-    .hm-trust-item { display: flex; align-items: flex-start; gap: var(--space-3); font-size: var(--fs-small); line-height: var(--lh-ui); }
-    .hm-trust-ic { display: inline-flex; padding: var(--space-2); border-radius: var(--radius-round); background: var(--color-accent-surface); color: var(--color-accent-text); }
-    .hm-trust-t { display: block; color: var(--color-text); }
-    .hm-trust-b { display: block; margin-block-start: var(--space-1); color: var(--color-text-secondary); }
+    /* Hero: centred type, no band; compact so the tiles start in the first viewport. */
+    .hm-hero-in { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding-block: var(--space-8) var(--space-6); text-align: center; }
+    .hm-title { max-inline-size: 18ch; font-size: var(--fs-h1); line-height: var(--lh-display); letter-spacing: var(--ls-display); font-weight: var(--fw-emphasis); }
+    .hm-lead { max-inline-size: 36ch; color: var(--color-text-secondary); font-size: var(--fs-body); }
+    .hm-ctas { margin-block-start: var(--space-2); }
+    @media (min-width: 768px) {
+      .hm-hero-in { padding-block: var(--space-12) var(--space-8); }
+      .hm-title { max-inline-size: 24ch; font-size: var(--fs-display); }
+      .hm-lead { max-inline-size: 44ch; font-size: var(--fs-lead); }
+    }
 
     /* Section rhythm */
+    .hm-cats-sec { padding-block-start: var(--space-2); }
     .hm-sec { padding-block-start: var(--section-block); }
-    .hm-h2 { font-size: var(--fs-h2); }
-    .hm-sub { margin-block: var(--space-2) var(--space-8); color: var(--color-text-secondary); }
-    .hm-h2 + .hm-cats, .hm-h2 + .hm-steps { margin-block-start: var(--space-6); }
+    .hm-h2 { font-size: var(--fs-h3); }
+    .hm-sec .hm-h2 { margin-block-end: var(--space-6); }
 
-    /* 3. Category tiles */
-    .hm-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gap); padding: 0; }
-    @media (min-width: 1024px) { .hm-cats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-    .hm-cat {
-      position: relative;
+    /* Category tiles: 2 columns on phones, 6 from 768 px; spans come from tiles.ts so every row fills. */
+    .hm-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gap); margin-block-start: var(--space-4); padding: 0; }
+    .hm-t { display: grid; min-inline-size: 0; }
+    .hm-t-m-full { grid-column: span 2; }
+    .hm-tile {
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
-      gap: var(--space-1);
-      min-block-size: 112px;
-      padding: var(--space-5);
-      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border-radius: var(--radius-xl);
       background: var(--color-surface-alt);
       color: var(--color-text);
       text-decoration: none;
-      transition: background-color var(--dur-fast) var(--ease-standard);
     }
-    .hm-cat:hover { background: var(--color-accent-surface); }
-    .hm-cat-name { font-size: var(--fs-lead); font-weight: var(--fw-emphasis); line-height: var(--lh-heading); }
-    .hm-cat-n { font-size: var(--fs-small); color: var(--color-text-secondary); }
-    .hm-cat-go { position: absolute; inset-block-start: var(--space-4); inset-inline-end: var(--space-4); color: var(--color-accent-text); }
-
-    /* 5. How it works */
-    .hm-how { margin-block-start: var(--section-block); padding-block: var(--section-block); background: var(--color-surface-alt); }
-    .hm-steps { display: grid; gap: var(--space-8); padding: 0; }
-    @media (min-width: 768px) { .hm-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    .hm-step-n {
-      display: inline-flex;
+    .hm-tile-photo { position: relative; display: block; overflow: hidden; background: var(--color-surface-alt); aspect-ratio: 1; }
+    .hm-tile-photo img { display: block; inline-size: 100%; block-size: 100%; object-fit: cover; transition: transform var(--dur-slow) var(--ease-standard); }
+    .hm-t-m-full .hm-tile-photo { aspect-ratio: 16 / 9; }
+    .hm-tile-flag { position: absolute; inset-block-start: var(--space-3); inset-inline-start: var(--space-3); }
+    .hm-tile:hover .hm-tile-photo img { transform: scale(1.03); }
+    .hm-tile:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--focus-offset); }
+    .hm-tile-name {
+      display: flex;
+      flex: 1;
       align-items: center;
       justify-content: center;
-      inline-size: var(--tap-min);
-      block-size: var(--tap-min);
-      border-radius: var(--radius-round);
-      background: var(--color-text);
-      color: var(--color-surface);
+      padding: var(--space-4) var(--space-3);
+      text-align: center;
+      font-size: var(--fs-body);
       font-weight: var(--fw-emphasis);
+      line-height: var(--lh-ui);
     }
-    .hm-step-t { margin-block: var(--space-4) var(--space-2); font-size: var(--fs-lead); }
-    .hm-step-b { color: var(--color-text-secondary); }
+    @media (min-width: 768px) {
+      .hm-tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-block-start: var(--space-6); }
+      .hm-t-d-6 { grid-column: span 6; }
+      .hm-t-d-3 { grid-column: span 3; }
+      .hm-t-d-2 { grid-column: span 2; }
+      .hm-t-d-6 .hm-tile-photo { aspect-ratio: 21 / 9; }
+      .hm-t-d-3 .hm-tile-photo { aspect-ratio: 16 / 10; }
+      .hm-t-d-2 .hm-tile-photo { aspect-ratio: 1; }
+      .hm-tile-name { font-size: var(--fs-lead); }
+    }
 
-    /* 6. WhatsApp band (dark tile) */
-    .hm-wa {
-      display: grid;
-      gap: var(--space-6);
-      padding: var(--space-8) var(--space-6);
-      border-radius: var(--radius-xl);
-      background: var(--color-surface-inverse);
-      color: var(--color-text-inverse);
-    }
-    @media (min-width: 1024px) { .hm-wa { grid-template-columns: 1fr auto; align-items: center; padding: var(--space-12); } }
-    .hm-wa-t { font-size: var(--fs-h3); }
-    .hm-wa-b { margin-block-start: var(--space-2); color: var(--color-text-inverse-secondary); }
-    .hm-wa-ctas { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-6); }
-    .hm-wa-tel { display: inline-flex; align-items: center; gap: var(--space-2); min-block-size: var(--tap-min); color: var(--color-accent-inverse); text-decoration: none; }
-    .hm-wa-tel:hover { text-decoration: underline; }
+    /* One compact reassurance, then a quiet contact line. */
+    .hm-assure { padding-block: var(--section-block) var(--space-8); text-align: center; }
+    .hm-assure-list { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2) var(--space-6); padding: 0; font-size: var(--fs-small); }
+    .hm-assure-item { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text); }
+    .hm-assure-item .icon { color: var(--color-text-secondary); }
+    .hm-contact { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 var(--space-2); margin-block-start: var(--space-4); color: var(--color-text-secondary); font-size: var(--fs-small); }
+    .hm-contact-a { display: inline-flex; align-items: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); justify-content: center; color: var(--color-accent-text); }
+  }
+</style>
+
+<style is:global>
+  /* Products: the same soft surface as the tiles, on the home page only (ProductCard itself is untouched).
+     Outside @layer on purpose: ProductCard's own rules are unlayered and would beat any layered override. */
+  .hm-products .cat-grid { gap: var(--grid-gap); }
+  .hm-products .cat-card { gap: 0; block-size: 100%; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-surface-alt); }
+  .hm-products .cat-card-media { border-radius: 0; }
+  .hm-products .cat-card-body { padding: var(--space-3); }
+  /* overflow: hidden above would clip the card link's outset ring: keep it inside the card. */
+  .hm-products .cat-card-link:focus-visible::after { outline-offset: calc(-1 * var(--focus-width)); }
+  .hm-products .cat-card-link:focus-visible { text-decoration: underline; }
+  @media (max-width: 767.98px) { .hm-g2-odd li:last-child { display: none; } }
+  @media (min-width: 768px) and (max-width: 1023.98px) {
+    .hm-g3-3 li:nth-child(n + 4), .hm-g3-6 li:nth-child(n + 7), .hm-g3-9 li:nth-child(n + 10), .hm-g3-12 li:nth-child(n + 13), .hm-g3-15 li:nth-child(n + 16) { display: none; }
+  }
+  @media (min-width: 1024px) {
+    .hm-g4-4 li:nth-child(n + 5), .hm-g4-8 li:nth-child(n + 9), .hm-g4-12 li:nth-child(n + 13), .hm-g4-16 li:nth-child(n + 17) { display: none; }
   }
 </style>

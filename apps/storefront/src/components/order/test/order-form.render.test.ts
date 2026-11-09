@@ -32,6 +32,15 @@ describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
     expect(html).toContain('id="of-rows"');
   });
 
+  it('the variant picker comes last, after the delivery panel, still inside the form', async () => {
+    const html = await container.renderToString(OrderForm, {
+      props: { lang, form: singleForm(lang), strings: strings[lang], contact },
+      slots: { picker: '<div class="cat-picker">x</div>' },
+    });
+    expect(html.indexOf('class="cat-picker"')).toBeGreaterThan(html.indexOf('id="of-sum"'));
+    expect(html.indexOf('class="cat-picker"')).toBeLessThan(html.indexOf('</fieldset>'));
+  });
+
   it('a sold-out product keeps its disabled form', async () => {
     const html = await render(lang, { ...singleForm(lang), orderable: false }, 'sold-out');
     expect(html).toMatch(/<fieldset[^>]*\bdisabled/);

@@ -46,6 +46,14 @@ describe('exportCatalogSnapshot', () => {
     expect({ ...out, meta: fixtureSnapshot.meta }).toEqual(fixtureSnapshot);
   });
 
+  test('carries the prices printed on a photo (DB-8), only on the images that have some', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    await exec(d1, "update images set printed_prices_dzd = '[14600]' where id = 5021");
+    const out = await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false } });
+    const images = out.products.flatMap((p) => p.images);
+    expect(images.filter((i) => i.printedPricesDzd !== undefined).map((i) => [i.id, i.printedPricesDzd])).toEqual([[5021, [14600]]]);
+  });
+
   test('exports every status (drafts and archived too) and carries no customer or order data', async () => {
     await load(fromSnapshot(fixtureSnapshot));
     await exec(

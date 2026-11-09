@@ -546,6 +546,7 @@ function init(f) {
     }
     if (cartMode ? !items().length : !variant?.ok) {
       showAlert(msg(cartMode ? 'items_empty' : variant ? 'variant_unavailable' : 'variant_required'));
+      f.querySelector('.cat-picker input:not(:disabled)')?.focus(); // the picker is last on the page: take the customer to it
       return;
     }
     if (blocked) {

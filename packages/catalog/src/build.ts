@@ -269,6 +269,11 @@ function orderedImages(p: SnapshotProduct): SnapshotImage[] {
 
 const mainImage = (p: SnapshotProduct): SnapshotImage | undefined => orderedImages(p)[0];
 
+/** HOME-0: a photo with a price printed on it never appears on the homepage (BUG-14 allows it on its own product page). */
+export const hasPrintedPrice = (i: SnapshotImage): boolean => (i.printedPricesDzd?.length ?? 0) > 0;
+/** The first photo with no printed price, in gallery order; undefined when every photo prints one. */
+const cleanImage = (p: SnapshotProduct): SnapshotImage | undefined => orderedImages(p).find((i) => !hasPrintedPrice(i));
+
 function ogImageFor(ctx: BuildContext, img: SnapshotImage | undefined, lang: Lang): OgImage | null {
   if (!img) return null;
   const og = imageEntry(ctx, img).og;
@@ -350,11 +355,10 @@ const ref = (template: TemplateName, id?: Id, page?: number): PageRef =>
 // Shared pieces
 // ---------------------------------------------------------------------------------------------
 
-export function productCard(ctx: BuildContext, p: SnapshotProduct, lang: Lang, lcp = false): ProductCard {
+export function productCard(ctx: BuildContext, p: SnapshotProduct, lang: Lang, lcp = false, img: SnapshotImage | undefined = mainImage(p)): ProductCard {
   const vs = sellableVariants(ctx, p);
   const cheapest = [...vs].sort((a, b) => a.priceDzd - b.priceDzd || a.id - b.id)[0]!;
   const from = new Set(vs.map((v) => v.priceDzd)).size > 1;
-  const img = mainImage(p);
   const colourValues = new Set(vs.flatMap((v) => v.optionValueIds));
   const swatches = p.options
     .filter((o) => o.type === 'colour')
@@ -380,8 +384,8 @@ export function productCard(ctx: BuildContext, p: SnapshotProduct, lang: Lang, l
 
 function categoryLink(ctx: BuildContext, c: SnapshotCategory, lang: Lang): CategoryLink {
   const products = ctx.subtreeProducts.get(c.id) ?? [];
-  const fallback = products.map(mainImage).find((i) => i !== undefined);
-  const img = c.image ?? fallback;
+  const fallback = products.map(cleanImage).find((i) => i !== undefined);
+  const img = c.image && !hasPrintedPrice(c.image) ? c.image : fallback;
   return {
     id: c.id,
     name: c.name[lang],
@@ -505,21 +509,33 @@ const entryFor = (ctx: BuildContext, lang: Lang, r: PageRef): RouteEntry => {
 // Templates
 // ---------------------------------------------------------------------------------------------
 
+/** Minimum homepage products after dropping those with no clean photo (one full desktop row). */
+const HOME_MIN_PRODUCTS = 4;
+
 export function buildHomeProps(ctx: BuildContext, lang: Lang): HomeProps {
   const entry = entryFor(ctx, lang, ref('home'));
   const { homeFeaturedProductIds, homeHeroProductId } = ctx.snapshot.settings;
   const named = homeFeaturedProductIds.filter((id) => ctx.publishedProductIds.has(id)).map((id) => ctx.productById.get(id)!);
-  const featuredProducts = named.length ? named : ctx.products.slice(0, ctx.featuredCount);
+  // HOME-0: no photo with a printed price on the homepage. A product with no clean photo sits this page
+  // out (an empty card is worse than no card). Only when that thins the list out do the first clean
+  // products fill in, up to one full row, so the admin's own short selection stays as chosen.
+  const wanted = named.length ? named : ctx.products.slice(0, ctx.featuredCount);
+  const showable = wanted.filter((p) => cleanImage(p) !== undefined);
+  const fill = showable.length < wanted.length ? ctx.products.filter((p) => cleanImage(p) !== undefined && !showable.includes(p)) : [];
+  const featuredProducts = [...showable, ...fill.slice(0, Math.max(0, HOME_MIN_PRODUCTS - showable.length))];
   // Only an explicitly chosen, published hero product: no fallback (lead: a photo with burned-in
   // prices must never become the hero by accident; null ⇒ type-led hero without image).
   const heroProduct =
     homeHeroProductId !== null && ctx.publishedProductIds.has(homeHeroProductId) ? ctx.productById.get(homeHeroProductId) : undefined;
-  const heroImg = heroProduct ? mainImage(heroProduct) : undefined;
+  const heroImg = heroProduct ? cleanImage(heroProduct) : undefined;
   const heroImage = heroImg ? toImageProps(ctx, heroImg, lang, 'hero', true) : null;
-  const featured = featuredProducts.map((p) => productCard(ctx, p, lang));
-  const packs = ctx.products.filter((p) => p.kind === 'pack').slice(0, ctx.featuredCount).map((p) => productCard(ctx, p, lang));
+  const featured = featuredProducts.map((p) => productCard(ctx, p, lang, false, cleanImage(p)));
+  const packs = ctx.products
+    .filter((p) => p.kind === 'pack' && cleanImage(p) !== undefined)
+    .slice(0, ctx.featuredCount)
+    .map((p) => productCard(ctx, p, lang, false, cleanImage(p)));
   const categories = topCategories(ctx).map((c) => categoryLink(ctx, c, lang));
-  const hero = { image: heroImage, product: heroProduct ? productCard(ctx, heroProduct, lang) : null };
+  const hero = { image: heroImage, product: heroProduct ? productCard(ctx, heroProduct, lang, false, heroImg) : null };
   return {
     layout: layout(ctx, entry, {
       title: t(ctx, lang, 'meta.home.title'),
@@ -776,6 +792,8 @@ export function buildOrderStepProps(ctx: BuildContext, lang: Lang, productId: Id
   const p = ctx.productById.get(productId)!;
   const main = mainImage(p);
   const image = main ? summaryImage(ctx, main, lang) : null;
+  const clean = cleanImage(p);
+  const cartImage = clean ? summaryImage(ctx, clean, lang) : null;
   const cta = t(ctx, lang, 'product.orderCta');
   const crumbs = pp.breadcrumbs.map((b, i) => (i === pp.breadcrumbs.length - 1 ? { label: b.label, href: pp.product.href } : b));
   return {
@@ -797,6 +815,7 @@ export function buildOrderStepProps(ctx: BuildContext, lang: Lang, productId: Id
     },
     category: pp.category,
     image,
+    cartImage,
     price: pp.price,
     options: pp.options,
     variants: pp.variants,
