@@ -385,7 +385,8 @@ export interface OrderSnapshot {
 export type OrderChangeRefusal = 'illegal_transition' | 'forbidden' | 'not_callable';
 export type ApplyOrderChangeResult =
   | { readonly ok: true; readonly version: number; readonly status: OrderStatus }
-  | { readonly ok: false; readonly code: 'not_found' | 'version_conflict' | OrderChangeRefusal };
+  /** `shipment_in_progress`: a parcel slot is open on this order (open-slot triggers, migration 0012). */
+  | { readonly ok: false; readonly code: 'not_found' | 'version_conflict' | 'shipment_in_progress' | OrderChangeRefusal };
 
 /** `EXISTS (order :id at version :v)` — guard for callers' own `extra` statements. */
 export function orderGuard(orderId: number, version: number): SQL {
@@ -529,7 +530,14 @@ export async function applyOrderChange(db: Db, change: OrderChange, extra: reado
   if (current.version !== change.expectedVersion) return { ok: false, code: 'version_conflict' };
   const built = buildOrderChange(db, current, change, extra, opts);
   if (!built.ok) return built;
-  const results = (await db.batch(built.items)) as unknown as { meta?: { changes?: number } }[];
+  let results: { meta?: { changes?: number } }[];
+  try {
+    results = (await db.batch(built.items)) as unknown as { meta?: { changes?: number } }[];
+  } catch (err) {
+    // The open-slot trigger aborted the whole batch: nothing was written.
+    if (classifyConstraintError(err) === 'shipment_in_progress') return { ok: false, code: 'shipment_in_progress' };
+    throw err;
+  }
   if ((results.at(-1)?.meta?.changes ?? 0) !== 1) {
     return (await readSnapshot(db, change.orderId)) ? { ok: false, code: 'version_conflict' } : { ok: false, code: 'not_found' };
   }
