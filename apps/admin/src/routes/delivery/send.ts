@@ -337,7 +337,9 @@ async function callCourier(c: Ctx, run: SendRun, item: SendFields, parcel: Prepa
       shipmentCas(db, shipmentId, 'sending', { state: 'draft', tracking, labelUrl: labelUrl ?? null, attemptEndedAt: at, updatedAt: at }),
       shipAudit(c, shipmentId, { courier: run.adapter.id, tracking, status: 'draft' }, sql`EXISTS (SELECT 1 FROM ${shipments} WHERE ${shipments.id} = ${shipmentId} AND ${shipments.state} = 'draft')`),
     ]);
-    if (Date.now() - pace.startedAt > SEND_LIMITS.CUTOFF_MS) return { ref, outcome: 'awaiting_validation', tracking, shipmentId, reason: 'pending' };
+    // A validate is a courier call too: it takes a turn in the same pace (and the same cutoff).
+    // Without a turn the draft stays for the cron's first validate.
+    if ((await takeTurn(run, pace)) !== 'go') return { ref, outcome: 'awaiting_validation', tracking, shipmentId, reason: 'pending' };
     return validateDraft(c, run, row, ref, tracking);
   }
 
