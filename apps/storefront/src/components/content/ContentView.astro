@@ -61,7 +61,7 @@ const metaKeys = meta?.consent === 'off' ? 'privacy.meta.off' : 'privacy.meta';
             return (
               <p class="ct-link">
                 <a href={b.href} rel={isExternal(b.href) ? 'noopener' : undefined}>
-                  {b.href.startsWith('tel:') ? <bdi dir="ltr">{b.text}</bdi> : <Copy strings={l.strings} text={b.text} />}
+                  {b.href.startsWith('tel:') || b.href.startsWith('https://wa.me/') ? <bdi dir="ltr">{b.text}</bdi> : <Copy strings={l.strings} text={b.text} />}
                 </a>
               </p>
             );

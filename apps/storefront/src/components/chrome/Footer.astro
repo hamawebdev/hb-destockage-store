@@ -2,13 +2,12 @@
 /**
  * Site footer on the surface-alt band. Columns: brand and contact full width with shop + help side
  * by side at 360 and 768, four columns from 1024:
- * brand + tagline · shop (top categories) · help (content pages) · contact (phone, WhatsApp, hours).
+ * brand + tagline · shop (top categories) · help (content pages) · contact (phone, WhatsApp).
  * Phone and WhatsApp are plain links (tel:, https://wa.me/…), numbers isolated with <bdi dir="ltr">.
  * Never a chat widget. Owner: shell.
  */
 import type { LayoutProps } from '@hb/catalog';
 import Icon from '../Icon.astro';
-import Copy from '../Copy.astro';
 import { groupPhone, t } from '../../lib/strings.ts';
 import { buildYear } from '../../lib/build-env.mjs';
 
@@ -60,7 +59,6 @@ const legal = l.footerLinks.filter((f) => legalKeys.has(f.key));
             </a>
           </li>
         </ul>
-        <p class="ft-hours"><Copy strings={l.strings} k="footer.hours" /></p>
       </section>
     </div>
 
@@ -114,7 +112,6 @@ const legal = l.footerLinks.filter((f) => legalKeys.has(f.key));
     }
     .ft a:hover { color: var(--color-text); text-decoration: underline; }
     .ft-ct { color: var(--color-text); }
-    .ft-hours { margin-block-start: var(--space-1); }
     .ft-legal {
       display: flex;
       flex-wrap: wrap;

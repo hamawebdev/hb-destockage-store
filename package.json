@@ -30,6 +30,7 @@
     "packages/shared",
     "packages/db",
     "packages/ui-tokens",
+    "packages/couriers",
     "packages/catalog",
     "apps/storefront",
     "apps/web",

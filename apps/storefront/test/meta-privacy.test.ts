@@ -85,7 +85,7 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
 it('the seed privacy text no longer promises no cookies at all', () => {
   const p = JSON.parse(readFileSync(join(root, 'data/content/privacy.json'), 'utf8')) as { body: Record<'ar' | 'fr', { type: string; items?: string[] }[]> };
   const items = (lang: 'ar' | 'fr') => p.body[lang].flatMap((b) => b.items ?? []);
-  expect(items('fr')).not.toContain('Aucun cookie.');
-  expect(items('fr').some((x) => x.startsWith('Aucun cookie, sauf'))).toBe(true);
-  expect(items('ar')).not.toContain('لا نستعمل ملفات تعريف الارتباط (كوكيز).');
+  expect(items('fr')).not.toContain("Le site n'utilise aucun cookie.");
+  expect(items('fr').some((x) => x.startsWith("Le site n'utilise aucun cookie, sauf"))).toBe(true);
+  expect(items('ar')).not.toContain('لا يستعمل الموقع أي ملفات تعريف ارتباط (كوكيز).');
 });

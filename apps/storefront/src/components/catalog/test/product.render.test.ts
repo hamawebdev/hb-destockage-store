@@ -106,6 +106,14 @@ describe.each(['ar', 'fr'] as const)('product page (%s)', (lang) => {
     expect(html).toContain('<h2 id="cat-pack-h"');
   });
 
+  it('pack: an item without a photo has no empty thumbnail box', async () => {
+    const p = product(lang, PACK);
+    const withoutPhoto = { ...p, packItems: p.packItems.map((it, i) => (i === 0 ? { ...it, image: null } : it)) };
+    const html = await render(withoutPhoto);
+    expect(html.match(/class="cat-pack-thumb"/g)?.length).toBe(p.packItems.length - 1);
+    expect(html.match(/cat-pack-item--noimg/g)?.length).toBe(1);
+  });
+
   it('single variant: no picker, stock state shown; brand in <bdi dir=ltr>', async () => {
     const pan = await render(product(lang, PAN));
     expect(pan).not.toContain('cat-picker');

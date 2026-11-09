@@ -98,15 +98,11 @@ test("placeholder flag matches [PLACEHOLDER] marks, in both languages", () => {
   }
 });
 
-test("legal pages (privacy, legal) are marked for the client's counsel", () => {
-  for (const k of ["privacy", "legal"]) {
-    const p = pages.find((x) => x.key === k);
-    assert.equal(p.placeholder, true);
-    for (const l of LANGS) assert.match(p.body[l][0].text, /^\[PLACEHOLDER/, `${k} ${l} must open with the counsel placeholder`);
+test("no content page carries a placeholder: production and seed publish the same confirmed text", () => {
+  for (const p of pages) {
+    assert.equal(p.placeholder, false, p.f);
+    for (const l of LANGS) assert.ok(![p.title[l], p.summary[l], ...texts(p.body[l])].some((t) => t.includes("[PLACEHOLDER")), `${p.f} ${l}`);
   }
-  const priv = pages.find((x) => x.key === "privacy");
-  assert.match(priv.body.fr[0].text, /18-07/);
-  assert.match(priv.body.ar[0].text, /18-07/);
 });
 
 test("French typography and calm voice", () => {
