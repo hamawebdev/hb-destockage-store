@@ -82,11 +82,12 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
   afterEach(expectNoUnexpectedRequests);
 
   /** Places an order through the browser and returns its ref. */
-  async function order(page: Page, lang: Lang) {
+  async function order(page: Page, lang: Lang, consenting = false) {
     const v = variant(lang);
     const where = place();
     await openOrderStep(page, web(), lang, v);
     await expectPreselected(page, v);
+    if (consenting) await waitTracked(page, 'InitiateCheckout'); // an order sent before the Pixel is active carries no consent signal
     await fillCustomer(page, where, uniqueSeed(), 1);
     await expectNumbersShown(page, [where.fee, v.price + where.fee]);
     return submitUntilConfirmed(page);
@@ -95,7 +96,7 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
   /** A consenting order last: every send before it has had its waitUntil run. Returns the event ids before it. */
   async function idsBeforeSentinel(lang: Lang): Promise<string[]> {
     const { ctx } = await metaContext(browser, { consent: 'granted' });
-    const ref = await order(await ctx.newPage(), lang);
+    const ref = await order(await ctx.newPage(), lang, true);
     await until(() => standIn.events().some((e) => e.event_id === ref), 'the sentinel event');
     await ctx.close();
     const ids = standIn.events().map((e) => e.event_id);

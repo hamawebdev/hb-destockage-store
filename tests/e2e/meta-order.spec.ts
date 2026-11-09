@@ -32,6 +32,7 @@ describe.runIf(CONFIGURED)('Meta order, consent given', () => {
     const where = place();
     await openOrderStep(page, web(), lang, v);
     await expectPreselected(page, v);
+    await waitTracked(page, 'InitiateCheckout'); // the Pixel is active: an order sent earlier carries no consent signal
     const { phone, name } = await fillCustomer(page, where, seed, 1);
     await expectNumbersShown(page, [where.fee, v.price + where.fee]);
     const ref = await submitUntilConfirmed(page);
