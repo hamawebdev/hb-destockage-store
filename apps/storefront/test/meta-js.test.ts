@@ -2,11 +2,12 @@
 // these hold it to @hb/shared's rules and to the consent and Purchase behaviour.
 import { META_ID_RE as SHARED_META_ID_RE } from '@hb/shared/meta';
 import { ORDER_REF_RE } from '@hb/shared';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { metaUiJson } from '../src/lib/meta-data.ts';
 import {
   META_ID_RE,
-  NO_CHOICE,
   REF_RE,
   addedLines,
   clearChoice,
@@ -22,7 +23,7 @@ import {
   whenActive,
   whenRows,
   whenLcp,
-} from '../public/js/meta.js';
+} from '../public/js/meta-full.js';
 
 function storage(): Storage {
   const m = new Map<string, string>();
@@ -297,8 +298,11 @@ describe('whenRows', () => {
   it('still neither: bounded', async () => expect(await whenRows(page(0, true), w, 5)).toBeUndefined());
 });
 
-it('no choice on the order pages', () => {
-  expect([...NO_CHOICE].sort()).toEqual(['checkout', 'order-step']);
+describe('the stub (meta.js)', () => {
+  const stub = readFileSync(join(import.meta.dirname, '../public/js/meta.js'), 'utf8');
+  it('no choice is offered on the order pages', () => expect(stub).toContain('^(order-step|checkout)$'));
+  it('names the full file, so the budget tool can reach it', () => expect(stub).toContain("'./meta-full.js'"));
+  it('carries no Pixel code', () => expect(stub).not.toMatch(/fbq|fbevents|facebook/));
 });
 
 describe('metaUiJson', () => {

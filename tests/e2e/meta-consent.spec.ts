@@ -13,6 +13,9 @@ import { DIST } from './harness.ts';
 import { CONFIGURED, LANGS, MODE, STAND_IN_PORT, cspViolations, expectNoUnexpectedRequests, expectShape, fbqCalls, launchMeta, metaContext, place, seedCart, showChoice, simpleProducts, templateUrls, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
 
 const web = () => inject('webUrl') as string;
+/** Same-origin files of the Meta integration the page has requested (the stub, the full module, the bar's copy). */
+const metaFiles = (page: Page): Promise<string[]> =>
+  page.evaluate(() => performance.getEntriesByType('resource').map((r) => r.name).filter((n) => /\/js\/meta(-full)?\.js|\/meta\/ui\.json/.test(n)));
 const stored = (page: Page) => page.evaluate(() => localStorage.getItem('hb.meta.consent.v1'));
 const fbqDefined = (page: Page) => page.evaluate(() => typeof (window as unknown as { fbq?: unknown }).fbq !== 'undefined');
 
@@ -105,6 +108,46 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
   }
 
   describe.each(LANGS)('/%s/', (lang) => {
+    it('with no input and no choice, only the stub is requested; the rest loads after the first input', async () => {
+      const { ctx } = await metaContext(browser);
+      for (const url of templateUrls(lang).map((t) => t.url).concat(`/${lang}/checkout/`)) {
+        const page = await ctx.newPage();
+        await page.goto(`${web()}${url}`);
+        await page.waitForLoadState('load');
+        await new Promise((ok) => setTimeout(ok, 1500));
+        const requested = await metaFiles(page);
+        expect(requested.filter((n) => /\/js\/meta\.js/.test(n)), `${url}: the stub`).toHaveLength(1);
+        expect(requested.filter((n) => !/\/js\/meta\.js/.test(n)), `${url}: anything else`).toEqual([]);
+        await page.close();
+      }
+      await ctx.close();
+    });
+
+    it('after the first input the bar code loads; a stored decline loads nothing more; a stored accept loads the full code', async () => {
+      const home = `${web()}/${lang}/`;
+      const noChoice = await metaContext(browser);
+      const p1 = await noChoice.ctx.newPage();
+      await p1.goto(home);
+      await showChoice(p1);
+      expect((await metaFiles(p1)).some((n) => n.includes('/js/meta-full.js'))).toBe(true);
+      await noChoice.ctx.close();
+
+      const denied = await metaContext(browser, { consent: 'denied' });
+      const p2 = await denied.ctx.newPage();
+      await p2.goto(home);
+      await p2.mouse.wheel(0, 200);
+      await new Promise((ok) => setTimeout(ok, 1200));
+      expect((await metaFiles(p2)).filter((n) => !/\/js\/meta\.js/.test(n))).toEqual([]);
+      await denied.ctx.close();
+
+      const granted = await metaContext(browser, { consent: 'granted' });
+      const p3 = await granted.ctx.newPage();
+      await p3.goto(home);
+      await waitTracked(p3, 'PageView');
+      expect((await metaFiles(p3)).some((n) => n.includes('/js/meta-full.js'))).toBe(true);
+      await granted.ctx.close();
+    });
+
     it('no choice made: no Meta request or script from browser or server, and no cookie', async () => {
       const { ctx, net } = await metaContext(browser);
       const page = await ctx.newPage();

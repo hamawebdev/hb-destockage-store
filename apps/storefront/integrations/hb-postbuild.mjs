@@ -58,6 +58,7 @@ export default function hbPostbuild(opts) {
         // so an unconfigured build carries no trace of it.
         if (!opts.metaEnabled) {
           await rm(join(root, 'js', 'meta.js'), { force: true });
+          await rm(join(root, 'js', 'meta-full.js'), { force: true });
           for (const lang of ['ar', 'fr']) await rm(join(root, lang, 'meta'), { recursive: true, force: true });
         }
 
@@ -124,9 +125,9 @@ export default function hbPostbuild(opts) {
         }
         let jsText = '';
         try {
-          // meta.js styles only its own bar and carries literal fallbacks (D-009): scanning it would change every
+          // The Meta files style only their own bar and carry literal values (D-009): scanning them would change every
           // page's CSS, and so its hash and bytes, when Meta is configured.
-          for await (const f of walk(join(root, 'js'))) if (f.endsWith('.js') && !f.endsWith(`${sep}meta.js`)) jsText += await readFile(f, 'utf8');
+          for await (const f of walk(join(root, 'js'))) if (f.endsWith('.js') && !f.endsWith(`${sep}meta.js`) && !f.endsWith(`${sep}meta-full.js`)) jsText += await readFile(f, 'utf8');
         } catch (e) {
           if (/** @type {NodeJS.ErrnoException} */ (e).code !== 'ENOENT') throw e;
         }

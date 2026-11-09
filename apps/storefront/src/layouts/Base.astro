@@ -51,7 +51,8 @@ const baseJs = cartVersion ? [...scripts, `/js/cart.js?v=${cartVersion}`] : scri
 
 // Meta (D-009): only when configured at build time and this page takes part.
 const metaOn = meta ? metaConfig() : null;
-const metaVersion = metaOn ? publicFileVersion('js/meta.js') : null;
+// The stub (meta.js) forwards its own ?v= to meta-full.js, so the version covers both files.
+const metaVersion = metaOn ? `${publicFileVersion('js/meta.js')}${publicFileVersion('js/meta-full.js')}` : null;
 const js = metaVersion ? [...baseJs, `/js/meta.js?v=${metaVersion}`] : baseJs;
 
 const KINDS: Readonly<Record<string, readonly string[]>> = { product: ['simple', 'variable', 'pack'], category: ['top', 'sub'] };
