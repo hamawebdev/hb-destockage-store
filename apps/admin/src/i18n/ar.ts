@@ -28,6 +28,8 @@ export const ar = {
   'dialog.ok': 'تأكيد',
   'dialog.cancel': 'إلغاء',
   'dialog.title': 'تأكيد هذا الإجراء',
+  'nav.tab.home': 'الرئيسية',
+  'nav.tab.queue': 'المكالمات',
   'nav.breadcrumbs': 'مسار التنقل',
   'user.logout': 'تسجيل الخروج',
   'lang.switch': 'Français',

@@ -11,6 +11,8 @@ export interface NavItem {
   label: MessageKey;
   perm: Permission;
   icon: AdminIconName;
+  /** Shorter label for the phone tab bar. */
+  tabLabel?: MessageKey;
   /** href of the item this one sits under. */
   parent?: string;
 }
@@ -20,11 +22,11 @@ export interface NavGroup {
 }
 
 export const NAV: readonly NavGroup[] = [
-  { items: [{ href: '/dashboard', label: 'nav.dashboard', perm: 'dashboard.view', icon: 'home' }] },
+  { items: [{ href: '/dashboard', label: 'nav.dashboard', perm: 'dashboard.view', icon: 'home', tabLabel: 'nav.tab.home' }] },
   {
     items: [
       { href: '/orders', label: 'nav.orders', perm: 'orders.view', icon: 'inbox' },
-      { href: '/orders/queue', label: 'nav.queue', perm: 'orders.queue', icon: 'phone', parent: '/orders' },
+      { href: '/orders/queue', label: 'nav.queue', perm: 'orders.queue', icon: 'phone', parent: '/orders', tabLabel: 'nav.tab.queue' },
       { href: '/customers', label: 'nav.customers', perm: 'customers.view', icon: 'users', parent: '/orders' },
       { href: '/orders/shipping', label: 'nav.shipping', perm: 'orders.shipping', icon: 'truck' },
     ],

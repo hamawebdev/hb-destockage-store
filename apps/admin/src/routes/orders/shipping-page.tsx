@@ -13,7 +13,7 @@ import { SHIPPING_PAGE_SIZE } from './shipping-data.ts';
 /** National form `0XXXXXXXXX` (what couriers dial). */
 export const nationalPhone = (e164: string) => e164.replace(/^\+213/, '0');
 
-export type ShipResult = { ref: string; outcome: 'shipped' | 'conflict' | 'forbidden' | 'notFound' | 'notConfirmed' };
+export type ShipResult = { ref: string; outcome: 'shipped' | 'conflict' | 'forbidden' | 'notFound' | 'notConfirmed' | 'shipmentBusy' };
 
 export function ShippingPage(props: {
   lang: Lang;

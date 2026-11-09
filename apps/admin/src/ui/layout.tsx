@@ -154,7 +154,7 @@ function TabBar(props: { ui: UiContext }) {
       {tabsFor(groups).map((i) => (
         <a class="tabbar__item" href={i.href} aria-current={i.href === current ? 'page' : undefined}>
           <Icon name={i.icon} />
-          <span class="tabbar__label">{ui.t(i.label)}</span>
+          <span class="tabbar__label">{ui.t(i.tabLabel ?? i.label)}</span>
         </a>
       ))}
       <button type="button" class="tabbar__item" popovertarget="side">

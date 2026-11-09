@@ -1,7 +1,7 @@
 // AORD-1 — orders list: the D1 reads. Per page: the page of orders (+1 row to detect a next page)
 // and the 69 wilayas for the filter.
 
-import { asc, eq, sql } from 'drizzle-orm';
+import { and, asc, count, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import { communes, customers, orderItems, orders, wilayas, type Db } from '@hb/db';
 import type { OrderStatus } from '@hb/shared';
 import { cursorPage } from '../../lib/pagination.ts';
@@ -27,6 +27,9 @@ export interface OrderListRow {
   communeFr: string;
   communeAr: string;
   status: OrderStatus;
+  version: number;
+  courierName: string | null;
+  courierTracking: string | null;
   feeDzd: number;
   totalDzd: number;
   /** Sensitive (`customers.sensitive`): absent — never selected — for logistics. */
@@ -79,6 +82,9 @@ export function ordersListQuery(db: Db, filter: OrdersFilter, sensitive: boolean
       communeFr: communes.nameFr,
       communeAr: communes.nameAr,
       status: orders.status,
+      version: orders.version,
+      courierName: orders.courierName,
+      courierTracking: orders.courierTracking,
       feeDzd: orders.feeDzd,
       totalDzd: orders.totalDzd,
       itemCount: sql<number>`(select count(*) from ${orderItems} where ${orderItems.orderId} = ${orders.id})`.mapWith(Number),
@@ -116,5 +122,45 @@ export async function fetchOrdersPage(db: Db, filter: OrdersFilter, sensitive: b
     })),
     next: page.next,
     wilayas: wilayaRows,
+  };
+}
+
+/** Orders per status across the whole table (the tab counts). */
+export async function statusCounts(db: Db): Promise<Map<string, number>> {
+  const rows = await db.select({ status: orders.status, n: count() }).from(orders).groupBy(orders.status);
+  return new Map(rows.map((r) => [r.status, r.n]));
+}
+
+export interface OrdersToday {
+  total: number;
+  toCall: number;
+  confirmed: number;
+  cancelled: number;
+  /** Confirmed ÷ (confirmed + cancelled) among today's handled orders, %; null before any is handled. */
+  rate: number | null;
+}
+
+const PAST_CONFIRMATION: readonly OrderStatus[] = ['confirmed', 'shipped', 'delivered', 'returned'];
+
+/** `todayStart`: start of the Algiers day. `toCall` is what is due now, whatever day it came in. */
+export async function ordersToday(db: Db, todayStart: number, now: number): Promise<OrdersToday> {
+  const [byStatus, due] = await Promise.all([
+    db.select({ status: orders.status, n: count() }).from(orders).where(gte(orders.createdAt, todayStart)).groupBy(orders.status),
+    db
+      .select({ n: count() })
+      .from(orders)
+      .where(and(inArray(orders.status, ['new', 'called', 'unreachable']), or(isNull(orders.nextCallAt), lte(orders.nextCallAt, now))))
+      .get(),
+  ]);
+  const of = (s: readonly string[]) => byStatus.filter((r) => s.includes(r.status)).reduce((a, r) => a + r.n, 0);
+  const confirmed = of(PAST_CONFIRMATION);
+  const cancelled = of(['cancelled']);
+  const handled = confirmed + cancelled;
+  return {
+    total: byStatus.reduce((a, r) => a + r.n, 0),
+    toCall: due?.n ?? 0,
+    confirmed,
+    cancelled,
+    rate: handled === 0 ? null : Math.round((confirmed / handled) * 100),
   };
 }
