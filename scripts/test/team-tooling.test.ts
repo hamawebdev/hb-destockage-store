@@ -384,7 +384,7 @@ describe('gate.sh', () => {
     ok(git(root, 'add', '-A'));
     ok(commit(root, 'BOOT-6: guard', { HB_ROLE: 'lead' }));
     const guard = join(root, 'scripts/require-catalog.sh');
-    const noData = sh(root, guard, []);
+    const noData = sh(root, guard, [], { HB_SNAPSHOT: '' });
     expect(noData.status).toBe(1);
     expect(noData.stderr).toContain('data/catalog missing: merge seed or run build:fixture');
     expect(sh(root, guard, [], { HB_SNAPSHOT: 'fixture' }).status).toBe(0);
