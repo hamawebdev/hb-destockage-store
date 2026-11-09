@@ -29,3 +29,22 @@ describe('enum sync with @hb/shared', () => {
     expect(checkList(ddl(table), constraint)).toEqual([...list]);
   });
 });
+
+describe('delivery enums match their SQL CHECK lists', () => {
+  const { sqlite } = freshDb();
+  const ddl = (t: string) => (sqlite.prepare("select sql from sqlite_master where type = 'table' and name = ?").get(t) as { sql: string }).sql;
+  test.each([
+    ['shipments', 'shipments_state_enum', enums.SHIPMENT_STATES],
+    ['shipments', 'shipments_delivery_type_enum', enums.DELIVERY_TYPES],
+    ['shipment_events', 'shipment_events_mapped_enum', enums.SHIPMENT_COURIER_STATUSES],
+    ['shipment_events', 'shipment_events_source_enum', enums.SHIPMENT_EVENT_SOURCES],
+    ['shipment_events', 'shipment_events_state_enum', enums.SHIPMENT_EVENT_STATES],
+    ['courier_webhook_inbox', 'courier_webhook_inbox_state_enum', enums.WEBHOOK_INBOX_STATES],
+    ['delivery_exceptions', 'delivery_exceptions_kind_enum', enums.DELIVERY_EXCEPTION_KINDS],
+    ['delivery_exceptions', 'delivery_exceptions_state_enum', enums.DELIVERY_EXCEPTION_STATES],
+    ['courier_directory', 'courier_directory_kind_enum', enums.COURIER_DIRECTORY_KINDS],
+    ['sheets_connection', 'sheets_connection_status_enum', enums.SHEETS_CONNECTION_STATUSES],
+  ] as const)('%s.%s', (table, constraint, list) => {
+    expect(checkList(ddl(table), constraint)).toEqual([...list]);
+  });
+});

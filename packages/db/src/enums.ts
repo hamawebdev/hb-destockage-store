@@ -58,6 +58,58 @@ export type RumRating = (typeof RUM_RATINGS)[number];
 export const DELIVERY_STATUSES = ['sending', 'sent', 'dead'] as const;
 export type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
 
+// ---- Delivery (SHIP-0 contract, D-010) ----------------------------------------------------------
+
+/**
+ * A shipment's lifecycle in our system (not the courier's status). A *live* row holds the order's
+ * one parcel slot; `failed` frees it.
+ */
+export const SHIPMENT_STATES = ['reserved', 'sending', 'draft', 'accepted', 'uncertain', 'failed'] as const;
+export type ShipmentState = (typeof SHIPMENT_STATES)[number];
+
+/** Mirrors `@hb/couriers` COURIER_STATUSES (@hb/db cannot depend on it); a test keeps them equal. */
+export const SHIPMENT_COURIER_STATUSES = ['pending', 'in_transit', 'delivered', 'returning', 'returned', 'exception', 'unknown'] as const;
+export type ShipmentCourierStatus = (typeof SHIPMENT_COURIER_STATUSES)[number];
+
+export const DELIVERY_TYPES = ['home', 'stop_desk'] as const;
+export type DeliveryType = (typeof DELIVERY_TYPES)[number];
+
+export const SHIPMENT_EVENT_SOURCES = ['webhook', 'poll'] as const;
+export type ShipmentEventSource = (typeof SHIPMENT_EVENT_SOURCES)[number];
+
+export const SHIPMENT_EVENT_STATES = ['pending', 'applied', 'ignored', 'exception'] as const;
+export type ShipmentEventState = (typeof SHIPMENT_EVENT_STATES)[number];
+
+export const WEBHOOK_INBOX_STATES = ['pending', 'held', 'done', 'rejected', 'poison'] as const;
+export type WebhookInboxState = (typeof WEBHOOK_INBOX_STATES)[number];
+
+export const DELIVERY_EXCEPTION_KINDS = [
+  'unknown_status',
+  'terminal_conflict',
+  'order_not_applicable',
+  'unmatched_tracking',
+  'uncertain_send',
+  'draft_unvalidated',
+  'invalid_signature',
+  'inbox_poison',
+] as const;
+export type DeliveryExceptionKind = (typeof DELIVERY_EXCEPTION_KINDS)[number];
+
+export const DELIVERY_EXCEPTION_STATES = ['open', 'resolved'] as const;
+export type DeliveryExceptionState = (typeof DELIVERY_EXCEPTION_STATES)[number];
+
+export const COURIER_DIRECTORY_KINDS = ['wilayas', 'communes', 'stop_desks'] as const;
+export type CourierDirectoryKind = (typeof COURIER_DIRECTORY_KINDS)[number];
+
+/** `@hb/couriers` CredentialCheck kinds, as last recorded on a courier account. */
+export const COURIER_CHECK_RESULTS = ['valid', 'invalid', 'unavailable', 'rate_limited'] as const;
+export type CourierCheckResult = (typeof COURIER_CHECK_RESULTS)[number];
+
+// ---- Google Sheets (SHEET-0 contract) -----------------------------------------------------------
+
+export const SHEETS_CONNECTION_STATUSES = ['disconnected', 'connected', 'needs_reconnect', 'sheet_lost', 'layout_changed'] as const;
+export type SheetsConnectionStatus = (typeof SHEETS_CONNECTION_STATUSES)[number];
+
 /**
  * Settings key registry (`settings` is key → JSON). Only the storefront keys (CAT-1
  * SnapshotSettings) are exported in the catalogue snapshot (`@hb/db/export`); every other key is

@@ -1,6 +1,8 @@
 import type { SendEmailBinding } from './notify/email.ts';
 
 export interface Env {
+  /** `production` in wrangler.jsonc; `.dev.vars` sets `development` locally. Outbound HTTP is held to loopback unless exactly `production`. */
+  ENV?: string;
   /** Shared D1 (owner of schema: `db`). */
   DB: D1Database;
   /** Private backup bucket (JOBS-1). Never public, never the media bucket. */
@@ -28,3 +30,5 @@ export const CRON_DAILY_BACKUP = '0 2 * * *';
 export const CRON_BACKUP_HEALTH = '0 9 * * *';
 /** 02:30 UTC = 03:30 Algiers: RUM rollup + 90-day purge (JOBS-5). */
 export const CRON_RUM_ROLLUP = '30 2 * * *';
+/** Courier status sync and Sheets sync. Each runs on its own; neither can block the other. */
+export const CRON_EVERY_MINUTE = '* * * * *';
