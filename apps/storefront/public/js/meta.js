@@ -115,20 +115,44 @@ export function whenActive(d, w) {
 
 /**
  * Resolves after the first largest-contentful-paint entry: on a thin page `load` and idle can come before LCP.
+ * A hidden tab has no LCP, so while hidden nothing counts down; the wait for the entry starts when it becomes visible.
  * Where the API is missing there is nothing to wait for; `ms` caps the wait on a page with no LCP candidate.
  */
-export function whenLcp(w, ms = 5000) {
+export function whenLcp(w, ms = 5000, d = w.document) {
   return new Promise((done) => {
     const PO = w.PerformanceObserver;
     if (!PO?.supportedEntryTypes?.includes('largest-contentful-paint')) return done();
-    const timer = w.setTimeout(done, ms);
-    const o = new PO((list) => {
-      if (!list.getEntries().length) return;
+    let seen = false;
+    let timer = null;
+    const visible = () => d.visibilityState !== 'hidden';
+    const finish = () => {
       o.disconnect();
       w.clearTimeout(timer);
       w.setTimeout(done, 0);
+    };
+    const check = () => {
+      if (seen && visible()) finish();
+    };
+    const o = new PO((list) => {
+      if (list.getEntries().length) {
+        seen = true;
+        check();
+      }
     });
     o.observe({ type: 'largest-contentful-paint', buffered: true });
+    const arm = () => {
+      timer = w.setTimeout(finish, ms);
+    };
+    if (visible()) arm();
+    else {
+      const onChange = () => {
+        if (!visible()) return;
+        d.removeEventListener('visibilitychange', onChange);
+        arm();
+        check();
+      };
+      d.addEventListener('visibilitychange', onChange);
+    }
   });
 }
 

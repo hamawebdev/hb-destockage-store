@@ -207,8 +207,32 @@ describe('whenLcp', () => {
         this.disconnected = true;
       }
     }
-    const w = { PerformanceObserver: PO, setTimeout: (f: () => void, ms: number) => setTimeout(f, ms === 5000 ? 1_000_000 : 0), clearTimeout };
-    return { w, emit: (n: number) => cb?.({ getEntries: () => Array(n).fill({}) }) };
+    const listeners = new Set<() => void>();
+    const d = {
+      visibilityState: 'visible',
+      addEventListener: (_e: string, f: () => void) => void listeners.add(f),
+      removeEventListener: (_e: string, f: () => void) => void listeners.delete(f),
+    };
+    const armed: number[] = [];
+    const w = {
+      PerformanceObserver: PO,
+      document: d,
+      setTimeout: (f: () => void, ms: number) => {
+        if (ms > 0) armed.push(ms);
+        return setTimeout(f, ms === 5000 ? 1_000_000 : 0);
+      },
+      clearTimeout,
+    };
+    return {
+      w,
+      d,
+      armed,
+      emit: (n: number) => cb?.({ getEntries: () => Array(n).fill({}) }),
+      show: () => {
+        d.visibilityState = 'visible';
+        for (const f of [...listeners]) f();
+      },
+    };
   }
 
   it('waits for the first LCP entry, however long load took', async () => {
@@ -216,6 +240,28 @@ describe('whenLcp', () => {
     const p = whenLcp(x.w);
     expect(await settled(p)).toBe(false);
     x.emit(0);
+    expect(await settled(p)).toBe(false);
+    x.emit(1);
+    expect(await settled(p)).toBe(true);
+  });
+  it('hidden tab: the cap is not armed and an entry does not end the wait while hidden', async () => {
+    const x = env();
+    x.d.visibilityState = 'hidden';
+    const p = whenLcp(x.w);
+    x.emit(1);
+    expect(await settled(p)).toBe(false);
+    expect(x.armed).toEqual([]);
+    x.show();
+    expect(x.armed).toEqual([5000]);
+    expect(await settled(p)).toBe(true); // the entry seen while hidden counts once the tab is visible
+  });
+  it('hidden then visible with no entry: waits for the entry, cap counted from visible', async () => {
+    const x = env();
+    x.d.visibilityState = 'hidden';
+    const p = whenLcp(x.w);
+    expect(await settled(p)).toBe(false);
+    x.show();
+    expect(x.armed).toEqual([5000]);
     expect(await settled(p)).toBe(false);
     x.emit(1);
     expect(await settled(p)).toBe(true);
