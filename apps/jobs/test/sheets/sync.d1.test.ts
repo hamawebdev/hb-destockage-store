@@ -991,6 +991,65 @@ describe('revocations', () => {
     expect(await revocations()).toEqual([]);
   });
 
+  test('19b: an abandoned revocation stays shown while a live connection syncs (account switch)', async () => {
+    await insertOrders(db, [1]);
+    await ready();
+    await addRevocation('AAAA.BBBB'); // the previous account's grant, unreadable: abandoned at once
+    await bump(1, "status = 'confirmed'");
+    await tick();
+    let c = await conn();
+    expect(await revocations()).toEqual([]);
+    expect(c['last_success_at']).toBe(clock);
+    expect(c['last_error_code']).toBe('revoke_abandoned');
+    expect(c['last_error_at']).toBe(clock);
+    await bump(1, "status = 'shipped'");
+    await tick();
+    c = await conn();
+    expect(c['last_success_at']).toBe(clock);
+    expect(c['last_error_code']).toBe('revoke_abandoned');
+    expect(await rowOf('HB-T0001')).toBeTruthy();
+  });
+
+  test('a non-Google error during sync backs off with internal_error instead of failing every minute', async () => {
+    await insertOrders(db, [1]);
+    await ready();
+    await bump(1, "status = 'confirmed'");
+    // D1 refuses the order selection once, as a broken query or a D1 outage would.
+    let broken = true;
+    const failing = new Proxy(db, {
+      get(target, prop) {
+        if (prop === 'prepare') {
+          return (sql: string) => {
+            if (broken && sql.includes('LEFT JOIN sheets_rows')) throw new Error('D1_ERROR: simulated');
+            return target.prepare(sql);
+          };
+        }
+        const v = Reflect.get(target, prop);
+        return typeof v === 'function' ? v.bind(target) : v;
+      },
+    }) as D1Database;
+    const logged: string[] = [];
+    vi.spyOn(console, 'log').mockImplementation((...a: unknown[]) => void logged.push(a.map(String).join(' ')));
+    vi.spyOn(console, 'error').mockImplementation((...a: unknown[]) => void logged.push(a.map(String).join(' ')));
+    clock += 20 * MIN;
+    await expect(runSheetsSync({ ...env, DB: failing }, deps())).resolves.toBeUndefined();
+    const c = await conn();
+    expect(c).toMatchObject({ status: 'connected', failure_count: 1, last_error_code: 'internal_error', lease_owner: null });
+    expect(Number(c['next_attempt_at']) - clock).toBeGreaterThanOrEqual(240_000);
+    expect(logged.join('\n')).not.toContain('simulated');
+
+    await s.post('/calls/clear');
+    clock += MIN; // inside the backoff: nothing runs
+    await runSheetsSync({ ...env, DB: failing }, deps());
+    expect(await googleCalls()).toEqual([]);
+
+    broken = false;
+    clock = Number(c['next_attempt_at']) + 1;
+    await runSheetsSync(env, deps());
+    expect(await conn()).toMatchObject({ failure_count: 0, last_error_code: null });
+    expect((await rowOf('HB-T0001'))?.[col('Statut')]).toBe('Confirmée');
+  });
+
   test('19c: a revocation whose token will not open is deleted at once, abandoned', async () => {
     await addRevocation('AAAA.BBBB');
     await tick();

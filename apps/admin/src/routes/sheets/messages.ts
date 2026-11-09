@@ -61,6 +61,7 @@ export const m = defineMessages({
     'error.server_error': 'Erreur chez Google ; nouvelle tentative automatique.',
     'error.google_client_config': 'Identifiants Google invalides sur ce serveur.',
     'error.google_config': "L'API Google n'est pas activée pour cette application.",
+    'error.internal_error': 'Erreur interne pendant la synchronisation ; nouvelle tentative automatique. Si elle persiste, signalez-la.',
     'error.other': 'Erreur Google ({code}) ; nouvelle tentative automatique.',
   },
   ar: {
@@ -122,6 +123,7 @@ export const m = defineMessages({
     'error.server_error': 'خطأ لدى Google، ستتم إعادة المحاولة تلقائيًا.',
     'error.google_client_config': 'بيانات Google غير صالحة على هذا الخادم.',
     'error.google_config': 'واجهة Google غير مفعّلة لهذا التطبيق.',
+    'error.internal_error': 'خطأ داخلي أثناء المزامنة، ستتم إعادة المحاولة تلقائيًا. إذا استمر فأبلغ عنه.',
     'error.other': 'خطأ من Google ({code})، ستتم إعادة المحاولة تلقائيًا.',
   },
 });

@@ -92,6 +92,9 @@ async function jobConfig(env: SheetsEnv, deps: SheetsDeps): Promise<Config | nul
   return { client: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET }, key, endpoints };
 }
 
+const KEEP_REVOKE_NOTICE =
+  "last_error_code = CASE WHEN last_error_code = 'revoke_abandoned' THEN last_error_code END, last_error_at = CASE WHEN last_error_code = 'revoke_abandoned' THEN last_error_at END";
+
 class Run {
   readonly db: D1Database;
   readonly owner = crypto.randomUUID();
@@ -140,7 +143,9 @@ class Run {
     const now = this.now();
     const scanSql = scan ? ', scan_fingerprint = ?, last_scan_at = ?' : '';
     await this.owned(
-      `failure_count = 0, next_attempt_at = NULL, last_success_at = ?, last_error_code = NULL, last_error_at = NULL, layout_note = ?, updated_at = ?${scanSql}`,
+      // A revocation given up on stays shown until the owner acts (connect, resync, new sheet,
+      // disconnect reset it): it asks them to remove access by hand, which no sync run can do.
+      `failure_count = 0, next_attempt_at = NULL, last_success_at = ?, ${KEEP_REVOKE_NOTICE}, layout_note = ?, updated_at = ?${scanSql}`,
       now,
       layoutNote,
       now,
@@ -499,26 +504,33 @@ async function sync(run: Run, cfg: Config, google: GoogleContext): Promise<void>
   run.generation = conn.generation;
   const lang: SheetLang = conn.lang === 'ar' ? 'ar' : 'fr';
 
-  const settingUp = conn.spreadsheet_id === null || conn.tab_id === null;
-  // After a failure the run goes on to Google even with no orders, so an interrupted setup repairs
-  // itself and the counters reset as soon as Google answers.
-  const probing = conn.failure_count > 0;
-  const fp = await fingerprint(run.db, conn.generation);
-  if (!settingUp && !probing && fp === conn.scan_fingerprint && conn.last_scan_at !== null && run.now() - conn.last_scan_at < FORCED_SCAN_MS) return;
-
-  const orders = settingUp ? [] : await selectOrders(run.db, conn.generation);
-  if (!settingUp && !probing && orders.length === 0) {
-    await run.owned('scan_fingerprint = ?, last_scan_at = ?', fp, run.now());
-    return;
-  }
-
   try {
+    const settingUp = conn.spreadsheet_id === null || conn.tab_id === null;
+    // After a failure the run goes on to Google even with no orders, so an interrupted setup repairs
+    // itself and the counters reset as soon as Google answers.
+    const probing = conn.failure_count > 0;
+    const fp = await fingerprint(run.db, conn.generation);
+    if (!settingUp && !probing && fp === conn.scan_fingerprint && conn.last_scan_at !== null && run.now() - conn.last_scan_at < FORCED_SCAN_MS) return;
+
+    const orders = settingUp ? [] : await selectOrders(run.db, conn.generation);
+    if (!settingUp && !probing && orders.length === 0) {
+      await run.owned('scan_fingerprint = ?, last_scan_at = ?', fp, run.now());
+      return;
+    }
+
     const api = new GoogleApi(google, await accessFor(run, cfg, google, conn));
     if (settingUp) await setup(run, api, conn, lang);
     else await writeRun(run, api, conn, lang, orders, fp);
   } catch (e) {
-    if (e instanceof GoogleError) await run.recordFailure(e.failure, conn.failure_count);
-    else throw e;
+    if (e instanceof LeaseLost) throw e;
+    if (e instanceof GoogleError) {
+      await run.recordFailure(e.failure, conn.failure_count);
+      return;
+    }
+    // Anything else (a D1 error, a bug) still backs off and shows on /sheets instead of failing
+    // silently every minute. The cron entry point logs its name.
+    await run.recordFailure(failure('backoff', 'internal_error'), conn.failure_count).catch(() => undefined);
+    throw e;
   }
 }
 

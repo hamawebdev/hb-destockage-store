@@ -386,6 +386,17 @@ describe('connect', () => {
     expect(await res.text()).toContain('injoignable');
     expect(await s.calls()).toEqual([]);
   });
+
+  test.each([
+    ['internal_error', 'Erreur interne pendant la synchronisation'],
+    ['revoke_abandoned', 'depuis votre compte Google'],
+  ])('/sheets explains %s in its own words', async (code, text) => {
+    await connect();
+    await setConn(`last_error_code=?, last_error_at=?, last_success_at=?`, code, Date.now(), Date.now());
+    const html = await (await h.as(OWNER, '/sheets')).text();
+    expect(html).toContain(text);
+    expect(html).not.toContain(`(${code})`);
+  });
 });
 
 async function subFor(email: string): Promise<string> {
