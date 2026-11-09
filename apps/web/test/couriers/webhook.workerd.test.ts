@@ -68,9 +68,9 @@ test('a disabled account keeps storing while it has a token (rule 13e)', async (
 });
 
 test('the handshake echoes a safe token as text/plain, and refuses a hostile one', async () => {
-  const ok = await h.server.fetch(`${path()}?subscribe=x&crc_token=abc.DEF-123_`);
+  const ok = await h.server.fetch(`${path()}?subscribe=x&crc_token=abc.DEF-123_~x`);
   expect(ok.status).toBe(200);
-  expect(await ok.text()).toBe('abc.DEF-123_');
+  expect(await ok.text()).toBe('abc.DEF-123_~x');
   expect(ok.headers.get('content-type')).toContain('text/plain');
   expect(ok.headers.get('x-content-type-options')).toBe('nosniff');
   const bad = await h.server.fetch(`${path()}?subscribe=x&crc_token=${encodeURIComponent('<script>alert(1)</script>')}`);

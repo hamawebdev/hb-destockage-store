@@ -17,7 +17,8 @@ export const COURIER_HOOK_PREFIX = '/api/courier-hook/';
 export const MAX_WEBHOOK_BODY_BYTES = 32 * 1024;
 const MAX_HEADER_BYTES = 8 * 1024;
 const MAX_PENDING_PER_ACCOUNT = 5000;
-const HANDSHAKE_RE = /^[A-Za-z0-9._-]{1,256}$/;
+// Same set as the adapters' crc_token rule (CARR-0 rule 11), `~` included.
+const HANDSHAKE_RE = /^[A-Za-z0-9._~-]{1,256}$/;
 const DROPPED_HEADER = /^(cookie|authorization|cf-.*|x-forwarded-.*|true-client-ip|x-real-ip|forwarded)$/;
 
 interface Account {
