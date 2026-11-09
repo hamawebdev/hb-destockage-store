@@ -987,7 +987,10 @@ export const courierWebhookInbox = sqliteTable(
       .notNull()
       .references(() => courierAccounts.id, { onDelete: 'restrict' }),
     courier: text('courier').notNull(),
-    /** Byte-exact request body: a signature is computed over the original bytes. */
+    /**
+     * Byte-exact request body: a signature is computed over the original bytes. At most 32 KiB: the
+     * daily backup writes a BLOB as hex (2x) inside a statement limited to 90,000 bytes.
+     */
     body: blob('body', { mode: 'buffer' }).notNull(),
     /** Request headers minus cookies, auth and client-IP headers. */
     headers: text('headers', { mode: 'json' }).$type<Record<string, string>>().notNull().default(sql`'{}'`),
@@ -1005,7 +1008,8 @@ export const courierWebhookInbox = sqliteTable(
     index('courier_webhook_inbox_purge_idx').on(t.processedAt).where(sql`${c(t.state)} in ('done', 'rejected')`),
     check('courier_webhook_inbox_state_enum', oneOf(t.state, WEBHOOK_INBOX_STATES)),
     check('courier_webhook_inbox_headers_json', isJson(t.headers)),
-    check('courier_webhook_inbox_body_size', sql`length(${c(t.body)}) <= 65536`),
+    check('courier_webhook_inbox_body_size', sql`length(${c(t.body)}) <= 32768`),
+    check('courier_webhook_inbox_headers_size', sql`length(cast(${c(t.headers)} as blob)) <= 8192`),
     check('courier_webhook_inbox_attempts_nonneg', nonNeg(t.attempts)),
   ],
 );
@@ -1063,6 +1067,8 @@ export const courierDirectory = sqliteTable(
     primaryKey({ columns: [t.courier, t.kind, t.wilayaCode] }),
     check('courier_directory_kind_enum', oneOf(t.kind, COURIER_DIRECTORY_KINDS)),
     check('courier_directory_payload_json', isJson(t.payload)),
+    // One row must fit the backup's 90,000-byte statement; a bigger list is simply not cached.
+    check('courier_directory_payload_size', sql`length(cast(${c(t.payload)} as blob)) <= 80000`),
   ],
 );
 

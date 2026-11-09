@@ -141,12 +141,20 @@ describe('open-slot triggers (SQLite)', () => {
     expect(() => sqlite.exec(`update shipments set state = 'lost' where id = 1`)).toThrow(/shipments_state_enum/);
   });
 
-  test('a body over 64 KiB is refused by the database', () => {
+  test('a body over 32 KiB and oversized headers are refused by the database', () => {
     const { sqlite } = freshDb();
     sqlite.exec(FIXTURE);
-    const ins = sqlite.prepare(`insert into courier_webhook_inbox (account_id, courier, body) values (1, 'yalidine', ?)`);
-    ins.run(Buffer.alloc(65536));
-    expect(() => ins.run(Buffer.alloc(65537))).toThrow(/courier_webhook_inbox_body_size/);
+    const ins = sqlite.prepare(`insert into courier_webhook_inbox (account_id, courier, body, headers) values (1, 'yalidine', ?, ?)`);
+    ins.run(Buffer.alloc(32768), '{}');
+    expect(() => ins.run(Buffer.alloc(32769), '{}')).toThrow(/courier_webhook_inbox_body_size/);
+    expect(() => ins.run(Buffer.alloc(1), JSON.stringify({ a: 'x'.repeat(8192) }))).toThrow(/courier_webhook_inbox_headers_size/);
+  });
+
+  test('a directory payload too big for one backup statement is refused, counted in bytes', () => {
+    const { sqlite } = freshDb();
+    const ins = sqlite.prepare(`insert into courier_directory (courier, kind, wilaya_code, payload, fetched_at) values ('yalidine', 'communes', ?, ?, 1)`);
+    ins.run(16, JSON.stringify(['x'.repeat(79_000)]));
+    expect(() => ins.run(31, JSON.stringify(['\u0628'.repeat(40_500)]))).toThrow(/courier_directory_payload_size/);
   });
 
   test('sheets_connection holds exactly its singleton row', () => {
