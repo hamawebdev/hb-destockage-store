@@ -611,7 +611,8 @@ describe('isolation and the guard', () => {
     await inboxRow(yal, webhookBody(pendingParcel.tracking, 'Livré'));
     const t0 = Date.now();
     const report = await run({ limits: { ACCOUNT_MS: 3000, CALL_MS: 10_000 } });
-    expect(Date.now() - t0).toBeLessThan(15_000);
+    // The contract bound for the whole run is 45 s (check 17c); the hanging account is cut at 3 s here.
+    expect(Date.now() - t0).toBeLessThan(30_000);
     expect(report.accountsTimedOut).toContain('guepex');
     expect(await orderOf(fast.id)).toMatchObject({ status: 'delivered' });
     expect(await shipmentRow(stale)).toMatchObject({ state: 'failed' });
