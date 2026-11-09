@@ -81,7 +81,7 @@ describe('workflow security', () => {
 
   it('has the Cloudflare secrets only on the steps that talk to Cloudflare', () => {
     const lines = pipeline.split('\n').filter((l) => /secrets\.[A-Z]/.test(l));
-    // META_ACCESS_TOKEN is the one other secret, on the deploy step only (D-009, docs/META-GO-LIVE.md).
+    // META_ACCESS_TOKEN is the one other secret, on the deploy step only (D-011, docs/META-GO-LIVE.md).
     const cloudflare = lines.filter((l) => !l.includes('META_ACCESS_TOKEN'));
     expect(cloudflare).toHaveLength(6);
     expect(lines).toHaveLength(7);

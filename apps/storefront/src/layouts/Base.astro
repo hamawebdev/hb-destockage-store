@@ -49,7 +49,7 @@ const { layout: l, lcp = false, kind, scripts = [], chrome = 'full', tpl, meta =
 const cartVersion = publicFileVersion('js/cart.js');
 const baseJs = cartVersion ? [...scripts, `/js/cart.js?v=${cartVersion}`] : scripts;
 
-// Meta (D-009): only when configured at build time and this page takes part.
+// Meta (D-011): only when configured at build time and this page takes part.
 const metaOn = meta ? metaConfig() : null;
 // The stub (meta.js) forwards its own ?v= to meta-full.js, so the version covers both files.
 const metaVersion = metaOn ? `${publicFileVersion('js/meta.js')}${publicFileVersion('js/meta-full.js')}` : null;

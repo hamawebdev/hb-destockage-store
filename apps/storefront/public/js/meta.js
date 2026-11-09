@@ -1,4 +1,4 @@
-// Meta consent stub (D-009, Addendum 7): all a visitor without a stored `granted` loads before any input. It reads the
+// Meta consent stub (D-011, Addendum 7): all a visitor without a stored `granted` loads before any input. It reads the
 // stored choice and loads meta-full.js (the bar, the Pixel and its events) only when that is needed. Nothing here talks
 // to Meta. meta-full.js is reachable by name so the build's budget counts it. Plain ES module, loaded after LCP.
 const D = document;

@@ -54,7 +54,7 @@ export default function hbPostbuild(opts) {
 
         const errors = [];
 
-        // Meta off (D-009): nothing Meta-related ships. Before the JS scan and the token pruning below,
+        // Meta off (D-011): nothing Meta-related ships. Before the JS scan and the token pruning below,
         // so an unconfigured build carries no trace of it.
         if (!opts.metaEnabled) {
           await rm(join(root, 'js', 'meta.js'), { force: true });
@@ -125,7 +125,7 @@ export default function hbPostbuild(opts) {
         }
         let jsText = '';
         try {
-          // The Meta files style only their own bar and carry literal values (D-009): scanning them would change every
+          // The Meta files style only their own bar and carry literal values (D-011): scanning them would change every
           // page's CSS, and so its hash and bytes, when Meta is configured.
           for await (const f of walk(join(root, 'js'))) if (f.endsWith('.js') && !f.endsWith(`${sep}meta.js`) && !f.endsWith(`${sep}meta-full.js`)) jsText += await readFile(f, 'utf8');
         } catch (e) {
