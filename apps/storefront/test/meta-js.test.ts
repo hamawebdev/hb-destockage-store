@@ -22,6 +22,7 @@ import {
   signals,
   takePending,
   whenActive,
+  whenLcp,
 } from '../public/js/meta.js';
 
 function storage(): Storage {
@@ -183,6 +184,50 @@ describe('whenActive', () => {
   it('falls back without requestIdleCallback', async () => {
     const x = env({ idle: false });
     expect(await settled(whenActive(x.d, x.w))).toBe(true);
+  });
+});
+
+describe('whenLcp', () => {
+  const settled = async (p: Promise<unknown>) => {
+    let done = false;
+    void p.then(() => (done = true));
+    await new Promise((r) => setTimeout(r, 5));
+    return done;
+  };
+  function env(supported = true) {
+    let cb: ((l: { getEntries: () => unknown[] }) => void) | undefined;
+    class PO {
+      static supportedEntryTypes = supported ? ['largest-contentful-paint'] : [];
+      disconnected = false;
+      constructor(f: typeof cb) {
+        cb = f;
+      }
+      observe = vi.fn();
+      disconnect() {
+        this.disconnected = true;
+      }
+    }
+    const w = { PerformanceObserver: PO, setTimeout: (f: () => void, ms: number) => setTimeout(f, ms === 5000 ? 1_000_000 : 0), clearTimeout };
+    return { w, emit: (n: number) => cb?.({ getEntries: () => Array(n).fill({}) }) };
+  }
+
+  it('waits for the first LCP entry, however long load took', async () => {
+    const x = env();
+    const p = whenLcp(x.w);
+    expect(await settled(p)).toBe(false);
+    x.emit(0);
+    expect(await settled(p)).toBe(false);
+    x.emit(1);
+    expect(await settled(p)).toBe(true);
+  });
+  it('does not wait where the API is missing', async () => {
+    expect(await settled(whenLcp(env(false).w))).toBe(true);
+    expect(await settled(whenLcp({}))).toBe(true);
+  });
+  it('gives up after the cap on a page with no LCP candidate', async () => {
+    const x = env();
+    x.w.setTimeout = (f: () => void) => setTimeout(f, 0);
+    expect(await settled(whenLcp(x.w, 1))).toBe(true);
   });
 });
 

@@ -113,12 +113,32 @@ export function whenActive(d, w) {
   });
 }
 
+/**
+ * Resolves after the first largest-contentful-paint entry: on a thin page `load` and idle can come before LCP.
+ * Where the API is missing there is nothing to wait for; `ms` caps the wait on a page with no LCP candidate.
+ */
+export function whenLcp(w, ms = 5000) {
+  return new Promise((done) => {
+    const PO = w.PerformanceObserver;
+    if (!PO?.supportedEntryTypes?.includes('largest-contentful-paint')) return done();
+    const timer = w.setTimeout(done, ms);
+    const o = new PO((list) => {
+      if (!list.getEntries().length) return;
+      o.disconnect();
+      w.clearTimeout(timer);
+      w.setTimeout(done, 0);
+    });
+    o.observe({ type: 'largest-contentful-paint', buffered: true });
+  });
+}
+
 const D = typeof document === 'object' ? document : null;
 const pixel = D?.body?.dataset.metaPixel;
 if (pixel) boot(pixel, D.body.dataset.metaConsent !== 'off');
 
 async function boot(id, consentRequired) {
   await whenActive(D, window);
+  await whenLcp(window);
   const root = D.documentElement;
   const tpl = root.dataset.tpl;
   const lang = root.lang;
