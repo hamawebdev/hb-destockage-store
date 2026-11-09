@@ -52,6 +52,11 @@ export const PERMISSIONS = {
   'fees.view': ['owner', 'confirmer', 'logistics'],
   'fees.edit': ['owner'],
 
+  // Delivery (shipping; ADMIN2/BRIEF §5).
+  'delivery.view': ['owner', 'confirmer', 'logistics'],
+  'delivery.send': ['owner', 'logistics'],
+  'delivery.settings': ['owner'],
+
   // Administration (admin-core).
   'users.manage': ['owner'],
   'settings.edit': ['owner'],
