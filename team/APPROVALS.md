@@ -300,3 +300,15 @@ SHIP-5 r1 APPROVED tier=high reviewer=rev-i commits=4e35d1b97495a3ab6583279972b8
 SHIP-6 r1 APPROVED tier=high reviewer=rev-i commits=231c401e9adeaf47e709661ac50f197d02a1ae5c review=artifacts/SHIP-6/review-r1.md
 UX-1 r3 APPROVED tier=low reviewer=rev-k commits=76f787e119c80f1cd380c240f267d1a9452c1132,785cd01fecc689f17ef8430d2a822fc33994a92a review=artifacts/UX-1/review-r3.md
 UX-2 r3 APPROVED tier=low reviewer=rev-k commits=cb8a50513853657fc345c863753fd83a5f1604b4,aa990c65b3550780fb1236bac9264aa208c01702 review=artifacts/UX-1/review-r3.md
+SHIP-3 r2 APPROVED tier=high reviewer=rev-i commits=cc0b389d6ccb69d61a2b27df43764513832b8a2b,bbf2a0aa912cefa3c7b8ab711d8d9089b3624fce,f6df4bff4c47259f100f352a526f0ddd03cdb120 review=artifacts/SHIP-3/review-r2.md
+SHIP-4 r2 APPROVED tier=high reviewer=rev-i commits=a77f6bcb99815cc4f2a15cdde4b288a9c3d913b8,75e309da6020183f45fe8e399fe7c1b6aae68b0d review=artifacts/SHIP-4/review-r2.md
+SHIP-5 r2 APPROVED tier=high reviewer=rev-i commits=4e35d1b97495a3ab6583279972b8889ea87f4923,2078ca5ba5d04a420f9400d380108a43a7be469f,4b3e63d18fc92061f7102392cd73c7e99832df10,52e8a8d5a447250f51a972cea667bca4185d31af review=artifacts/SHIP-5/review-r2.md
+SHIP-5 r3 APPROVED tier=high reviewer=rev-i commits=8fd87185e1653c56a2ad014984d642c9f5ffd751 review=artifacts/SHIP-5/review-r3.md
+SHEET-1 r2 APPROVED tier=high reviewer=rev-j commits=746398fd22e13ecf8f81195c2156024f7573d9f8,947de29089c1c90df08a004f5488b12296f91a1c review=artifacts/SHEET-1/review-r2.md
+SHEET-2 r2 APPROVED tier=high reviewer=rev-j commits=061b0c1bc1e7daf7acc42edab5ab51701206cdca,c3e982ba84e10d29d6fcae82844028c89bad601b,50277116fc22bc1c3f8f84ec6528025913aa1ced review=artifacts/SHEET-2/review-r2.md
+SHEET-3 r1 APPROVED tier=high reviewer=rev-j commits=5bb54dca56ba6542be647e378e5e1475bc6d2c54 review=artifacts/SHEET-3/review-r1.md
+UX-4 r3 APPROVED tier=low reviewer=rev-k commits=c37282f95c59b19d5a3ecb9ce280b3d0f07bda92,52c2f36cf54a168ea628fb76b6e6e25b6ec5918c,b7e82c6962f457039455a242cdf4cf7a0697ad75 review=artifacts/UX-4/review-r3.md
+UX-7 r2 APPROVED tier=low reviewer=rev-k commits=a4cf570e4a7fb44e482222c8ab07cef24396ac79,c631c8be302d7cdacf971f2880912f9563132bf9 review=artifacts/UX-7/review-r2.md
+UX-8 r1 APPROVED tier=low reviewer=rev-k commits=de188f398428c3ce26540aabc4a1c4d11d20fab6 review=artifacts/UX-7/review-r1.md
+UX-9 r1 APPROVED tier=low reviewer=rev-k commits=8b0a4ea7d4ac1c94eba5dd07389ab52c10d96ef0 review=artifacts/UX-7/review-r1.md
+UX-11 r1 APPROVED tier=low reviewer=rev-k commits=f33bd45136b57ba201c029fd4f3a39c911f1e216 review=artifacts/UX-7/review-r1.md
