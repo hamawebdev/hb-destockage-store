@@ -10,8 +10,8 @@
     "fr": "Livraison et frais"
   },
   "summary": {
-    "ar": "كيف يتم الطلب والدفع عند الاستلام، التوصيل إلى 69 ولاية، وسعر التوصيل الذي يظهر قبل التأكيد.",
-    "fr": "Commande, paiement à la livraison, livraison dans les 69 wilayas : les frais s'affichent avant de confirmer."
+    "ar": "الدفع عند الاستلام والتوصيل إلى 69 ولاية، ويظهر سعر التوصيل قبل تأكيد الطلب.",
+    "fr": "Paiement à la livraison et livraison dans les 69 wilayas : les frais s'affichent avant de confirmer la commande."
   },
   "body": {
     "ar": [
@@ -22,11 +22,9 @@
       {
         "type": "ol",
         "items": [
-          "تختار المنتج وتملأ الاستمارة: الاسم، رقم الهاتف المحمول، الولاية، البلدية والكمية.",
-          "قبل التأكيد، ترى سعر المنتج وسعر التوصيل إلى ولايتك والمجموع.",
-          "يتصل بك أحد مستشارينا لتأكيد الطلب والعنوان. لا نرسل أي طلب دون تأكيدك.",
-          "نسلّم الطرد لشركة التوصيل، فيصلك إلى بلديتك.",
-          "تدفع المجموع نقداً لعامل التوصيل عند الاستلام."
+          "تملأ استمارة الطلب، فيظهر لك سعر المنتج وسعر التوصيل إلى ولايتك والمجموع قبل التأكيد.",
+          "نتصل بك لتأكيد الطلب قبل إرساله.",
+          "تدفع عند الاستلام، عندما يصلك الطرد."
         ]
       },
       {
@@ -35,7 +33,7 @@
       },
       {
         "type": "p",
-        "text": "إلى كل ولايات الجزائر الـ69. إذا كانت منطقة ما غير مخدومة مؤقتاً، تخبرك الاستمارة بذلك قبل أي تأكيد."
+        "text": "إلى كل ولايات الجزائر الـ69."
       },
       {
         "type": "h2",
@@ -43,31 +41,15 @@
       },
       {
         "type": "p",
-        "text": "يختلف سعر التوصيل حسب الولاية. يظهر في الاستمارة بمجرد اختيار ولايتك، قبل التأكيد، ويذكّرك به المستشار عند الاتصال. لا تدفع أي مبلغ آخر."
+        "text": "يختلف سعر التوصيل حسب الولاية، ويظهر في الاستمارة قبل أن تؤكد طلبك."
       },
       {
         "type": "h2",
-        "text": "مدة التوصيل"
+        "text": "هل لديك سؤال؟"
       },
       {
         "type": "p",
-        "text": "عادةً من 2 إلى 5 أيام عمل بعد التأكيد، حسب الولاية. [PLACEHOLDER: المدة في انتظار تأكيد HB Destockage]"
-      },
-      {
-        "type": "h2",
-        "text": "التوصيل إلى المنزل أو إلى المكتب"
-      },
-      {
-        "type": "p",
-        "text": "يتم التوصيل إلى المنزل. [PLACEHOLDER: هل يتوفر الاستلام من مكتب شركة التوصيل (ستوب ديسك) وبأي سعر؟]"
-      },
-      {
-        "type": "h2",
-        "text": "إذا لم نتمكن من الاتصال بك"
-      },
-      {
-        "type": "p",
-        "text": "نحاول الاتصال بك عدة مرات. إذا لم ترد، يبقى الطلب معلّقاً ثم يُلغى. يمكنك أيضاً الاتصال بنا:"
+        "text": "اتصل بنا أو راسلنا عبر واتساب."
       },
       {
         "type": "link",
@@ -75,21 +57,9 @@
         "href": "tel:+213560417403"
       },
       {
-        "type": "h2",
-        "text": "عند الاستلام"
-      },
-      {
-        "type": "ul",
-        "items": [
-          "تحقّق من حالة الطرد أمام عامل التوصيل.",
-          "ادفع المبلغ المعلن عند التأكيد، لا أكثر.",
-          "إذا وجدت مشكلة، اتصل بنا: الإرجاع والاستبدال موضّحان في الصفحة التالية."
-        ]
-      },
-      {
         "type": "link",
-        "text": "الإرجاع والاستبدال",
-        "href": "/ar/al-irjaa/"
+        "text": "+213 779 942 022",
+        "href": "https://wa.me/213779942022"
       }
     ],
     "fr": [
@@ -100,11 +70,9 @@
       {
         "type": "ol",
         "items": [
-          "Vous choisissez un produit et remplissez le formulaire : nom, téléphone mobile, wilaya, commune et quantité.",
-          "Avant de confirmer, vous voyez le prix du produit, les frais de livraison vers votre wilaya et le total.",
-          "Un conseiller vous appelle pour confirmer la commande et l'adresse. Rien n'est expédié sans votre accord.",
-          "Le colis est remis à notre transporteur, qui le livre dans votre commune.",
-          "Vous payez le total en espèces au livreur, à la réception."
+          "Vous remplissez le formulaire de commande : le prix du produit, les frais de livraison vers votre wilaya et le total s'affichent avant de confirmer.",
+          "Nous vous appelons pour confirmer la commande avant de l'expédier.",
+          "Vous payez à la livraison, quand vous recevez votre colis."
         ]
       },
       {
@@ -113,7 +81,7 @@
       },
       {
         "type": "p",
-        "text": "Dans les 69 wilayas d'Algérie. Si une zone n'est pas desservie pour le moment, le formulaire vous le dit avant toute confirmation."
+        "text": "Dans les 69 wilayas d'Algérie."
       },
       {
         "type": "h2",
@@ -121,31 +89,15 @@
       },
       {
         "type": "p",
-        "text": "Les frais dépendent de votre wilaya. Ils s'affichent dans le formulaire dès que vous choisissez votre wilaya, avant de confirmer, et le conseiller vous les rappelle au téléphone. Vous ne payez rien d'autre."
+        "text": "Les frais dépendent de votre wilaya. Ils s'affichent dans le formulaire avant que vous confirmiez la commande."
       },
       {
         "type": "h2",
-        "text": "Délais"
+        "text": "Une question ?"
       },
       {
         "type": "p",
-        "text": "En général 2 à 5 jours ouvrables après la confirmation, selon la wilaya. [PLACEHOLDER : délais à confirmer par HB Destockage]"
-      },
-      {
-        "type": "h2",
-        "text": "À domicile ou au bureau"
-      },
-      {
-        "type": "p",
-        "text": "La livraison se fait à domicile. [PLACEHOLDER : le retrait au bureau du transporteur (stop desk) est-il proposé, et à quel tarif ?]"
-      },
-      {
-        "type": "h2",
-        "text": "Si nous n'arrivons pas à vous joindre"
-      },
-      {
-        "type": "p",
-        "text": "Nous essayons de vous appeler plusieurs fois. Sans réponse, la commande reste en attente, puis elle est annulée. Vous pouvez aussi nous appeler :"
+        "text": "Appelez-nous ou écrivez-nous sur WhatsApp."
       },
       {
         "type": "link",
@@ -153,26 +105,14 @@
         "href": "tel:+213560417403"
       },
       {
-        "type": "h2",
-        "text": "À la réception"
-      },
-      {
-        "type": "ul",
-        "items": [
-          "Vérifiez l'état du colis devant le livreur.",
-          "Payez le montant annoncé à la confirmation, pas plus.",
-          "En cas de problème, appelez-nous : les retours et échanges sont expliqués sur la page suivante."
-        ]
-      },
-      {
         "type": "link",
-        "text": "Retours et échanges",
-        "href": "/fr/retours-echanges/"
+        "text": "+213 779 942 022",
+        "href": "https://wa.me/213779942022"
       }
     ]
   },
   "sort": 20,
   "active": true,
-  "placeholder": true,
-  "updatedAt": 1793750400000
+  "placeholder": false,
+  "updatedAt": 1794182400000
 }

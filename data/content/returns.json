@@ -10,75 +10,23 @@
     "fr": "Retours et échanges"
   },
   "summary": {
-    "ar": "منتج تالف أو غير مطابق؟ كيف ترفض الطرد عند الاستلام أو تطلب استبداله بعد ذلك.",
-    "fr": "Produit abîmé ou non conforme : comment refuser le colis à la réception ou demander un échange ensuite."
+    "ar": "للإرجاع أو الاستبدال، تواصل معنا عبر الهاتف أو واتساب، وتُعالَج كل حالة على حدة.",
+    "fr": "Pour un retour ou un échange, contactez-nous par téléphone ou sur WhatsApp : chaque demande est traitée au cas par cas."
   },
   "body": {
     "ar": [
       {
         "type": "p",
-        "text": "نريدك أن تكون راضياً عن طلبك. إليك كيف يتم الإرجاع والاستبدال. [PLACEHOLDER: الشروط في انتظار موافقة HB Destockage]"
+        "text": "للإرجاع أو الاستبدال، تواصل معنا عبر الهاتف أو واتساب. تُعالَج كل حالة على حدة."
       },
       {
         "type": "h2",
-        "text": "تحقّق عند الاستلام"
-      },
-      {
-        "type": "p",
-        "text": "افتح الطرد وتحقّق منه أمام عامل التوصيل كلما أمكن. إذا كان المنتج تالفاً أو ناقصاً أو لا يطابق طلبك، يمكنك رفضه ولا تدفع شيئاً."
-      },
-      {
-        "type": "h2",
-        "text": "بعد الاستلام"
-      },
-      {
-        "type": "p",
-        "text": "لديك 7 أيام بعد الاستلام لتبلغنا عن منتج معيب أو غير مطابق. [PLACEHOLDER: المدة في انتظار التأكيد] اتصل بنا أو راسلنا على واتساب، مع رقم الطلب وصورة للمنتج."
-      },
-      {
-        "type": "h2",
-        "text": "الشروط"
-      },
-      {
-        "type": "ul",
-        "items": [
-          "أن يكون المنتج غير مستعمل، في علبته الأصلية ومع كل ملحقاته.",
-          "أن تذكر رقم الطلب.",
-          "منتجات النظافة الشخصية المفتوحة لا تُستبدل. [PLACEHOLDER]"
-        ]
-      },
-      {
-        "type": "h2",
-        "text": "التكاليف"
-      },
-      {
-        "type": "p",
-        "text": "إذا كان الخطأ من جهتنا (منتج تالف أو غير مطابق)، فالاستبدال مجاني. إذا غيّرت رأيك، فتكاليف التوصيل عند الإرجاع على حسابك. [PLACEHOLDER]"
-      },
-      {
-        "type": "h2",
-        "text": "الاسترجاع المالي"
-      },
-      {
-        "type": "p",
-        "text": "نفضّل الاستبدال. [PLACEHOLDER: هل يمكن استرجاع المبلغ، وبأي طريقة؟]"
-      },
-      {
-        "type": "h2",
-        "text": "تواصل معنا"
-      },
-      {
-        "type": "p",
-        "text": "عبر الهاتف:"
+        "text": "للتواصل معنا"
       },
       {
         "type": "link",
         "text": "0560 41 74 03",
         "href": "tel:+213560417403"
-      },
-      {
-        "type": "p",
-        "text": "عبر واتساب:"
       },
       {
         "type": "link",
@@ -89,68 +37,16 @@
     "fr": [
       {
         "type": "p",
-        "text": "Nous voulons que vous soyez satisfait de votre commande. Voici comment se passent les retours et les échanges. [PLACEHOLDER : conditions à valider par HB Destockage]"
-      },
-      {
-        "type": "h2",
-        "text": "Vérifiez à la réception"
-      },
-      {
-        "type": "p",
-        "text": "Ouvrez et vérifiez le colis devant le livreur quand c'est possible. Si le produit est abîmé, incomplet ou ne correspond pas à votre commande, vous pouvez le refuser : vous ne payez rien."
-      },
-      {
-        "type": "h2",
-        "text": "Après la réception"
-      },
-      {
-        "type": "p",
-        "text": "Vous avez 7 jours après la réception pour nous signaler un produit défectueux ou non conforme. [PLACEHOLDER : durée à confirmer] Appelez-nous ou écrivez-nous sur WhatsApp, avec votre numéro de commande et une photo du produit."
-      },
-      {
-        "type": "h2",
-        "text": "Conditions"
-      },
-      {
-        "type": "ul",
-        "items": [
-          "Le produit n'a pas été utilisé, il est dans son emballage d'origine avec tous ses accessoires.",
-          "Vous indiquez votre numéro de commande.",
-          "Les produits d'hygiène ouverts ne sont pas échangés. [PLACEHOLDER]"
-        ]
-      },
-      {
-        "type": "h2",
-        "text": "Frais"
-      },
-      {
-        "type": "p",
-        "text": "Si l'erreur vient de nous (produit abîmé ou non conforme), l'échange est gratuit. Si vous changez d'avis, les frais de livraison du retour sont à votre charge. [PLACEHOLDER]"
-      },
-      {
-        "type": "h2",
-        "text": "Remboursement"
-      },
-      {
-        "type": "p",
-        "text": "Nous privilégions l'échange. [PLACEHOLDER : un remboursement est-il possible, et par quel moyen ?]"
+        "text": "Pour un retour ou un échange, contactez-nous par téléphone ou sur WhatsApp. Chaque demande est traitée au cas par cas."
       },
       {
         "type": "h2",
         "text": "Nous contacter"
       },
       {
-        "type": "p",
-        "text": "Par téléphone :"
-      },
-      {
         "type": "link",
         "text": "0560 41 74 03",
         "href": "tel:+213560417403"
-      },
-      {
-        "type": "p",
-        "text": "Sur WhatsApp :"
       },
       {
         "type": "link",
@@ -161,6 +57,6 @@
   },
   "sort": 30,
   "active": true,
-  "placeholder": true,
-  "updatedAt": 1793750400000
+  "placeholder": false,
+  "updatedAt": 1794182400000
 }

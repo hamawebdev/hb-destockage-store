@@ -74,8 +74,8 @@ never a market crier.
 
 ## Placeholders
 
-Anything not yet confirmed by the client carries **[PLACEHOLDER]** in the string (e.g. `footer.hours`,
-`product.delivery.time`) or `placeholder: true` in data. A production build with `HB_STRICT_COPY=1`
+Anything not yet confirmed by the client carries **[PLACEHOLDER]** in the string or `placeholder: true`
+in data. A production build with `HB_STRICT_COPY=1`
 refuses such strings, except the `dev.*` keys, which exist to label placeholders in development builds.
 
 ## Files
