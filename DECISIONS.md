@@ -229,3 +229,11 @@ Rules:
 - Why: client decision. The Pixel's code cannot fit in the room the budget leaves (1,673 B on the 48 product and search pages), and a visitor who has not accepted does not download it before acting.
 - Evidence: client's choice of 2026-11-09 (artifacts/META-0/lead-approval.md Addendum 7); artifacts/META-0/measure/summary.md; sizes measured the budget tool's way on a seed build of this change.
 - Status: active
+
+## D-020 — Takeover of ADMIN2 and Meta: merge without merge.sh's gate, verify once on final main, then deploy
+- Date: 2026-11-10 · Author: lead (takeover session ecom-website-f6) · Task: BOOT-25
+- Report says: CLAUDE.md "How work happens": only the lead merges, through `scripts/team/merge.sh`, which gates every merge result. D-016 limited the gate-free path to ADMIN2. Main had no green full gate at 317dba2 (r1 red only on the 1800 s time limit of `packages/db` `orders.test.ts` on a loaded machine).
+- We do instead: the owner handed the ADMIN2 lead's and the Meta/SEO lead's work to one session with a one-hour deadline and a live deploy. That session stops both sessions, merges team/growth@142b574 with `git merge --no-ff` as the lead, and runs typecheck, tests and build once on the final main (locally and in the pipeline's own checks). Order-path, totals/fees and admin login/roles changes get one bugs-and-security pass from the takeover lead before merging. Then main is pushed, which deploys through the pipeline (D-007). SEO (SEO-1..4) and META-10 are not started and stay out. D-017 to D-019 stay reserved for the CLX session.
+- Why: the owner authorised it on 2026-11-10 ("merge without it and run typecheck, tests and build once on the final main"); a per-merge gate takes 1–2 h on this machine.
+- Evidence: artifacts/TAKEOVER/ (process trees of the stopped sessions, review note, check logs); team/APPROVALS.md META-0 r3 and META-9 r3 (rev-g); the pipeline run for the pushed commit.
+- Status: one use, for this takeover only; every later merge keeps merge.sh.
