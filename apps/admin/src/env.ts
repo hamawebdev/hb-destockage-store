@@ -26,6 +26,20 @@ export interface Env {
   CSRF_SECRET: string;
   /** HMAC key for the dev-login cookie. Development only; absent in production. */
   DEV_SESSION_SECRET?: string;
+  /** 32 random bytes, base64 (secret). Seals courier keys. Unset or invalid = couriers off, the admin still works. */
+  COURIER_KEYS_KEY?: string;
+  /** Local courier stand-in. Honoured only when ENV is not `production`. */
+  COURIER_STANDIN_URL?: string;
+
+  // Google Sheets (SHEET-3). All optional: the feature stays off until they and COURIER_KEYS_KEY are set.
+  /** Secret. */
+  GOOGLE_CLIENT_ID?: string;
+  /** Secret. */
+  GOOGLE_CLIENT_SECRET?: string;
+  /** The admin's `/sheets/callback`, registered at Google. Fixed config, never derived from the request. */
+  GOOGLE_REDIRECT_URI?: string;
+  /** Non-production only: loopback stand-in base URL. Ignored in production. */
+  GOOGLE_STANDIN_URL?: string;
 }
 
 export type Role = DbAdminRole;

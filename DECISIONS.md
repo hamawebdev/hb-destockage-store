@@ -178,3 +178,27 @@ Rules:
 - Why: client instruction, 2026-11-09. Delivery is the admin's largest missing function.
 - Evidence: client instruction, 2026-11-09. Courier references: artifacts/delivery-research/.
 - Status: active. Supersedes: D-001.
+
+## D-011 — An order with a parcel in progress cannot be changed; order changes take an extra guard
+- Date: 2026-11-09 · Author: shipping · Task: SHIP-1
+- Report says: §2 order states and team/BRIEF §2: `confirmed → cancelled | shipped`, each listing only the roles allowed; contact edits allowed to the owner until the parcel leaves (AORD-0).
+- We do instead: while a shipment is reserved, sending, draft, uncertain, or accepted but not yet applied to the order, SQL triggers on `orders` (migration 0012) refuse leaving `confirmed` and changing the wilaya, commune, fee, total, phone, name or address. `buildOrderChange` and `applyOrderChange` also take an optional extra guard on every statement they write, and a new system actor, `courier_sync`, may make only `confirmed→shipped`, `shipped→delivered` and `shipped→returned`. Existing callers pass no guard and behave as before.
+- Why: a parcel already handed to a courier collects the amount it was created with. Without the guard an owner could change the fee during a send, or cancel an order whose parcel may exist, and nothing would flag it. A 0-row update does not abort a D1 batch, so a lost compare-and-swap needs the extra guard to write nothing.
+- Evidence: artifacts/SHIP-0/contract.md (revision 3), artifacts/SHIP-0/contract-challenge.md M1, M2, M4, artifacts/SHIP-0/contract-challenge-r2.md N1, N2 (trigger behaviour measured on local D1); lead rulings 2026-11-09, artifacts/SHIP-0/approval.md; tests in packages/db/test/shipping.test.ts.
+- Status: active
+
+## D-012 — Connecting Google Sheets exports every existing order
+- Date: 2026-11-09 · Author: sheets · Task: SHEET-2
+- Report says: nothing about Google Sheets; ADMIN2 brief §5 specifies one row per order and automatic catch-up without saying whether older orders are included.
+- We do instead: connecting exports every existing order to the owner's own Google Drive, oldest first, in batches of 300 per run. That includes customer names, phones and addresses. Notes, flags, risk score and IP hash are not exported.
+- Why: lead ruling on the client's request for each order as one row; the data stays in the account of the admin who connects it.
+- Evidence: artifacts/SHEET-0/approval.md; artifacts/SHEET-0/contract.md §2 and §3; apps/jobs/test/sheets/sync.d1.test.ts (check 23).
+- Status: active
+
+## D-013 — The courier webhook route reads and writes D1, and signatures are checked in jobs
+- Date: 2026-11-09 · Author: shipping · Task: SHIP-4
+- Report says: §2 "Data", CLAUDE.md: D1 is touched only on the order and quote POSTs and in the admin (D-002). ADMIN2/BRIEF §5: the webhook route verifies a signature or per-account token.
+- We do instead: `/api/courier-hook/:courier/:token` on apps/web looks up the account by the SHA-256 of the URL token (one indexed read) and writes the byte-exact body and filtered headers to `courier_webhook_inbox`. A courier's own signature is verified in apps/jobs, not in this route, so the storefront Worker never holds courier secrets. The token is always enforced in the route. Malformed tokens cost no D1 query; bodies are capped at 32 KiB so a row stays within the daily backup's 90,000-byte statement limit. No rate-limit binding (lead ruling).
+- Why: couriers cannot reach the admin behind Cloudflare Access. Webhooks are not visitor page views, so no page depends on D1 here.
+- Evidence: artifacts/SHIP-0/contract.md rules 16 and 16a; lead rulings 2026-11-09, artifacts/SHIP-0/approval.md; apps/web/test/couriers/.
+- Status: active
