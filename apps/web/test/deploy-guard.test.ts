@@ -43,8 +43,8 @@ describe('originProblems', () => {
     'https://192.168.1.10',
     'https://[::1]',
     'https://shop.dz:8443',
-    'http://hbdestockagedz.com',
-    'https://hbdestockage.example',
+    'http://comptoirdeluxe.com',
+    'https://comptoirdeluxe.example',
     'https://shop.test',
     'https://shop.local',
     'https://example.com',
@@ -53,7 +53,7 @@ describe('originProblems', () => {
     expect(originProblems(origin).length).toBeGreaterThan(0);
   });
 
-  test.each(['https://hbdestockagedz.com', 'https://www.hbdestockagedz.com', 'https://shop.hb-destockage.dz'])('%s is allowed', (origin) => {
+  test.each(['https://comptoirdeluxe.com', 'https://www.comptoirdeluxe.com', 'https://shop.comptoirdeluxe.com'])('%s is allowed', (origin) => {
     expect(originProblems(origin)).toEqual([]);
   });
 
@@ -78,11 +78,11 @@ describe('checkDist', () => {
   });
 
   test('proper https production domain is allowed', () => {
-    expect(checkDist(site('https://hbdestockagedz.com'))).toEqual([]);
+    expect(checkDist(site('https://comptoirdeluxe.com'))).toEqual([]);
   });
 
   test('mixed origins (sitemap prod, pages localhost) are refused', () => {
-    const problems = checkDist(site('https://hbdestockagedz.com', { pageOrigin: 'http://localhost:8787' }));
+    const problems = checkDist(site('https://comptoirdeluxe.com', { pageOrigin: 'http://localhost:8787' }));
     expect(problems.join('\n')).toMatch(/more than one site origin/);
   });
 
@@ -190,9 +190,9 @@ describe('the guard as wrangler runs it', () => {
   });
 
   test('real deploy of a production build → exit 0', () => {
-    const r = run(site('https://hbdestockagedz.com'), { WRANGLER_COMMAND: 'deploy' }, ['wrangler', 'deploy']);
+    const r = run(site('https://comptoirdeluxe.com'), { WRANGLER_COMMAND: 'deploy' }, ['wrangler', 'deploy']);
     expect(r.status).toBe(0);
-    expect(r.stdout).toMatch(/site origin OK \(https:\/\/hbdestockagedz\.com\)/);
+    expect(r.stdout).toMatch(/site origin OK \(https:\/\/comptoirdeluxe\.com\)/);
   });
 
   test('temporary deploy (our only remote measurement) of a build for its workers.dev host → exit 0', () => {
@@ -226,7 +226,7 @@ describe('the guard as wrangler runs it', () => {
   });
 
   test('--assets <dir> with a bad build is refused even when the default dist is fine', () => {
-    const good = site('https://hbdestockagedz.com');
+    const good = site('https://comptoirdeluxe.com');
     const bad = site('http://localhost:8787');
     const r = run(good, { WRANGLER_COMMAND: 'deploy' }, ['wrangler', 'deploy', '--assets', bad]);
     expect(r.status).toBe(1);

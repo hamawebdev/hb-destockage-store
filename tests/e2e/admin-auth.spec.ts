@@ -64,7 +64,7 @@ describe('admin without auth', () => {
         .on('error', fail).end();
     });
     expect(await get(u.host), 'loopback Host').toBe(200);
-    expect([401, 403, 404]).toContain(await get('admin.hbdestockage.dz'));
+    expect([401, 403, 404]).toContain(await get('admin.comptoirdeluxe.com'));
   });
 
   needs('adminAuth', 'seed')('control: each dev role logs in and is served the dashboard', async ({ admin }) => {

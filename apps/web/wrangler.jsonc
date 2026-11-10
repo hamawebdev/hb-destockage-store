@@ -1,4 +1,4 @@
-// HB Destockage storefront Worker (owner: web). Plan: artifacts/WEB-0/plan.md §1.1.
+// Comptoir de Luxe storefront Worker (owner: web). Plan: artifacts/WEB-0/plan.md §1.1.
 // Static assets (the Astro build) are served before the Worker runs; the Worker only sees the
 // `run_worker_first` paths: /api/* and the order confirmation page (ref filled in, no D1).
 // Local: `npm run dev -w @hb/web` (port 4210, inspector 4211). Production deploys go through .github/workflows/pipeline.yml.
