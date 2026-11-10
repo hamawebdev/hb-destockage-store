@@ -28,13 +28,21 @@ export const NAV: readonly NavGroup[] = [
       { href: '/orders', label: 'nav.orders', perm: 'orders.view', icon: 'inbox' },
       { href: '/orders/queue', label: 'nav.queue', perm: 'orders.queue', icon: 'phone', parent: '/orders', tabLabel: 'nav.tab.queue' },
       { href: '/customers', label: 'nav.customers', perm: 'customers.view', icon: 'users', parent: '/orders' },
-      { href: '/orders/shipping', label: 'nav.shipping', perm: 'orders.shipping', icon: 'truck' },
+    ],
+  },
+  {
+    items: [
+      { href: '/orders/shipping', label: 'nav.shipping', perm: 'orders.shipping', icon: 'truck', tabLabel: 'nav.tab.shipping' },
+      { href: '/delivery/exceptions', label: 'nav.exceptions', perm: 'delivery.view', icon: 'alert', parent: '/orders/shipping' },
+      { href: '/parcels/delayed', label: 'nav.delayed', perm: 'delivery.view', icon: 'clock', parent: '/orders/shipping' },
+      { href: '/parcels/performance', label: 'nav.performance', perm: 'delivery.view', icon: 'chart', parent: '/orders/shipping' },
     ],
   },
   {
     items: [
       { href: '/products', label: 'nav.products', perm: 'catalog.view', icon: 'box' },
       { href: '/categories', label: 'nav.categories', perm: 'catalog.view', icon: 'tag', parent: '/products' },
+      { href: '/products/stock/alerts', label: 'nav.stockAlerts', perm: 'stock.edit', icon: 'alert', parent: '/products' },
       { href: '/media', label: 'nav.media', perm: 'media.edit', icon: 'image', parent: '/products' },
     ],
   },
@@ -49,6 +57,8 @@ export const NAV: readonly NavGroup[] = [
     items: [
       { href: '/users', label: 'nav.users', perm: 'users.manage', icon: 'users' },
       { href: '/settings', label: 'nav.settings', perm: 'settings.edit', icon: 'sliders' },
+      { href: '/delivery/settings', label: 'nav.deliverySettings', perm: 'delivery.settings', icon: 'truck', parent: '/settings' },
+      { href: '/sheets', label: 'nav.sheets', perm: 'sheets.settings', icon: 'sheet', parent: '/settings' },
       { href: '/audit', label: 'nav.audit', perm: 'audit.view', icon: 'list' },
     ],
   },

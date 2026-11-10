@@ -50,6 +50,7 @@ import {
 import { m } from './messages.ts';
 import { loadPackLines, loadPickable, mountPackRoutes, PackSection } from './pack.tsx';
 import { mountStockRoutes } from './stock.tsx';
+import { mountStockAlertRoutes } from './alerts.tsx';
 import { bindChoices, loadImages } from '../media/data.ts';
 import { PhotosSection } from '../media/views.tsx';
 import {
@@ -234,6 +235,7 @@ r.get('/', requirePerm('catalog.view'), async (c) => {
 });
 
 // Stock screen (ACAT-7): registered before `/:id` so `/stock` is not taken for an id.
+mountStockAlertRoutes(r);
 mountStockRoutes(r);
 
 // ---------------------------------------------------------------------------------------------

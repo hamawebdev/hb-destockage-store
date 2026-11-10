@@ -28,6 +28,8 @@ import {
   type DeadSummary,
   type Tile,
 } from './data.ts';
+import { DEFAULT_DELAY_DAYS, delayDaysSetting, delayedCount } from '../parcels/data.ts';
+import { pm } from '../parcels/messages.ts';
 
 const r = createRouter({ roles: rolesFor('dashboard.view') });
 
@@ -37,6 +39,7 @@ export const TILE_ACCESS = {
   toCall: (u: Pick<CurrentUser, 'role'>) => can(u, 'orders.queue'),
   flagged: (u: Pick<CurrentUser, 'role'>) => can(u, 'customers.sensitive'),
   toShip: (u: Pick<CurrentUser, 'role'>) => can(u, 'orders.shipping'),
+  delayed: (u: Pick<CurrentUser, 'role'>) => can(u, 'delivery.view'),
   lowStock: (u: Pick<CurrentUser, 'role'>) => can(u, 'stock.edit'),
   placeholderFees: (u: Pick<CurrentUser, 'role'>) => can(u, 'fees.edit'),
   backup: (u: Pick<CurrentUser, 'role'>) => u.role === 'owner',
@@ -52,6 +55,15 @@ function Card(props: { name: TileName; title: string; href?: string; tone?: 'neu
     <section class={`tile tile--${props.tone ?? 'neutral'}`} data-tile={props.name}>
       <h2 class="tile__title">{props.href ? <a class="tile__link" href={props.href}>{props.title}</a> : props.title}</h2>
       <div class="tile__body">{props.children}</div>
+    </section>
+  );
+}
+
+function Group(props: { title: string; name: string; children: Child[] }) {
+  return (
+    <section class="tile-group" aria-labelledby={`dash-${props.name}`}>
+      <h2 class="tile-group__title" id={`dash-${props.name}`}>{props.title}</h2>
+      <div class={`tiles tiles--${props.name}`}>{props.children}</div>
     </section>
   );
 }
@@ -115,12 +127,18 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
   const skip = <T,>(): Promise<Tile<T> | null> => Promise.resolve(null);
   const { today, week } = dayWindows(now);
 
-  const [ordersToday, orders7d, toCall, flagged, toShip, lowStock, fees, backup, dead, publish] = await Promise.all([
+  const [ordersToday, orders7d, toCall, flagged, toShip, delayed, lowStock, fees, backup, dead, publish] = await Promise.all([
     show('orders') ? safeTile('ordersToday', () => ordersByStatus(db, today)) : skip<Map<string, number>>(),
     show('orders') ? safeTile('orders7d', () => ordersByStatus(db, week)) : skip<Map<string, number>>(),
     show('toCall') ? safeTile('toCall', () => toCallCount(db, now)) : skip<number>(),
     show('flagged') ? safeTile('flagged', () => flaggedOpenCount(db)) : skip<number>(),
     show('toShip') ? safeTile('toShip', () => toShipCount(db)) : skip<number>(),
+    show('delayed')
+      ? safeTile('delayed', async () => {
+          const days = await delayDaysSetting(db);
+          return { days, n: await delayedCount(db, now, days) };
+        })
+      : skip<{ days: number; n: number }>(),
     show('lowStock')
       ? safeTile('lowStock', async () => {
           const threshold = await lowStockThreshold(db);
@@ -133,31 +151,40 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
     show('publish') ? safeTile('publish', () => lastPublish(db)) : skip<{ status: string; at: number } | null>(),
   ]);
 
-  const tiles: Child[] = [];
+  const work: Child[] = [];
+  const ordersGroup: Child[] = [];
+  const health: Child[] = [];
   if (ordersToday) {
-    tiles.push(<Card name="orders" title={t('dash.ordersToday')} href="/orders">{ordersToday.ok ? <StatusCounts t={t} counts={ordersToday.value} /> : <Unavailable t={t} />}</Card>);
+    ordersGroup.push(<Card name="orders" title={t('dash.ordersToday')} href="/orders">{ordersToday.ok ? <StatusCounts t={t} counts={ordersToday.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (orders7d) {
-    tiles.push(<Card name="orders" title={t('dash.orders7d')} href="/orders">{orders7d.ok ? <StatusCounts t={t} counts={orders7d.value} /> : <Unavailable t={t} />}</Card>);
+    ordersGroup.push(<Card name="orders" title={t('dash.orders7d')} href="/orders">{orders7d.ok ? <StatusCounts t={t} counts={orders7d.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (toCall) {
-    tiles.push(<Card name="toCall" title={t('dash.toCall')} href="/orders/queue" tone={toCall.ok && toCall.value > 0 ? 'warning' : 'neutral'}>{toCall.ok ? <Big value={toCall.value} /> : <Unavailable t={t} />}</Card>);
+    work.push(<Card name="toCall" title={t('dash.toCall')} href="/orders/queue" tone={toCall.ok && toCall.value > 0 ? 'warning' : 'neutral'}>{toCall.ok ? <Big value={toCall.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (flagged) {
-    tiles.push(<Card name="flagged" title={t('dash.flagged')} href="/orders?flagged=1" tone={flagged.ok && flagged.value > 0 ? 'warning' : 'neutral'}>{flagged.ok ? <Big value={flagged.value} /> : <Unavailable t={t} />}</Card>);
+    work.push(<Card name="flagged" title={t('dash.flagged')} href="/orders?flagged=1" tone={flagged.ok && flagged.value > 0 ? 'warning' : 'neutral'}>{flagged.ok ? <Big value={flagged.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (toShip) {
-    tiles.push(<Card name="toShip" title={t('dash.toShip')} href="/orders/shipping">{toShip.ok ? <Big value={toShip.value} /> : <Unavailable t={t} />}</Card>);
+    work.push(<Card name="toShip" title={t('dash.toShip')} href="/orders/shipping">{toShip.ok ? <Big value={toShip.value} /> : <Unavailable t={t} />}</Card>);
+  }
+  if (delayed) {
+    work.push(
+      <Card name="delayed" title={pm(c.var.lang)('delayed.dashTitle', { days: delayed.ok ? delayed.value.days : DEFAULT_DELAY_DAYS })} href="/parcels/delayed" tone={delayed.ok && delayed.value.n > 0 ? 'warning' : 'neutral'}>
+        {delayed.ok ? <Big value={delayed.value.n} /> : <Unavailable t={t} />}
+      </Card>,
+    );
   }
   if (lowStock) {
-    tiles.push(
-      <Card name="lowStock" title={t('dash.lowStock', { threshold: lowStock.ok ? lowStock.value.threshold : 3 })} href="/products?lowStock=1" tone={lowStock.ok && lowStock.value.n > 0 ? 'warning' : 'neutral'}>
+    work.push(
+      <Card name="lowStock" title={t('dash.lowStock', { threshold: lowStock.ok ? lowStock.value.threshold : 3 })} href="/products/stock/alerts" tone={lowStock.ok && lowStock.value.n > 0 ? 'warning' : 'neutral'}>
         {lowStock.ok ? <Big value={lowStock.value.n} /> : <Unavailable t={t} />}
       </Card>,
     );
   }
   if (fees) {
-    tiles.push(
+    work.push(
       <Card name="placeholderFees" title={t('dash.placeholderFees')} href="/fees" tone={fees.ok && fees.value > 0 ? 'warning' : 'neutral'}>
         {fees.ok ? (
           <>
@@ -172,17 +199,17 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
   }
   if (backup) {
     const tone = !backup.ok || backup.value.state === 'never' || backup.value.state === 'stale' || backup.value.state === 'unavailable' ? 'danger' : 'success';
-    tiles.push(<Card name="backup" title={t('dash.backup')} tone={tone}>{backup.ok ? <BackupBody t={t} view={backup.value} /> : <Unavailable t={t} />}</Card>);
+    health.push(<Card name="backup" title={t('dash.backup')} tone={tone}>{backup.ok ? <BackupBody t={t} view={backup.value} /> : <Unavailable t={t} />}</Card>);
   }
   if (dead) {
-    tiles.push(
+    health.push(
       <Card name="deadNotifications" title={t('dash.deadNotifications')} href="/orders" tone={dead.ok && (dead.value.orders > 0 || dead.value.invalidMessages > 0) ? 'danger' : 'neutral'}>
         {dead.ok ? <DeadBody t={t} dead={dead.value} /> : <Unavailable t={t} />}
       </Card>,
     );
   }
   if (publish) {
-    tiles.push(
+    health.push(
       <Card name="publish" title={t('dash.lastPublish')} href="/publish" tone={publish.ok && publish.value?.status === 'failed' ? 'danger' : 'neutral'}>
         {!publish.ok ? (
           <Unavailable t={t} />
@@ -201,7 +228,9 @@ r.get('/', requirePerm('dashboard.view'), async (c) => {
   const deadList = dead?.ok && dead.value.recent.length > 0 ? dead.value.recent : null;
   return c.render(
     <>
-      <div class="tiles">{tiles}</div>
+      {work.length > 0 ? <Group title={t('dash.group.work')} name="work">{work}</Group> : null}
+      {ordersGroup.length > 0 ? <Group title={t('dash.group.orders')} name="orders">{ordersGroup}</Group> : null}
+      {health.length > 0 ? <Group title={t('dash.group.health')} name="health">{health}</Group> : null}
       {deadList ? (
         <Table
           caption={t('dash.deadList')}

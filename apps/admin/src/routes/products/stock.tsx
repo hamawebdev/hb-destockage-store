@@ -18,6 +18,7 @@ import { parseForm, vCheckbox, vOptionalInt, vOptionalText, vPicklist } from '..
 import { DEFAULT_PAGE_SIZE, offsetOf, pageCount, parsePage } from '../../lib/pagination.ts';
 import { useUi } from '../../ui/context.ts';
 import { Code, Num } from '../../ui/format.tsx';
+import { EmptyState } from '../../ui/badge.tsx';
 import { Table } from '../../ui/table.tsx';
 import { ErrorSummary, Form, FormActions, NumberInput, Select, Submit, TextInput, type FieldErrors } from '../../ui/form.tsx';
 import { withFlash } from '../../ui/flash.tsx';
@@ -29,6 +30,7 @@ import { fieldMessages } from './lib/field-messages.ts';
 import { guard, isGuardAbort } from './lib/guard.ts';
 import { cleanText } from './lib/text.ts';
 import { m } from './messages.ts';
+import { renderAlerts } from './alerts.tsx';
 
 type Ctx = Context<AppEnv>;
 
@@ -74,7 +76,7 @@ export interface StockRow {
   labelAr: string | null;
 }
 
-const labelSql = (col: 'fr' | 'ar') =>
+export const labelSql = (col: 'fr' | 'ar') =>
   col === 'fr'
     ? sql<string | null>`(select group_concat(ov.value_fr, ' / ') from variant_option_values vov join option_values ov on ov.id = vov.option_value_id where vov.variant_id = ${variants.id})`
     : sql<string | null>`(select group_concat(ov.value_ar, ' / ') from variant_option_values vov join option_values ov on ov.id = vov.option_value_id where vov.variant_id = ${variants.id})`;
@@ -143,7 +145,7 @@ const stockIs = (c: Ctx, id: number, expected: number | null) =>
 // ---------------------------------------------------------------------------------------------
 
 /** "Fixer à (HB-P)": the SKU in an LTR isolate (LRI…PDI), so each row's fields have a distinct name. */
-const withSku = (text: string, sku: string): string => `${text} (\u2066${sku}\u2069)`;
+export const withSku = (text: string, sku: string): string => `${text} (\u2066${sku}\u2069)`;
 
 const label = (r: StockRow, lang: 'fr' | 'ar') => {
   const name = lang === 'ar' ? r.productNameAr : r.productNameFr;
@@ -165,7 +167,7 @@ function StockPage(props: {
   const tm = m(lang);
   return (
     <>
-      <Form action="/products/stock" method="get" class="form">
+      <Form action="/products/stock" method="get" class="form form--filters">
         <TextInput name="q" type="search" label={tm('filter.q')} value={props.filters['q']} maxlength={100} />
         <Select name="category" label={tm('filter.category')} value={props.filters['category']} options={[{ value: '', label: tm('filter.all') }, ...props.categoryOptions]} />
         <Select name="state" label={tm('stock.filter.state')} value={props.filters['state']} options={STATES.map((s) => ({ value: s, label: tm(`stock.state.${s}`) }))} />
@@ -176,7 +178,7 @@ function StockPage(props: {
       </Form>
       <ErrorSummary errors={props.errors} />
       {props.rows.length === 0 ? (
-        <p class="empty">{tm('empty')}</p>
+        <EmptyState icon="box">{tm('empty')}</EmptyState>
       ) : (
         // A table from 600 px, label/value cards below (kit Table `stack`, CSS only): every control
         // stays on screen at 360 px. Field labels carry the SKU (LTR-isolated), so N rows never share
@@ -296,7 +298,13 @@ export function safeBack(raw: string | undefined): string {
   } catch {
     return fallback;
   }
-  if (u.origin !== 'http://x' || u.pathname !== '/products/stock') return fallback;
+  if (u.origin !== 'http://x') return fallback;
+  // The alerts view (UX-9) posts its quick "set" form here too and comes back to itself.
+  if (u.pathname === '/products/stock/alerts') {
+    const p = u.searchParams.get('page');
+    return p !== null && /^\d{1,6}$/.test(p) ? `/products/stock/alerts?page=${p}` : '/products/stock/alerts';
+  }
+  if (u.pathname !== '/products/stock') return fallback;
   const out = new URLSearchParams();
   for (const k of ['q', 'category', 'state', 'archived', 'page']) {
     const val = u.searchParams.get(k);
@@ -349,8 +357,13 @@ export function mountStockRoutes(r: Hono<AppEnv>): void {
   r.get('/stock', requirePerm('stock.edit'), (c) => renderList(c));
 
   /** Re-renders the stock list with the error at the top (the POST has no filters: default view). */
-  const fail = async (c: Ctx, status: 409 | 422, _back: string, errors: Record<string, string>) => {
+  const fail = async (c: Ctx, status: 409 | 422, back: string, errors: Record<string, string>) => {
     c.status(status);
+    // Posted from the alerts list (UX-9): stay on it (review UX-7 r1 N1).
+    if (back === '/products/stock/alerts' || back.startsWith('/products/stock/alerts?')) {
+      const p = Number(new URL(back, 'http://x').searchParams.get('page') ?? '1');
+      return renderAlerts(c, Number.isSafeInteger(p) && p >= 1 ? p : 1, errors);
+    }
     return renderList(c, errors);
   };
 

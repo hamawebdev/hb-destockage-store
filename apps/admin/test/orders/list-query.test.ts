@@ -128,6 +128,8 @@ describe('parseOrdersFilter', () => {
   });
   test('status=any clears the default; repeated statuses are deduped and ordered', () => {
     expect(parseOrdersFilter(q('status=any'), 'logistics').filter.statuses).toEqual([]);
+    // The list keeps a hidden status=any on the All tab: a status ticked next to it wins.
+    expect(parseOrdersFilter(q('status=any&status=new'), 'logistics').filter.statuses).toEqual(['new']);
     expect(parseOrdersFilter(q('status=shipped&status=new&status=new'), 'owner').filter.statuses).toEqual([
       'new',
       'shipped',

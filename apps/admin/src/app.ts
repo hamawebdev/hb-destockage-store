@@ -46,6 +46,7 @@ import publish from './routes/publish/index.tsx';
 import delivery from './routes/delivery/index.tsx';
 import sheets from './routes/sheets/index.tsx';
 import auditRoutes from './audit/routes.tsx';
+import parcels from './routes/parcels/index.tsx';
 
 export const MAX_BODY_BYTES = 1024 * 1024;
 export const LARGE_BODY_BYTES = 10 * 1024 * 1024;
@@ -127,6 +128,7 @@ export function createApp(opts: AppOptions = {}): Hono<AppEnv> {
   app.route('/delivery', delivery);
   app.route('/sheets', sheets);
   app.route('/audit', auditRoutes);
+  app.route('/parcels', parcels);
 
   app.notFound((c) => renderError(c, 404));
   app.onError((err, c) => {

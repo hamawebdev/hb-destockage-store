@@ -131,3 +131,59 @@ The site build runs a large tree of third-party packages (Astro, sharp, the cata
 - The token is set only on the steps that talk to Cloudflare: *Export from production*, *Deploy Workers* and *Roll back*. The other steps refuse to run if it is present.
 - Runtime secrets (`TURNSTILE_SECRET`, `ORDER_SIGNING_KEY`, `IP_HASH_KEY`, `CSRF_SECRET`, …) live in Cloudflare. The pipeline never reads or sets them.
 - The report workflow's measurements cover the test catalogue only.
+
+## Switching on delivery and Google Sheets
+
+Both ship switched off. With nothing below set, the admin, the storefront and orders work as before: the delivery pages say keys are needed, and the Sheets page says it is not configured. Nothing here goes in the repo, a log or the browser, and no relay sits between us and the courier or Google.
+
+### Shared key (once)
+
+- `COURIER_KEYS_KEY`: 32 random bytes, base64 (`openssl rand -base64 32`). It seals the courier keys and the Google refresh token stored in D1. Set the **same value** as a Cloudflare secret on **`admin` and `jobs`**.
+- Never change it while couriers or Sheets are connected. A new value can't open what the old one sealed, so the owner would have to enter every courier's keys and reconnect Google.
+- `ENV` stays `production` on admin, jobs and web: it is the default in each `wrangler.jsonc`. Outside production, courier and Google calls are held to `127.0.0.1` (the stand-ins).
+- Never set `COURIER_STANDIN_URL` or `GOOGLE_STANDIN_URL` in production.
+
+### Couriers (owner, in the admin)
+
+1. **Delivery → Settings**, pick the courier, enter its keys:
+
+   | Courier | Keys |
+   |---|---|
+   | Yalidine (and Guepex) | API ID, API token |
+   | EcoTrack (each EcoTrack company) | API token |
+   | ZR Express | secret API key, account (tenant) ID |
+   | NOEST Express | API token, user GUID |
+   | Maystro Delivery | store token |
+
+2. **Test** checks the keys with one call to the courier, and the result is recorded. Set the origin wilaya where the courier asks for it, then **Enable**.
+3. **Courier notifications** (Yalidine, EcoTrack, ZR, NOEST):
+   - **Generate the notification address** (*Générer l'adresse de notification*) shows the full URL `https://<storefront domain>/api/courier-hook/<courier>/<token>` **once**. Paste it into the courier's dashboard.
+   - Copy the courier's **signing secret** into *Secret de signature des notifications*. Without it, notifications are refused and tracking falls back to polling.
+   - The address points at the storefront Worker because Cloudflare Access closes `admin.<domain>`.
+   - A lost address can't be shown again: *Remplacer l'adresse* makes a new one and voids the old one at once.
+   - Maystro's webhooks are unsigned, so Maystro is polled only.
+4. Status sync runs in the `jobs` cron every minute (`* * * * *`, already in `apps/jobs/wrangler.jsonc`). It reads the webhook inbox and polls whatever a webhook didn't settle.
+   - Only *delivered* and *returned* move an order.
+   - A *returned* parcel restocks once.
+   - A status we don't know never moves an order and appears under **Delivery → Exceptions**.
+
+### Google Sheets (once in Google Cloud, then a few clicks for the owner)
+
+1. In Google Cloud, make a project, then **enable the Google Sheets API and the Google Drive API**.
+2. Fill in the OAuth consent screen. Scope: `https://www.googleapis.com/auth/drive.file` only, so the app sees only the sheet it creates. **Publish it to "In production"**: in "Testing", Google expires the refresh token after 7 days and the sync stops.
+3. Create an OAuth client of type **Web application**. Authorised redirect URI: `https://admin.<domain>/sheets/callback`.
+4. Set these Cloudflare secrets:
+
+   | Worker | Secrets |
+   |---|---|
+   | admin | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (exactly the URI above) |
+   | jobs | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+
+   Admin and jobs also both need `COURIER_KEYS_KEY`.
+5. Cloudflare Access: keep its cookie's SameSite setting **Lax or None, not Strict**. A Strict cookie is not sent on Google's redirect back, so the callback would land on the Access login.
+6. The owner opens the **Google Sheets** page (Administration), clicks **Connect** and signs in with the admin's Google account.
+   - A sheet owned by that account is created, and every existing order is exported, oldest first.
+   - After that, one row per order is kept up to date (the jobs cron, every minute).
+   - The admin stays the source of truth: a hand edit to one of our columns is overwritten at that order's next change.
+   - If Google is down, orders still go through, and the rows catch up on their own.
+   - **Reconnexion nécessaire** means Google withdrew access (a revoked token, or a consent screen left in Testing): reconnect the same account and the missing rows follow.
