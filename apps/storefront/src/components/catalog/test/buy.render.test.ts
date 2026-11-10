@@ -32,6 +32,8 @@ const VIEWS = [
   ['search', SearchView],
   ['product', ProductView],
 ] as const;
+/** HomeView takes `{ props, tiles }`; the others take the page props directly. */
+const wrap = (template: string, props: unknown): unknown => (template === 'home' ? { props, tiles: [] } : props);
 const buyLinks = (html: string) => [...html.matchAll(/<a class="cat-card-buy" href="([^"]+)" data-no-prefetch>([^<]+)<span class="cat-sr"> ([^<]+)<\/span><\/a>/g)];
 
 describe.each(['ar', 'fr'] as const)('cards (%s)', (lang) => {
@@ -40,16 +42,18 @@ describe.each(['ar', 'fr'] as const)('cards (%s)', (lang) => {
     const props = page<WithLayout>(lang, template, false);
     const cards = cardsOf(props);
     expect(cards.length).toBeGreaterThan(0);
-    const html = await container.renderToString(View as never, { props: props as never });
+    const html = await container.renderToString(View as never, { props: wrap(template, props) as never });
     const links = buyLinks(html);
+    // Home shows whole rows only, so it may render fewer cards than its props carry: every rendered card has its link.
     expect(links.length).toBe((html.match(/<article class="cat-card/g) ?? []).length);
-    expect(links.length).toBe(cards.length);
-    for (const c of cards) {
-      const l = links.find((m) => m[1] === c.orderHref);
-      expect(l, c.orderHref).toBeDefined();
-      expect(l![1]).toMatch(new RegExp(`^/${lang}/order/[a-z0-9-]+/$`));
-      expect(l![2]).toBe(props.layout.strings['product.orderCta']);
-      expect(l![3]).toBe(c.name);
+    expect(links.length).toBeGreaterThan(0);
+    if (template !== 'home') expect(links.length).toBe(cards.length);
+    for (const l of links) {
+      const c = cards.find((x) => x.orderHref === l[1]);
+      expect(c, l[1]).toBeDefined();
+      expect(l[1]).toMatch(new RegExp(`^/${lang}/order/[a-z0-9-]+/$`));
+      expect(l[2]).toBe(props.layout.strings['product.orderCta']);
+      expect(l[3]).toBe(c!.name);
     }
     // No add-to-cart anywhere when the cart is off: cards (CART-3) and the PDP's own button (CART-4).
     expect(html).not.toContain('data-cart-add');
@@ -58,15 +62,15 @@ describe.each(['ar', 'fr'] as const)('cards (%s)', (lang) => {
 
   it.each(VIEWS)('%s, cart on: no buy link (today\'s markup)', async (template, View) => {
     const props = page<WithLayout>(lang, template, true);
-    const html = await container.renderToString(View as never, { props: props as never });
+    const html = await container.renderToString(View as never, { props: wrap(template, props) as never });
     expect(html).not.toContain('cat-card-buy');
     if (template === 'home') expect(html).toContain('data-cart-add');
     if (template === 'product') expect(html).toContain('cat-add-cart');
   });
 
   it('search, cart off: the results\' buy label travels in data-i18n; cart on: it does not', async () => {
-    const off = await container.renderToString(SearchView, { props: page<SearchProps>(lang, 'search', false) });
-    const on = await container.renderToString(SearchView, { props: page<SearchProps>(lang, 'search', true) });
+    const off = await container.renderToString(SearchView, { props: page<SearchProps>(lang, 'search', false) as never });
+    const on = await container.renderToString(SearchView, { props: page<SearchProps>(lang, 'search', true) as never });
     expect(off).toContain('card.buy');
     expect(on).not.toContain('card.buy');
   });

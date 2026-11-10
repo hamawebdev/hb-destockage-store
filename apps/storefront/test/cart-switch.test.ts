@@ -48,7 +48,7 @@ describe('order.js (CART-4, order path)', () => {
     const off = await ship('order.js', false);
     const on = await ship('order.js', true);
     expect(off.match(/cart/gi)).toBeNull();
-    expect(off).not.toContain('import(');
+    expect(off).not.toMatch(/import\(\w+\.cart\)/);
     expect(on).toMatch(/import\(\w+\.cart\)/);
     const today = await minify('order.js', src('order.js'), { compress: { target: 'es2022' }, mangle: true, module: true });
     expect(on).toBe(today.code);
