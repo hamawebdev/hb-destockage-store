@@ -24,7 +24,7 @@ describe.each(['ar', 'fr'] as const)('Confirmation (%s)', (lang) => {
   it('has a heading without the Latin store name (QA-1 BUG-9)', async () => {
     const h1 = (await render()).match(/<h1[^>]*>([^<]*)<\/h1>/)?.[1] ?? '';
     expect(h1.length).toBeGreaterThan(5);
-    expect(h1).not.toMatch(/HB Destockage/);
+    expect(h1).not.toMatch(/Comptoir de Luxe|كونتوار دو لوكس/);
   });
 
   it('exposes exactly web\'s frozen slots: hidden has-ref block with an empty LTR <bdi data-hb="ref">', async () => {

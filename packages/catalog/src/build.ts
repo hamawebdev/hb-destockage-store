@@ -108,7 +108,7 @@ export const REQUIRED_STRING_KEYS = [
 ] as const;
 
 export interface BuildInput {
-  /** Absolute origin, e.g. `https://hbdestockage.dz`. */
+  /** Absolute origin, e.g. `https://comptoirdeluxe.com`. */
   readonly siteUrl: string;
   /** Flat brand strings per language (`loadStrings` from `@hb/catalog/sources`). */
   readonly strings: Localized<StringTable>;

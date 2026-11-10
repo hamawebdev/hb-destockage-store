@@ -1,4 +1,4 @@
-// HB Destockage order form enhancement (ORDER-2). Plain ES module, no dependencies, loaded after LCP by
+// Comptoir de Luxe order form enhancement (ORDER-2). Plain ES module, no dependencies, loaded after LCP by
 // shell's [data-js] loader. Plan: artifacts/ORDER-0/plan.md §4 + the lead's rulings. Contracts: WEB-0 §2.1–2.2.
 // Rules: the total is always shown before an order is created; one idempotency key per page view, kept
 // across retries; DOM writes use textContent/Option only. Pure helpers are exported for the parity tests.

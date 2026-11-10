@@ -17,11 +17,11 @@ describe('publish --site-origin (pagedata parseSiteOrigin, publish mode)', { tim
     ['*.local', 'https://shop.local'],
     ['*.internal', 'https://x.internal'],
     ['*.test', 'https://a.test'],
-    ['port', 'https://hbdestockagedz.com:8443'],
-    ['path', 'https://hbdestockagedz.com/fr'],
-    ['credentials', 'https://user@hbdestockagedz.com'],
-    ['http', 'http://hbdestockagedz.com'],
-    ['uppercase', 'https://HBdestockagedz.com'],
+    ['port', 'https://comptoirdeluxe.com:8443'],
+    ['path', 'https://comptoirdeluxe.com/fr'],
+    ['credentials', 'https://user@comptoirdeluxe.com'],
+    ['http', 'http://comptoirdeluxe.com'],
+    ['uppercase', 'https://COMPTOIRdeluxe.com'],
   ])('refuses %s (exit 2, reason printed)', (_l, origin) => {
     const r = publish(origin);
     expect(r.status).toBe(2);

@@ -34,7 +34,7 @@ const NON_PUBLIC_HOST = /(?:^|\.)(?:localhost|local|internal|test)$/;
 /**
  * RFC 2606/6761 names for documentation and invalid use: `.example`, `.invalid`, `example.com|net|org`
  * (and subdomains). Never a real site: refused for publish builds; non-publish builds keep them
- * (the fixture's origin is https://hbdestockage.example).
+ * (the fixture's origin is https://comptoirdeluxe.example).
  */
 const RESERVED_DOC_HOST = /(?:^|\.)(?:example|invalid|example\.com|example\.net|example\.org)$/;
 /** Local development origin: plain http on loopback, optional port (non-publish builds only). */

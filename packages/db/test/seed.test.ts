@@ -80,7 +80,7 @@ const fixture: SeedInput = {
   ],
   products: [pack, shirt],
   contentPages: [{ id: 1, key: 'about', slug: L('qui-sommes-nous', 'man-nahnu'), title: L('Qui', 'من'), summary: L('s', 'م'), body: { fr: [{ type: 'p', text: 'x' }], ar: [{ type: 'p', text: 'س' }] }, sort: 0, active: true, placeholder: true, updatedAt: 1793800000000 }],
-  settings: { storeName: L('HB Destockage', 'HB Destockage'), contactPhone: '0560417403', whatsapp: '213779942022', contactEmail: null, homeFeaturedProductIds: [101], homeHeroProductId: 101, turnstileSiteKey: null },
+  settings: { storeName: L('Comptoir de Luxe', 'كونتوار دو لوكس'), contactPhone: '0560417403', whatsapp: '213779942022', contactEmail: null, homeFeaturedProductIds: [101], homeHeroProductId: 101, turnstileSiteKey: null },
   adminUsers: DEV_ADMIN_USERS,
 };
 

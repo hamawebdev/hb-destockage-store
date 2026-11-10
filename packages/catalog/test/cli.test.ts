@@ -18,7 +18,7 @@ test('catalog CLI: the origin is required and single-sourced (CAT-6 r1)', () => 
   expect(missing.stderr).toMatch(/HB_SITE_ORIGIN is not set/);
   // The fixture may use its default origin (it then fails later, on the missing output dirs/data, not on the origin).
   expect(run({}).stderr).not.toMatch(/HB_SITE_ORIGIN/);
-  const mismatch = run({ HB_SITE_ORIGIN: 'https://hbdestockagedz.com' }, ['--site-url', 'https://hbdestockage.example']);
+  const mismatch = run({ HB_SITE_ORIGIN: 'https://comptoirdeluxe.com' }, ['--site-url', 'https://comptoirdeluxe.example']);
   expect(mismatch.status).toBe(2);
   expect(mismatch.stderr).toMatch(/disagrees with HB_SITE_ORIGIN/);
 }, 120_000); // three node processes that load sharp: slow on the shared machine

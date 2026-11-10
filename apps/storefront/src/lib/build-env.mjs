@@ -35,7 +35,7 @@ export function buildYear(env, now = new Date()) {
 }
 
 /** Origin used only for HB_SNAPSHOT=fixture builds (same as @hb/catalog FIXTURE_ORIGIN). */
-export const FIXTURE_ORIGIN = 'https://hbdestockage.example';
+export const FIXTURE_ORIGIN = 'https://comptoirdeluxe.example';
 
 /**
  * The single site origin (canonical, hreflang, og:url, og:image, and pagedata's sitemap/robots):

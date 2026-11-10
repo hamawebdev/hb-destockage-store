@@ -303,7 +303,7 @@ export const fixtureSnapshot: CatalogSnapshot = {
     },
   ],
   settings: {
-    storeName: { fr: 'HB Destockage', ar: 'HB Destockage' },
+    storeName: { fr: 'Comptoir de Luxe', ar: 'كونتوار دو لوكس' },
     contactPhone: '0560417403',
     whatsapp: '213779942022',
     contactEmail: null,

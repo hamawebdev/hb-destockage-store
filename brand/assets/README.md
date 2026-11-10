@@ -5,6 +5,8 @@ Built by `node brand/scripts/build-assets.mjs` from `brand/logo/*.svg`, `brand/t
 `packages/ui-tokens/fonts/subset.json` — are downloaded and sha256-checked, or passed as `INTER_TTF` /
 `NOTO_ARABIC_TTF`, which must match the pinned hashes). With the same sharp build, output is
 byte-for-byte deterministic. Do not edit these files by hand.
+The same run refreshes the admin's byte copy of the monogram, `apps/admin/public/assets/brand/monogram.svg`
+(checked by `apps/admin/test/assets.test.ts`).
 
 | File | Size | Use |
 |---|---|---|

@@ -60,13 +60,13 @@ describe('timings', () => {
   it('the API series (which writes orders) runs only on loopback, the harness, or an explicitly named *.workers.dev', () => {
     const ok = (base: string, allowWriteHost?: string, harness = false) => apiWriteAllowed(base, { harness, allowWriteHost }).ok;
     for (const b of ['http://127.0.0.1:4110', 'http://localhost:4210', 'http://[::1]:4110']) expect(ok(b), b).toBe(true);
-    expect(ok('https://hbdestockage.dz', undefined, true)).toBe(true); // the harness started it: it is ours
+    expect(ok('https://comptoirdeluxe.com', undefined, true)).toBe(true); // the harness started it: it is ours
     // production-like hosts: refused, with or without the flag
-    expect(ok('https://hbdestockage.dz')).toBe(false);
-    expect(ok('https://hbdestockage.dz', 'hb-test.hamawebdev.workers.dev')).toBe(false); // flag for another host
-    expect(ok('https://hbdestockage.dz', 'hbdestockage.dz')).toBe(false);                // flag only takes workers.dev
+    expect(ok('https://comptoirdeluxe.com')).toBe(false);
+    expect(ok('https://comptoirdeluxe.com', 'hb-test.hamawebdev.workers.dev')).toBe(false); // flag for another host
+    expect(ok('https://comptoirdeluxe.com', 'comptoirdeluxe.com')).toBe(false);                // flag only takes workers.dev
     expect(ok('http://127.0.0.2:4110')).toBe(false);                                     // not the loopback names we allow
-    const r = apiWriteAllowed('https://www.hbdestockage.dz', { harness: false, allowWriteHost: 'www.hbdestockage.dz' });
+    const r = apiWriteAllowed('https://www.comptoirdeluxe.com', { harness: false, allowWriteHost: 'www.comptoirdeluxe.com' });
     expect(r.ok === false && r.reason).toMatch(/accepts only a \*\.workers\.dev host/);
     // a temporary deploy: allowed only when named exactly
     expect(ok('https://hb-abc.hamawebdev.workers.dev')).toBe(false);

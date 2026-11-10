@@ -1,4 +1,4 @@
-// HB Destockage cart (CART-0, D-008). Plain ES module, no dependencies, loaded after LCP by Base's [data-js] loader.
+// Comptoir de Luxe cart (CART-0, D-008). Plain ES module, no dependencies, loaded after LCP by Base's [data-js] loader.
 // Everything here is the small part that must exist on every page: the pure cart rules (unit-tested), the storage
 // wrapper and the header count. The sheet (dialog, CSS, copy) is cart-sheet.js, imported on first use. No cookies.
 // The cart only stores ids and quantities: names, photos, prices and limits are read per language from the static

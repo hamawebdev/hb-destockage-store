@@ -227,7 +227,7 @@ describe('URL allow-list on built props', () => {
   test.each([
     [{ href: '//evil.example/' }],
     [{ layout: { canonicalUrl: 'https://evil.example/ar/' } }],
-    [{ alternates: [{ hreflang: 'ar', href: 'https://hbdestockage.example//evil.example/' }] }],
+    [{ alternates: [{ hreflang: 'ar', href: 'https://comptoirdeluxe.example//evil.example/' }] }],
     [{ image: { src: '/img/x-360.avif', srcset: '/img/x-360.avif 360w, //evil.example/x.avif 720w' } }],
     [{ items: [{ url: 'javascript:alert(1)' }] }],
   ])('rejects %j', (props) => {

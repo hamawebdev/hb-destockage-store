@@ -1,4 +1,4 @@
-# Deploying HB Destockage
+# Deploying Comptoir de Luxe
 
 The whole pipeline is one GitHub Actions workflow, [`.github/workflows/pipeline.yml`](../.github/workflows/pipeline.yml).
 The deployment logic is in [`scripts/deploy/`](../scripts/deploy/).

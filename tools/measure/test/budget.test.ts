@@ -342,11 +342,11 @@ describe('positive controls (things that must NOT fail)', () => {
   });
   it('absolute URLs on the own origin pass only when the origin is declared', () => {
     const dir = freshSite();
-    edit(dir, FR_H, (s) => s.replace('</main>', `<img src="https://hbdestockage.dz/img/c1-360.avif" srcset="${srcset('c1').replaceAll('/img/', 'https://hbdestockage.dz/img/')}" loading="lazy" alt=""></main>`));
+    edit(dir, FR_H, (s) => s.replace('</main>', `<img src="https://comptoirdeluxe.com/img/c1-360.avif" srcset="${srcset('c1').replaceAll('/img/', 'https://comptoirdeluxe.com/img/')}" loading="lazy" alt=""></main>`));
     expect([...new Set(rulesOf(checkSite(dir)))]).toEqual(['third-party']);
-    expect(checkSite(dir, { ownOrigins: ['https://hbdestockage.dz'] }).ok).toBe(true);
+    expect(checkSite(dir, { ownOrigins: ['https://comptoirdeluxe.com'] }).ok).toBe(true);
   });
-  ok('navigation links to other origins (wa.me, tel:) are fine', (d) => edit(d, FR_H, (s) => s.replace('</footer>', '<a href="https://www.facebook.com/hbdestockage">Facebook</a></footer>')));
+  ok('navigation links to other origins (wa.me, tel:) are fine', (d) => edit(d, FR_H, (s) => s.replace('</footer>', '<a href="https://www.facebook.com/comptoirdeluxe">Facebook</a></footer>')));
   ok('JSON-LD with absolute URLs is fine', (d) => edit(d, FR_H, before(HEAD_END, '<script type="application/ld+json">{"@context":"https://schema.org","url":"https://example.com/"}</script>')));
   ok('third-party URLs inside <template> are inert', (d) => edit(d, FR_H, before(BODY_END, '<template><img src="https://cdn.example.com/t.avif" alt=""></template>')));
   ok('inline module script after the LCP element is fine', (d) => edit(d, FR_P, before(BODY_END, '<script type="module">document.body.dataset.ready="1"</script>')));

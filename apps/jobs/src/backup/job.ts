@@ -25,7 +25,7 @@ export async function backupJob(
       const s = await readStatus(env.BACKUPS);
       await writeStatus(env.BACKUPS, env.DB, { ...s, ...extra, lastFailure: failure }, now());
     });
-    await alert('HB backup FAILED', `Sauvegarde D1 ${failure.runId} : échec à l'étape « ${failure.stage} » (${failure.error}).`);
+    await alert('Comptoir de Luxe backup FAILED', `Sauvegarde D1 ${failure.runId} : échec à l'étape « ${failure.stage} » (${failure.error}).`);
   };
 
   // A leftover in-progress marker means the previous run never reached its end (killed by a
@@ -92,7 +92,7 @@ export async function backupHealthCheck(env: BackupEnv, opts: { now?: () => numb
   if (stale) {
     await safely('alert', () =>
       opts.alert?.(
-        'HB backup STALE',
+        'Comptoir de Luxe backup STALE',
         s.lastSuccess
           ? `Aucune sauvegarde D1 réussie depuis ${health.lastSuccessAgeHours} h (dernière : ${s.lastSuccess.runId}).`
           : 'Aucune sauvegarde D1 réussie enregistrée.',

@@ -28,7 +28,7 @@ describe('placeholder markers', () => {
   test('placeholderParts splits text and markers, keeping notes', () => {
     expect(placeholderParts('Horaires 9 h [PLACEHOLDER]')).toEqual([{ text: 'Horaires 9 h' }, { note: null }]);
     expect(placeholderParts('Délai [PLACEHOLDER : à confirmer] puis fin')).toEqual([{ text: 'Délai' }, { note: 'à confirmer' }, { text: 'puis fin' }]);
-    expect(placeholderParts('عادةً [PLACEHOLDER: المدة في انتظار تأكيد HB Destockage]')).toEqual([{ text: 'عادةً' }, { note: 'المدة في انتظار تأكيد HB Destockage' }]);
+    expect(placeholderParts('عادةً [PLACEHOLDER: المدة في انتظار تأكيد كونتوار دو لوكس]')).toEqual([{ text: 'عادةً' }, { note: 'المدة في انتظار تأكيد كونتوار دو لوكس' }]);
     expect(placeholderParts('no marker')).toEqual([{ text: 'no marker' }]);
   });
   test('strict mode refuses the noted form too', () => {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the HB Destockage logo SVGs as outlined paths (no font needed to render them).
+"""Build the Comptoir de Luxe logo SVGs as outlined paths (no font needed to render them).
 
 Reproducible: downloads Inter (SIL OFL 1.1) at a pinned commit, checks its sha256, instances
 the weights used, converts glyphs to SVG paths and writes brand/logo/*.svg.
@@ -39,15 +39,25 @@ INVERSE_ACCENT = "#2997ff"
 WHITE = "#ffffff"
 
 # ---- Design parameters (font units: Inter UPM = 2048) -------------------------------------
-HB_WGHT = 700          # "HB": bold initials
-WORD_WGHT = 400        # "DESTOCKAGE": regular, tracked
+NAME = "Comptoir de Luxe"   # accessible name of every standalone mark
+BOLD_TEXT = "COMPTOIR"      # bold first word (the trade: a shop counter)
+LIGHT_TEXT = "DE LUXE"      # light tracked capitals after the dot
+MONO_TEXT = "CL"            # monogram initials
+BOLD_WGHT = 700        # bold word, same weight as the former "HB" initials
+WORD_WGHT = 400        # light word: regular, tracked
 OPSZ = 32              # display optical size: tighter spacing, finer details
-WORD_TRACK = 0.06      # tracking for DESTOCKAGE, in em
-HB_TRACK = -0.01       # HB slightly tightened
-DOT_GAP = 0.20         # space HB -> dot -> DESTOCKAGE, in em (each side)
+WORD_TRACK = 0.06      # tracking for the light word, in em
+BOLD_TRACK = -0.01     # bold word slightly tightened
+SPACE_ADJ = -0.04      # word space inside the tracked light word, in em (tracking already opens it)
+DOT_GAP = 0.20         # space bold word -> dot -> light word, in em (each side)
 DOT_R = 0.085          # accent dot radius, in em (sits on the cap-height middle)
-# Optical pair kerning for the tracked caps, in em (added to tracking). Hand-tuned by eye.
-KERN = {("T", "O"): -0.03, ("C", "K"): 0.0, ("K", "A"): -0.035, ("A", "G"): -0.01, ("S", "T"): -0.01}
+# Optical pair kerning, in em (added to tracking). Hand-tuned by eye on the previews
+# (artifacts/REBR-1/); Inter's own GPOS kerning is not applied by this simple setter.
+BOLD_KERN = {("M", "P"): 0.0, ("P", "T"): -0.035, ("T", "O"): -0.03, ("O", "I"): 0.005, ("I", "R"): 0.005}
+KERN = {("L", "U"): -0.045, ("U", "X"): -0.015, ("X", "E"): -0.01}
+MONO_KERN = {("C", "L"): -0.005}
+MONO_SHIFT = 0.6       # optical shift of the monogram letters towards inline-end, tile units (64):
+                       # the open top-right of the L makes ink-box centring look left-heavy
 PRECISION = 1          # decimals in output coordinates (viewBox scaled so 1 unit ~ 1/100 cap)
 
 
@@ -116,65 +126,75 @@ def bounds_of(font, text):
     return bp.bounds
 
 
-def build_wordmark(hb, word):
-    upm = hb["head"].unitsPerEm
-    cap = cap_height(hb)
+def set_word(st, font, text, track, kern):
+    """Sets text left to right; no tracking after the last glyph."""
+    for i, ch in enumerate(text):
+        nxt = text[i + 1] if i + 1 < len(text) else None
+        if nxt is None:
+            st.glyph(font, ch, 0.0)
+            continue
+        extra = kern.get((ch, nxt), 0.0) + (SPACE_ADJ if ch == " " else 0.0)
+        st.glyph(font, ch, track + extra)
+
+
+def right_bearing(font, ch, s):
+    gs = font.getGlyphSet()
+    name = font.getBestCmap()[ord(ch)]
+    bp = BoundsPen(gs)
+    gs[name].draw(bp)
+    return (gs[name].width - bp.bounds[2]) * s
+
+
+def left_bearing(font, ch, s):
+    return font["hmtx"][font.getBestCmap()[ord(ch)]][1] * s
+
+
+def build_wordmark(bold, word):
+    upm = bold["head"].unitsPerEm
+    cap = cap_height(bold)
     # Output scale: cap height = 100 units.
     s = 100.0 / cap
     st = Setter(s)
-    # left side bearing of H trimmed so the mark starts at x = 0
-    lsb = hb["hmtx"]["H"][1] * s
-    st.x = -lsb
-    for i, ch in enumerate("HB"):
-        st.glyph(hb, ch, HB_TRACK if i == 0 else 0)
-    # remove B's right side bearing, then the gap + dot + gap
-    gs = hb.getGlyphSet()
-    bp = BoundsPen(gs)
-    gs["B"].draw(bp)
-    b_right_bearing = (gs["B"].width - bp.bounds[2]) * s
-    st.x -= b_right_bearing
+    # first glyph's left side bearing trimmed so the mark starts at x = 0
+    st.x = -left_bearing(bold, BOLD_TEXT[0], s)
+    set_word(st, bold, BOLD_TEXT, BOLD_TRACK, BOLD_KERN)
+    n_bold = len(st.paths)
+    # remove the last bold glyph's right side bearing, then the gap + dot + gap
+    st.x -= right_bearing(bold, BOLD_TEXT[-1], s)
     gap = DOT_GAP * upm * s
     r = DOT_R * upm * s
     st.x += gap
     dot_cx = st.x + r
     dot_cy = -50.0  # middle of cap height
     st.x += 2 * r + gap
-    # DESTOCKAGE
-    wgs = word.getGlyphSet()
-    d_lsb = word["hmtx"]["D"][1] * s
-    st.x -= d_lsb
-    text = "DESTOCKAGE"
-    for i, ch in enumerate(text):
-        nxt = text[i + 1] if i + 1 < len(text) else None
-        k = KERN.get((ch, nxt), 0.0) if nxt else 0.0
-        st.glyph(word, ch, (WORD_TRACK + k) if nxt else 0.0)
-    bp = BoundsPen(wgs)
-    wgs["E"].draw(bp)
-    e_rb = (wgs["E"].width - bp.bounds[2]) * s
-    width = st.x - e_rb
-    return st.paths, (dot_cx, dot_cy, r), width
+    st.x -= left_bearing(word, LIGHT_TEXT[0], s)
+    set_word(st, word, LIGHT_TEXT, WORD_TRACK, KERN)
+    width = st.x - right_bearing(word, LIGHT_TEXT[-1], s)
+    return st.paths, n_bold, (dot_cx, dot_cy, r), width
 
 
-def build_monogram(hb):
-    cap = cap_height(hb)
+def build_monogram(bold):
+    cap = cap_height(bold)
     size = 64.0
-    # "HB" cap height = 36% of the tile
+    # initials: cap height = 36% of the tile
     s = (size * 0.36) / cap
     st = Setter(s)
-    st.glyph(hb, "H", HB_TRACK)
-    st.glyph(hb, "B")
+    set_word(st, bold, MONO_TEXT, BOLD_TRACK, MONO_KERN)
     paths = st.paths
-    # measure ink bounds to centre
-    gs = hb.getGlyphSet()
+    # ink bounds of the whole pair, to centre it
+    gs = bold.getGlyphSet()
+    cmap = bold.getBestCmap()
     bp = BoundsPen(gs)
-    gs["H"].draw(bp)
-    h_l = bp.bounds[0]
-    bp2 = BoundsPen(gs)
-    gs["B"].draw(TransformPen(bp2, (1, 0, 0, 1, gs["H"].width + HB_TRACK * hb["head"].unitsPerEm, 0)))
-    ink_l = h_l * s
-    ink_r = bp2.bounds[2] * s
-    ink_w = ink_r - ink_l
-    tx = (size - ink_w) / 2 - ink_l
+    x = 0.0
+    upm = bold["head"].unitsPerEm
+    for i, ch in enumerate(MONO_TEXT):
+        g = gs[cmap[ord(ch)]]
+        g.draw(TransformPen(bp, (1, 0, 0, 1, x, 0)))
+        nxt = MONO_TEXT[i + 1] if i + 1 < len(MONO_TEXT) else None
+        x += g.width + ((BOLD_TRACK + MONO_KERN.get((ch, nxt), 0.0)) * upm if nxt else 0)
+    ink_l = bp.bounds[0] * s
+    ink_r = bp.bounds[2] * s
+    tx = (size - (ink_r - ink_l)) / 2 - ink_l + MONO_SHIFT
     ty = size / 2 + (cap * s) / 2  # baseline so caps are vertically centred
     return paths, tx, ty, size
 
@@ -198,33 +218,34 @@ def main():
     global ALLOW_FONT_CHANGE
     ALLOW_FONT_CHANGE = args.allow_font_change
     data = get_font(args.font)
-    hb = instance(data, HB_WGHT)
+    bold = instance(data, BOLD_WGHT)
     word = instance(data, WORD_WGHT)
 
-    paths, (cx, cy, r), width = build_wordmark(hb, word)
-    hb_d = join(paths[:2])
-    word_d = join(paths[2:])
+    paths, n_bold, (cx, cy, r), width = build_wordmark(bold, word)
+    bold_d = join(paths[:n_bold])
+    word_d = join(paths[n_bold:])
     # viewBox: x 0..width, y -100..0 (cap height) — no descenders in caps
     vb = f"0 -100 {fmt(width)} 100"
-    title = "<title>HB Destockage</title>"
+    title = f"<title>{NAME}</title>"
+    label = f' role="img" aria-label="{NAME}"'
 
     def wordmark(text_fill, dot_fill, with_title=True, extra=""):
         t = title if with_title else ""
         return (
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}"{extra}>{t}'
-            f'<path fill="{text_fill}" d="{hb_d}{word_d}"/>'
+            f'<path fill="{text_fill}" d="{bold_d}{word_d}"/>'
             f'<circle fill="{dot_fill}" cx="{fmt(cx)}" cy="{fmt(cy)}" r="{fmt(r)}"/></svg>\n'
         )
 
-    write("wordmark.svg", wordmark(TEXT, ACCENT, extra=' role="img" aria-label="HB Destockage"'))
-    write("wordmark-inverse.svg", wordmark(INVERSE_TEXT, INVERSE_ACCENT, extra=' role="img" aria-label="HB Destockage"'))
-    write("wordmark-mono.svg", wordmark("currentColor", "currentColor", extra=' role="img" aria-label="HB Destockage"'))
+    write("wordmark.svg", wordmark(TEXT, ACCENT, extra=label))
+    write("wordmark-inverse.svg", wordmark(INVERSE_TEXT, INVERSE_ACCENT, extra=label))
+    write("wordmark-mono.svg", wordmark("currentColor", "currentColor", extra=label))
     # Header version: integer coordinates (1 unit = 1 % of cap height = 0.18 px at an 18 px header
     # cap — invisible) to keep the inline bytes down.
     global PRECISION
     keep = PRECISION
     PRECISION = 0
-    hpaths, (hcx, hcy, hr), _ = build_wordmark(hb, word)
+    hpaths, _, (hcx, hcy, hr), _ = build_wordmark(bold, word)
     hd = join(hpaths)
     PRECISION = keep
     # Inline in the storefront header. Letters follow currentColor (text token),
@@ -244,7 +265,7 @@ def main():
         f'<circle fill="{ACCENT}" cx="{fmt(hcx)}" cy="{fmt(hcy)}" r="{fmt(hr)}"/></svg>\n',
     )
 
-    mp, tx, ty, size = build_monogram(hb)
+    mp, tx, ty, size = build_monogram(bold)
     md = join(mp)
     rad = 14  # tile corner radius (22% of 64, app-icon-like)
     dot_r = 4
@@ -254,7 +275,7 @@ def main():
     def monogram(tile, letters, dot, with_title=True):
         t = title if with_title else ""
         return (
-            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {int(size)} {int(size)}" role="img" aria-label="HB Destockage">{t}'
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {int(size)} {int(size)}"{label}>{t}'
             f'<rect width="{int(size)}" height="{int(size)}" rx="{rad}" fill="{tile}"/>'
             f'<path fill="{letters}" transform="translate({fmt(tx)} {fmt(ty)})" d="{md}"/>'
             f'<circle fill="{dot}" cx="{dcx}" cy="{dcy}" r="{dot_r}"/></svg>\n'
@@ -266,7 +287,7 @@ def main():
     # mono: tile in currentColor, letters + dot knocked out (transparent) via mask
     write(
         "monogram-mono.svg",
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {int(size)} {int(size)}" role="img" aria-label="HB Destockage">{title}'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {int(size)} {int(size)}"{label}>{title}'
         f'<mask id="k"><rect width="{int(size)}" height="{int(size)}" fill="#fff"/>'
         f'<path fill="#000" transform="translate({fmt(tx)} {fmt(ty)})" d="{md}"/>'
         f'<circle fill="#000" cx="{dcx}" cy="{dcy}" r="{dot_r}"/></mask>'
@@ -280,13 +301,13 @@ def main():
     gap = tile_h * 0.35
     lw = tile_h + gap + width
     lock = (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {fmt(lw)} {fmt(tile_h)}" role="img" aria-label="HB Destockage">{title}'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {fmt(lw)} {fmt(tile_h)}"{label}>{title}'
         f'<g transform="scale({fmt(k)})">'
         f'<rect width="{int(size)}" height="{int(size)}" rx="{rad}" fill="{TEXT}"/>'
         f'<path fill="{WHITE}" transform="translate({fmt(tx)} {fmt(ty)})" d="{md}"/>'
         f'<circle fill="{ACCENT}" cx="{dcx}" cy="{dcy}" r="{dot_r}"/></g>'
         f'<g transform="translate({fmt(tile_h + gap)} {fmt(tile_h / 2 + 50)})">'
-        f'<path fill="{TEXT}" d="{hb_d}{word_d}"/>'
+        f'<path fill="{TEXT}" d="{bold_d}{word_d}"/>'
         f'<circle fill="{ACCENT}" cx="{fmt(cx)}" cy="{fmt(cy)}" r="{fmt(r)}"/></g></svg>\n'
     )
     write("lockup.svg", lock)

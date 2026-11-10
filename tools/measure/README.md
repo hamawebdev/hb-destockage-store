@@ -21,7 +21,7 @@ Tests: `npm test -w tools/measure` (vitest). Typecheck: `npm run typecheck -w to
 npm run budget                          # checks apps/storefront/dist
 npm run budget -- --dist path/to/dist   # any built site
 npm run budget -- --out artifacts/QA-1/budget --quiet
-npm run budget -- --own-origin https://hbdestockage.dz   # absolute URLs on this origin are first-party
+npm run budget -- --own-origin https://comptoirdeluxe.com   # absolute URLs on this origin are first-party
 npm run budget -- --static-only         # skip the Chrome runtime pass (quick local check; NOT valid for the gate)
 # without the root script: node tools/measure/src/budget/cli.ts [same flags]
 ```

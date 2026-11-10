@@ -1,7 +1,7 @@
 // Admin chrome strings, French (source dictionary: every key here must exist in ar.ts).
 // Feature strings live next to their routes via `defineMessages` (see index.ts).
 export const fr = {
-  'app.name': 'HB Destockage — administration',
+  'app.name': 'Comptoir de Luxe — administration',
   'app.skip': 'Aller au contenu',
   'nav.label': 'Navigation principale',
   'nav.menu': 'Menu',

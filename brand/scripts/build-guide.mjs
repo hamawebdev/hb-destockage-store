@@ -170,6 +170,7 @@ function fontFace() {
 }
 
 function html(md) {
+  const version = /^Version (\d+\.\d+) /m.exec(md)?.[1] ?? "1.0";
   const inserts = {
     "2. Logo": logoSpecimen(),
     "3. Colour": colourSpecimen(),
@@ -183,7 +184,7 @@ function html(md) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HB Destockage brand guide</title>
+<title>Comptoir de Luxe brand guide</title>
 <style>
 ${fontFace()}
 :root{--surface:${C.surface};--alt:${C["surface-alt"]};--inv:${C["surface-inverse"]};--text:${C.text};--sec:${C["text-secondary"]};--border:${C.border};--accent:${C.accent};--link:${C["accent-text"]}}
@@ -206,10 +207,13 @@ hr{border:0;border-top:1px solid var(--border);margin:40px 0}
 table{border-collapse:collapse;width:100%;margin:16px 0 24px;font-size:.92rem}
 th,td{text-align:start;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--border)}
 th{font-weight:600;background:var(--alt)}
+td code{overflow-wrap:anywhere}
+@media(max-width:767px){table{display:block;overflow-x:auto}}
 .chip{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-inline-end:6px}
 .cover{background:var(--alt);border-radius:28px;padding:48px 32px;margin-bottom:40px}
 .cover .wm{max-width:420px}
 .cover p{color:var(--sec);margin:24px 0 0}
+.cover .ar-name{max-width:420px;text-align:end;font-size:1.5rem;margin:12px 0 0}
 .spec{display:grid;gap:12px;margin:16px 0 32px}
 .logos{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 .tile{margin:0;border-radius:18px;padding:32px 24px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:16px}
@@ -251,8 +255,8 @@ footer{margin-top:80px;color:var(--sec);font-size:13px}
 </head>
 <body>
 <main>
-<div class="cover"><div class="wm">${logo("wordmark.svg")}</div><p>Brand guide · v1.0 · November 2026</p></div>
-${render(md.replace(/^# .*\n/, "<!-- title -->\n").replace(/^Version 1\.0 .*\n.*\n/m, ""), inserts)}
+<div class="cover"><div class="wm">${logo("wordmark.svg")}</div><p class="ar-name" lang="ar" dir="rtl">كونتوار دو لوكس</p><p>comptoirdeluxe.com · Brand guide · v${version} · November 2026</p></div>
+${render(md.replace(/^# .*\n/, "<!-- title -->\n").replace(/^Version \d+\.\d+ .*\n.*\n/m, ""), inserts)}
 <footer>Generated from brand/GUIDE.md, brand/tokens.json, brand/logo and packages/ui-tokens/icons by <code>node brand/scripts/build-guide.mjs</code>. Self-contained: no network requests.</footer>
 </main>
 </body>

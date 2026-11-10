@@ -1,4 +1,4 @@
-/* HB Destockage admin — one sheet for both directions. Logical properties only.
+/* Comptoir de Luxe admin — one sheet for both directions. Logical properties only.
    Tokens come from /assets/tokens.css (@hb/ui-tokens). Light surfaces, near-black text, one blue
    accent; status colours are for status only. Arabic hierarchy = size + colour + space, one weight. */
 @layer base, layout, components, utilities;

@@ -168,8 +168,8 @@ describe('a missing source never breaks the page', () => {
 
 describe('store settings', () => {
   const valid = {
-    storeName_fr: 'HB Destockage',
-    storeName_ar: 'إتش بي ديستوكاج',
+    storeName_fr: 'Comptoir de Luxe',
+    storeName_ar: 'كونتوار دو لوكس',
     contactPhone: '0560417403',
     whatsapp: '+213 779 94 20 22',
     contactEmail: '',
@@ -193,7 +193,7 @@ describe('store settings', () => {
   test('save: CAT-1 shapes, phones through @hb/shared, one audit row per changed key', async () => {
     const res = await postAs(h, USERS.owner, '/settings', { ...valid, whatsapp: '٠٧٧٩٩٤٢٠٢٢' });
     expect(res.status).toBe(303);
-    expect(await setting('storeName')).toEqual({ fr: 'HB Destockage', ar: 'إتش بي ديستوكاج' });
+    expect(await setting('storeName')).toEqual({ fr: 'Comptoir de Luxe', ar: 'كونتوار دو لوكس' });
     expect(await setting('contactPhone')).toBe('0560417403'); // national
     expect(await setting('whatsapp')).toBe('213779942022'); // E.164 without "+"
     expect(await setting('contactEmail')).toBeNull();
