@@ -83,11 +83,15 @@ export function MetaPage(props: { view: MetaView; errors: MetaErrors | undefined
   const errors = props.errors ?? {};
   const state = serverState(view);
   const tokenLine =
-    view.token.kind === 'absent'
-      ? tm('token.absent')
-      : view.token.kind === 'set'
-        ? tm('token.set', { hint: '⁨' + view.token.hint + '⁩' })
-        : tm('token.setLocked');
+    view.token.kind === 'absent' ? (
+      tm('token.absent')
+    ) : view.token.kind === 'set' ? (
+      <>
+        {tm('token.set')} <bdi dir="ltr">{view.token.hint}</bdi>
+      </>
+    ) : (
+      tm('token.setLocked')
+    );
   const pixelValue = props.values['pixelId'] ?? view.pixelId ?? '';
   const consentValue = props.values['consent'] ?? (view.consentRequired ? 'required' : 'off');
   const testValue = props.values['testEventCode'] ?? view.testEventCode ?? '';

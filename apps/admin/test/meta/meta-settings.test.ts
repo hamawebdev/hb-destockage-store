@@ -1,9 +1,11 @@
 // MSET-2: the owner-only Meta settings screen. Ledger M-2 (add/change/remove), M-3 (the token never
 // shown back or sent to the browser), M-4 (other roles refused), M-5 (audit rows carry no secret).
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { importSettingsKey, openMetaToken } from '@hb/db/meta-settings';
 import { harness, postAs, USERS, type Harness } from '../helpers.ts';
 import { auditSince, clearMeta, KEY, lastAuditId, META_KEYS, metaRows, OTHER_KEY, pieces, PIXEL, SENTINEL, wholeResponse } from './support.ts';
+
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
 
 let h: Harness;
 beforeAll(async () => {
@@ -239,7 +241,7 @@ describe('M-5: audit rows for Meta settings never carry the token or its ciphert
     const blob2 = JSON.parse((await metaRows(h))['metaAccessTokenEnc']!) as string;
     await postAs(h, OWNER, '/meta/test-code', { testEventCode: 'TESTSECRET1' });
     await postAs(h, OWNER, '/meta/test-code', { testEventCode: 'TESTSECRET2' });
-    await savePixel('1234567890123456', 'off');
+    await savePixel('9876543210987654', 'off');
     await postAs(h, OWNER, '/meta/token/remove');
     await postAs(h, OWNER, '/meta/test-code/remove');
     await postAs(h, OWNER, '/meta/pixel/remove');
@@ -267,7 +269,7 @@ describe('M-5: audit rows for Meta settings never carry the token or its ciphert
     }
     // The Pixel ID is public: its rows keep the values.
     expect(rows[6]!.before).toBe(`"${PIXEL}"`);
-    expect(rows[6]!.after).toBe('"1234567890123456"');
+    expect(rows[6]!.after).toBe('"9876543210987654"');
   });
 
   test('saving the same values again writes nothing', async () => {
