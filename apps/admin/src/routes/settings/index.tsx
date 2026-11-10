@@ -8,7 +8,7 @@ import { formatPhoneInternational, normalizePhone } from '@hb/shared';
 import type { AppEnv } from '../../env.ts';
 import { withFlash } from '../../ui/flash.tsx';
 import { ErrorSummary, Form, FormActions, LocalizedField, NumberInput, PhoneInput, Submit, TextInput } from '../../ui/form.tsx';
-import { rolesFor } from '../../auth/permissions.ts';
+import { can, rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import { audit, noAudit, withAudit } from '../../audit/audit.ts';
 import { LANGS } from '../../i18n/index.ts';
@@ -16,6 +16,7 @@ import { parseForm, readForm, validateForm, vEmail, vInt, vPicklist, vText } fro
 import { createRouter } from '../../lib/router.ts';
 import { safeReturnPath } from '../../lib/redirect.ts';
 import { renderError } from '../../ui/error-page.tsx';
+import { DEFAULT_DELAY_DAYS, DELAY_MAX, DELAY_MIN } from '../parcels/data.ts';
 
 const r = createRouter({ roles: rolesFor('self.lang') });
 
@@ -54,6 +55,7 @@ export const SETTINGS_DEFAULTS = {
   callRetryMinutes: 30,
   unreachableRetryMinutes: 240,
   lowStockThreshold: 3,
+  delayedParcelDays: DEFAULT_DELAY_DAYS,
 } as const;
 
 const phoneField = () =>
@@ -80,6 +82,7 @@ function storeSchema() {
     callRetryMinutes: vInt(5, 1440),
     unreachableRetryMinutes: vInt(15, 10080),
     lowStockThreshold: vInt(0, 1000),
+    delayedParcelDays: vInt(DELAY_MIN, DELAY_MAX),
   });
 }
 
@@ -92,8 +95,9 @@ type StoreSettings = {
   callRetryMinutes: number;
   unreachableRetryMinutes: number;
   lowStockThreshold: number;
+  delayedParcelDays: number;
 };
-export const STORE_KEYS = ['storeName', 'contactPhone', 'whatsapp', 'contactEmail', 'orderMaxUnanswered', 'callRetryMinutes', 'unreachableRetryMinutes', 'lowStockThreshold'] as const;
+export const STORE_KEYS = ['storeName', 'contactPhone', 'whatsapp', 'contactEmail', 'orderMaxUnanswered', 'callRetryMinutes', 'unreachableRetryMinutes', 'lowStockThreshold', 'delayedParcelDays'] as const;
 
 async function loadStore(c: Context<AppEnv>): Promise<Partial<Record<(typeof STORE_KEYS)[number], unknown>>> {
   const rows = await c.var.db.select({ key: settings.key, value: settings.value }).from(settings).where(inArray(settings.key, [...STORE_KEYS])).all();
@@ -114,6 +118,7 @@ function formValues(s: Partial<Record<string, unknown>>): Record<string, string>
     callRetryMinutes: str(s['callRetryMinutes'] ?? SETTINGS_DEFAULTS.callRetryMinutes),
     unreachableRetryMinutes: str(s['unreachableRetryMinutes'] ?? SETTINGS_DEFAULTS.unreachableRetryMinutes),
     lowStockThreshold: str(s['lowStockThreshold'] ?? SETTINGS_DEFAULTS.lowStockThreshold),
+    delayedParcelDays: str(s['delayedParcelDays'] ?? SETTINGS_DEFAULTS.delayedParcelDays),
   };
 }
 
@@ -138,6 +143,21 @@ function renderStore(c: Context<AppEnv>, values: Record<string, string | undefin
       <NumberInput name="unreachableRetryMinutes" label={t('settings.unreachableRetryMinutes')} value={values['unreachableRetryMinutes']} error={errors?.['unreachableRetryMinutes']} required hint={t('settings.range', { min: 15, max: 10080 })} />
       <h2>{t('settings.stock')}</h2>
       <NumberInput name="lowStockThreshold" label={t('settings.lowStockThreshold')} value={values['lowStockThreshold']} error={errors?.['lowStockThreshold']} required hint={t('settings.range', { min: 0, max: 1000 })} />
+      {can(c.var.user, 'sheets.settings') ? (
+        <>
+          <h2>{t('settings.sheets')}</h2>
+          <p class="field__hint">
+            {t('settings.sheetsHint')} <a href="/sheets">{t('settings.sheetsLink')}</a>
+          </p>
+        </>
+      ) : null}
+      <h2>{t('settings.delivery')}</h2>
+      {can(c.var.user, 'delivery.settings') ? (
+        <p class="field__hint">
+          {t('settings.couriersHint')} <a href="/delivery/settings">{t('settings.couriersLink')}</a>
+        </p>
+      ) : null}
+      <NumberInput name="delayedParcelDays" label={t('settings.delayedParcelDays')} value={values['delayedParcelDays']} error={errors?.['delayedParcelDays']} required hint={t('settings.delayedParcelDaysHint', { min: DELAY_MIN, max: DELAY_MAX })} />
       <FormActions>
         <Submit>{t('common.save')}</Submit>
       </FormActions>
@@ -165,6 +185,7 @@ r.post('/', requirePerm('settings.edit'), async (c) => {
     callRetryMinutes: d.callRetryMinutes,
     unreachableRetryMinutes: d.unreachableRetryMinutes,
     lowStockThreshold: d.lowStockThreshold,
+    delayedParcelDays: d.delayedParcelDays,
   };
   const current = await loadStore(c);
   // A key that does not exist yet counts as changed even when the new value is null, so the

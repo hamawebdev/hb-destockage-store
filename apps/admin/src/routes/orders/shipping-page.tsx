@@ -3,8 +3,10 @@
 // (`formaction`). Slips are bilingual whatever the UI language (FR and AR side by side).
 import { formatPhoneDisplay } from '@hb/shared';
 import type { Lang } from '../../i18n/index.ts';
-import { Form, FormActions, Submit, TextInput } from '../../ui/form.tsx';
+import { EmptyState } from '../../ui/badge.tsx';
+import { Form, Submit, TextInput } from '../../ui/form.tsx';
 import { Bdi, DateTime, Money } from '../../ui/format.tsx';
+import { BulkBar, Pick, PickAll } from '../../ui/kit.tsx';
 import { Table } from '../../ui/table.tsx';
 import { m } from './messages.ts';
 import type { ShippingRow, Slip } from './shipping-data.ts';
@@ -13,6 +15,13 @@ import { SHIPPING_PAGE_SIZE } from './shipping-data.ts';
 /** National form `0XXXXXXXXX` (what couriers dial). */
 export const nationalPhone = (e164: string) => e164.replace(/^\+213/, '0');
 
+/** A refused bulk ship re-renders with what was ticked and typed. */
+export interface ShipKept {
+  refs: readonly string[];
+  courierName: string;
+  tracking: Readonly<Record<string, string>>;
+}
+
 export type ShipResult = { ref: string; outcome: 'shipped' | 'conflict' | 'forbidden' | 'notFound' | 'notConfirmed' | 'shipmentBusy' };
 
 export function ShippingPage(props: {
@@ -20,153 +29,159 @@ export function ShippingPage(props: {
   ready: readonly ShippingRow[];
   out: readonly ShippingRow[];
   counts: { confirmed: number; shipped: number };
+  /** `delivery.send`: offer shipping's send page for the ticked orders. */
+  send?: boolean;
   error?: string;
   results?: readonly ShipResult[];
+  kept?: ShipKept;
 }) {
   const tm = m(props.lang);
   const place = (r: ShippingRow) => `${String(r.wilayaCode).padStart(2, '0')} ${props.lang === 'ar' ? r.wilayaAr : r.wilayaFr} / ${props.lang === 'ar' ? r.communeAr : r.communeFr}`;
+  const Head = (h: { id: string; title: string }) => (
+    <div class="card__head">
+      <h2 class="card__title" id={h.id}>{h.title}</h2>
+    </div>
+  );
   return (
     <>
       {props.error ? <p class="flash flash--danger" role="alert">{props.error}</p> : null}
       {props.results ? (
-        <section aria-labelledby="ship-results">
-          <h2 id="ship-results">{tm('ship.resultsTitle')}</h2>
-          <ul>
-            {props.results.map((r) => (
-              <li>
-                <Bdi>{r.ref}</Bdi> : {tm(`ship.result.${r.outcome}`)}
-              </li>
-            ))}
-          </ul>
+        <section class="card" aria-labelledby="ship-results">
+          <Head id="ship-results" title={tm('ship.resultsTitle')} />
+          <div class="card__body">
+            <ul class="plain-list">
+              {props.results.map((r) => (
+                <li>
+                  <Bdi>{r.ref}</Bdi> : {tm(`ship.result.${r.outcome}`)}
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       ) : null}
 
-      <section aria-labelledby="ship-ready">
-        <h2 id="ship-ready">{tm('ship.ready', { count: props.counts.confirmed })}</h2>
-        {props.ready.length === 0 ? (
-          <p class="empty">{tm('ship.empty')}</p>
-        ) : (
-          <Form action="/orders/shipping/ship">
-            <Table
-              stack
-              caption={tm('ship.readyCaption')}
-              rows={props.ready}
-              rowKey={(r) => r.id}
-              columns={[
-                {
-                  key: 'pick',
-                  header: tm('ship.select'),
-                  cell: (r) => (
-                    <>
-                      <input type="checkbox" class="check" name="ref" value={r.ref} id={`pick-${r.ref}`} aria-label={tm('ship.selectRef', { ref: r.ref })} />
-                      <input type="hidden" name={`version_${r.ref}`} value={String(r.version)} />
-                    </>
-                  ),
-                },
-                { key: 'ref', header: tm('list.col.ref'), cell: (r) => <a href={`/orders/${r.ref}`}><Bdi>{r.ref}</Bdi></a> },
-                { key: 'date', header: tm('list.col.date'), cell: (r) => <DateTime ms={r.createdAt} withTime={false} /> },
-                {
-                  key: 'to',
-                  header: tm('slip.recipient'),
-                  cell: (r) => (
-                    <>
-                      <Bdi ltr={false}>{r.name}</Bdi>
-                      <br />
-                      <Bdi>{formatPhoneDisplay(r.phoneE164)}</Bdi>
-                    </>
-                  ),
-                },
-                {
-                  key: 'place',
-                  header: tm('list.col.place'),
-                  cell: (r) => (
-                    <>
-                      {place(r)}
-                      {r.address && r.address.trim() !== '' ? (
-                        <>
-                          <br />
-                          <Bdi ltr={false}>{r.address}</Bdi>
-                        </>
-                      ) : null}
-                    </>
-                  ),
-                },
-                { key: 'items', header: tm('ship.items'), numeric: true, cell: (r) => String(r.itemCount) },
-                { key: 'amount', header: tm('ship.amount'), numeric: true, cell: (r) => <Money dzd={r.totalDzd} /> },
-                {
-                  key: 'tracking',
-                  header: tm('ship.tracking'),
-                  cell: (r) => (
-                    <input class="input" type="text" name={`tracking_${r.ref}`} maxlength={80} dir="ltr" autocomplete="off" aria-label={tm('ship.trackingFor', { ref: r.ref })} />
-                  ),
-                },
-              ]}
-            />
-            {props.counts.confirmed > SHIPPING_PAGE_SIZE ? <p class="muted">{tm('ship.more')}</p> : null}
-            <TextInput name="courierName" label={tm('ship.courier')} maxlength={80} dir="auto" />
-            <div class="field">
-              <label class="field__label" for="f-size">{tm('ship.size')}</label>
-              <select id="f-size" class="input input--select" name="size">
-                <option value="a6">A6</option>
-                <option value="a5">A5</option>
-              </select>
-            </div>
-            <FormActions>
-              <Submit>{tm('ship.markShipped')}</Submit>
-              <button type="submit" class="btn btn--secondary" formaction="/orders/shipping/slips" formtarget="_blank">
-                {tm('ship.print')}
-              </button>
-            </FormActions>
-          </Form>
-        )}
+      <section class="card" aria-labelledby="ship-ready">
+        <Head id="ship-ready" title={tm('ship.ready', { count: props.counts.confirmed })} />
+        <div class="card__body">
+          {props.ready.length === 0 ? (
+            <EmptyState icon="truck">{tm('ship.empty')}</EmptyState>
+          ) : (
+            <Form action="/orders/shipping/ship" class="bulk-form">
+              <Table
+                stack
+                caption={tm('ship.readyCaption')}
+                rows={props.ready}
+                rowKey={(r) => r.id}
+                columns={[
+                  {
+                    key: 'pick',
+                    header: <PickAll label={tm('bulk.all')} />,
+                    label: tm('ship.select'),
+                    cell: (r) => (
+                      <>
+                        <Pick name="ref" value={r.ref} label={tm('ship.selectRef', { ref: r.ref })} checked={props.kept?.refs.includes(r.ref) ?? false} />
+                        <input type="hidden" name={`version_${r.ref}`} value={String(r.version)} />
+                      </>
+                    ),
+                  },
+                  { key: 'ref', header: tm('list.col.ref'), cell: (r) => <><a href={`/orders/${r.ref}`}><Bdi>{r.ref}</Bdi></a><span class="cell-sub"><DateTime ms={r.createdAt} withTime={false} /></span></> },
+                  {
+                    key: 'to',
+                    header: tm('slip.recipient'),
+                    cell: (r) => (
+                      <>
+                        <Bdi ltr={false}>{r.name}</Bdi>
+                        <span class="cell-sub"><Bdi>{formatPhoneDisplay(r.phoneE164)}</Bdi></span>
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'place',
+                    header: tm('list.col.place'),
+                    cell: (r) => (
+                      <>
+                        {place(r)}
+                        {r.address && r.address.trim() !== '' ? <span class="cell-sub"><Bdi ltr={false}>{r.address}</Bdi></span> : null}
+                      </>
+                    ),
+                  },
+                  { key: 'items', header: tm('ship.items'), numeric: true, cell: (r) => String(r.itemCount) },
+                  { key: 'amount', header: tm('ship.amount'), numeric: true, cell: (r) => <Money dzd={r.totalDzd} /> },
+                  {
+                    key: 'tracking',
+                    header: tm('ship.tracking'),
+                    cell: (r) => (
+                      <input class="input" type="text" name={`tracking_${r.ref}`} value={props.kept?.tracking[r.ref] ?? ''} maxlength={80} dir="ltr" autocomplete="off" aria-label={tm('ship.trackingFor', { ref: r.ref })} />
+                    ),
+                  },
+                ]}
+              />
+              {props.counts.confirmed > SHIPPING_PAGE_SIZE ? <p class="muted list-note">{tm('ship.more')}</p> : null}
+              <div class="ship-fields">
+                <TextInput name="courierName" label={tm('ship.courier')} value={props.kept?.courierName ?? ''} error={props.kept && props.kept.courierName.trim() === '' ? tm('err.courierRequired') : undefined} maxlength={80} dir="auto" required />
+                <div class="field">
+                  <label class="field__label" for="f-size">{tm('ship.size')}</label>
+                  <select id="f-size" class="input input--select" name="size">
+                    <option value="a6">A6</option>
+                    <option value="a5">A5</option>
+                  </select>
+                </div>
+              </div>
+              <BulkBar selected={tm('bulk.selected')}>
+                {/* Only "mark shipped" needs the typed courier: the other two skip the browser's required check. */}
+                {props.send ? <button type="submit" class="btn btn--primary" formaction="/delivery/send" formnovalidate>{tm('bulk.send')}</button> : null}
+                <button type="submit" class="btn btn--secondary" formaction="/orders/shipping/slips" formtarget="_blank" formnovalidate>{tm('ship.print')}</button>
+                <Submit variant={props.send ? 'secondary' : 'primary'}>{tm('ship.markShipped')}</Submit>
+              </BulkBar>
+            </Form>
+          )}
+        </div>
       </section>
 
-      <section aria-labelledby="ship-out">
-        <h2 id="ship-out">{tm('ship.out', { count: props.counts.shipped })}</h2>
-        <Table
-          stack
-          caption={tm('ship.outCaption')}
-          rows={props.out}
-          rowKey={(r) => r.id}
-          empty={tm('ship.outEmpty')}
-          columns={[
-            { key: 'ref', header: tm('list.col.ref'), cell: (r) => <a href={`/orders/${r.ref}`}><Bdi>{r.ref}</Bdi></a> },
-            { key: 'to', header: tm('slip.recipient'), cell: (r) => <Bdi ltr={false}>{r.name}</Bdi> },
-            { key: 'place', header: tm('list.col.place'), cell: (r) => place(r) },
-            {
-              key: 'courier',
-              header: tm('slip.courier'),
-              cell: (r) => (
-                <>
-                  {r.courierName ? <Bdi ltr={false}>{r.courierName}</Bdi> : '—'}
-                  {r.courierTracking ? (
-                    <>
-                      <br />
-                      <Bdi>{r.courierTracking}</Bdi>
-                    </>
-                  ) : null}
-                </>
-              ),
-            },
-            { key: 'amount', header: tm('ship.amount'), numeric: true, cell: (r) => <Money dzd={r.totalDzd} /> },
-            {
-              key: 'act',
-              header: tm('list.col.status'),
-              cell: (r) => (
-                <>
-                  {(['delivered', 'returned'] as const).map((to) => (
-                    <Form action={`/orders/${r.ref}/transition`} class="inline-form" {...(to === 'returned' ? { confirm: tm('action.confirmReturn') } : {})}>
-                      <input type="hidden" name="version" value={String(r.version)} />
-                      <input type="hidden" name="to" value={to} />
-                      <input type="hidden" name="return" value="shipping" />
-                      <Submit variant={to === 'returned' ? 'danger' : 'secondary'}>{tm(to === 'delivered' ? 'action.deliver' : 'action.return')}</Submit>
-                    </Form>
-                  ))}
-                </>
-              ),
-            },
-          ]}
-        />
+      <section class="card" aria-labelledby="ship-out">
+        <Head id="ship-out" title={tm('ship.out', { count: props.counts.shipped })} />
+        <div class="card__body">
+          <Table
+            stack
+            caption={tm('ship.outCaption')}
+            rows={props.out}
+            rowKey={(r) => r.id}
+            empty={tm('ship.outEmpty')}
+            emptyIcon="truck"
+            columns={[
+              { key: 'ref', header: tm('list.col.ref'), cell: (r) => <a href={`/orders/${r.ref}`}><Bdi>{r.ref}</Bdi></a> },
+              { key: 'to', header: tm('slip.recipient'), cell: (r) => <Bdi ltr={false}>{r.name}</Bdi> },
+              { key: 'place', header: tm('list.col.place'), cell: (r) => place(r) },
+              {
+                key: 'courier',
+                header: tm('slip.courier'),
+                cell: (r) => (
+                  <>
+                    {r.courierName ? <Bdi ltr={false}>{r.courierName}</Bdi> : '—'}
+                    {r.courierTracking ? <span class="cell-sub"><Bdi>{r.courierTracking}</Bdi></span> : null}
+                  </>
+                ),
+              },
+              { key: 'amount', header: tm('ship.amount'), numeric: true, cell: (r) => <Money dzd={r.totalDzd} /> },
+              {
+                key: 'act',
+                header: tm('list.col.status'),
+                cell: (r) => (
+                  <div class="row-actions">
+                    {(['delivered', 'returned'] as const).map((to) => (
+                      <Form action={`/orders/${r.ref}/transition`} class="inline-form" {...(to === 'returned' ? { confirm: tm('action.confirmReturn') } : {})}>
+                        <input type="hidden" name="version" value={String(r.version)} />
+                        <input type="hidden" name="to" value={to} />
+                        <input type="hidden" name="return" value="shipping" />
+                        <Submit variant={to === 'returned' ? 'danger' : 'secondary'}>{tm(to === 'delivered' ? 'action.deliver' : 'action.return')}</Submit>
+                      </Form>
+                    ))}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </div>
       </section>
     </>
   );

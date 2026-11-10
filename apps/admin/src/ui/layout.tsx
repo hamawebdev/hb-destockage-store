@@ -12,6 +12,7 @@ import { Flash } from './flash.tsx';
 import { Icon } from './icons.tsx';
 import { activeHref, navFor, tabsFor, type NavItem } from './nav.ts';
 import { ASSET } from './assets.ts';
+import { sameSiteReferer } from './error-page.tsx';
 
 export interface Crumb {
   label: string;
@@ -130,7 +131,7 @@ function SideFoot(props: { ui: UiContext }) {
         <form method="post" action="/settings/language" class="inline-form">
           <input type="hidden" name="_csrf" value={ui.csrfToken} />
           <input type="hidden" name="lang" value={other} />
-          <input type="hidden" name="return_to" value={ui.path} />
+          <input type="hidden" name="return_to" value={ui.returnTo} />
           {/* No aria-label: the accessible name must contain the visible text (WCAG 2.5.3,
               review ADMIN-1 r1 F3); the explanation is appended as visually hidden text. */}
           <button type="submit" class="btn btn--quiet">
@@ -240,6 +241,15 @@ export function Layout(props: PageProps & { ui: UiContext; flash: string | undef
   );
 }
 
+/** GET: this URL without the one-shot flash. A page re-rendered from a POST has no GET of its own: back to the form's page. */
+function returnPath(c: Context<AppEnv>): string {
+  if (c.req.method !== 'GET') return sameSiteReferer(c) ?? '/dashboard';
+  const u = new URL(c.req.url);
+  u.searchParams.delete('m');
+  const q = u.searchParams.toString();
+  return `${u.pathname}${q ? `?${q}` : ''}`;
+}
+
 export function uiContextOf(c: Context<AppEnv>): UiContext {
   return {
     lang: c.var.lang,
@@ -248,6 +258,7 @@ export function uiContextOf(c: Context<AppEnv>): UiContext {
     csrfToken: c.var.csrfToken,
     user: c.var.user,
     path: c.req.path,
+    returnTo: returnPath(c),
   };
 }
 
