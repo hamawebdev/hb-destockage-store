@@ -44,7 +44,7 @@ export function checkTokens(tokens) {
 export function report(rows) {
   const pad = (s, n) => String(s).padEnd(n);
   const lines = [
-    "HB Destockage — colour contrast check (WCAG 2.2, relative luminance)",
+    "Comptoir de Luxe — colour contrast check (WCAG 2.2, relative luminance)",
     "Source: brand/tokens.json contrastPairs. min 4.5 = text; 3 = large text / non-text UI (1.4.11).",
     "",
     `${pad("fg", 24)}${pad("bg", 17)}${pad("fg hex", 9)}${pad("bg hex", 9)}${pad("ratio", 8)}${pad("min", 5)}${pad("result", 7)}use`,

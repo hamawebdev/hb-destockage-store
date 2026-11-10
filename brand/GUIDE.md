@@ -1,12 +1,24 @@
-# HB Destockage — brand guide
+# Comptoir de Luxe — brand guide
 
-Version 1.0 · November 2026 · Printable version: [`guide.html`](guide.html) (one self-contained file:
+Version 1.1 · November 2026 · Printable version: [`guide.html`](guide.html) (one self-contained file:
 open it in a browser and print, or save as PDF).
 
-HB Destockage sells good products at clearance prices to customers all over Algeria. Customers order
+Comptoir de Luxe sells good products at clearance prices to customers all over Algeria. Customers order
 online, we call them to confirm, and they pay cash when the parcel arrives. The brand has to make that
 simple promise feel **trustworthy and calm**: a clean, spacious, modern shop where the price, the fee
 and the total are always clear.
+
+**The name.** One name, written two ways, never mixed or abbreviated in text:
+
+| | Written exactly | Where |
+|---|---|---|
+| French / Latin | **Comptoir de Luxe** | French pages, Latin-script contexts (courier labels, sheet titles, e-mail), the logo |
+| Arabic | كونتوار دو لوكس | Arabic pages and every Arabic sentence |
+| Domain | **comptoirdeluxe.com** | `https://comptoirdeluxe.com/ar/` (default) and `/fr/`; the admin is `admin.comptoirdeluxe.com` |
+
+Capital C and L, lower-case *de*; capitals only inside the logo. Never "CDL", "Comptoir", "Comptoir De
+Luxe" or another Arabic spelling. «CL» exists only as the monogram. Full writing rules:
+[`copy/VOICE.md`](copy/VOICE.md).
 
 **Reference.** The look follows apple.com: light surfaces (#ffffff and #f5f5f7), near-black text,
 one blue accent, generous space, crisp sans-serif type, photos of products on light backgrounds.
@@ -30,19 +42,20 @@ motion in CSS only.
 
 Files and full rules: [`logo/USAGE.md`](logo/USAGE.md). All marks are **outlined paths**: they need no font.
 
-- **Wordmark** `HB · DESTOCKAGE`: bold initials, a blue dot, light tracked capitals. Default on white or
-  #f5f5f7; inverse on #1d1d1f; mono (one colour) for print.
-- **Monogram** `HB` on a dark rounded tile with the blue dot in the corner: favicon, app icon, social avatars.
+- **Wordmark** `COMPTOIR · DE LUXE`: the bold first word, a blue dot, light tracked capitals. Default on
+  white or #f5f5f7; inverse on #1d1d1f; mono (one colour) for print.
+- **Monogram** `CL` on a dark rounded tile with the blue dot in the corner: favicon, app icon, social avatars.
 - **The blue dot** is a price-tag eyelet. It is the only colour in the logo and the same blue as the
   order button.
 - **Clear space:** at least ½ of the cap height (x) around the wordmark; 1 x when possible. 25 % of
   the tile around the monogram.
-- **Minimum size:** wordmark cap height 10 px (header: 14 px on phones, 18 px from 768 px); monogram 16 px.
+- **Minimum size:** wordmark cap height 10 px, about 135 px wide (header: 14 px cap = 189 px wide on phones,
+  18 px = 243 px from 768 px); monogram 16 px.
 - **Never** retype the logo in a font, stretch it, recolour it, add shadows, put the tile in another box,
-  or mirror it on Arabic pages. The Latin name is the brand name in both languages; inside Arabic text it
-  is written `HB Destockage` in `<bdi lang="fr">`.
-- No Arabic lockup: a transliteration reads awkwardly. If a descriptor is ever needed, it is live text
-  under the wordmark, not part of the logo.
+  or mirror it on Arabic pages. The Latin wordmark is the logo in both languages; in Arabic text the
+  name is written كونتوار دو لوكس.
+- No Arabic logo. Where the Arabic name must sit with the logo (shop sign, packaging), it is live text
+  under the wordmark in Noto Sans Arabic 400, `text-secondary`, never part of the drawn mark.
 
 ## 3. Colour
 

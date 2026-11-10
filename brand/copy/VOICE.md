@@ -1,9 +1,25 @@
-# Tone of voice — HB Destockage
+# Tone of voice — Comptoir de Luxe
 
-HB Destockage sells good products at clearance prices to customers all over Algeria, who pay cash on
+Comptoir de Luxe sells good products at clearance prices to customers all over Algeria, who pay cash on
 delivery after a confirmation call. The voice does what the visual design does: **calm, clear, sure of
 itself**. It sounds like a helpful shop assistant who knows the products and respects your time —
 never a market crier.
+
+## The name
+
+| | Written exactly | In a sentence |
+|---|---|---|
+| French | **Comptoir de Luxe** | « chez Comptoir de Luxe », « Comptoir de Luxe vous appelle », « © 2026 Comptoir de Luxe » |
+| Arabic | **كونتوار دو لوكس** | «في كونتوار دو لوكس»، «تواصل مع كونتوار دو لوكس»، «© 2026 كونتوار دو لوكس» |
+| Domain | **comptoirdeluxe.com** | lower case, no `www`, no `https://` in running text |
+
+- French: no article (« chez Comptoir de Luxe », not « au Comptoir de Luxe »), capital C and L, lower-case
+  *de*. Never all capitals in text, never "CDL" or "CL" (CL is only the monogram).
+- Arabic: exactly these three words with these letters: كونتوار دو لوكس. No other spelling (not «كونطوار»،
+  «دي لوكس», «ديلوكس»), no Latin name inside an Arabic sentence, no `<bdi>` needed around it. The domain
+  inside Arabic text goes in `<bdi dir="ltr">`.
+- The former name **HB Destockage** is not used in new copy, in either language. Order references keep
+  their `HB-` prefix: it is an identifier, not the name.
 
 ## Four principles (both languages)
 
@@ -34,7 +50,8 @@ never a market crier.
   two spell the number out (منتج واحد، منتجان). Don't write "{count} منتج(ات)".
 - **Punctuation:** Arabic comma «،», question mark «؟», guillemets «…» for quotes. No letter-spacing, no
   bold webfont: emphasis comes from size and colour.
-- **The brand name stays Latin:** HB Destockage (in `<bdi lang="fr">` inside Arabic text). Never transliterate it.
+- **The brand name in Arabic text is كونتوار دو لوكس**, the client's own Arabic name (see "The name"). The logo
+  stays the Latin wordmark.
 
 | Do | Don't |
 |---|---|
