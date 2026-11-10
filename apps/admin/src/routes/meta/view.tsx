@@ -110,6 +110,7 @@ export function MetaPage(props: { view: MetaView; errors: MetaErrors | undefined
           <dt>{tm('status.browser')}</dt>
           <dd>
             <StatusBadge tone={view.pixelId ? 'info' : 'neutral'} label={view.pixelId ? tm('browser.on') : tm('browser.off')} />
+            {view.pixelId ? <> {tm('browser.onNote')}</> : null}
             {view.pixelId && can(user, 'publish.run') ? (
               <>
                 {' '}
@@ -119,7 +120,7 @@ export function MetaPage(props: { view: MetaView; errors: MetaErrors | undefined
           </dd>
           <dt>{tm('status.server')}</dt>
           <dd>
-            <StatusBadge tone={SERVER_TONE[state]} label={tm(`server.${state}`)} />
+            <StatusBadge tone={SERVER_TONE[state]} label={tm(state === 'on' ? 'server.badge.on' : 'server.badge.off')} /> {tm(`server.${state}`)}
           </dd>
         </dl>
       </Card>

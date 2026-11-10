@@ -26,7 +26,7 @@ describe('M-2: the owner adds, changes and removes every Meta setting', () => {
   test('empty state: everything off, no token, no remove buttons', async () => {
     const page = await html();
     expect(page).toContain('Meta (Facebook)');
-    expect(page).toContain('Désactivés : aucun ID de Pixel');
+    expect(page).toContain('>Désactivés</span> aucun ID de Pixel');
     expect(page).not.toContain('/meta/pixel/remove');
     expect(page).not.toContain('/meta/token/remove');
     expect(page).not.toContain('/meta/test-code/remove');
@@ -44,7 +44,7 @@ describe('M-2: the owner adds, changes and removes every Meta setting', () => {
     const page = await html();
     expect(page).toContain('value="1234567890123456"');
     expect(page).toMatch(/name="consent" value="off" checked/);
-    expect(page).toContain('Actif sur le site à partir de la prochaine publication');
+    expect(page).toContain('>Actif</span> sur le site à partir de la prochaine publication');
     res = await postAs(h, OWNER, '/meta/pixel/remove');
     expect(res.headers.get('location')).toBe('/meta?m=deleted');
     expect(await metaRows(h)).toEqual({ metaConsentRequired: 'false' });
@@ -75,9 +75,9 @@ describe('M-2: the owner adds, changes and removes every Meta setting', () => {
 
   test('server status follows the stored values', async () => {
     await savePixel(PIXEL);
-    expect(await html()).toContain('Désactivés : aucun jeton d’accès');
+    expect(await html()).toContain('>Désactivés</span> aucun jeton d’accès');
     await saveToken(SENTINEL);
-    expect(await html()).toContain('Actifs maintenant');
+    expect(await html()).toContain('>Actifs</span> maintenant');
     Object.assign(h.env, { SETTINGS_ENCRYPTION_KEY: OTHER_KEY });
     expect(await html()).toContain('ne peut pas être lu avec la clé actuelle');
     Object.assign(h.env, { SETTINGS_ENCRYPTION_KEY: undefined });
