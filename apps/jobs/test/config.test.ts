@@ -15,9 +15,11 @@ describe('apps/jobs/wrangler.jsonc: production by default', () => {
     expect(raw.split('\n').filter((l) => /\S.*\/\/(?!\/)/.test(l) && !/^\s*\/\//.test(l) && !/"\$schema"/.test(l))).toEqual([]);
   });
 
-  test('no top-level vars: no ENV/development default, OTP flag off, no notification addresses', () => {
+  test('no top-level vars: ENV only the fail-safe production default, OTP flag off, no notification addresses', () => {
     const vars = (cfg['vars'] ?? {}) as Record<string, unknown>;
-    expect(vars['ENV']).toBeUndefined();
+    // D-010: courier and Google HTTP is held to loopback unless ENV is exactly "production", so the
+    // deployed jobs Worker declares it, as admin and web do; `npm run dev` passes ENV:development.
+    expect([undefined, 'production']).toContain(vars['ENV']);
     expect(JSON.stringify(vars)).not.toMatch(/development|localhost/i);
     expect(vars['SMS_OTP_ENABLED']).toBeUndefined();
     expect(vars['NOTIFY_EMAIL_FROM']).toBeUndefined();

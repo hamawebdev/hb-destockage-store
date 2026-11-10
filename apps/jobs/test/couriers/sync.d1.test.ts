@@ -190,6 +190,8 @@ describe('status events by polling', () => {
   test('the same status by webhook and by poll with two keys: second ignored, nothing moves twice (check 13)', async () => {
     const parcel = await shippedParcel(yal);
     await move(parcel.tracking, 'Livré');
+    await run();
+    // A terminal parcel is no longer polled, so the second report comes by webhook, with its own time.
     await inboxRow(yal, webhookBody(parcel.tracking, 'Livré', Date.now() - 3 * MIN));
     await run();
     const events = await all('select state from shipment_events where shipment_id = ? order by id', parcel.sid);
@@ -224,7 +226,7 @@ describe('status events by polling', () => {
     const a = await shippedParcel(yal);
     await move(a.tracking, 'Livré');
     await run();
-    await move(a.tracking, 'En transit');
+    await inboxRow(yal, webhookBody(a.tracking, 'En transit', Date.now() + 1000));
     await run();
     expect(await shipmentRow(a.sid)).toMatchObject({ courier_status: 'delivered' });
 
@@ -238,13 +240,33 @@ describe('status events by polling', () => {
     await run();
     expect(await orderOf(b.id)).toMatchObject({ status: 'returned' });
     expect(await stock()).toBe(s0 + 1);
-    await move(b.tracking, 'Livré');
+    // Polling stops at a terminal status; a late contradicting report arrives by webhook.
+    await inboxRow(yal, webhookBody(b.tracking, 'Livré'));
     await run();
     expect(await orderOf(b.id)).toMatchObject({ status: 'returned' });
     expect(await stock()).toBe(s0 + 1);
     const conflicts = await exceptions('terminal_conflict');
     expect(conflicts).toHaveLength(1);
     expect(conflicts[0]).toMatchObject({ subject: `s:${b.sid}`, state: 'open' });
+  });
+
+  test('a delivered parcel stays watched for 14 days: a later return correction goes to a person, nothing moves (lead ruling)', async () => {
+    const parcel = await shippedParcel(yal);
+    await move(parcel.tracking, 'Livré');
+    await run();
+    expect(await orderOf(parcel.id)).toMatchObject({ status: 'delivered', version: 1 });
+    const s0 = await stock();
+    await move(parcel.tracking, 'Retourné au vendeur');
+    await run();
+    expect(await orderOf(parcel.id)).toMatchObject({ status: 'delivered', version: 1 });
+    expect(await stock()).toBe(s0);
+    const conflicts = await exceptions('terminal_conflict');
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]).toMatchObject({ subject: `s:${parcel.sid}`, raw_status: 'Retourné au vendeur', state: 'open' });
+    // Past 14 days it is no longer polled.
+    await db().prepare('update shipments set courier_status_at = ?, last_polled_at = null where id = ?').bind(Date.now() - 15 * 86_400_000, parcel.sid).run();
+    await run();
+    expect((await shipmentRow(parcel.sid))['last_polled_at']).toBeNull();
   });
 
   test('an older terminal event after a newer non-terminal one still moves the order (check 15b)', async () => {
@@ -406,6 +428,15 @@ describe('webhooks from the inbox', () => {
     expect(await statusEvents(parcel.id)).toHaveLength(1);
   });
 
+  test('an inbox backlog gets only its share of the run; polling still delivers in the same run (review nit 1)', async () => {
+    const parcel = await shippedParcel(yal);
+    await move(parcel.tracking, 'Livré');
+    for (let i = 0; i < 30; i++) await inboxRow(yal, webhookBody(`yal-BACK${i}`, 'Livré'));
+    await run({ limits: { INBOX_MS: 1, INBOX_BATCH: 5 } });
+    expect(await orderOf(parcel.id)).toMatchObject({ status: 'delivered' });
+    expect((await one(`select count(*) n from courier_webhook_inbox where state = 'pending'`))['n']).toBeGreaterThan(0);
+  });
+
   test('done and rejected rows are purged after 14 days; pending ones are kept (check 17c)', async () => {
     const old = Date.now() - 15 * 86_400_000;
     await db().batch([
@@ -544,6 +575,31 @@ describe('uncertain sends and drafts', () => {
 });
 
 describe('isolation and the guard', () => {
+  test('two runs at once over the same inbox, events, uncertain row and draft: each applied once (check 17b)', async () => {
+    const parcel = await shippedParcel(yal);
+    await inboxRow(yal, webhookBody(parcel.tracking, 'Livré'));
+    const o = await order('confirmed');
+    await standin.control('yalidine/seed', { parcels: [{ tracking: 'yal-PAR001', order_id: o.ref }] });
+    const sid = await shipment(o, yal, 'uncertain', { attemptedAt: 1, attemptEndedAt: 1, verifyNextAt: 0, errorCode: 'uncertain', errorDetail: 'timeout' });
+    const d = await order('confirmed');
+    await standin.control('yalidine/seed', { parcels: [{ tracking: 'yal-PAR002', order_id: d.ref }] });
+    const did = await shipment(d, yal, 'draft', { tracking: 'yal-PAR002', attemptEndedAt: Date.now() });
+    await move('yal-PAR002', 'En transit');
+    await db().prepare('update courier_accounts set last_polled_at = null').run();
+    await Promise.all([runCourierSync(env()), runCourierSync(env())]);
+    await run();
+    expect(await orderOf(parcel.id)).toMatchObject({ status: 'delivered', version: 1 });
+    expect(await statusEvents(parcel.id)).toHaveLength(1);
+    expect(await audits(parcel.sid)).toHaveLength(1);
+    expect(await orderOf(o.id)).toMatchObject({ status: 'shipped', version: 1 });
+    expect(await statusEvents(o.id)).toHaveLength(1);
+    expect(await audits(sid)).toHaveLength(1);
+    expect(await orderOf(d.id)).toMatchObject({ status: 'shipped', version: 1 });
+    expect(await statusEvents(d.id)).toHaveLength(1);
+    expect((await shipmentRow(did))['state']).toBe('accepted');
+    expect((await standin.state('yalidine')).createCount).toBe(0);
+  });
+
   test('one account hanging: in the same run another account applies, a stale row is swept, a pending event applies (check 17c)', async () => {
     const gue = await account('guepex', { creds: { apiId: 'standin-id', apiToken: 'standin-token' } });
     const fast = await shippedParcel(yal);
@@ -555,7 +611,8 @@ describe('isolation and the guard', () => {
     await inboxRow(yal, webhookBody(pendingParcel.tracking, 'Livré'));
     const t0 = Date.now();
     const report = await run({ limits: { ACCOUNT_MS: 3000, CALL_MS: 10_000 } });
-    expect(Date.now() - t0).toBeLessThan(15_000);
+    // The contract bound for the whole run is 45 s (check 17c); the hanging account is cut at 3 s here.
+    expect(Date.now() - t0).toBeLessThan(30_000);
     expect(report.accountsTimedOut).toContain('guepex');
     expect(await orderOf(fast.id)).toMatchObject({ status: 'delivered' });
     expect(await shipmentRow(stale)).toMatchObject({ state: 'failed' });

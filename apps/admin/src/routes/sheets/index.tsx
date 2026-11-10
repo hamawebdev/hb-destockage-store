@@ -301,7 +301,7 @@ r.post('/disconnect', requirePerm('sheets.settings'), async (c) => {
 
 const RESULT_CODES = new Set(['connected', 'reconnected', 'disconnected', 'resync', 'new_sheet', 'not_allowed', 'off', 'already_connected', 'invalid_state', 'denied', 'google_error', 'google_unreachable', 'wrong_account', 'unverified', 'scope_missing', 'no_refresh', 'bad_token']);
 const POSITIVE = new Set(['connected', 'reconnected', 'disconnected', 'resync', 'new_sheet']);
-const KNOWN_ERRORS = new Set(['config_missing', 'revoke_abandoned', 'drive_full', 'rate_limited', 'timeout', 'network', 'server_error', 'google_client_config', 'google_config']);
+const KNOWN_ERRORS = new Set(['config_missing', 'revoke_abandoned', 'drive_full', 'rate_limited', 'timeout', 'network', 'server_error', 'google_client_config', 'google_config', 'internal_error']);
 const STATUS_TONE: Readonly<Record<string, Tone>> = { disconnected: 'neutral', connected: 'success', creating: 'info', needs_reconnect: 'danger', sheet_lost: 'danger', layout_changed: 'warning' };
 
 async function pendingCount(c: Ctx, generation: number): Promise<number> {
