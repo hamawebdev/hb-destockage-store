@@ -412,7 +412,9 @@
         "apps/admin/src/routes/settings/**",
         "apps/admin/test/settings/**",
         "apps/web/test/cart-*",
-        "tests/e2e/cart*"
+        "tests/e2e/cart*",
+        "packages/db/src/enums.ts",
+        "packages/db/test/enums*"
       ],
       "except": [
         "apps/storefront/src/lib/meta.mjs",
@@ -457,7 +459,8 @@
         "scripts/test/deploy-*",
         "docs/META-GO-LIVE.md",
         "data/content/privacy.json",
-        "tests/e2e/meta-*"
+        "tests/e2e/meta-*",
+        "docs/DEPLOY.md"
       ],
       "reviewer": "rev-m",
       "portBase": 4490
