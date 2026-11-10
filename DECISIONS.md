@@ -245,3 +245,11 @@ Rules:
 - Why: the owner authorised it on 2026-11-10 with a three-hour deadline ("merge without it and run typecheck, tests and build once on the final main … those changes get one review pass for bugs and security before they merge … then deploy through the normal pipeline"); a per-merge gate takes 1–2 h on this machine.
 - Evidence: artifacts/CART-4/review-r1.md and review-r2.md (rev-l); artifacts/CLX/cart-requirements.md (each requirement and its proof); artifacts/CLX/final/ (typecheck, test and build logs on main); the pipeline run for the pushed commit.
 - Status: one use, for the cart switch only; every later merge keeps merge.sh. D-017 and D-018 stay reserved for the Meta settings and the rename.
+
+## D-021 — COURIER_KEYS_KEY was generated and set by hand on hb-admin and hb-jobs, once
+- Date: 2026-11-10 · Author: lead (session ecom-website-f6) · Task: BOOT-27
+- Report says: CLAUDE.md Non-goals and D-007: nothing reaches the production account by hand; runtime secrets live in Cloudflare and the pipeline never reads or sets them (docs/DEPLOY.md).
+- We do instead: one exception. The key was generated with `openssl rand -base64 32` into a file outside the repo (owner-only, read-only) and set with `wrangler secret put COURIER_KEYS_KEY --name <worker>` on `hb-admin` and `hb-jobs`, the same value on both, as docs/DEPLOY.md "Shared key (once)" says. `hb-web` does not read it and did not get it. Nothing else was changed in production: no deploy, no D1 command, no other secret.
+- Why: the owner authorised it on 2026-11-10. The key was never set, so the live courier page showed "COURIER_KEYS_KEY n'est pas configurée" and no courier key could be saved. Nothing had been sealed before, so no stored value was affected.
+- Evidence: `wrangler secret list` shows the name on both Workers (it was on neither before); the file's value imports as a 32-byte key and seals and opens with packages/db/src/secret-box.ts. The live page behind Cloudflare Access was not opened by this session: the owner checks it.
+- Status: done, one use. The value must never change while couriers or Sheets are connected; it is not in the repo, a log or a commit.
