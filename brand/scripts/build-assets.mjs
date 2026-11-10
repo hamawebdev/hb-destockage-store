@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// Builds favicons, app icons and social (Open Graph) images into brand/assets/ from the logo SVGs.
+// Builds favicons, app icons and social (Open Graph) images into brand/assets/ from the logo SVGs,
+// and refreshes the admin's byte copy of the monogram (apps/admin/public/assets/brand/monogram.svg:
+// Workers static assets cannot read another package; apps/admin/test/assets.test.ts checks the copy).
 //
 //   node brand/scripts/build-assets.mjs
 //
@@ -19,6 +21,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const brand = resolve(here, "..");
 const OUT = join(brand, "assets");
+const ADMIN_MONOGRAM = resolve(brand, "../apps/admin/public/assets/brand/monogram.svg");
 
 const INTER_URL = "https://github.com/google/fonts/raw/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf";
 const INTER_SHA256 = "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"; // same file as build-logo.py
@@ -244,6 +247,8 @@ async function main() {
     writeFileSync(join(OUT, `og-category-sample-${lang}.jpg`), cat);
   }
   copyFileSync(join(OUT, "og-default-ar.jpg"), join(OUT, "og-default.jpg")); // x-default = Arabic
+  mkdirSync(dirname(ADMIN_MONOGRAM), { recursive: true });
+  copyFileSync(join(brand, "logo/monogram.svg"), ADMIN_MONOGRAM);
   console.log("brand/assets written", sizes);
 }
 
