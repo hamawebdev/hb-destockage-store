@@ -41,7 +41,7 @@ Let **x = the cap height** of the wordmark (height of the H).
 | Monogram | **16 px** (favicon). Below 24 px the eyelet may be dropped by the favicon export | 8 mm |
 | Lockup | tile 24 px | tile 8 mm |
 
-Aspect: wordmark width = **12.03 ×** cap height. Lockup width = 8.87 × tile height.
+Aspect: wordmark width = **13.48 ×** cap height. Lockup width = 9.78 × tile height.
 
 ## Colour
 
