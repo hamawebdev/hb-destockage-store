@@ -42,6 +42,8 @@ export function buildSearchIndex(ctx: BuildContext, lang: Lang, folding: SearchF
       f: card.price.from,
       x: card.placeholder || card.translationPlaceholder,
       k,
+      // CART-3: only in a cart-off build, so the cart-on index is byte-identical to before.
+      ...(ctx.snapshot.settings.cartEnabled ? {} : { o: assertSameOriginPath(card.orderHref, `search order ${lang} ${p.id}`) }),
     };
   });
   return { v: 1, lang, entries };

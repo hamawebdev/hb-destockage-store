@@ -120,3 +120,8 @@ export function pageProps<T extends Single>(template: T, lang: Lang): PropsByTem
 export function allRoutes(): { path: string; template: TemplateName }[] {
   return ctx.router.entries().map((e) => ({ path: e.path, template: e.template }));
 }
+
+/** The snapshot's cart switch (CART-1 `settings.cartEnabled`); hb-postbuild uses it to strip the other mode's code. */
+export function cartEnabled(): boolean {
+  return snapshot.settings.cartEnabled;
+}

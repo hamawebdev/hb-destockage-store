@@ -251,6 +251,24 @@ export interface SnapshotSettings {
   readonly homeHeroProductId: Id | null;
   /** Public Turnstile site key; null ⇒ the form does not load Turnstile (orders are flagged). */
   readonly turnstileSiteKey: string | null;
+  /**
+   * CART-1. Storefront cart switch (D1 settings key `cartEnabled`, JSON boolean; key missing ⇒
+   * `true`). Off ⇒ the build emits no cart UI or code and product cards link to the order form.
+   */
+  readonly cartEnabled: boolean;
+  /**
+   * CART-1. Meta Pixel browser settings (D1 keys `metaPixelId`, `metaConsentRequired`); null when no
+   * Pixel ID is set. Never carries the Conversions API token or test code (server-only keys).
+   */
+  readonly metaPixel: SnapshotMetaPixel | null;
+}
+
+/** CART-1. Public Meta Pixel settings. */
+export interface SnapshotMetaPixel {
+  /** 15–16 ASCII digits, not all zeros. */
+  readonly pixelId: string;
+  /** D1 `metaConsentRequired`, missing ⇒ true: the Pixel loads only after the visitor consents. */
+  readonly consentRequired: boolean;
 }
 
 /** DB-1 `wilayas`. */
@@ -489,6 +507,8 @@ export interface ProductCard {
   readonly id: Id;
   readonly kind: ProductKind;
   readonly href: string;
+  /** CART-3: this product's order form (ORDER-STEP `/{lang}/order/<slug>/`); the card's buy link when the cart is off. */
+  readonly orderHref: string;
   readonly name: string;
   readonly brandLatin: string | null;
   readonly summary: string;
@@ -548,6 +568,8 @@ export interface LayoutProps {
   readonly preloadArabicFont: boolean;
   /** Any placeholder content on this page (QA banner in dev builds). */
   readonly hasPlaceholders: boolean;
+  /** CART-3/CART-4: `settings.cartEnabled`. Off ⇒ no cart UI or code; product cards carry a buy link instead. */
+  readonly cartEnabled: boolean;
 }
 
 export interface HomeProps {
@@ -764,6 +786,8 @@ export interface SearchIndexEntry {
   /** geo's `searchKey(field, lang)` of name, brandLatin, category name and each option value label
    *  (this language), deduplicated and joined with `|` (so a match never spans two fields). */
   readonly k: string;
+  /** CART-3: order form path, only when the cart is off (search.js then renders a buy link). Absent when on. */
+  readonly o?: string;
 }
 
 export interface ContentProps {

@@ -11,11 +11,17 @@ import { resolve } from 'node:path';
 /** Astro builds and vitest run with cwd = apps/storefront (npm workspace scripts); the root is a fallback. */
 const ROOTS = ['public', 'apps/storefront/public'];
 
-export function publicFileVersion(relPath: string, cwd: string = process.cwd()): string | null {
+/**
+ * `salt` (CART-4): set for a file whose shipped bytes depend on the cart switch (integrations/cart-switch.mjs
+ * versionSalt), so the cart-off and cart-on builds never share an immutable URL. Absent = today's version.
+ */
+export function publicFileVersion(relPath: string, cwd: string = process.cwd(), salt?: string): string | null {
   for (const root of ROOTS) {
     const file = resolve(cwd, root, relPath);
     if (existsSync(file)) {
-      return createHash('sha256').update(readFileSync(file)).digest('base64url').slice(0, 10);
+      const h = createHash('sha256').update(readFileSync(file));
+      if (salt) h.update(`\0${salt}`);
+      return h.digest('base64url').slice(0, 10);
     }
   }
   return null;

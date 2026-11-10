@@ -30,7 +30,7 @@ const dev = showDevMarkers();
   <SubcategoryNav current={category} totalCount={totalCount} items={subCategories} lang={lang} strings={strings} />
 
   {products.length > 0 ? (
-    <ProductGrid cards={products} lang={lang} strings={strings} level={2} class="cat-listing" />
+    <ProductGrid cards={products} lang={lang} strings={strings} level={2} class="cat-listing" buy={!layout.cartEnabled} />
   ) : (
     <section class="cat-empty" aria-labelledby="cat-empty-title">
       <span class="cat-empty-icon" aria-hidden="true"></span>

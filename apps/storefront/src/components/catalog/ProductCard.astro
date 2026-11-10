@@ -3,6 +3,8 @@
  * Product card (category grid, related products, search suggestions, home).
  * Props are CAT-1 `ProductCard` as is. One link (the title), stretched over the card, so the
  * card is one tab stop and one accessible name; the image is decorative here (alt="").
+ * `buy` (cart off, CART-3): a second, separate link under the card body to the product's order form,
+ * "Commander <name>" (visible verb + visually hidden name), raised above the stretched title link.
  */
 import './card.css';
 import type { Lang, ProductCard as Card, StringTable } from '@hb/catalog';
@@ -23,8 +25,10 @@ interface Props {
   defer?: boolean;
   /** Shows the add-to-cart button (homepage cards, CART-0). */
   addable?: boolean;
+  /** Cart off (CART-3): buy link to the product's order form under the card. */
+  buy?: boolean;
 }
-const { card, lang, strings, level = 2, defer = false, addable = false } = Astro.props;
+const { card, lang, strings, level = 2, defer = false, addable = false, buy = false } = Astro.props;
 const H = `h${level}` as 'h2' | 'h3';
 const out = card.stock.state === 'out_of_stock';
 const dev = showDevMarkers();
@@ -62,7 +66,7 @@ const dev = showDevMarkers();
         ))}
       </ul>
     )}
-  </div>
+  </div>{buy && <a class="cat-card-buy" href={card.orderHref} data-no-prefetch>{t(strings, 'product.orderCta')}<span class="cat-sr"> {card.name}</span></a>}
 </article>
 
 <style is:global>
@@ -89,5 +93,8 @@ const dev = showDevMarkers();
   .cat-card-link:focus-visible::after{outline:var(--focus-width,2px) solid var(--color-focus);outline-offset:var(--focus-offset,2px)}
   .cat-card:hover .cat-card-link{color:var(--color-accent-text)}
   .cat-dots{display:flex;gap:var(--space-1);margin:var(--space-1) 0 0;padding:0;list-style:none}
+  .cat-card-buy{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;min-block-size:var(--tap-min);margin-block-start:auto;padding-inline:var(--space-4);border-radius:var(--radius-pill);background:var(--color-accent);color:var(--color-on-accent);font-weight:var(--fw-emphasis);line-height:var(--lh-ui);text-align:center;text-decoration:none;transition:background-color var(--dur-fast) var(--ease-standard)}
+  .cat-card-buy:hover{background:var(--color-accent-hover)}
+  .cat-card-buy:focus-visible{outline:var(--focus-width,2px) solid var(--color-focus);outline-offset:var(--focus-offset,2px)}
   .cat-dot svg{display:block;inline-size:12px;block-size:12px;border-radius:var(--radius-round);outline:1px solid rgba(0,0,0,.15);outline-offset:-1px}
 </style>

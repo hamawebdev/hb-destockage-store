@@ -203,6 +203,14 @@ Rules:
 - Evidence: artifacts/SHIP-0/contract.md rules 16 and 16a; lead rulings 2026-11-09, artifacts/SHIP-0/approval.md; apps/web/test/couriers/.
 - Status: active
 
+## D-016 — ADMIN2 branches may merge without merge.sh's per-merge gate, with one full gate after
+- Date: 2026-11-10 · Author: lead (ADMIN2) · Task: ADMIN2
+- Report says: CLAUDE.md "How work happens": only the lead merges, through `scripts/team/merge.sh`, which gates every merge result before main moves.
+- We do instead: for the remaining ADMIN2 branches (in the end only team/adminui@9440fb6, merged at 3f53b95), the lead runs `merge.sh --dry-run` (approvals ledger, ownership, net-diff, conflicts), merges with `git merge --no-ff` as the lead if it is clean, then runs one full `scripts/gate.sh` on main's merge commit. If that gate is red, the lead fixes or reverts before anything else lands. Never pushed.
+- Why: the client's owner authorised it on 2026-11-10. Main is shared by three sessions; each gate takes 1–2 h on the loaded machine, and the per-merge gates kept main busy for a day. One merge.sh run was stopped by another session when main moved under it.
+- Evidence: artifacts/ADMIN2/merge-ux-dry.log (dry-run OK; the merge tree equals the dry-run trial 7912d2a7a); the full gate log for 3f53b95 under artifacts/gate/; artifacts/ADMIN2/HANDOFF.md.
+- Status: active for ADMIN2 only; every other merge keeps merge.sh.
+
 ## D-014 — Meta's Pixel is a scoped exception to "no third-party scripts, no cookies, no analytics"
 - Date: 2026-11-08 · Author: growth (for lead, client instruction) · Task: META-1
 - Report says: CLAUDE.md "No analytics or chat widgets", "Storefront: no cookies, no third-party scripts, hash-based CSP", "No third-party origin before LCP"; STACK-REPORT.md §2.
@@ -222,10 +230,18 @@ Rules:
 - Evidence: client's choice of 2026-11-09 (artifacts/META-0/lead-approval.md Addendum 7); artifacts/META-0/measure/summary.md; sizes measured the budget tool's way on a seed build of this change.
 - Status: active
 
-## D-016 — ADMIN2 branches may merge without merge.sh's per-merge gate, with one full gate after
-- Date: 2026-11-10 · Author: lead (ADMIN2) · Task: ADMIN2
-- Report says: CLAUDE.md "How work happens": only the lead merges, through `scripts/team/merge.sh`, which gates every merge result before main moves.
-- We do instead: for the remaining ADMIN2 branches (in the end only team/adminui@9440fb6, merged at 3f53b95), the lead runs `merge.sh --dry-run` (approvals ledger, ownership, net-diff, conflicts), merges with `git merge --no-ff` as the lead if it is clean, then runs one full `scripts/gate.sh` on main's merge commit. If that gate is red, the lead fixes or reverts before anything else lands. Never pushed.
-- Why: the client's owner authorised it on 2026-11-10. Main is shared by three sessions; each gate takes 1–2 h on the loaded machine, and the per-merge gates kept main busy for a day. One merge.sh run was stopped by another session when main moved under it.
-- Evidence: artifacts/ADMIN2/merge-ux-dry.log (dry-run OK; the merge tree equals the dry-run trial 7912d2a7a); the full gate log for 3f53b95 under artifacts/gate/; artifacts/ADMIN2/HANDOFF.md.
-- Status: active for ADMIN2 only; every other merge keeps merge.sh.
+## D-020 — Takeover of ADMIN2 and Meta: merge without merge.sh's gate, verify once on final main, then deploy
+- Date: 2026-11-10 · Author: lead (takeover session ecom-website-f6) · Task: BOOT-25
+- Report says: CLAUDE.md "How work happens": only the lead merges, through `scripts/team/merge.sh`, which gates every merge result. D-016 limited the gate-free path to ADMIN2. Main had no green full gate at 317dba2 (r1 red only on the 1800 s time limit of `packages/db` `orders.test.ts` on a loaded machine).
+- We do instead: the owner handed the ADMIN2 lead's and the Meta/SEO lead's work to one session with a one-hour deadline and a live deploy. That session stops both sessions, merges team/growth@142b574 with `git merge --no-ff` as the lead, and runs typecheck, tests and build once on the final main (locally and in the pipeline's own checks). Order-path, totals/fees and admin login/roles changes get one bugs-and-security pass from the takeover lead before merging. Then main is pushed, which deploys through the pipeline (D-007). SEO (SEO-1..4) and META-10 are not started and stay out. D-017 to D-019 stay reserved for the CLX session.
+- Why: the owner authorised it on 2026-11-10 ("merge without it and run typecheck, tests and build once on the final main"); a per-merge gate takes 1–2 h on this machine.
+- Evidence: artifacts/TAKEOVER/ (process trees of the stopped sessions, review note, check logs); team/APPROVALS.md META-0 r3 and META-9 r3 (rev-g); the pipeline run for the pushed commit.
+- Status: one use, for this takeover only; every later merge keeps merge.sh.
+
+## D-019 — Cart switch: merge without merge.sh's gate, one review pass, verify once on final main, then deploy
+- Date: 2026-11-10 · Author: lead (CLX session ecom-website-c8) · Task: BOOT-27
+- Report says: CLAUDE.md "How work happens": only the lead merges, through `scripts/team/merge.sh`, which gates every merge result; deploying is a non-goal outside the pipeline's sign-off (D-007). D-016 and D-020 limited the gate-free path to ADMIN2 and the takeover.
+- We do instead: for the cart on/off switch only (team/cart, CART-1 to CART-5), the lead merges with `git merge --no-ff`, without the per-merge gate, and runs typecheck, tests and build once on the final main. The order-path and admin-role changes get one bugs-and-security review pass by a reviewer who did not write them (rev-l), recorded in team/APPROVALS.md, before the merge. Main is then pushed, which deploys through the pipeline (D-007), and the live site is checked. The switch itself needs no deviation from STACK-REPORT.md: pages stay static, the switch is a build input read from the published snapshot, the Worker never reads it.
+- Why: the owner authorised it on 2026-11-10 with a three-hour deadline ("merge without it and run typecheck, tests and build once on the final main … those changes get one review pass for bugs and security before they merge … then deploy through the normal pipeline"); a per-merge gate takes 1–2 h on this machine.
+- Evidence: artifacts/CART-4/review-r1.md and review-r2.md (rev-l); artifacts/CLX/cart-requirements.md (each requirement and its proof); artifacts/CLX/final/ (typecheck, test and build logs on main); the pipeline run for the pushed commit.
+- Status: one use, for the cart switch only; every later merge keeps merge.sh. D-017 and D-018 stay reserved for the Meta settings and the rename.

@@ -69,6 +69,9 @@ const html = async (email: string, path: string) => {
 };
 
 function expectNoSensitive(page: string, where: string) {
+  // The menu's "Alertes de stock" link and the language switch's return_to (the visitor's own query string)
+  // are not order data: take them out before searching (UX-9, UX-2).
+  page = page.replaceAll('Alertes de stock', '').replace(/name="return_to" value="[^"]*"/g, '');
   for (const s of Object.values(SECRETS)) expect(page, `${where}: ${s}`).not.toContain(s);
   for (const s of FLAG_TEXT) expect(page, `${where}: ${s}`).not.toContain(s);
   for (const s of [
@@ -77,7 +80,7 @@ function expectNoSensitive(page: string, where: string) {
     'Prochain appel', // next call
     'appelle cette commande', // claim banner
     'Appel : Occupé', // call outcome in the timeline
-    '7 commandes', // customer history counts
+    'history__counts', // customer history counts (UX rework: a <dl>, no longer "7 commandes")
     'Alertes', // flags column / section
     'name="flagged"',
     'name="duplicate"',
@@ -123,7 +126,7 @@ describe('logistics receives delivery fields only', () => {
 describe('the same values are shown to a confirmer (the markers are real)', () => {
   test('detail', async () => {
     const page = await html(USERS.confirmer, `/orders/${REF}`);
-    for (const s of ['Piège anti-robot', 'Remplie trop vite', 'tentative 4', 'Client bloqué', 'Prochain appel', SECRETS.callNote, SECRETS.orderNote, 'Motif :', '7 commandes', 'Owner appelle cette commande']) {
+    for (const s of ['Piège anti-robot', 'Remplie trop vite', 'tentative 4', 'Client bloqué', 'Prochain appel', SECRETS.callNote, SECRETS.orderNote, 'Motif :', 'history__counts', 'Owner appelle cette commande']) {
       expect(page, s).toContain(s);
     }
   });

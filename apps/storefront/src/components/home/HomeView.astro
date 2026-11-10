@@ -71,7 +71,7 @@ const trim4 = cards.length >= 4 ? cards.length - (cards.length % 4) : cards.leng
     <section id="hm-featured" class="container hm-sec" aria-labelledby="hm-feat">
       <h2 id="hm-feat" class="hm-h2">{s('home.featuredTitle')}</h2>
       <div class:list={['hm-products', { 'hm-g2-odd': trim2 !== cards.length && cards.length > 1, 'hm-solo': cards.length === 1 }, `hm-g3-${trim3}`, `hm-g4-${trim4}`]}>
-        <ProductGrid cards={cards} lang={l.lang} strings={l.strings} level={3} addable />
+        <ProductGrid cards={cards} lang={l.lang} strings={l.strings} level={3} addable={l.cartEnabled} buy={!l.cartEnabled} />
       </div>
     </section>
   )

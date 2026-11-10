@@ -28,6 +28,8 @@ const i18n = JSON.stringify({
   'price.from': t(strings, 'price.from'),
   'stock.out': t(strings, 'stock.out'),
   ...(dev ? { 'dev.placeholder': t(strings, 'dev.placeholder') } : {}),
+  // Cart off (CART-3): the results' buy link label ("Commander"); absent when the cart is on.
+  ...(layout.cartEnabled ? {} : { 'card.buy': t(strings, 'product.orderCta') }),
 });
 ---
 <div class="container cat-page cat-search" data-index={indexUrl} data-lang={lang} data-min={minQueryLength} data-q={queryParam} data-i18n={i18n}>
@@ -58,7 +60,7 @@ const i18n = JSON.stringify({
   {suggested.length > 0 && (
     <section class="cat-sec cat-ssuggest" aria-labelledby="cat-ssuggest-h">
       <h2 id="cat-ssuggest-h" class="cat-sec-h">{t(strings, 'search.suggested')}</h2>
-      <ProductGrid cards={suggested} lang={lang} strings={strings} level={3} />
+      <ProductGrid cards={suggested} lang={lang} strings={strings} level={3} buy={!layout.cartEnabled} />
     </section>
   )}
 </div>
@@ -87,6 +89,11 @@ const i18n = JSON.stringify({
   .cat-res-price{font-variant-numeric:tabular-nums}
   .cat-res-out{color:var(--color-danger)}
   .cat-res-low{color:var(--color-warning)}
+  .cat-res-row{display:flex;align-items:center;gap:var(--space-2)}
+  .cat-res-row .cat-res{flex:1;min-inline-size:0}
+  .cat-res-buy{flex:none;display:flex;align-items:center;justify-content:center;min-block-size:var(--tap-min);min-inline-size:var(--tap-min);padding-inline:var(--space-4);border-radius:var(--radius-pill);background:var(--color-accent);color:var(--color-on-accent);font-weight:var(--fw-emphasis);line-height:var(--lh-ui);text-decoration:none;white-space:nowrap}
+  .cat-res-buy:hover{background:var(--color-accent-hover)}
+  .cat-res-buy:focus-visible{outline:var(--focus-width,2px) solid var(--color-focus);outline-offset:var(--focus-offset,2px)}
   .cat-sbrowse-list{display:flex;flex-wrap:wrap;gap:var(--space-2);margin:0;padding:0;list-style:none}
   .cat-search.is-active .cat-ssuggest{display:none}
 </style>

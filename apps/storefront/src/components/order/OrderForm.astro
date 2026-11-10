@@ -12,6 +12,7 @@
 import type { ContactProps, ImageProps, Lang, OrderFormProps, StringTable } from '@hb/catalog';
 import { orderFormModel } from './form-model.ts';
 import { publicFileVersion } from './asset-version.ts';
+import { versionSalt } from '../../../integrations/cart-switch.mjs';
 
 interface Props {
   lang: Lang;
@@ -27,6 +28,8 @@ interface Props {
   /** Cart mode: `${origin-relative}` product JSON template and the links back to the shop. */
   itemsUrl?: string;
   homeHref?: string;
+  /** `layout.cartEnabled` (CART-4): a cart-off build ships order.js without its cart mode, under its own `?v=`. */
+  cartEnabled?: boolean;
 }
 
 const p = Astro.props;
@@ -35,7 +38,7 @@ const m = orderFormModel({
   ...p,
   productName: p.productName ?? '',
   brandLatin: p.brandLatin ?? null,
-  jsVersion: publicFileVersion('js/order.js'),
+  jsVersion: publicFileVersion('js/order.js', undefined, versionSalt('order.js', p.cartEnabled ?? true)),
   tsJsVersion: publicFileVersion('js/order-ts.js'),
   cart: mode === 'cart' ? { jsVersion: publicFileVersion('js/cart.js'), itemsUrl: p.itemsUrl ?? `/${p.lang}/cart/items/{id}.json`, homeHref: p.homeHref ?? `/${p.lang}/` } : null,
 });
