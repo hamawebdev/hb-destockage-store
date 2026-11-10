@@ -7,7 +7,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const [BASE, OUT, ...steps] = process.argv.slice(2);
+const [BASE = '', OUT = '', ...steps] = process.argv.slice(2);
 if (!BASE || !OUT || steps.length === 0) throw new Error('usage: meta-admin.ts <admin-url> <out-dir> <step>...');
 const PIXEL = process.env['HB_META_E2E_PIXEL'] ?? '';
 const TOKEN = process.env['HB_META_E2E_TOKEN'] ?? '';
