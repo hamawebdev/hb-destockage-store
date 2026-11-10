@@ -10,6 +10,7 @@ import { toAlgiersInput } from '../../lib/time.ts';
 import { StatusBadge } from '../../ui/badge.tsx';
 import { Checkbox, ErrorSummary, Form, FormActions, Submit, TextInput, Textarea } from '../../ui/form.tsx';
 import { Bdi, DateTime, Money } from '../../ui/format.tsx';
+import { Icon } from '../../ui/icons.tsx';
 import { Table } from '../../ui/table.tsx';
 import { groupTimeline, type OrderAuditRow, type OrderDetail, type OrderEventRow, type OrderItemRow } from './detail-data.ts';
 import { flagLabel } from './list-page.tsx';
@@ -31,6 +32,8 @@ export interface DetailProps {
   form?: { kind: FormKind; to?: string; values: Readonly<Record<string, string>>; errors: Readonly<Record<string, string>> };
   /** Re-render after a 409. */
   conflict?: { name: string | null; at: number };
+  /** Re-render after a change refused because a parcel is being sent. */
+  shipmentBusy?: boolean;
 }
 
 /** Errors that belong to a field of the form (the rest are shown at the top of the page). */
@@ -43,9 +46,11 @@ const CALL_BUTTONS = ['confirmed', 'no_answer', 'busy', 'callback', 'wrong_numbe
 
 function Section(props: { title: string; id?: string; children: Child }) {
   return (
-    <section aria-labelledby={props.id}>
-      <h2 id={props.id}>{props.title}</h2>
-      {props.children}
+    <section class="card" aria-labelledby={props.id}>
+      <div class="card__head">
+        <h2 class="card__title" id={props.id}>{props.title}</h2>
+      </div>
+      <div class="card__body">{props.children}</div>
     </section>
   );
 }
@@ -274,6 +279,27 @@ function Timeline(props: { tm: OrdersMessages; lang: Lang; events: readonly Orde
   );
 }
 
+/** Where the order stands. Cancelled orders have no line: their badge says it all. */
+const STEPS: readonly OrderStatus[] = ['new', 'called', 'confirmed', 'shipped', 'delivered'];
+
+function Progress(props: { tm: OrdersMessages; lang: Lang; status: OrderStatus }) {
+  const { lang, status } = props;
+  if (status === 'cancelled') return null;
+  const steps = status === 'returned' ? (['new', 'called', 'confirmed', 'shipped', 'returned'] as const) : STEPS;
+  // `unreachable` is the calling stage; it is not a step of its own.
+  const at = steps.indexOf(status === 'unreachable' ? 'called' : status);
+  return (
+    <ol class="steps">
+      {steps.map((s, i) => (
+        <li class={i < at ? 'step step--done' : i === at ? 'step step--now' : 'step'} aria-current={i === at ? 'step' : undefined}>
+          <span class="step__dot">{i < at ? <Icon name="check" class="ico--sm" /> : null}</span>
+          <span class="step__label">{orderStatusLabel(lang, s)}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export function OrderDetailPage(props: DetailProps) {
   const tm = m(props.lang);
   const { order, lang, user } = props;
@@ -289,9 +315,6 @@ export function OrderDetailPage(props: DetailProps) {
 
   return (
     <>
-      <p>
-        <Bdi>{order.ref}</Bdi>
-      </p>
       {topErrors.length > 0 ? (
         <div class="flash flash--danger" role="alert">
           {topErrors.map((e) => (
@@ -308,6 +331,11 @@ export function OrderDetailPage(props: DetailProps) {
           <p>{tm('conflict.retry')}</p>
         </div>
       ) : null}
+      {props.shipmentBusy ? (
+        <p class="flash flash--danger" role="alert">
+          {tm('detail.shipmentBusy')} <a href="#shipment">{tm('detail.shipmentBusyLink')}</a>
+        </p>
+      ) : null}
       {claimActive ? (
         <p class="flash flash--success" role="status">
           {risk!.claimedByUserId === user.id
@@ -318,144 +346,153 @@ export function OrderDetailPage(props: DetailProps) {
       ) : null}
       {risk?.customerBlocked ? <p class="flash flash--danger" role="alert">{tm('detail.blocked')}</p> : null}
 
-      <p>
-        <StatusBadge tone={orderStatusTone(order.status)} label={orderStatusLabel(lang, order.status)} />{' '}
-        {risk && risk.callAttempts > 0 ? <span class="muted">{tm('status.attempt', { n: risk.callAttempts })}</span> : null}{' '}
-        <span class="muted">
-          {tm('detail.created')} <DateTime ms={order.createdAt} />
-        </span>
-      </p>
+      <div class="order-head">
+        <div class="order-head__who">
+          <p class="order-head__name"><Bdi ltr={false}>{order.name}</Bdi></p>
+          <p class="order-head__meta">
+            <Bdi>{order.ref}</Bdi> · <Bdi>{formatPhoneDisplay(order.phoneE164)}</Bdi>
+          </p>
+        </div>
+        <div class="order-head__status">
+          <StatusBadge tone={orderStatusTone(order.status)} label={orderStatusLabel(lang, order.status)} />
+          {risk && risk.callAttempts > 0 ? <span class="muted">{tm('status.attempt', { n: risk.callAttempts })}</span> : null}
+          <span class="muted">
+            {tm('detail.created')} <DateTime ms={order.createdAt} />
+          </span>
+        </div>
+        <a class="btn btn--primary order-head__call" href={`tel:${order.phoneE164}`}>
+          <Icon name="phone" />
+          {tm('detail.call')}
+        </a>
+      </div>
+      <Progress tm={tm} lang={lang} status={order.status} />
       {risk && risk.nextCallAt !== null ? (
-        <p class="muted">
+        <p class="muted list-note">
           {tm('detail.nextCall')} : <DateTime ms={risk.nextCallAt} />
         </p>
       ) : null}
 
-      <Section title={tm('detail.customer')} id="customer">
-        <p>
-          <Bdi ltr={false}>{order.name}</Bdi>
-          <br />
-          <Bdi>{formatPhoneDisplay(order.phoneE164)}</Bdi>{' '}
-          <a class="btn btn--secondary" href={`tel:${order.phoneE164}`}>{tm('detail.call')}</a>
-        </p>
-        {risk ? (
-          <p class="muted">
-            {tm('detail.customerCounts', {
-              orders: risk.orderCount,
-              delivered: risk.deliveredCount,
-              returned: risk.returnedCount,
-              cancelled: risk.cancelledCount,
-            })}{' '}
-            <a href={`/customers/${order.customer.id}`}>{tm('detail.customerLink')}</a>
-          </p>
-        ) : (
-          <p>
-            <a href={`/customers/${order.customer.id}`}>{tm('detail.customerLink')}</a>
-          </p>
-        )}
-      </Section>
+      <div class="order-grid">
+        <div class="order-main">
+          {canCall ? <ClaimButtons {...props} tm={tm} claimActive={claimActive} /> : null}
+          {canCall ? <CallForm {...props} tm={tm} /> : null}
+          {targets.length > 0 ? <TransitionForms {...props} tm={tm} targets={targets} /> : null}
 
-      <Section title={tm('detail.delivery')} id="delivery">
-        <dl>
-          <dt>{tm('list.col.place')}</dt>
-          <dd>
-            {String(order.wilayaCode).padStart(2, '0')} — {name(order.wilayaFr, order.wilayaAr)} / {name(order.communeFr, order.communeAr)}
-          </dd>
-          <dt>{tm('detail.address')}</dt>
-          <dd dir="auto">{order.address ?? tm('detail.noAddress')}</dd>
-          {order.courierName !== null ? (
-            <>
-              <dt>{tm('detail.courier')}</dt>
-              <dd dir="auto">{order.courierName}</dd>
-            </>
+          <Section title={tm('detail.items')} id="items">
+            <Table
+              stack
+              caption={tm('detail.items')}
+              rows={props.items}
+              rowKey={(i) => i.id}
+              columns={[
+                {
+                  key: 'product',
+                  header: tm('detail.col.product'),
+                  cell: (i) => {
+                    const label = lang === 'ar' ? i.variantLabelAr : i.variantLabelFr;
+                    return (
+                      <>
+                        {name(i.nameFr, i.nameAr)}
+                        {label ? <span class="cell-sub">{label}</span> : null}
+                      </>
+                    );
+                  },
+                },
+                { key: 'sku', header: tm('detail.col.sku'), cell: (i) => <Bdi>{i.sku}</Bdi> },
+                { key: 'unit', header: tm('detail.col.unit'), numeric: true, cell: (i) => <Money dzd={i.unitPriceDzd} /> },
+                { key: 'qty', header: tm('detail.col.qty'), numeric: true, cell: (i) => String(i.qty) },
+                { key: 'line', header: tm('detail.col.line'), numeric: true, cell: (i) => <Money dzd={i.lineTotalDzd} /> },
+              ]}
+            />
+          </Section>
+
+          {can(user, 'orders.note') ? <NoteForm {...props} tm={tm} /> : null}
+          <Timeline tm={tm} lang={lang} events={props.events} audit={props.audit} />
+        </div>
+
+        <div class="order-rail">
+          <Section title={tm('detail.customer')} id="customer">
+            {risk ? (
+              <p class="muted">
+                {tm('detail.customerCounts', {
+                  orders: risk.orderCount,
+                  delivered: risk.deliveredCount,
+                  returned: risk.returnedCount,
+                  cancelled: risk.cancelledCount,
+                })}
+              </p>
+            ) : null}
+            <p>
+              <a href={`/customers/${order.customer.id}`}>{tm('detail.customerLink')}</a>
+            </p>
+          </Section>
+
+          <Section title={tm('detail.delivery')} id="delivery">
+            <dl class="details">
+              <dt>{tm('list.col.place')}</dt>
+              <dd>
+                {String(order.wilayaCode).padStart(2, '0')} — {name(order.wilayaFr, order.wilayaAr)} / {name(order.communeFr, order.communeAr)}
+              </dd>
+              <dt>{tm('detail.address')}</dt>
+              <dd dir="auto">{order.address ?? tm('detail.noAddress')}</dd>
+              {order.courierName !== null ? (
+                <>
+                  <dt>{tm('detail.courier')}</dt>
+                  <dd dir="auto">{order.courierName}</dd>
+                </>
+              ) : null}
+              {order.courierTracking !== null ? (
+                <>
+                  <dt>{tm('detail.tracking')}</dt>
+                  <dd><Bdi>{order.courierTracking}</Bdi></dd>
+                </>
+              ) : null}
+              {order.stockRestoredAt !== null ? (
+                <>
+                  <dt>{tm('detail.stockRestored')}</dt>
+                  <dd><DateTime ms={order.stockRestoredAt} /></dd>
+                </>
+              ) : null}
+            </dl>
+            {canEditContact(user.role, order.status) ? (
+              <a class="btn btn--secondary" href={`/orders/${order.ref}/contact`}>{tm('contact.link')}</a>
+            ) : null}
+          </Section>
+
+          <Section title={tm('detail.money')} id="money">
+            <dl class="details details--money">
+              <dt>{tm('detail.subtotal')}</dt>
+              <dd><Money dzd={order.subtotalDzd} /></dd>
+              <dt>{tm('detail.fee')}</dt>
+              <dd><Money dzd={order.feeDzd} /></dd>
+              <dt>{tm('detail.total')}</dt>
+              <dd><strong><Money dzd={order.totalDzd} /></strong></dd>
+              <dt>{tm('detail.feeSource')}</dt>
+              <dd><Bdi>{order.feeSource}</Bdi></dd>
+            </dl>
+          </Section>
+
+          {risk ? (
+            <Section title={tm('detail.flags')} id="flags">
+              {risk.flags.length === 0 ? (
+                <p class="muted">{tm('detail.flagsNone')}</p>
+              ) : (
+                <ul class="flag-list">
+                  {risk.flags.map((f) => {
+                    const help = tm(`flagHelp.${f}` as Parameters<OrdersMessages>[0]);
+                    return (
+                      <li>
+                        <StatusBadge tone={orderFlagTone(f)} label={flagLabel(tm, f)} />
+                        {help !== `flagHelp.${f}` ? <> {help}</> : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Section>
           ) : null}
-          {order.courierTracking !== null ? (
-            <>
-              <dt>{tm('detail.tracking')}</dt>
-              <dd><Bdi>{order.courierTracking}</Bdi></dd>
-            </>
-          ) : null}
-          {order.stockRestoredAt !== null ? (
-            <>
-              <dt>{tm('detail.stockRestored')}</dt>
-              <dd><DateTime ms={order.stockRestoredAt} /></dd>
-            </>
-          ) : null}
-        </dl>
-        {canEditContact(user.role, order.status) ? (
-          <p>
-            <a class="btn btn--secondary" href={`/orders/${order.ref}/contact`}>{tm('contact.link')}</a>
-          </p>
-        ) : null}
-      </Section>
-
-      <Section title={tm('detail.items')} id="items">
-        <Table
-          stack
-          caption={tm('detail.items')}
-          rows={props.items}
-          rowKey={(i) => i.id}
-          columns={[
-            {
-              key: 'product',
-              header: tm('detail.col.product'),
-              cell: (i) => {
-                const label = lang === 'ar' ? i.variantLabelAr : i.variantLabelFr;
-                return (
-                  <>
-                    {name(i.nameFr, i.nameAr)}
-                    {label ? <><br /><span class="muted">{label}</span></> : null}
-                  </>
-                );
-              },
-            },
-            { key: 'sku', header: tm('detail.col.sku'), cell: (i) => <Bdi>{i.sku}</Bdi> },
-            { key: 'unit', header: tm('detail.col.unit'), numeric: true, cell: (i) => <Money dzd={i.unitPriceDzd} /> },
-            { key: 'qty', header: tm('detail.col.qty'), numeric: true, cell: (i) => String(i.qty) },
-            { key: 'line', header: tm('detail.col.line'), numeric: true, cell: (i) => <Money dzd={i.lineTotalDzd} /> },
-          ]}
-        />
-      </Section>
-
-      <Section title={tm('detail.money')} id="money">
-        <dl>
-          <dt>{tm('detail.subtotal')}</dt>
-          <dd><Money dzd={order.subtotalDzd} /></dd>
-          <dt>{tm('detail.fee')}</dt>
-          <dd><Money dzd={order.feeDzd} /></dd>
-          <dt>{tm('detail.total')}</dt>
-          <dd><strong><Money dzd={order.totalDzd} /></strong></dd>
-          <dt>{tm('detail.feeSource')}</dt>
-          <dd><Bdi>{order.feeSource}</Bdi></dd>
-        </dl>
-      </Section>
-
-      {risk ? (
-        <Section title={tm('detail.flags')} id="flags">
-          {risk.flags.length === 0 ? (
-            <p class="muted">{tm('detail.flagsNone')}</p>
-          ) : (
-            <ul>
-              {risk.flags.map((f) => {
-                const help = tm(`flagHelp.${f}` as Parameters<OrdersMessages>[0]);
-                return (
-                  <li>
-                    <StatusBadge tone={orderFlagTone(f)} label={flagLabel(tm, f)} />
-                    {help !== `flagHelp.${f}` ? <> {help}</> : null}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Section>
-      ) : null}
-
-      {canCall ? <ClaimButtons {...props} tm={tm} claimActive={claimActive} /> : null}
-      {canCall ? <CallForm {...props} tm={tm} /> : null}
-      {targets.length > 0 ? <TransitionForms {...props} tm={tm} targets={targets} /> : null}
-      {can(user, 'orders.note') ? <NoteForm {...props} tm={tm} /> : null}
-
-      <Timeline tm={tm} lang={lang} events={props.events} audit={props.audit} />
+        </div>
+      </div>
     </>
   );
 }

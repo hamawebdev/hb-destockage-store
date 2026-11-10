@@ -1,3 +1,16 @@
 # Copy to apps/admin/.dev.vars (gitignored). Local development only.
 CSRF_SECRET=dev-only-csrf-secret-change-me-0123456789abcdef
 DEV_SESSION_SECRET=dev-only-session-secret-change-me-0123456789abcdef
+
+# Seals courier keys and the Google refresh token: `openssl rand -base64 32`. Unset = couriers and
+# Sheets off, the admin still works. The value below is a local-only placeholder.
+COURIER_KEYS_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+# Local courier stand-in: node tools/standins/couriers/server.mjs --port <p>
+# COURIER_STANDIN_URL=http://127.0.0.1:4410
+
+# Google Sheets against the local stand-in (node tools/standins/sheets/server.mjs --port 4420).
+# The redirect URI must match this Worker's dev port (npm run dev: 4240, or $PORT).
+GOOGLE_CLIENT_ID=standin-client
+GOOGLE_CLIENT_SECRET=standin-secret
+GOOGLE_REDIRECT_URI=http://127.0.0.1:4240/sheets/callback
+GOOGLE_STANDIN_URL=http://127.0.0.1:4420

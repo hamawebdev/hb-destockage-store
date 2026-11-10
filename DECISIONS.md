@@ -179,21 +179,26 @@ Rules:
 - Evidence: client instruction, 2026-11-09. Courier references: artifacts/delivery-research/.
 - Status: active. Supersedes: D-001.
 
-## D-011 — Meta's Pixel is a scoped exception to "no third-party scripts, no cookies, no analytics"
-- Date: 2026-11-08 · Author: growth (for lead, client instruction) · Task: META-1
-- Report says: CLAUDE.md "No analytics or chat widgets", "Storefront: no cookies, no third-party scripts, hash-based CSP", "No third-party origin before LCP"; STACK-REPORT.md §2.
-- We do instead: the storefront may load Meta's Pixel (`https://connect.facebook.net/en_US/fbevents.js`), accept the cookies Meta's own script sets (`_fbp`, `_fbc`), and send it events. **This covers Meta's Pixel and its own cookies only.** Every other storefront rule still holds: no other third-party script, no cookie of ours, nothing third-party before LCP, a hash-based CSP that grows only by the Pixel's origins and only on pages that carry the Pixel. Until a Pixel ID is set there is no script, no choice shown, no CSP change and no request. With one set, nothing loads or is sent, by browser or server, until the visitor accepts (setting `META_CONSENT_REQUIRED`, on by default).
-- Why: client decision, for Meta ad measurement on a cash-on-delivery store.
-- Trust boundary: consent reaches the server as the visitor's own browser's claim (`meta.consent === true` in the JSON order body). It cannot be verified without a cookie, which the client ruled out for the choice. A bot posting someone else's phone with `consent:true` sends that hash to Meta, the same exposure as placing a fake order in that person's name. The no-JS path has no consent and never sends.
-- Evidence: client instruction, 2026-11-08 (artifacts/META-0/brief.md Part 1, "WHAT IS DECIDED"); contract and lead approval (artifacts/META-0/contract.md, artifacts/META-0/lead-approval.md); `.claude/skills/meta-pixel/SKILL.md` and `references/privacy-and-consent.md`; `.claude/skills/meta-conversions-api/SKILL.md`. Behaviour against the real Meta is not verified by this entry: it needs real credentials (docs/META-GO-LIVE.md).
+## D-011 — An order with a parcel in progress cannot be changed; order changes take an extra guard
+- Date: 2026-11-09 · Author: shipping · Task: SHIP-1
+- Report says: §2 order states and team/BRIEF §2: `confirmed → cancelled | shipped`, each listing only the roles allowed; contact edits allowed to the owner until the parcel leaves (AORD-0).
+- We do instead: while a shipment is reserved, sending, draft, uncertain, or accepted but not yet applied to the order, SQL triggers on `orders` (migration 0012) refuse leaving `confirmed` and changing the wilaya, commune, fee, total, phone, name or address. `buildOrderChange` and `applyOrderChange` also take an optional extra guard on every statement they write, and a new system actor, `courier_sync`, may make only `confirmed→shipped`, `shipped→delivered` and `shipped→returned`. Existing callers pass no guard and behave as before.
+- Why: a parcel already handed to a courier collects the amount it was created with. Without the guard an owner could change the fee during a send, or cancel an order whose parcel may exist, and nothing would flag it. A 0-row update does not abort a D1 batch, so a lost compare-and-swap needs the extra guard to write nothing.
+- Evidence: artifacts/SHIP-0/contract.md (revision 3), artifacts/SHIP-0/contract-challenge.md M1, M2, M4, artifacts/SHIP-0/contract-challenge-r2.md N1, N2 (trigger behaviour measured on local D1); lead rulings 2026-11-09, artifacts/SHIP-0/approval.md; tests in packages/db/test/shipping.test.ts.
 - Status: active
 
-## D-012 — Meta's code is exempted from `js-after-lcp` on a build with Meta configured
-- Date: 2026-11-09 · Author: growth (for lead, client decision) · Task: META-9
-- Report says: CLAUDE.md "≤ 10 KB br JS after LCP"; `npm run budget` rule `js-after-lcp` (every same-origin JS file a page can reach, at the larger of brotli q11 and q4).
-- We do instead: on a build with `META_PIXEL_ID` set, `js-after-lcp` may flag pages for the Meta code they can reach. **This covers only `js-after-lcp`, only on a build with Meta configured, and only the Meta files below.** Every other budget stays strict, and every build without Meta configured stays strict and unchanged.
-- What the tool counts against what a visitor downloads: the tool adds every file a page can reach, so splitting code cannot lower its number. It counts `/js/meta.js` 478 B plus `/js/meta-full.js` 3,250 B = 3,728 B on every marked page. A visitor with no stored `granted` downloads only the stub, 478 B, before any input. `meta-full.js` loads after the first input (to show the choice), never after a stored decline, and at once for a stored `granted` or with consent off and no stored decline.
-- The bound that blocks instead: on every page that passed `js-after-lcp` before Meta, the page's previous total plus the stub stays within 10,000 B. Worst case 8,327 B (`/fr/search/`) + 478 B = 8,805 B. In real Chrome with no input and no consent, no Meta file other than the stub is requested. The file reference stays visible to the tool; the flagged pages are reported, not hidden: of the 107 pages that passed before, the tool flags 102 when Meta is configured. The other five carry no Pixel and are not flagged: the three 404 pages (`/404.html`, `/ar/404.html`, `/fr/404.html`) and the two review pages (`/ar/order/review/`, `/fr/order/review/`).
-- Why: client decision. The Pixel's code cannot fit in the room the budget leaves (1,673 B on the 48 product and search pages), and a visitor who has not accepted does not download it before acting.
-- Evidence: client's choice of 2026-11-09 (artifacts/META-0/lead-approval.md Addendum 7); artifacts/META-0/measure/summary.md; sizes measured the budget tool's way on a seed build of this change.
+## D-012 — Connecting Google Sheets exports every existing order
+- Date: 2026-11-09 · Author: sheets · Task: SHEET-2
+- Report says: nothing about Google Sheets; ADMIN2 brief §5 specifies one row per order and automatic catch-up without saying whether older orders are included.
+- We do instead: connecting exports every existing order to the owner's own Google Drive, oldest first, in batches of 300 per run. That includes customer names, phones and addresses. Notes, flags, risk score and IP hash are not exported.
+- Why: lead ruling on the client's request for each order as one row; the data stays in the account of the admin who connects it.
+- Evidence: artifacts/SHEET-0/approval.md; artifacts/SHEET-0/contract.md §2 and §3; apps/jobs/test/sheets/sync.d1.test.ts (check 23).
+- Status: active
+
+## D-013 — The courier webhook route reads and writes D1, and signatures are checked in jobs
+- Date: 2026-11-09 · Author: shipping · Task: SHIP-4
+- Report says: §2 "Data", CLAUDE.md: D1 is touched only on the order and quote POSTs and in the admin (D-002). ADMIN2/BRIEF §5: the webhook route verifies a signature or per-account token.
+- We do instead: `/api/courier-hook/:courier/:token` on apps/web looks up the account by the SHA-256 of the URL token (one indexed read) and writes the byte-exact body and filtered headers to `courier_webhook_inbox`. A courier's own signature is verified in apps/jobs, not in this route, so the storefront Worker never holds courier secrets. The token is always enforced in the route. Malformed tokens cost no D1 query; bodies are capped at 32 KiB so a row stays within the daily backup's 90,000-byte statement limit. No rate-limit binding (lead ruling).
+- Why: couriers cannot reach the admin behind Cloudflare Access. Webhooks are not visitor page views, so no page depends on D1 here.
+- Evidence: artifacts/SHIP-0/contract.md rules 16 and 16a; lead rulings 2026-11-09, artifacts/SHIP-0/approval.md; apps/web/test/couriers/.
 - Status: active

@@ -42,12 +42,15 @@ type Item = OrderBatchItem;
 // Error classification (lead guard 1): identify the constraint exactly; anything else rethrows.
 // ---------------------------------------------------------------------------------------------
 
-export type ConstraintHit = 'idempotency_key' | 'ref' | 'stock';
+export type ConstraintHit = 'idempotency_key' | 'ref' | 'stock' | 'shipment_in_progress' | 'duplicate_tracking';
 
 const PATTERNS: readonly [ConstraintHit, RegExp][] = [
   ['idempotency_key', /\bUNIQUE constraint failed: orders\.idempotency_key(?![\w.])/],
   ['ref', /\bUNIQUE constraint failed: orders\.ref(?![\w.])/],
   ['stock', /\bCHECK constraint failed: variants_stock_nonneg(?!\w)/],
+  // RAISE(ABORT) from the open-slot triggers (migration 0012).
+  ['shipment_in_progress', /\bshipment_in_progress\b/],
+  ['duplicate_tracking', /\bUNIQUE constraint failed: shipments\.courier, shipments\.tracking(?![\w.])/],
 ];
 
 /** Driver messages along the `cause` chain, excluding Drizzle's "Failed query: <sql>" wrapper text. */
@@ -349,10 +352,20 @@ const PATCH_COLUMNS: Record<keyof OrderPatch, string> = {
   nextCallAt: 'next_call_at',
 };
 
+/** A person, or the courier status sync (SHIP-0 contract). */
+export type OrderChangeActor = { readonly userId: number; readonly role: AdminRole } | { readonly system: 'courier_sync' };
+
+/** The only hops the courier sync may make. Anything else, and any call attempt, is refused. */
+export const SYSTEM_HOPS: readonly StatusHop[] = [
+  ['confirmed', 'shipped'],
+  ['shipped', 'delivered'],
+  ['shipped', 'returned'],
+];
+
 export interface OrderChange {
   readonly orderId: number;
   readonly expectedVersion: number;
-  readonly actor: { readonly userId: number; readonly role: AdminRole };
+  readonly actor: OrderChangeActor;
   /** Status hops in order (from @hb/shared resolveCallOutcome or a single transition). [] = none. */
   readonly hops?: readonly StatusHop[];
   /** Stored on each status_change event (e.g. a CancelReason). */
@@ -373,7 +386,8 @@ export interface OrderSnapshot {
 export type OrderChangeRefusal = 'illegal_transition' | 'forbidden' | 'not_callable';
 export type ApplyOrderChangeResult =
   | { readonly ok: true; readonly version: number; readonly status: OrderStatus }
-  | { readonly ok: false; readonly code: 'not_found' | 'version_conflict' | OrderChangeRefusal };
+  /** `shipment_in_progress`: a parcel slot is open on this order (open-slot triggers, migration 0012). */
+  | { readonly ok: false; readonly code: 'not_found' | 'version_conflict' | 'shipment_in_progress' | OrderChangeRefusal };
 
 /** `EXISTS (order :id at version :v)` — guard for callers' own `extra` statements. */
 export function orderGuard(orderId: number, version: number): SQL {
@@ -407,6 +421,15 @@ export function guardedInsertSelect<T extends SQLiteTable>(db: Db, table: T, val
   return db.insert(table).select(sql`SELECT ${sql.join(list, sql`, `)} ${from}`);
 }
 
+export interface OrderChangeOptions {
+  /**
+   * Extra condition on every statement this change writes (events, restock, counter, order update).
+   * A 0-row update does not abort a D1 batch, so a caller whose batch starts with a compare-and-swap
+   * passes a guard requiring the state that swap set: if the swap lost, nothing else is written.
+   */
+  readonly guard?: SQL;
+}
+
 /**
  * Pure builder: validates the hops against @hb/shared for the actor's role and returns the guarded
  * batch items, the caller's `extra` placed just before the final version bump (always last).
@@ -416,11 +439,13 @@ export function buildOrderChange(
   current: OrderSnapshot,
   change: OrderChange,
   extra: readonly Item[] = [],
+  opts: OrderChangeOptions = {},
 ): { ok: true; items: [Item, ...Item[]]; status: OrderStatus } | { ok: false; code: OrderChangeRefusal } {
   const now = change.now ?? Date.now();
   const { id } = current;
   const v = change.expectedVersion;
-  const uid = change.actor.userId;
+  const actor = change.actor;
+  const isSystem = 'system' in actor;
   const hops = change.hops ?? [];
 
   let status = current.status;
@@ -429,16 +454,19 @@ export function buildOrderChange(
     if (from !== status) return { ok: false, code: 'illegal_transition' };
     const t = findTransition(from, to);
     if (!t) return { ok: false, code: 'illegal_transition' };
-    if (!canTransition(from, to, change.actor.role)) return { ok: false, code: 'forbidden' };
+    const allowed = isSystem ? SYSTEM_HOPS.some(([f, t]) => f === from && t === to) : canTransition(from, to, actor.role);
+    if (!allowed) return { ok: false, code: 'forbidden' };
     if (t.stock === 'restore') restore = true;
     status = to;
   }
   if (change.callAttempt && !CALLABLE_STATUSES.includes(current.status)) return { ok: false, code: 'not_callable' };
-  if (change.callAttempt && !(['owner', 'confirmer'] as AdminRole[]).includes(change.actor.role)) return { ok: false, code: 'forbidden' };
+  if (change.callAttempt && (isSystem || !(['owner', 'confirmer'] as AdminRole[]).includes(actor.role))) return { ok: false, code: 'forbidden' };
 
   const items: Item[] = [];
-  const from = sql`FROM orders WHERE id = ${id} AND version = ${v}`;
-  const event = (values: Record<string, unknown>) => guardedInsertSelect(db, orderEvents, { order_id: sql`id`, actor_type: 'admin', actor_user_id: uid, at: now, ...values }, from);
+  const guard = opts.guard ?? sql`1`;
+  const from = sql`FROM orders WHERE id = ${id} AND version = ${v} AND ${guard}`;
+  const who = isSystem ? { actor_type: 'system', actor_user_id: null } : { actor_type: 'admin', actor_user_id: actor.userId };
+  const event = (values: Record<string, unknown>) => guardedInsertSelect(db, orderEvents, { order_id: sql`id`, ...who, at: now, ...values }, from);
   if (change.callAttempt) {
     items.push(event({ type: 'call_attempt', outcome: change.callAttempt.outcome, note: change.callAttempt.note ?? null }));
   }
@@ -457,7 +485,7 @@ export function buildOrderChange(
         // untracked now → stays NULL (DB-4 r1).
         .where(
           sql`${variants.id} IN (SELECT variant_id FROM order_items WHERE order_id = ${id} AND stock_taken > 0) AND ${variants.stock} IS NOT NULL
-            AND EXISTS (SELECT 1 FROM orders WHERE id = ${id} AND version = ${v} AND stock_restored_at IS NULL)`,
+            AND EXISTS (SELECT 1 FROM orders WHERE id = ${id} AND version = ${v} AND stock_restored_at IS NULL) AND ${guard}`,
         ),
     );
   }
@@ -467,7 +495,7 @@ export function buildOrderChange(
       db
         .update(customers)
         .set({ [counter]: sql`${customers[counter]} + 1`, updatedAt: now })
-        .where(and(eq(customers.id, current.customerId), orderGuard(id, v))),
+        .where(and(eq(customers.id, current.customerId), orderGuard(id, v), guard)),
     );
   }
   items.push(...extra);
@@ -485,11 +513,11 @@ export function buildOrderChange(
     const val = change.patch?.[k];
     if (val !== undefined) (set as Record<string, unknown>)[k] = val;
   }
-  items.push(db.update(orders).set(set).where(and(eq(orders.id, id), eq(orders.version, v))));
+  items.push(db.update(orders).set(set).where(and(eq(orders.id, id), eq(orders.version, v), guard)));
   return { ok: true, items: items as [Item, ...Item[]], status };
 }
 
-async function readSnapshot(db: Db, orderId: number): Promise<OrderSnapshot | undefined> {
+export async function readOrderSnapshot(db: Db, orderId: number): Promise<OrderSnapshot | undefined> {
   const r = await db.get<{ id: number; status: OrderStatus; version: number; customer_id: number }>(
     sql`SELECT id, status, version, customer_id FROM orders WHERE id = ${orderId}`,
   );
@@ -497,15 +525,22 @@ async function readSnapshot(db: Db, orderId: number): Promise<OrderSnapshot | un
 }
 
 /** Reads the order, builds the change, runs ONE batch. A stale version changes nothing. */
-export async function applyOrderChange(db: Db, change: OrderChange, extra: readonly Item[] = []): Promise<ApplyOrderChangeResult> {
-  const current = await readSnapshot(db, change.orderId);
+export async function applyOrderChange(db: Db, change: OrderChange, extra: readonly Item[] = [], opts: OrderChangeOptions = {}): Promise<ApplyOrderChangeResult> {
+  const current = await readOrderSnapshot(db, change.orderId);
   if (!current) return { ok: false, code: 'not_found' };
   if (current.version !== change.expectedVersion) return { ok: false, code: 'version_conflict' };
-  const built = buildOrderChange(db, current, change, extra);
+  const built = buildOrderChange(db, current, change, extra, opts);
   if (!built.ok) return built;
-  const results = (await db.batch(built.items)) as unknown as { meta?: { changes?: number } }[];
+  let results: { meta?: { changes?: number } }[];
+  try {
+    results = (await db.batch(built.items)) as unknown as { meta?: { changes?: number } }[];
+  } catch (err) {
+    // The open-slot trigger aborted the whole batch: nothing was written.
+    if (classifyConstraintError(err) === 'shipment_in_progress') return { ok: false, code: 'shipment_in_progress' };
+    throw err;
+  }
   if ((results.at(-1)?.meta?.changes ?? 0) !== 1) {
-    return (await readSnapshot(db, change.orderId)) ? { ok: false, code: 'version_conflict' } : { ok: false, code: 'not_found' };
+    return (await readOrderSnapshot(db, change.orderId)) ? { ok: false, code: 'version_conflict' } : { ok: false, code: 'not_found' };
   }
   return { ok: true, version: change.expectedVersion + 1, status: built.status };
 }
@@ -521,7 +556,7 @@ export async function transitionOrder(
   extra: readonly Item[] = [],
   now?: number,
 ): Promise<ApplyOrderChangeResult> {
-  const current = await readSnapshot(db, orderId);
+  const current = await readOrderSnapshot(db, orderId);
   if (!current) return { ok: false, code: 'not_found' };
   return applyOrderChange(
     db,

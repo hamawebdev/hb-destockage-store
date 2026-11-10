@@ -1,6 +1,8 @@
 import type { SendEmailBinding } from './notify/email.ts';
 
 export interface Env {
+  /** `production` in wrangler.jsonc; `.dev.vars` sets `development` locally. Outbound HTTP is held to loopback unless exactly `production`. */
+  ENV?: string;
   /** Shared D1 (owner of schema: `db`). */
   DB: D1Database;
   /** Private backup bucket (JOBS-1). Never public, never the media bucket. */
@@ -19,6 +21,20 @@ export interface Env {
   NOTIFY_LANG?: string;
   /** Producer binding to the notifications DLQ, for permanent failures and malformed messages. */
   ORDER_NOTIFICATIONS_DLQ?: Queue<unknown>;
+
+  // Courier status sync (SHIP-5). Unset or invalid key = no courier is called; D1-only steps still run.
+  /** 32 random bytes, base64 (secret), the same value as the admin's. Opens the sealed courier keys. */
+  COURIER_KEYS_KEY?: string;
+  /** Local courier stand-in. Honoured only when ENV is not `production`. */
+  COURIER_STANDIN_URL?: string;
+
+  // Google Sheets sync (SHEET-2). Off until these and COURIER_KEYS_KEY are set; `config_missing` otherwise.
+  /** Secret. */
+  GOOGLE_CLIENT_ID?: string;
+  /** Secret. */
+  GOOGLE_CLIENT_SECRET?: string;
+  /** Non-production only: loopback stand-in base URL. Ignored in production. */
+  GOOGLE_STANDIN_URL?: string;
 }
 
 export const ORDER_NOTIFICATIONS_QUEUE = 'hb-order-notifications';
@@ -28,3 +44,5 @@ export const CRON_DAILY_BACKUP = '0 2 * * *';
 export const CRON_BACKUP_HEALTH = '0 9 * * *';
 /** 02:30 UTC = 03:30 Algiers: RUM rollup + 90-day purge (JOBS-5). */
 export const CRON_RUM_ROLLUP = '30 2 * * *';
+/** Courier status sync and Sheets sync. Each runs on its own; neither can block the other. */
+export const CRON_EVERY_MINUTE = '* * * * *';

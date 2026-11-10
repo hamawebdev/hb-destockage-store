@@ -9,7 +9,10 @@
   "compatibility_flags": ["nodejs_compat"],
   // 02:00 UTC = 03:00 Algiers: daily backup. 09:00 UTC: backup health check (JOBS-1).
   // 02:30 UTC: RUM rollup + 90-day purge (JOBS-5).
-  "triggers": { "crons": ["0 2 * * *", "0 9 * * *", "30 2 * * *"] },
+  // Every minute: courier status sync and Sheets sync.
+  "triggers": { "crons": ["0 2 * * *", "0 9 * * *", "30 2 * * *", "* * * * *"] },
+  // Fail-safe default; `.dev.vars` overrides it locally. Courier and Google HTTP is held to loopback unless exactly "production".
+  "vars": { "ENV": "production" },
   "d1_databases": [
     // Shared D1 (production id; preview_database_id keeps local dev on ../../.wrangler/hb-local).
     {

@@ -1,5 +1,5 @@
 /* Print: drop the chrome, keep the content (order slips use variant 'print'). */
-.topbar, .nav-disclosure, .skip-link, .pagination, .form-actions, .page-head__actions, .flash-region { display: none !important; }
+.topbar, .side, .tabbar, .dialog, .skip-link, .pagination, .form-actions, .page-head__actions, .flash-region { display: none !important; }
 .page { display: block; background: #fff; }
 .main { padding: 0; }
 a { color: inherit; text-decoration: none; }
