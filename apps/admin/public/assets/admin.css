@@ -365,7 +365,7 @@
     .tbl-stack td .input { inline-size: 100%; }
     .tbl-stack td a:not(.btn):not(.row-link) { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); }
     /* Tables that stay tables on a phone (products, categories): their links are 44 px tall too. */
-    .table td a:not(.btn):not(.row-link) { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); }
+    .table td a:not(.btn):not(.row-link) { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); min-inline-size: var(--tap-min, 44px); }
     .tbl-stack td::before { content: attr(data-label); color: var(--color-text-secondary); font-size: var(--a-caption); }
     /* Everything a labelled cell holds sits in the value column, and a long badge wraps instead of
        widening the page (lead walk, UX-12: /delivery/exceptions overflowed 25 px at 360). */
