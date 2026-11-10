@@ -2,7 +2,7 @@
 # CART-5: the cart-off storefront end to end (ledger C-6..C-9, C-11). Builds the site from the seed with
 # settings.cartEnabled = false, seeds a local D1, starts the web Worker (its build step writes _headers) and the admin
 # Worker on cart's ports, scans dist for cart traces, runs tests/e2e/cart-switch.spec.ts and the budget.
-# Usage: tests/e2e/cart-run.sh [out dir]   Heavy: wrap in scripts/lib/locks.sh heavy --. Fake values only.
+# Usage: [HB_CART_SKIP_BUILD=1] [HB_CART_SKIP_REPORTS=1] [HB_CART_AFTER=<cmd>] tests/e2e/cart-run.sh [out dir]   Heavy: wrap in scripts/lib/locks.sh heavy --. Fake values only.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 REPO="$PWD"
@@ -55,11 +55,16 @@ echo "== specs"
 HB_CART_E2E=off HB_E2E_WEB_URL="http://127.0.0.1:$WEB_PORT" HB_E2E_ADMIN_URL="http://127.0.0.1:$ADMIN_PORT" HB_E2E_PERSIST="$PERSIST" HB_E2E_OUT="$OUT" \
   npx vitest run --config tests/e2e/vitest.config.ts --reporter=default cart-switch > "$OUT/specs.log" 2>&1; SPECS=$?
 
+AXE=0; BUDGET=0
+if [[ "${HB_CART_SKIP_REPORTS:-0}" != 1 ]]; then
 echo "== axe (home, category, search templates, ar+fr, 360/768/1440)"
 npm run axe -- --base-url "http://127.0.0.1:$WEB_PORT" --template home --template category --template search --out "$OUT/axe" > "$OUT/axe.log" 2>&1; AXE=$?
 
 echo "== budget (report only)"
 npm run budget -- --dist apps/storefront/dist --out "$OUT/budget" > "$OUT/budget.log" 2>&1; BUDGET=$?
+fi
+# HB_CART_AFTER: a command to run while the Workers are still up (e.g. a live-check script against the local build).
+if [[ -n "${HB_CART_AFTER:-}" ]]; then echo "== after: $HB_CART_AFTER"; bash -c "$HB_CART_AFTER" > "$OUT/after.log" 2>&1; echo "after exit $?"; fi
 set -e
 grep -E "Test Files|Tests  |FAIL" "$OUT/specs.log" || true
 echo "scan=$SCAN grep-matches=$([[ $GREP == 1 ]] && echo none || echo FOUND) specs=$SPECS axe=$AXE budget=$BUDGET"
