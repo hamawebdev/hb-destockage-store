@@ -7,7 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, i
 import type { Browser, Page } from 'playwright';
 import { startMetaStandIn, type MetaStandIn } from '../../apps/web/test/support/meta-stand-in.ts';
 import { expectNumbersShown, expectPreselected, fillCustomer, openOrderStep, orderByRef, submitUntilConfirmed } from './flows.ts';
-import { expectNoUnexpectedRequests, CONFIGURED, LANGS, STAND_IN_PORT, cspViolations, expectShape, fbqCalls, launchMeta, metaContext, place, scanForToken, tracked, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
+import { expectNoUnexpectedRequests, CONFIGURED, FAKE_PIXEL, LANGS, STAND_IN_PORT, TEST_EVENT_CODE, cspViolations, expectShape, fbqCalls, launchMeta, metaContext, place, scanForToken, tracked, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
 
 const FBP = 'fb.1.1596403881668.1116446470';
 const digest = (phone: string) => createHash('sha256').update(`213${phone.slice(1)}`, 'utf8').digest('hex');
@@ -59,6 +59,10 @@ describe.runIf(CONFIGURED)('Meta order, consent given', () => {
       expect(e.user_data['fbp']).toBe(FBP);
       expect(e.user_data['client_user_agent']).toBeTruthy();
       expect(standIn.hits()[0]).toMatchObject({ hasToken: true, tokenInUrl: false });
+      // MSET-6 (M-10): the test event code entered in the admin, read from D1 at send time.
+      expect(TEST_EVENT_CODE).not.toBe('');
+      expect(standIn.hits()[0]?.testEventCode).toBe(TEST_EVENT_CODE);
+      expect(standIn.hits()[0]?.path).toBe(`/v25.0/${FAKE_PIXEL}/events`);
 
       const [purchase] = await tracked(page, 'Purchase');
       expect((purchase![3] as { eventID: string }).eventID).toBe(r.ref);
@@ -115,7 +119,7 @@ describe.runIf(CONFIGURED)('Meta order, consent given', () => {
       const sent = page.waitForRequest((r) => r.url().endsWith('/api/order') && r.method() === 'POST' && (r.headers()['content-type'] ?? '').includes('json'), { timeout: 180_000 });
       const r = await order(page, lang, uniqueSeed());
       const body = (await sent).postDataJSON() as { meta?: Record<string, unknown> };
-      expect(body.meta).toEqual({ consent: true });
+      expect(body.meta).toEqual({ consent: true, pixel: FAKE_PIXEL });
       expect(orderByRef(r.ref).total_dzd).toBe(r.total);
       await ctx.close();
     });
