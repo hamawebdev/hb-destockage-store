@@ -237,3 +237,11 @@ Rules:
 - Why: the owner authorised it on 2026-11-10 ("merge without it and run typecheck, tests and build once on the final main"); a per-merge gate takes 1–2 h on this machine.
 - Evidence: artifacts/TAKEOVER/ (process trees of the stopped sessions, review note, check logs); team/APPROVALS.md META-0 r3 and META-9 r3 (rev-g); the pipeline run for the pushed commit.
 - Status: one use, for this takeover only; every later merge keeps merge.sh.
+
+## D-019 — Cart switch: merge without merge.sh's gate, one review pass, verify once on final main, then deploy
+- Date: 2026-11-10 · Author: lead (CLX session ecom-website-c8) · Task: BOOT-27
+- Report says: CLAUDE.md "How work happens": only the lead merges, through `scripts/team/merge.sh`, which gates every merge result; deploying is a non-goal outside the pipeline's sign-off (D-007). D-016 and D-020 limited the gate-free path to ADMIN2 and the takeover.
+- We do instead: for the cart on/off switch only (team/cart, CART-1 to CART-5), the lead merges with `git merge --no-ff`, without the per-merge gate, and runs typecheck, tests and build once on the final main. The order-path and admin-role changes get one bugs-and-security review pass by a reviewer who did not write them (rev-l), recorded in team/APPROVALS.md, before the merge. Main is then pushed, which deploys through the pipeline (D-007), and the live site is checked. The switch itself needs no deviation from STACK-REPORT.md: pages stay static, the switch is a build input read from the published snapshot, the Worker never reads it.
+- Why: the owner authorised it on 2026-11-10 with a three-hour deadline ("merge without it and run typecheck, tests and build once on the final main … those changes get one review pass for bugs and security before they merge … then deploy through the normal pipeline"); a per-merge gate takes 1–2 h on this machine.
+- Evidence: artifacts/CART-4/review-r1.md and review-r2.md (rev-l); artifacts/CLX/cart-requirements.md (each requirement and its proof); artifacts/CLX/final/ (typecheck, test and build logs on main); the pipeline run for the pushed commit.
+- Status: one use, for the cart switch only; every later merge keeps merge.sh. D-017 and D-018 stay reserved for the Meta settings and the rename.
