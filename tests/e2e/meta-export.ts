@@ -15,7 +15,8 @@ import { exportCatalogSnapshot } from '@hb/db/export';
 const [persist, out] = process.argv.slice(2);
 if (!persist || !out) throw new Error('usage: meta-export.ts <persist-dir> <out-dir>');
 const root = findRepoRoot(fileURLToPath(new URL('.', import.meta.url)));
-const proxy = await getPlatformProxy<{ DB: D1Database }>({ configPath: join(root, 'packages/db/wrangler.jsonc'), persist: { path: join(resolve(persist), 'v3') }, remoteBindings: false });
+// The D1 binding type createDb takes (tools/measure compiles without the Workers types).
+const proxy = await getPlatformProxy<{ DB: Parameters<typeof createDb>[0] }>({ configPath: join(root, 'packages/db/wrangler.jsonc'), persist: { path: join(resolve(persist), 'v3') }, remoteBindings: false });
 try {
   const exported = await exportCatalogSnapshot(createDb(proxy.env.DB));
   writeFileSync(join(out, 'd1-export.json'), JSON.stringify(exported));
