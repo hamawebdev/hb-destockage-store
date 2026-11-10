@@ -42,9 +42,9 @@ export function clearChoice(storage = () => localStorage) {
 
 export const readCookie = (all, name) => new RegExp(`(?:^|; *)${name}=([^;]*)`).exec(all)?.[1].trim() ?? null;
 
-/** What goes in the order body: consent, plus _fbp/_fbc only if they have the expected shape. */
-export function signals(cookies) {
-  const out = { consent: true };
+/** What goes in the order body: consent, the page's Pixel ID, and _fbp/_fbc only if well-formed. */
+export function signals(cookies, pixel) {
+  const out = { consent: true, pixel };
   for (const k of ['fbp', 'fbc']) {
     const v = readCookie(cookies, `_${k}`);
     if (v !== null && META_ID_RE.test(v)) out[k] = v;
@@ -184,7 +184,7 @@ export async function boot(id, mode) {
   let tracking = false;
 
   D.addEventListener('hb:order-sending', (e) => {
-    if (tracking) e.detail.meta = signals(D.cookie);
+    if (tracking) e.detail.meta = signals(D.cookie, id);
   });
   D.addEventListener('hb:order-placed', (e) => {
     const d = e.detail;

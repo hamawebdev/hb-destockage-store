@@ -79,7 +79,12 @@ const io: Io = {
     return parseJsonc(path, await readFile(join(REPO, path), 'utf8')) as WranglerConfig;
   },
   writeFile: (path, content) => writeFile(path, content),
-  writeSecret: (path, content) => writeFile(path, content, { mode: 0o600 }),
+  // mode applies only when writeFile creates the file: remove any leftover first, then create it
+  // exclusively ('wx'), so the secrets file is always new and 0600 (rev-m r1 Nit 1).
+  async writeSecret(path, content) {
+    await rm(path, { force: true });
+    await writeFile(path, content, { mode: 0o600, flag: 'wx' });
+  },
   removeFile: (path) => rm(path, { force: true }),
   readFile: (path) => readFile(path, 'utf8'),
   readState: async () => (existsSync(stateFile) ? (JSON.parse(await readFile(stateFile, 'utf8')) as DeployState) : {}),
@@ -186,11 +191,7 @@ try {
     repoRoot: REPO,
     workDir,
     imageCache,
-    meta: {
-      pixelId: (process.env['META_PIXEL_ID'] ?? '').trim(),
-      token: process.env['META_ACCESS_TOKEN'] ?? '',
-      testEventCode: (process.env['META_TEST_EVENT_CODE'] ?? '').trim(),
-    },
+    settingsKey: process.env['SETTINGS_ENCRYPTION_KEY'] ?? '',
   };
   await PHASES[phase as keyof typeof PHASES](cfg, io);
 } catch (err) {

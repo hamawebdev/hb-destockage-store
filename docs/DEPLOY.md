@@ -129,7 +129,7 @@ The site build runs a large tree of third-party packages (Astro, sharp, the cata
 
 - `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` exist only in the GitHub environment `production` (deployment branch policy: `main`).
 - The token is set only on the steps that talk to Cloudflare: *Export from production*, *Deploy Workers* and *Roll back*. The other steps refuse to run if it is present.
-- Runtime secrets (`TURNSTILE_SECRET`, `ORDER_SIGNING_KEY`, `IP_HASH_KEY`, `CSRF_SECRET`, …) live in Cloudflare. The pipeline never reads or sets them.
+- Runtime secrets (`TURNSTILE_SECRET`, `ORDER_SIGNING_KEY`, `IP_HASH_KEY`, `CSRF_SECRET`, …) live in Cloudflare. The pipeline never reads or sets them, with one exception: `SETTINGS_ENCRYPTION_KEY` (the key that encrypts the Meta access token entered in the admin, D-017). If that GitHub `production` secret exists, the *Deploy Workers* step uploads it to hb-web and hb-admin with their new versions; if not, nothing is uploaded. See `docs/META-GO-LIVE.md`.
 - The report workflow's measurements cover the test catalogue only.
 
 ## Switching on delivery and Google Sheets

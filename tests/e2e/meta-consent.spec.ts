@@ -10,7 +10,7 @@ import { startMetaStandIn, type MetaStandIn } from '../../apps/web/test/support/
 import { TURNSTILE_ORIGIN, META_PIXEL_ORIGIN, META_SCRIPT_ORIGIN, patternMatches, scanHtml } from '../../apps/web/scripts/csp.ts';
 import { chooseVariant, expectNumbersShown, expectPreselected, fillCustomer, openOrderStep, pickPlace, pickVariant, submitUntilConfirmed } from './flows.ts';
 import { DIST } from './harness.ts';
-import { CONFIGURED, LANGS, MODE, STAND_IN_PORT, cspViolations, expectNoUnexpectedRequests, expectShape, fbqCalls, launchMeta, metaContext, place, seedCart, showChoice, simpleProducts, templateUrls, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
+import { CONFIGURED, FAKE_PIXEL, LANGS, MODE, TEST_EVENT_CODE, STAND_IN_PORT, cspViolations, expectNoUnexpectedRequests, expectShape, fbqCalls, launchMeta, metaContext, place, seedCart, showChoice, simpleProducts, templateUrls, uniqueSeed, until, variant, waitTracked, watchPage, type Lang } from './meta-support.ts';
 
 const web = () => inject('webUrl') as string;
 /** Same-origin files of the Meta integration the page has requested (the stub, the full module, the bar's copy). */
@@ -351,7 +351,7 @@ describe.runIf(CONFIGURED)('Meta consent', () => {
   });
 });
 
-describe.runIf(MODE === 'consent-off')('META_CONSENT_REQUIRED=0', () => {
+describe.runIf(MODE === 'consent-off')('consent not required (metaConsentRequired false)', () => {
   let browser: Browser;
   afterEach(expectNoUnexpectedRequests);
   beforeAll(async () => {
@@ -370,6 +370,32 @@ describe.runIf(MODE === 'consent-off')('META_CONSENT_REQUIRED=0', () => {
     await new Promise((ok) => setTimeout(ok, 800));
     expect(await page.locator('.mc').count()).toBe(0);
     await ctx.close();
+  });
+
+  // Lead ruling (MSET-0 §12) and rev-m r1 Nit 2: with consent off, the order still carries the page's
+  // Pixel ID, so the server event is sent (with the admin's test event code).
+  it.each(LANGS)('/%s/: an order sends meta.pixel and produces one server event', async (lang) => {
+    const standIn = await startMetaStandIn(STAND_IN_PORT);
+    try {
+      const { ctx } = await metaContext(browser);
+      const page = await ctx.newPage();
+      const v = variant(lang);
+      const where = place();
+      await openOrderStep(page, web(), lang, v);
+      await expectPreselected(page, v);
+      await waitTracked(page, 'InitiateCheckout');
+      await fillCustomer(page, where, uniqueSeed(), 1);
+      await expectNumbersShown(page, [where.fee, v.price + where.fee]);
+      const sent = page.waitForRequest((r) => r.url().endsWith('/api/order') && r.method() === 'POST' && (r.headers()['content-type'] ?? '').includes('json'), { timeout: 180_000 });
+      const ref = await submitUntilConfirmed(page);
+      expect(((await sent).postDataJSON() as { meta?: unknown }).meta).toEqual({ consent: true, pixel: FAKE_PIXEL });
+      await until(() => standIn.events().some((e) => e.event_id === ref), 'the consent-off server event');
+      expect(standIn.events().filter((e) => e.event_id === ref)).toHaveLength(1);
+      expect(standIn.hits().at(-1)?.testEventCode).toBe(TEST_EVENT_CODE);
+      await ctx.close();
+    } finally {
+      await standIn.close().catch(() => {});
+    }
   });
 
   it.each(LANGS)('/%s/: a stored decline still stops everything', async (lang) => {

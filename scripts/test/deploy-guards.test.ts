@@ -81,11 +81,11 @@ describe('workflow security', () => {
 
   it('has the Cloudflare secrets only on the steps that talk to Cloudflare', () => {
     const lines = pipeline.split('\n').filter((l) => /secrets\.[A-Z]/.test(l));
-    // META_ACCESS_TOKEN is the one other secret, on the deploy step only (D-014, docs/META-GO-LIVE.md).
-    const cloudflare = lines.filter((l) => !l.includes('META_ACCESS_TOKEN'));
+    // SETTINGS_ENCRYPTION_KEY is the one other secret, on the deploy step only (D-017, docs/META-GO-LIVE.md).
+    const cloudflare = lines.filter((l) => !l.includes('SETTINGS_ENCRYPTION_KEY'));
     expect(cloudflare).toHaveLength(6);
     expect(lines).toHaveLength(7);
-    expect(step(deployJob, 'Deploy Workers')).toContain('secrets.META_ACCESS_TOKEN');
+    expect(step(deployJob, 'Deploy Workers')).toContain('secrets.SETTINGS_ENCRYPTION_KEY');
     for (const l of cloudflare) expect(l).toMatch(/CLOUDFLARE_(API_TOKEN|ACCOUNT_ID): \$\{\{ secrets\./);
     expect(usesSecret(step(exportJob, 'Export from production'))).toBe(true);
     expect(usesSecret(step(deployJob, 'Deploy Workers'))).toBe(true);

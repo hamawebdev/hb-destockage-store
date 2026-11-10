@@ -68,15 +68,12 @@ export interface RunConfig {
   readonly repoRoot: string;
   readonly workDir: string; // private directory, kept between the job's steps
   readonly imageCache: string;
-  /** Meta settings from the workflow (docs/META-GO-LIVE.md); absent or empty means Meta stays off. */
-  readonly meta?: MetaSettings;
-}
-
-export interface MetaSettings {
-  readonly pixelId: string;
-  /** Only present on the "Deploy Workers" step. */
-  readonly token: string;
-  readonly testEventCode: string;
+  /**
+   * SETTINGS_ENCRYPTION_KEY from the "Deploy Workers" step only (D-017, docs/META-GO-LIVE.md): uploaded
+   * to hb-web and hb-admin with their deploy. Absent or empty: nothing is uploaded and the Workers keep
+   * whatever value Cloudflare already holds.
+   */
+  readonly settingsKey?: string;
 }
 
 /** What one step leaves for a later one, in workDir. Holds no secret. */
@@ -321,27 +318,32 @@ export function exportedTables(sql: string): string[] {
   return [...new Set([...sql.matchAll(/^INSERT INTO "([^"]+)"/gm)].map((m) => m[1]!))];
 }
 
-/** Pixel ID problems found before anything changes. Names the variable, never its value. */
-export function metaProblems(meta: MetaSettings | undefined): string[] {
-  const id = meta?.pixelId ?? '';
-  if (id === '') return [];
-  return /^\d{15,16}$/.test(id) && !/^0+$/.test(id) ? [] : ['META_PIXEL_ID is not a real Pixel ID (15 or 16 digits, not all zeros)'];
+/** Workers that hold SETTINGS_ENCRYPTION_KEY (D-017): the admin seals the Meta token, hb-web opens it. */
+export const SETTINGS_KEY_WORKERS: readonly string[] = [WEB.name, ADMIN.name];
+
+/** SETTINGS_ENCRYPTION_KEY problems. Names the variable, never its value. */
+export function settingsKeyProblems(key: string | undefined): string[] {
+  const k = (key ?? '').trim();
+  if (k === '') return [];
+  let bytes = -1;
+  if (/^[A-Za-z0-9+/]+={0,2}$/.test(k) && k.length % 4 === 0) bytes = Buffer.from(k, 'base64').length;
+  return bytes === 32 ? [] : ['SETTINGS_ENCRYPTION_KEY must be 32 random bytes, base64 (openssl rand -base64 32)'];
 }
 
-export interface MetaDeploy {
-  /** Extra arguments for `wrangler deploy` of hb-web; empty when Meta is not configured. */
+export interface SettingsKeyDeploy {
+  /** Extra arguments for `wrangler deploy` of the Workers in SETTINGS_KEY_WORKERS; empty without a key. */
   readonly args: readonly string[];
   readonly secretsFile: string | null;
 }
 
-/** What deploying hb-web adds for Meta. With no Pixel ID there is nothing at all. */
-export function metaDeployArgs(meta: MetaSettings | undefined, workDir: string): MetaDeploy {
-  if (!meta || meta.pixelId === '') return { args: [], secretsFile: null };
-  const args = ['--var', `META_PIXEL_ID:${meta.pixelId}`];
-  if (meta.testEventCode !== '') args.push('--var', `META_TEST_EVENT_CODE:${meta.testEventCode}`);
-  if (meta.token === '') return { args, secretsFile: null };
-  const secretsFile = join(workDir, 'meta-secrets.json');
-  return { args: [...args, '--secrets-file', secretsFile], secretsFile };
+/**
+ * What deploying hb-web and hb-admin adds for the settings key. `--secrets-file` uploads secrets with
+ * the new version and keeps the Worker's other secrets. No key: nothing at all, argv unchanged.
+ */
+export function settingsKeyDeployArgs(key: string | undefined, workDir: string): SettingsKeyDeploy {
+  if ((key ?? '').trim() === '') return { args: [], secretsFile: null };
+  const secretsFile = join(workDir, 'settings-secrets.json');
+  return { args: ['--secrets-file', secretsFile], secretsFile };
 }
 
 /** Step without the token: is this commit allowed, and are the Worker configs ready? */
@@ -357,7 +359,6 @@ export async function check(cfg: RunConfig, io: Io): Promise<boolean> {
       web: await io.readConfig(WEB.config),
       admin: await io.readConfig(ADMIN.config),
     }),
-    ...metaProblems(cfg.meta),
   ];
   if (problems.length > 0) {
     problems.forEach((p) => io.summary(`- ${p}`));
@@ -367,14 +368,19 @@ export async function check(cfg: RunConfig, io: Io): Promise<boolean> {
   return true;
 }
 
+/** Settings that only hb-web may read at send time (the sealed Meta token, the test event code). */
+export const SERVER_ONLY_SETTING = /^(metaAccess|metaTestEventCode$)/;
+
 /** Rows for `settings`: only the storefront keys ever leave production. */
-function settingsSql(rows: readonly Record<string, unknown>[]): string {
+export function settingsSql(rows: readonly Record<string, unknown>[]): string {
   const allowed = new Set<string>(STOREFRONT_SETTINGS_KEYS);
   const quote = (v: unknown): string => `\'${String(v).replaceAll("\'", "\'\'")}\'`;
   return rows
     .map((r) => {
       const key = String(r['key']);
       if (!allowed.has(key)) throw new DeployHalt(`refusing setting outside the storefront keys: ${key}`);
+      // Defence in depth (D-017): the Meta token and test code never leave production, whatever the allowlist says.
+      if (SERVER_ONLY_SETTING.test(key)) throw new DeployHalt(`refusing a server-only setting: ${key}`);
       const updatedAt = Number(r['updated_at']);
       if (!Number.isInteger(updatedAt)) throw new DeployHalt(`settings.${key} has no integer updated_at`);
       return `INSERT INTO "settings" ("key","value","updated_at") VALUES (${quote(key)},${quote(r['value'])},${updatedAt});\n`;
@@ -584,24 +590,23 @@ export async function importSite(cfg: RunConfig, io: Io): Promise<void> {
 /** Deploy job, with the token: deploys in order, recording each Worker before it is touched. */
 export async function deployWorkers(cfg: RunConfig, io: Io): Promise<void> {
   const before = cfg.before ?? fail('no recorded Worker versions from the export job');
-  if (cfg.meta?.token.startsWith('FAKE')) fail('META_ACCESS_TOKEN is a test value: it must never reach production');
-  if (cfg.meta?.testEventCode) {
-    io.summary('**Warning: META_TEST_EVENT_CODE is set. Production Purchases are being tagged as test events. Remove it after the Test Events check.**');
-  }
-  const meta = metaDeployArgs(cfg.meta, cfg.workDir);
+  const keyProblems = settingsKeyProblems(cfg.settingsKey);
+  if (keyProblems.length > 0) fail(keyProblems.join('\n'));
+  const key = settingsKeyDeployArgs(cfg.settingsKey, cfg.workDir);
+  if (key.secretsFile === null) io.summary('SETTINGS_ENCRYPTION_KEY not provided: hb-web and hb-admin keep the value Cloudflare already holds, if any (Meta server events need it).');
   const deployed: string[] = [];
   try {
-    if (meta.secretsFile !== null) await io.writeSecret(meta.secretsFile, JSON.stringify({ META_ACCESS_TOKEN: cfg.meta?.token }));
+    if (key.secretsFile !== null) await io.writeSecret(key.secretsFile, JSON.stringify({ SETTINGS_ENCRYPTION_KEY: (cfg.settingsKey ?? '').trim() }));
     for (const w of targetsOf(cfg)) {
       deployed.push(w.name); // recorded first: a deploy that failed half-way is rolled back too
       await io.writeState({ deployed: [...deployed] });
       // --no-experimental-provision: a missing bucket or queue must fail the deploy, never be created by it.
       // --cwd: wrangler runs apps/web's build.command from its own directory.
-      await wr(io, ['deploy', '--cwd', dirname(w.config), ...w.deployArgs, ...(w === WEB ? meta.args : []), '--no-experimental-provision', '--message', `pipeline ${cfg.sha.slice(0, 12)}`]);
+      await wr(io, ['deploy', '--cwd', dirname(w.config), ...w.deployArgs, ...(SETTINGS_KEY_WORKERS.includes(w.name) ? key.args : []), '--no-experimental-provision', '--message', `pipeline ${cfg.sha.slice(0, 12)}`]);
       io.log(`${w.name} deployed`);
     }
   } finally {
-    if (meta.secretsFile !== null) await io.removeFile(meta.secretsFile);
+    if (key.secretsFile !== null) await io.removeFile(key.secretsFile);
   }
   for (const w of targetsOf(cfg)) {
     const previous = before[w.name] ?? null;

@@ -14,14 +14,16 @@ import { d1, DIST } from './harness.ts';
 
 export const MODE = process.env['HB_META_E2E'] ?? '';
 export const CONFIGURED = MODE === 'configured';
-export const STAND_IN_PORT = 4352;
-export const FAKE_PIXEL = '000000000000000';
+export const STAND_IN_PORT = Number(process.env['HB_META_STANDIN_PORT'] ?? 4352);
+/** Entered in the admin by meta-run.sh (MSET-6); non-zero, as the admin and the export require. */
+export const FAKE_PIXEL = process.env['HB_META_E2E_PIXEL'] ?? '100000000000001';
+export const TEST_EVENT_CODE = process.env['HB_META_E2E_TEST_CODE'] ?? '';
 export const FAKE_TOKEN = 'FAKE_TEST_TOKEN';
 export const LANGS = ['ar', 'fr'] as const;
 export type Lang = (typeof LANGS)[number];
 
 const META_HOSTS = ['connect.facebook.net', 'www.facebook.com', 'graph.facebook.com'];
-const CLOSED_LOOPBACK = '127.0.0.1:4359';
+const CLOSED_LOOPBACK = `127.0.0.1:${process.env['HB_META_CLOSED_PORT'] ?? 4359}`;
 export const RESOLVER_ARG = `--host-resolver-rules=${META_HOSTS.map((h) => `MAP ${h} ${CLOSED_LOOPBACK}`).join(',')}`;
 
 export const launchMeta = (extra: string[] = []): Promise<Browser> =>

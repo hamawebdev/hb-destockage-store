@@ -1,15 +1,18 @@
-// Meta in the production pipeline (META-7; contract §2.1, §2.2, §10; lead condition 2).
+// Meta in the production pipeline after MSET-5 (D-017): the pipeline passes no Meta value at all.
+// The Pixel ID, token, test code and consent live in the admin (D1). The only thing the pipeline
+// handles is SETTINGS_ENCRYPTION_KEY, uploaded to hb-web and hb-admin with --secrets-file.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DeployHalt, deployWorkers, metaDeployArgs, metaProblems, type MetaSettings, type RunConfig, type Io } from '../deploy/orchestrate.ts';
+import { DeployHalt, deployWorkers, settingsKeyDeployArgs, settingsKeyProblems, settingsSql, SETTINGS_KEY_WORKERS, type RunConfig, type Io } from '../deploy/orchestrate.ts';
 
 const root = join(import.meta.dirname, '../..');
 const read = (p: string) => readFileSync(join(root, p), 'utf8');
 const pipeline = read('.github/workflows/pipeline.yml');
 const SHA = 'a'.repeat(40);
-const REAL_LOOKING_ID = '123456789012345';
-const NONE: MetaSettings = { pixelId: '', token: '', testEventCode: '' };
+/** A well-formed key for these tests only (32 bytes of 0x07). Never a real value. */
+const KEY = Buffer.alloc(32, 7).toString('base64');
+const OLD_VARS = /META_(PIXEL_ID|ACCESS_TOKEN|TEST_EVENT_CODE|CONSENT_REQUIRED|GRAPH_BASE)/;
 
 /** One job's text in pipeline.yml, up to the next job. */
 function job(name: string): string {
@@ -20,10 +23,11 @@ function job(name: string): string {
   return next === -1 ? rest : rest.slice(0, next + 2);
 }
 
-function run(meta: MetaSettings | undefined, mode: 'deploy' | 'publish' = 'deploy') {
+function run(settingsKey: string | undefined, mode: 'deploy' | 'publish' = 'deploy', failDeploy = false) {
   const calls: string[][] = [];
   const steps: string[] = [];
   const summary: string[] = [];
+  const logs: string[] = [];
   const written: Record<string, string> = {};
   const cfg: RunConfig = {
     mode,
@@ -37,11 +41,12 @@ function run(meta: MetaSettings | undefined, mode: 'deploy' | 'publish' = 'deplo
     workDir: '/tmp/w',
     imageCache: '/tmp/c',
     before: { 'hb-jobs': 'old', 'hb-web': 'old', 'hb-admin': 'old' },
-    ...(meta === undefined ? {} : { meta }),
+    ...(settingsKey === undefined ? {} : { settingsKey }),
   };
   const io = {
     wrangler: async (args: readonly string[]) => {
       calls.push([...args]);
+      if (failDeploy && args[0] === 'deploy') return { code: 1, stdout: '', stderr: 'boom' };
       if (args[0] === 'deployments') return { code: 0, stdout: JSON.stringify({ versions: [{ version_id: 'new', percentage: 100 }] }), stderr: '' };
       return { code: 0, stdout: '', stderr: '' };
     },
@@ -51,121 +56,103 @@ function run(meta: MetaSettings | undefined, mode: 'deploy' | 'publish' = 'deplo
       written[p] = c;
     },
     removeFile: async (p: string) => void steps.push(`remove ${p}`),
-    log: () => {},
+    log: (l: string) => void logs.push(l),
     summary: (l: string) => void summary.push(l),
   } as unknown as Io;
-  return { go: () => deployWorkers(cfg, io), calls, steps, summary, written };
+  return { go: () => deployWorkers(cfg, io), calls, steps, summary, logs, written };
 }
 
 const deploys = (calls: string[][]) => calls.filter((c) => c[0] === 'deploy');
+const BASE = [
+  ['deploy', '--cwd', 'apps/jobs', '--no-experimental-provision', '--message', `pipeline ${SHA.slice(0, 12)}`],
+  ['deploy', '--cwd', 'apps/web', '--env=', '--no-experimental-provision', '--message', `pipeline ${SHA.slice(0, 12)}`],
+  ['deploy', '--cwd', 'apps/admin', '--no-experimental-provision', '--message', `pipeline ${SHA.slice(0, 12)}`],
+];
 
-describe('no Meta values: the pipeline is a no-op', () => {
-  it.each([[undefined], [NONE]])('argv is exactly today\'s, nothing written (%j)', async (meta) => {
-    const h = run(meta);
+describe('no key: the deploy is exactly the pre-Meta deploy', () => {
+  it.each([[undefined], [''], ['   ']])('argv unchanged, nothing written (%j)', async (key) => {
+    const h = run(key);
     await h.go();
-    expect(deploys(h.calls)).toEqual([
-      ['deploy', '--cwd', 'apps/jobs', '--no-experimental-provision', '--message', `pipeline ${SHA.slice(0, 12)}`],
-      ['deploy', '--cwd', 'apps/web', '--env=', '--no-experimental-provision', '--message', `pipeline ${SHA.slice(0, 12)}`],
-      ['deploy', '--cwd', 'apps/admin', '--no-experimental-provision', '--message', `pipeline ${SHA.slice(0, 12)}`],
-    ]);
+    expect(deploys(h.calls)).toEqual(BASE);
     expect(h.steps).toEqual([]);
-  });
-  it('a token with no Pixel ID does nothing', () => {
-    expect(metaDeployArgs({ pixelId: '', token: 'x', testEventCode: '' }, '/w')).toEqual({ args: [], secretsFile: null });
+    expect(h.summary.join('\n')).toContain('SETTINGS_ENCRYPTION_KEY not provided');
   });
 });
 
-describe('with Meta values', () => {
-  const meta: MetaSettings = { pixelId: REAL_LOOKING_ID, token: 'a-real-looking-token', testEventCode: '' };
-
-  it('only hb-web gets the Pixel ID and the secrets file', async () => {
-    const h = run(meta);
+describe('with SETTINGS_ENCRYPTION_KEY', () => {
+  it('hb-web and hb-admin get the secrets file, hb-jobs does not', async () => {
+    expect(SETTINGS_KEY_WORKERS).toEqual(['hb-web', 'hb-admin']);
+    const h = run(KEY);
     await h.go();
     const [jobs, web, admin] = deploys(h.calls);
-    expect(jobs!.join(' ')).not.toContain('META');
-    expect(admin!.join(' ')).not.toContain('META');
-    expect(web).toEqual(expect.arrayContaining(['--var', `META_PIXEL_ID:${REAL_LOOKING_ID}`, '--secrets-file', '/tmp/w/meta-secrets.json']));
+    expect(jobs).toEqual(BASE[0]);
+    expect(web).toEqual([...BASE[1]!.slice(0, 4), '--secrets-file', '/tmp/w/settings-secrets.json', ...BASE[1]!.slice(4)]);
+    expect(admin).toEqual([...BASE[2]!.slice(0, 3), '--secrets-file', '/tmp/w/settings-secrets.json', ...BASE[2]!.slice(3)]);
   });
 
-  it('the token is never on a command line, and the file is removed', async () => {
-    const h = run(meta);
+  it('publish mode deploys hb-web only, with the key', async () => {
+    const h = run(KEY, 'publish');
     await h.go();
-    expect(JSON.stringify(h.calls)).not.toContain(meta.token);
-    expect(JSON.parse(h.written['/tmp/w/meta-secrets.json']!)).toEqual({ META_ACCESS_TOKEN: meta.token });
-    expect(h.steps).toEqual(['write /tmp/w/meta-secrets.json', 'remove /tmp/w/meta-secrets.json']);
+    expect(deploys(h.calls)).toEqual([[...BASE[1]!.slice(0, 4), '--secrets-file', '/tmp/w/settings-secrets.json', ...BASE[1]!.slice(4)]]);
+  });
+
+  it('the key is never on a command line, in a log or in the summary, and its file is removed', async () => {
+    const h = run(KEY);
+    await h.go();
+    expect(JSON.parse(h.written['/tmp/w/settings-secrets.json']!)).toEqual({ SETTINGS_ENCRYPTION_KEY: KEY });
+    const visible = JSON.stringify([h.calls, h.logs, h.summary]);
+    expect(visible).not.toContain(KEY);
+    expect(h.steps).toEqual(['write /tmp/w/settings-secrets.json', 'remove /tmp/w/settings-secrets.json']);
   });
 
   it('the secrets file is removed when a deploy fails', async () => {
-    const h = run(meta);
-    const failing = {
-      ...h,
-    };
-    const io = {
-      wrangler: async () => ({ code: 1, stdout: '', stderr: 'boom' }),
-      writeState: async () => {},
-      writeSecret: async (p: string) => void failing.steps.push(`write ${p}`),
-      removeFile: async (p: string) => void failing.steps.push(`remove ${p}`),
-      log: () => {},
-      summary: () => {},
-    } as unknown as Io;
-    const cfg = { mode: 'deploy', sha: SHA, event: 'push', ref: 'refs/heads/main', approval: '', olderCommit: 'no', shaExplicit: false, repoRoot: '/r', workDir: '/tmp/w', imageCache: '/c', before: {}, meta } as RunConfig;
-    await expect(deployWorkers(cfg, io)).rejects.toThrow(DeployHalt);
-    expect(failing.steps).toEqual(['write /tmp/w/meta-secrets.json', 'remove /tmp/w/meta-secrets.json']);
+    const h = run(KEY, 'deploy', true);
+    await expect(h.go()).rejects.toThrow(DeployHalt);
+    expect(h.steps).toEqual(['write /tmp/w/settings-secrets.json', 'remove /tmp/w/settings-secrets.json']);
   });
 
-  it('Pixel ID without a token: browser only, no secrets file', () => {
-    expect(metaDeployArgs({ pixelId: REAL_LOOKING_ID, token: '', testEventCode: '' }, '/w')).toEqual({ args: ['--var', `META_PIXEL_ID:${REAL_LOOKING_ID}`], secretsFile: null });
-  });
-
-  it('META_TEST_EVENT_CODE is passed and warned about loudly', async () => {
-    const h = run({ ...meta, testEventCode: 'TEST123' });
-    await h.go();
-    expect(deploys(h.calls)[1]).toEqual(expect.arrayContaining(['--var', 'META_TEST_EVENT_CODE:TEST123']));
-    expect(h.summary.join('\n')).toMatch(/Warning: META_TEST_EVENT_CODE is set/);
-  });
-
-  it('refuses a test token, without printing it', async () => {
-    const h = run({ ...meta, token: 'FAKE_TEST_TOKEN' });
-    await expect(h.go()).rejects.toThrow(/META_ACCESS_TOKEN is a test value/);
+  it.each(['short', Buffer.alloc(16, 1).toString('base64'), Buffer.alloc(33, 1).toString('base64'), 'not base64!!'])('a malformed key (%j) halts before any deploy, naming only the variable', async (bad) => {
+    const [problem] = settingsKeyProblems(bad);
+    expect(problem).toMatch(/SETTINGS_ENCRYPTION_KEY/);
+    expect(problem).not.toContain(bad);
+    const h = run(bad);
+    await expect(h.go()).rejects.toThrow(/SETTINGS_ENCRYPTION_KEY/);
     expect(deploys(h.calls)).toEqual([]);
+    expect(h.steps).toEqual([]);
+  });
+
+  it('settingsKeyDeployArgs', () => {
+    expect(settingsKeyDeployArgs(undefined, '/w')).toEqual({ args: [], secretsFile: null });
+    expect(settingsKeyDeployArgs(KEY, '/w')).toEqual({ args: ['--secrets-file', '/w/settings-secrets.json'], secretsFile: '/w/settings-secrets.json' });
   });
 });
 
-describe('check phase', () => {
-  it.each([[undefined], [NONE], [{ ...NONE, pixelId: REAL_LOOKING_ID }]])('accepts %j', (m) => {
-    expect(metaProblems(m)).toEqual([]);
-  });
-  it.each(['000000000000000', '0000000000000000', 'abc', '123', '12345678901234567'])('rejects %j, naming only the variable', (pixelId) => {
-    const [problem] = metaProblems({ ...NONE, pixelId });
-    expect(problem).toMatch(/META_PIXEL_ID/);
-    expect(problem).not.toContain(pixelId);
+describe('the production export never carries the Meta token or test code', () => {
+  it.each(['metaAccessTokenEnc', 'metaAccessToken', 'metaTestEventCode'])('%s is refused even if it reached the query', (key) => {
+    expect(() => settingsSql([{ key, value: '"x"', updated_at: 1 }])).toThrow(DeployHalt);
   });
 });
 
-describe('the workflow', () => {
-  it('passes the settings only to the steps named in the contract', () => {
-    expect(job('export-catalogue')).toContain('META_PIXEL_ID: ${{ vars.META_PIXEL_ID }}');
-    expect(job('build-site')).toContain('META_CONSENT_REQUIRED: ${{ vars.META_CONSENT_REQUIRED }}');
-    expect(job('deploy')).toContain('META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}');
-    expect((pipeline.match(/secrets\.META_ACCESS_TOKEN/g) ?? []).length).toBe(1);
+describe('the workflow passes no Meta value', () => {
+  it('no META_* variable or secret anywhere in pipeline.yml', () => {
+    expect(pipeline).not.toMatch(OLD_VARS);
+    expect(pipeline).not.toMatch(/vars\.META_|secrets\.META_/);
   });
-  it('the token and its file never reach an uploaded artifact', () => {
-    const deployJob = job('deploy');
-    expect(deployJob).not.toContain('upload-artifact');
-    expect(job('export-catalogue')).not.toContain('META_ACCESS_TOKEN');
-    expect(job('build-site')).not.toContain('META_ACCESS_TOKEN');
-    expect(job('build-site')).not.toContain('secrets.');
+  it('SETTINGS_ENCRYPTION_KEY only on "Deploy Workers", never in export or build', () => {
+    expect((pipeline.match(/secrets\.SETTINGS_ENCRYPTION_KEY/g) ?? []).length).toBe(1);
+    expect(job('deploy')).toContain('SETTINGS_ENCRYPTION_KEY: ${{ secrets.SETTINGS_ENCRYPTION_KEY }}');
+    expect(job('export-catalogue')).not.toContain('SETTINGS_ENCRYPTION_KEY');
+    expect(job('build-site')).not.toContain('SETTINGS_ENCRYPTION_KEY');
+    expect(job('deploy')).not.toContain('upload-artifact');
   });
-  it('the Pixel ID is a repository variable: build-site has no environment', () => {
-    expect(job('build-site')).not.toMatch(/\n {4}environment:/);
-    expect(pipeline).not.toMatch(/secrets\.META_PIXEL_ID/);
+  it.each(['scripts/deploy/orchestrate.ts', 'scripts/deploy/deploy.ts', 'scripts/deploy/config.ts', 'scripts/deploy/smoke.ts', 'scripts/deploy/migrations.ts', 'apps/web/wrangler.jsonc', 'apps/admin/wrangler.jsonc'])('%s names no old Meta variable', (f) => {
+    expect(read(f)).not.toMatch(OLD_VARS);
   });
 });
 
 describe('no fake value in production configuration', () => {
-  it.each(['apps/web/wrangler.jsonc', '.github/workflows/pipeline.yml', 'scripts/deploy/deploy.ts'])('%s', (f) => {
+  it.each(['apps/web/wrangler.jsonc', 'apps/admin/wrangler.jsonc', '.github/workflows/pipeline.yml', 'scripts/deploy/deploy.ts'])('%s', (f) => {
     const text = read(f);
-    expect(text).not.toContain('000000000000000');
-    expect(text).not.toContain('FAKE_TEST_TOKEN');
+    for (const fake of ['000000000000000', '100000000000001', 'FAKE_TEST_TOKEN', KEY]) expect(text).not.toContain(fake);
   });
 });

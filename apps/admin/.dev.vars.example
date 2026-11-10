@@ -14,3 +14,7 @@ GOOGLE_CLIENT_ID=standin-client
 GOOGLE_CLIENT_SECRET=standin-secret
 GOOGLE_REDIRECT_URI=http://127.0.0.1:4240/sheets/callback
 GOOGLE_STANDIN_URL=http://127.0.0.1:4420
+
+# Seals the Meta access token entered on /meta (D-017): `openssl rand -base64 32`, the same value as
+# apps/web/.dev.vars. Unset = the Meta screen refuses to save a token. Local-only placeholder below.
+SETTINGS_ENCRYPTION_KEY=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA=

@@ -8,6 +8,14 @@ import * as v from 'valibot';
 import type { Lang } from './lang.ts';
 import type { PhoneE164 } from './phone.ts';
 
+/** A Meta Pixel ID: 15 or 16 digits. `isMetaPixelId` also refuses all zeros (a test value, never real). */
+export const META_PIXEL_ID_RE = /^\d{15,16}$/;
+
+/** The one Pixel ID rule (admin, Worker; `apps/storefront/src/lib/meta.mjs` carries the same, parity test). */
+export function isMetaPixelId(value: unknown): value is string {
+  return typeof value === 'string' && META_PIXEL_ID_RE.test(value) && !/^0+$/.test(value);
+}
+
 /** Shape of the `_fbp`/`_fbc` values we accept. `public/js/meta.js` carries the same pattern (parity test). */
 export const META_ID_RE = /^fb\.\d\.\d{10,16}\.[\w.-]{1,480}$/;
 
@@ -17,25 +25,32 @@ const MetaSignalsSchema = /* @__PURE__ */ v.object({
   meta: v.object({
     // Literally `true`: the string "true" is not consent.
     consent: v.literal(true),
+    // The Pixel ID of the page the order was placed from (its `data-meta-pixel`). The server sends
+    // only when it equals the Pixel ID stored in D1 (MSET-3, D-017): a page built without Meta, or
+    // with another Pixel, never causes a server event.
+    pixel: v.pipe(v.string(), v.regex(META_PIXEL_ID_RE)),
     fbp: MetaIdSchema,
     fbc: MetaIdSchema,
   }),
 });
 
 export interface MetaSignals {
+  /** The page's Pixel ID, as the browser reported it. */
+  readonly pixel: string;
   readonly fbp?: string;
   readonly fbc?: string;
 }
 
 /**
- * Consent and browser IDs from a parsed JSON order body. Null unless `meta.consent === true`:
- * nothing else counts as consent. A malformed fbp or fbc is dropped on its own. Never throws.
+ * Consent, the page's Pixel ID and browser IDs from a parsed JSON order body. Null unless
+ * `meta.consent === true` and `meta.pixel` is a Pixel ID: nothing else counts. A malformed fbp or
+ * fbc is dropped on its own. Never throws.
  */
 export function parseMetaSignals(rawJson: unknown): MetaSignals | null {
   const r = v.safeParse(MetaSignalsSchema, rawJson);
   if (!r.success) return null;
-  const { fbp, fbc } = r.output.meta;
-  return { ...(fbp === undefined ? {} : { fbp }), ...(fbc === undefined ? {} : { fbc }) };
+  const { pixel, fbp, fbc } = r.output.meta;
+  return { pixel, ...(fbp === undefined ? {} : { fbp }), ...(fbc === undefined ? {} : { fbc }) };
 }
 
 /** `+213770123456` → `213770123456`: country code, digits only, as Meta's `ph` requires. */

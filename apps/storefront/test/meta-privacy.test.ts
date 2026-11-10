@@ -6,8 +6,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ContentView from '../src/components/content/ContentView.astro';
+import { PIXEL, useMetaPixel } from './meta-snapshot.ts';
 
-const PIXEL = '000000000000000';
 const root = join(import.meta.dirname, '..', '..', '..');
 
 /** The rendered text escapes apostrophes; compare on a stretch that has none. */
@@ -29,7 +29,7 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
   const render = (props: ContentProps) => c.renderToString(ContentView, { props: { props } });
 
   it('no section and no button when Meta is off', async () => {
-    vi.stubEnv('META_PIXEL_ID', '');
+    useMetaPixel(null);
     const p = privacyProps(lang);
     const html = await render(p);
     expect(html).not.toContain('data-meta-reset');
@@ -37,7 +37,7 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
   });
 
   it('section, legal-review mark and hidden reset button when configured', async () => {
-    vi.stubEnv('META_PIXEL_ID', PIXEL);
+    useMetaPixel({ pixelId: PIXEL, consentRequired: true });
     const p = privacyProps(lang);
     const html = await render(p);
     expect(html).toContain(p.layout.strings['privacy.meta.title']);
@@ -50,7 +50,7 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
   });
 
   it('consent required: promises the choice; no consent-off wording', async () => {
-    vi.stubEnv('META_PIXEL_ID', PIXEL);
+    useMetaPixel({ pixelId: PIXEL, consentRequired: true });
     const p = privacyProps(lang);
     const html = await render(p);
     expect(html).toMatch(/data-legal-review="privacy\.meta\.body1">\[[^\]]+\] /);
@@ -58,9 +58,8 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
     expect(html).not.toContain(stripMark(p.layout.strings['privacy.meta.off.body2']!));
   });
 
-  it('META_CONSENT_REQUIRED=0: the variant, marked for legal review, with no promise of acceptance', async () => {
-    vi.stubEnv('META_PIXEL_ID', PIXEL);
-    vi.stubEnv('META_CONSENT_REQUIRED', '0');
+  it('consent not required (metaConsentRequired false): the variant, marked for legal review, with no promise of acceptance', async () => {
+    useMetaPixel({ pixelId: PIXEL, consentRequired: false });
     const p = privacyProps(lang);
     const html = await render(p);
     expect(html).toMatch(/data-legal-review="privacy\.meta\.off\.body1">\[[^\]]+\] /);
@@ -70,7 +69,7 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
   });
 
   it('the legal-review mark is plain text: no dev pill, so no new CSS on the page', async () => {
-    vi.stubEnv('META_PIXEL_ID', PIXEL);
+    useMetaPixel({ pixelId: PIXEL, consentRequired: true });
     const html = await render(privacyProps(lang));
     const last = html.lastIndexOf('data-legal-review');
     const section = html.slice(html.indexOf('data-legal-review'), html.indexOf('</p>', last));
@@ -79,7 +78,7 @@ describe.each(['ar', 'fr'] as const)('privacy page (%s)', (lang) => {
   });
 
   it('only on the privacy page', async () => {
-    vi.stubEnv('META_PIXEL_ID', PIXEL);
+    useMetaPixel({ pixelId: PIXEL, consentRequired: true });
     const p = privacyProps(lang);
     expect(await render({ ...p, page: { ...p.page, key: 'about' } })).not.toContain('data-meta-reset');
   });

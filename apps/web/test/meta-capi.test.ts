@@ -1,19 +1,22 @@
 // The Meta sender and its place in afterWrite, with an injected fetch: no network (META-3).
+// Credentials come from a D1 stand-in holding the rows the admin writes (MSET-3).
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { OrderCreatedMessage } from '@hb/shared';
 import { readMetaConfig, sendMetaPurchase, sendPurchase, type MetaConfig, type MetaOrderContext } from '../src/meta/capi.ts';
 import { afterWrite } from '../src/routes/order.ts';
 import type { PlaceOutcome } from '../src/order/place.ts';
 import { blockMetaFetch } from './support/no-meta-fetch.ts';
+import { fakeSettingsDb, FAKE_PIXEL, FAKE_TOKEN, sealedRows, TEST_SETTINGS_KEY } from './support/meta-settings.ts';
 
 blockMetaFetch();
 
-const TOKEN = 'FAKE_TEST_TOKEN';
-const ENV = { ENV: 'production', META_PIXEL_ID: '000000000000000', META_ACCESS_TOKEN: TOKEN };
-const cfg = readMetaConfig(ENV, 'comptoirdeluxe.com') as Extract<MetaConfig, { on: true }>;
+const TOKEN = FAKE_TOKEN;
+const ROWS = await sealedRows({ pixelId: FAKE_PIXEL, token: TOKEN });
+const ENV = { ENV: 'production', SETTINGS_ENCRYPTION_KEY: TEST_SETTINGS_KEY, DB: fakeSettingsDb(ROWS) };
+const cfg = (await readMetaConfig(ENV, { pixelId: FAKE_PIXEL, tokenEnc: JSON.parse(ROWS['metaAccessTokenEnc']!) as string, testEventCode: null }, FAKE_PIXEL, 'comptoirdeluxe.com')) as Extract<MetaConfig, { on: true }>;
 
 const meta: MetaOrderContext = {
-  signals: { fbp: 'fb.1.1596403881668.1116446470' },
+  signals: { pixel: FAKE_PIXEL, fbp: 'fb.1.1596403881668.1116446470' },
   lang: 'ar',
   phoneE164: '+213770123456',
   items: [{ variantId: 11, qty: 1 }],
@@ -55,8 +58,22 @@ describe('sendMetaPurchase', () => {
   });
   test('config off: nothing sent', async () => {
     const f = vi.fn(async () => response(200));
-    await sendMetaPurchase({ ENV: 'production' }, 'x.dz', order, meta, f as unknown as typeof fetch);
+    await sendMetaPurchase({ ENV: 'production', SETTINGS_ENCRYPTION_KEY: TEST_SETTINGS_KEY, DB: fakeSettingsDb({}) }, 'x.dz', order, meta, f as unknown as typeof fetch);
     expect(f).not.toHaveBeenCalled();
+  });
+  test('a D1 failure: nothing sent, never rejects, no token logged', async () => {
+    const f = vi.fn(async () => response(200));
+    const broken = { prepare: () => { throw new Error('D1_ERROR'); } };
+    await expect(sendMetaPurchase({ ...ENV, DB: broken }, 'x.dz', order, meta, f as unknown as typeof fetch)).resolves.toBeUndefined();
+    expect(f).not.toHaveBeenCalled();
+    expect(logs.join('\n')).not.toContain(TOKEN);
+  });
+  test('reads D1 once per send', async () => {
+    const f = vi.fn(async () => response(200));
+    const db = fakeSettingsDb(ROWS);
+    await sendMetaPurchase({ ...ENV, DB: db }, 'x.dz', order, meta, f as unknown as typeof fetch);
+    expect(db.statements).toHaveLength(1);
+    expect(f).toHaveBeenCalledTimes(1);
   });
   test('never rejects, even when fetch throws synchronously', async () => {
     const f = vi.fn(() => {

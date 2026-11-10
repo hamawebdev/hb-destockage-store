@@ -3,17 +3,21 @@ import { afterAll, afterEach, beforeAll, describe, expect, inject, it } from 'vi
 import type { Browser } from 'playwright';
 import { expectNoUnexpectedRequests, LANGS, MODE, launchMeta, metaContext, templateUrls, watchPage } from './meta-support.ts';
 import { expectNumbersShown, expectPreselected, fillCustomer, openOrderStep, submitUntilConfirmed } from './flows.ts';
-import { place, uniqueSeed, variant } from './meta-support.ts';
+import { FAKE_PIXEL, STAND_IN_PORT, place, uniqueSeed, variant } from './meta-support.ts';
+import { startMetaStandIn, type MetaStandIn } from '../../apps/web/test/support/meta-stand-in.ts';
 
 const web = () => inject('webUrl') as string;
 
 describe.runIf(MODE === 'unconfigured')('Meta not configured', () => {
   let browser: Browser;
+  let standIn: MetaStandIn;
   beforeAll(async () => {
     browser = await launchMeta();
+    standIn = await startMetaStandIn(STAND_IN_PORT);
   });
   afterAll(async () => {
     await browser?.close();
+    await standIn?.close().catch(() => {});
   });
 
   afterEach(expectNoUnexpectedRequests);
@@ -59,5 +63,34 @@ describe.runIf(MODE === 'unconfigured')('Meta not configured', () => {
     expect(ref).toMatch(/^HB-/);
     expect(net.meta).toEqual([]);
     await ctx.close();
+    await new Promise((ok) => setTimeout(ok, 1500));
+    expect(standIn.hits()).toEqual([]);
+  });
+
+  // MSET-6 (M-11): the Pixel ID was removed in the admin, the token and test code are still stored, the
+  // key and the stand-in URL are configured. Even a crafted consent signal naming the old Pixel ID sends nothing.
+  it('a crafted consent signal with the removed Pixel ID sends no server event', async () => {
+    const v = variant('fr');
+    const where = place();
+    const res = await fetch(`${web()}/api/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0 (mset6 crafted)' },
+      body: JSON.stringify({
+        idempotencyKey: crypto.randomUUID(),
+        lang: 'fr',
+        items: [{ variantId: v.variantId, qty: 1 }],
+        name: 'Karim Test',
+        phone: `0770${String(uniqueSeed()).padStart(6, '0').slice(-6)}`,
+        wilayaCode: where.wilaya,
+        communeId: where.communeId,
+        expectedTotalDzd: v.price + where.fee,
+        website: '',
+        fillMs: 9000,
+        meta: { consent: true, pixel: FAKE_PIXEL },
+      }),
+    });
+    expect(res.status).toBe(201);
+    await new Promise((ok) => setTimeout(ok, 2500));
+    expect(standIn.hits()).toEqual([]);
   });
 });

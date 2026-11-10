@@ -1,0 +1,10 @@
+# Copy to apps/web/.dev.vars (gitignored). Local development only; never real values.
+ORDER_SIGNING_KEY=dev-only-signing-key-change-me
+IP_HASH_KEY=dev-only-ip-salt-change-me
+
+# Opens the Meta access token the admin stores sealed in D1 (D-017). Same value as
+# apps/admin/.dev.vars. Unset = no Meta server event. Local-only placeholder below.
+SETTINGS_ENCRYPTION_KEY=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA=
+# Local stand-in for Meta's Graph API (loopback only; ignored in production). Without it, a local
+# Worker sends no Meta event at all.
+# CAPI_STANDIN_URL=http://127.0.0.1:4352

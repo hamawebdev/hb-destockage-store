@@ -1,7 +1,8 @@
 // Admin Worker (admin.<domain>, behind Cloudflare Access). Owner: admin-core.
 // ENV defaults to "production" (fail-safe): only `npm run dev` passes --var ENV:development.
-// Secrets (never in this file): CSRF_SECRET; DEV_SESSION_SECRET (development only). Locally they
-// come from apps/admin/.dev.vars (gitignored; see .dev.vars.example).
+// Secrets (never in this file): CSRF_SECRET; DEV_SESSION_SECRET (development only);
+// SETTINGS_ENCRYPTION_KEY (seals the Meta access token, D-017; the pipeline uploads it, see docs/META-GO-LIVE.md).
+// Locally they come from apps/admin/.dev.vars (gitignored; see .dev.vars.example).
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "hb-admin",

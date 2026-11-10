@@ -1,14 +1,15 @@
 // The real route on real workerd and D1, against the local stand-in for Meta (META-3). The Worker
-// runs with ENV=test and a loopback META_GRAPH_BASE, the only destination it will use outside
-// production. Digests were computed separately with `printf '<number>' | sha256sum`.
+// runs with ENV=test and a loopback CAPI_STANDIN_URL, the only destination it will use outside
+// production. Meta credentials are D1 rows, as the admin writes them (MSET-3). Digests were computed separately with `printf '<number>' | sha256sum`.
 import { vi } from 'vitest';
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 90_000 });
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { postForm, postJson, startSeeded, TEST_SECRETS, type Started } from './support/harness.ts';
 import { startMetaStandIn, type MetaStandIn } from './support/meta-stand-in.ts';
+import { FAKE_PIXEL, FAKE_TOKEN, setMetaRows, TEST_SETTINGS_KEY } from './support/meta-settings.ts';
 
-const PIXEL = '000000000000000';
-const TOKEN = 'FAKE_TEST_TOKEN';
+const PIXEL = FAKE_PIXEL;
+const TOKEN = FAKE_TOKEN;
 const FBP = 'fb.1.1596403881668.1116446470';
 const UA = { 'User-Agent': 'Mozilla/5.0 (meta-order test)', 'CF-Connecting-IP': '203.0.113.7' };
 
@@ -16,7 +17,8 @@ let standIn: MetaStandIn;
 let h: Started;
 beforeAll(async () => {
   standIn = await startMetaStandIn();
-  h = await startSeeded({ ...TEST_SECRETS, META_PIXEL_ID: PIXEL, META_ACCESS_TOKEN: TOKEN, META_GRAPH_BASE: standIn.url });
+  h = await startSeeded({ ...TEST_SECRETS, SETTINGS_ENCRYPTION_KEY: TEST_SETTINGS_KEY, CAPI_STANDIN_URL: standIn.url });
+  await setMetaRows(h.env.DB, { pixelId: PIXEL, token: TOKEN });
 });
 afterAll(async () => {
   await h?.server.close();
@@ -26,7 +28,7 @@ beforeEach(() => standIn.reset());
 
 let seq = 0;
 const freshPhone = () => `0771${String(300000 + seq++).padStart(6, '0')}`;
-const consent = { meta: { consent: true, fbp: FBP } };
+const consent = { meta: { consent: true, pixel: PIXEL, fbp: FBP } };
 
 const order = (over: Record<string, unknown> = {}) => ({
   idempotencyKey: crypto.randomUUID(),
@@ -144,14 +146,15 @@ describe('without consent', () => {
     ['meta an array', { meta: [true] }],
     ['meta null', { meta: null }],
     ['consent a string', { meta: { consent: 'true' } }],
-    ['consent false', { meta: { consent: false, fbp: FBP } }],
+    ['consent false', { meta: { consent: false, pixel: PIXEL, fbp: FBP } }],
+    ['consent without the page Pixel ID', { meta: { consent: true, fbp: FBP } }],
   ])('%s: order 201, no event', async (_n, extra) => {
     expect((await place(order(extra))).status).toBe(201);
     expect(await sentinelIds()).toEqual([]);
   });
 
   test('a malformed fbp is dropped, the event still goes', async () => {
-    expect((await place(order({ meta: { consent: true, fbp: `${FBP}\n` } }))).status).toBe(201);
+    expect((await place(order({ meta: { consent: true, pixel: PIXEL, fbp: `${FBP}\n` } }))).status).toBe(201);
     await until(() => standIn.events().length === 1);
     expect(standIn.events()[0]?.user_data).not.toHaveProperty('fbp');
   });
