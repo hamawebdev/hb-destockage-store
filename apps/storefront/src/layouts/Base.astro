@@ -11,8 +11,9 @@
  * - `scripts`: same-origin /js/*.js modules (optional ?v=<hash>), imported after `load` (or on first
  *   focusin/pointerdown) by the constant inline LOADER. Components may also carry their own data-js.
  * - `meta`: false keeps the page out of Meta tracking (review template, 404s). Only matters when
- *   META_PIXEL_ID is set at build time: then <body> carries data-meta-pixel/data-meta-consent and
- *   /js/meta.js joins data-js. Unset, the page is unchanged.
+ *   the snapshot's settings.metaPixel is set: then <body> carries data-meta-pixel/data-meta-consent and
+ *   /js/meta.js joins data-js. Null, the page is unchanged.
+ * - Cart (CART-4): with `layout.cartEnabled` false the page loads no /js/cart.js and the header has no cart.
  * - default slot: rendered inside <main id="main">.
  * - `head` slot: end of <head>. Only <script type="application/ld+json"> and nothing data-driven
  *   in <style> (one inline CSS hash per template, see hb-postbuild).
@@ -36,7 +37,7 @@ interface Props {
   /** Template variant (MEAS-5): product simple|variable|pack, category top|sub. */
   kind?: string;
   scripts?: readonly string[];
-  /** Calm chrome for the order pages: wordmark, language switch and cart only, no footer (CART-0). */
+  /** Calm chrome for the order pages: wordmark, language switch and cart (when on) only, no footer (CART-0). */
   chrome?: 'full' | 'minimal';
   /** Overrides `<html data-tpl>` for pages outside the route map (checkout). */
   tpl?: string;
@@ -46,7 +47,8 @@ interface Props {
 const { layout: l, lcp = false, kind, scripts = [], chrome = 'full', tpl, meta = true } = Astro.props;
 
 // The cart loads on every page, after LCP (D-008): header count, add buttons, and the sheet on first use.
-const cartVersion = publicFileVersion('js/cart.js');
+// Cart off (CART-4): not at all.
+const cartVersion = l.cartEnabled ? publicFileVersion('js/cart.js') : null;
 const baseJs = cartVersion ? [...scripts, `/js/cart.js?v=${cartVersion}`] : scripts;
 
 // Meta (D-014): only when configured at build time and this page takes part.

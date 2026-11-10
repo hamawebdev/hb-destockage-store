@@ -453,7 +453,8 @@
             "alt": "Pack cuisine 3 en 1"
           },
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "hero": {
           "image": {
@@ -503,6 +504,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -631,6 +633,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -697,6 +700,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/fr/p/tablier-de-cuisine/",
+            "orderHref": "/fr/order/tablier-de-cuisine/",
             "name": "Tablier de cuisine",
             "brandLatin": null,
             "summary": "Tablier en coton, deux tailles, deux couleurs.",
@@ -772,6 +776,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/fr/p/set-de-couteaux/",
+            "orderHref": "/fr/order/set-de-couteaux/",
             "name": "Set de couteaux",
             "brandLatin": "HB Home",
             "summary": "Cinq couteaux et un bloc.",
@@ -840,6 +845,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -1031,7 +1037,8 @@
           },
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 1,
@@ -1107,6 +1114,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -1173,6 +1181,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/fr/p/tablier-de-cuisine/",
+            "orderHref": "/fr/order/tablier-de-cuisine/",
             "name": "Tablier de cuisine",
             "brandLatin": null,
             "summary": "Tablier en coton, deux tailles, deux couleurs.",
@@ -1397,7 +1406,8 @@
           },
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 1,
@@ -1473,6 +1483,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/fr/p/poele-28-cm/",
+            "orderHref": "/fr/order/poele-28-cm/",
             "name": "Poêle 28 cm",
             "brandLatin": null,
             "summary": "Poêle antiadhésive.",
@@ -1539,6 +1550,7 @@
             "id": 103,
             "kind": "simple",
             "href": "/fr/p/casserole-20-cm/",
+            "orderHref": "/fr/order/casserole-20-cm/",
             "name": "Casserole 20 cm",
             "brandLatin": null,
             "summary": "Casserole inox.",
@@ -1754,7 +1766,8 @@
           },
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 1,
@@ -1830,6 +1843,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/fr/p/set-de-couteaux/",
+            "orderHref": "/fr/order/set-de-couteaux/",
             "name": "Set de couteaux",
             "brandLatin": "HB Home",
             "summary": "Cinq couteaux et un bloc.",
@@ -1896,6 +1910,7 @@
             "id": 105,
             "kind": "simple",
             "href": "/fr/p/egouttoir/",
+            "orderHref": "/fr/order/egouttoir/",
             "name": "Égouttoir [PLACEHOLDER]",
             "brandLatin": null,
             "summary": "[PLACEHOLDER] Égouttoir à vaisselle.",
@@ -2111,7 +2126,8 @@
           },
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 2,
@@ -2140,6 +2156,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/fr/p/poele-28-cm/",
+            "orderHref": "/fr/order/poele-28-cm/",
             "name": "Poêle 28 cm",
             "brandLatin": null,
             "summary": "Poêle antiadhésive.",
@@ -2206,6 +2223,7 @@
             "id": 103,
             "kind": "simple",
             "href": "/fr/p/casserole-20-cm/",
+            "orderHref": "/fr/order/casserole-20-cm/",
             "name": "Casserole 20 cm",
             "brandLatin": null,
             "summary": "Casserole inox.",
@@ -2369,7 +2387,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 3,
@@ -2539,7 +2558,8 @@
             "alt": "Pack cuisine 3 en 1"
           },
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 106,
@@ -2874,6 +2894,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/fr/p/tablier-de-cuisine/",
+            "orderHref": "/fr/order/tablier-de-cuisine/",
             "name": "Tablier de cuisine",
             "brandLatin": null,
             "summary": "Tablier en coton, deux tailles, deux couleurs.",
@@ -2949,6 +2970,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/fr/p/set-de-couteaux/",
+            "orderHref": "/fr/order/set-de-couteaux/",
             "name": "Set de couteaux",
             "brandLatin": "HB Home",
             "summary": "Cinq couteaux et un bloc.",
@@ -3015,6 +3037,7 @@
             "id": 105,
             "kind": "simple",
             "href": "/fr/p/egouttoir/",
+            "orderHref": "/fr/order/egouttoir/",
             "name": "Égouttoir [PLACEHOLDER]",
             "brandLatin": null,
             "summary": "[PLACEHOLDER] Égouttoir à vaisselle.",
@@ -3081,6 +3104,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/fr/p/poele-28-cm/",
+            "orderHref": "/fr/order/poele-28-cm/",
             "name": "Poêle 28 cm",
             "brandLatin": null,
             "summary": "Poêle antiadhésive.",
@@ -3339,7 +3363,8 @@
             "alt": "Tablier de cuisine rouge"
           },
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 101,
@@ -3668,6 +3693,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -3734,6 +3760,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/fr/p/set-de-couteaux/",
+            "orderHref": "/fr/order/set-de-couteaux/",
             "name": "Set de couteaux",
             "brandLatin": "HB Home",
             "summary": "Cinq couteaux et un bloc.",
@@ -3800,6 +3827,7 @@
             "id": 105,
             "kind": "simple",
             "href": "/fr/p/egouttoir/",
+            "orderHref": "/fr/order/egouttoir/",
             "name": "Égouttoir [PLACEHOLDER]",
             "brandLatin": null,
             "summary": "[PLACEHOLDER] Égouttoir à vaisselle.",
@@ -3866,6 +3894,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/fr/p/poele-28-cm/",
+            "orderHref": "/fr/order/poele-28-cm/",
             "name": "Poêle 28 cm",
             "brandLatin": null,
             "summary": "Poêle antiadhésive.",
@@ -4232,7 +4261,8 @@
             "alt": "Poêle 28 cm"
           },
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 102,
@@ -4365,6 +4395,7 @@
             "id": 103,
             "kind": "simple",
             "href": "/fr/p/casserole-20-cm/",
+            "orderHref": "/fr/order/casserole-20-cm/",
             "name": "Casserole 20 cm",
             "brandLatin": null,
             "summary": "Casserole inox.",
@@ -4431,6 +4462,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -4497,6 +4529,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/fr/p/tablier-de-cuisine/",
+            "orderHref": "/fr/order/tablier-de-cuisine/",
             "name": "Tablier de cuisine",
             "brandLatin": null,
             "summary": "Tablier en coton, deux tailles, deux couleurs.",
@@ -4572,6 +4605,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/fr/p/set-de-couteaux/",
+            "orderHref": "/fr/order/set-de-couteaux/",
             "name": "Set de couteaux",
             "brandLatin": "HB Home",
             "summary": "Cinq couteaux et un bloc.",
@@ -4829,7 +4863,8 @@
             "alt": "Casserole 20 cm"
           },
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 103,
@@ -4962,6 +4997,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/fr/p/poele-28-cm/",
+            "orderHref": "/fr/order/poele-28-cm/",
             "name": "Poêle 28 cm",
             "brandLatin": null,
             "summary": "Poêle antiadhésive.",
@@ -5028,6 +5064,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -5094,6 +5131,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/fr/p/tablier-de-cuisine/",
+            "orderHref": "/fr/order/tablier-de-cuisine/",
             "name": "Tablier de cuisine",
             "brandLatin": null,
             "summary": "Tablier en coton, deux tailles, deux couleurs.",
@@ -5169,6 +5207,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/fr/p/set-de-couteaux/",
+            "orderHref": "/fr/order/set-de-couteaux/",
             "name": "Set de couteaux",
             "brandLatin": "HB Home",
             "summary": "Cinq couteaux et un bloc.",
@@ -5426,7 +5465,8 @@
             "alt": "Set de couteaux"
           },
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 104,
@@ -5555,6 +5595,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -5621,6 +5662,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/fr/p/tablier-de-cuisine/",
+            "orderHref": "/fr/order/tablier-de-cuisine/",
             "name": "Tablier de cuisine",
             "brandLatin": null,
             "summary": "Tablier en coton, deux tailles, deux couleurs.",
@@ -5696,6 +5738,7 @@
             "id": 105,
             "kind": "simple",
             "href": "/fr/p/egouttoir/",
+            "orderHref": "/fr/order/egouttoir/",
             "name": "Égouttoir [PLACEHOLDER]",
             "brandLatin": null,
             "summary": "[PLACEHOLDER] Égouttoir à vaisselle.",
@@ -5762,6 +5805,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/fr/p/poele-28-cm/",
+            "orderHref": "/fr/order/poele-28-cm/",
             "name": "Poêle 28 cm",
             "brandLatin": null,
             "summary": "Poêle antiadhésive.",
@@ -6019,7 +6063,8 @@
             "alt": "Égouttoir"
           },
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 105,
@@ -6148,6 +6193,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -6214,6 +6260,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/fr/p/tablier-de-cuisine/",
+            "orderHref": "/fr/order/tablier-de-cuisine/",
             "name": "Tablier de cuisine",
             "brandLatin": null,
             "summary": "Tablier en coton, deux tailles, deux couleurs.",
@@ -6289,6 +6336,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/fr/p/set-de-couteaux/",
+            "orderHref": "/fr/order/set-de-couteaux/",
             "name": "Set de couteaux",
             "brandLatin": "HB Home",
             "summary": "Cinq couteaux et un bloc.",
@@ -6355,6 +6403,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/fr/p/poele-28-cm/",
+            "orderHref": "/fr/order/poele-28-cm/",
             "name": "Poêle 28 cm",
             "brandLatin": null,
             "summary": "Poêle antiadhésive.",
@@ -6550,7 +6599,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 106,
@@ -6805,7 +6855,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 101,
@@ -7276,7 +7327,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 102,
@@ -7533,7 +7585,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 103,
@@ -7790,7 +7843,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 104,
@@ -8043,7 +8097,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 105,
@@ -8309,7 +8364,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "page": {
           "id": 2,
@@ -8420,7 +8476,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "page": {
           "id": 1,
@@ -8534,7 +8591,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "indexUrl": "/search/fr.json",
         "queryParam": "q",
@@ -8604,6 +8662,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/fr/p/pack-cuisine-3-en-1/",
+            "orderHref": "/fr/order/pack-cuisine-3-en-1/",
             "name": "Pack cuisine 3 en 1",
             "brandLatin": null,
             "summary": "Poêle, casserole et spatule.",
@@ -8670,6 +8729,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/fr/p/tablier-de-cuisine/",
+            "orderHref": "/fr/order/tablier-de-cuisine/",
             "name": "Tablier de cuisine",
             "brandLatin": null,
             "summary": "Tablier en coton, deux tailles, deux couleurs.",
@@ -8745,6 +8805,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/fr/p/set-de-couteaux/",
+            "orderHref": "/fr/order/set-de-couteaux/",
             "name": "Set de couteaux",
             "brandLatin": "HB Home",
             "summary": "Cinq couteaux et un bloc.",
@@ -8881,7 +8942,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": false
+          "hasPlaceholders": false,
+          "cartEnabled": true
         },
         "refParam": "ref",
         "deliveryHref": "/fr/livraison/",
@@ -8959,7 +9021,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": false,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "categories": [
           {

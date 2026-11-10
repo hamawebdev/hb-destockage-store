@@ -15,11 +15,13 @@ interface Props {
   defer?: boolean;
   /** Adds an add-to-cart button to each card (homepage, CART-0). */
   addable?: boolean;
+  /** Cart off (CART-3): a buy link to the order form under each card. */
+  buy?: boolean;
 }
-const { cards, lang, strings, level = 2, class: cls, defer = false, addable = false } = Astro.props;
+const { cards, lang, strings, level = 2, class: cls, defer = false, addable = false, buy = false } = Astro.props;
 ---
 <ul class:list={['cat-grid', cls]} role="list">
-  {cards.map((card) => <li><ProductCard card={card} lang={lang} strings={strings} level={level} defer={defer} addable={addable} /></li>)}
+  {cards.map((card) => <li><ProductCard card={card} lang={lang} strings={strings} level={level} defer={defer} addable={addable} buy={buy} /></li>)}
 </ul>
 
 <style is:global>

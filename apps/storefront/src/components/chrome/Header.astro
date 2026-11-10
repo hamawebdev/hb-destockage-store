@@ -5,8 +5,8 @@
  * The language switch is a plain link to the same page in the other language; its label is in
  * the system font (--font-switcher) so /fr/ never fetches the Arabic webfont. Below 768 it shows
  * the short label (FR / ع) with the full name kept as its accessible name. A cart button with its count
- * (hidden without JS, space reserved) opens the sheet (cart.js). `minimal`: order pages keep only the
- * wordmark, the language switch and the cart (CART-0).
+ * (hidden without JS, space reserved) opens the sheet (cart.js); not rendered when the cart is off (CART-4).
+ * `minimal`: order pages keep only the wordmark, the language switch and the cart (CART-0).
  * Owner: shell. Plan: artifacts/SHELL-0/plan.md §9.
  */
 import type { LayoutProps } from '@hb/catalog';
@@ -23,8 +23,10 @@ interface Props {
 const { layout: l, minimal = false } = Astro.props;
 const s = (key: string) => t(l.strings, key);
 const sw = l.languageSwitch;
-const sheetVersion = publicFileVersion('js/cart-sheet.js');
-const uiVersion = cartUiJson(l.strings).version;
+// Cart off (CART-4): no cart button at all, and none of its data (sheet, ui.json, items, checkout URLs).
+const cart = l.cartEnabled;
+const sheetVersion = cart ? publicFileVersion('js/cart-sheet.js') : null;
+const uiVersion = cart ? cartUiJson(l.strings).version : null;
 const short = sw.lang === 'ar' ? 'ع' : 'FR';
 // aria-current: "page" on the exact page, "true" on an ancestor section (e.g. category page 2).
 const current = (href: string) => (l.path === href ? 'page' : l.path.startsWith(href) ? 'true' : undefined);
@@ -50,7 +52,7 @@ const current = (href: string) => (l.path === href ? 'page' : l.path.startsWith(
       <a class="hd-tool hd-lang" href={sw.href} hreflang={sw.lang} lang={sw.lang}>
         <span class="hd-tl">{sw.label}</span><span class="hd-ts" aria-hidden="true">{short}</span>
       </a>
-      <button
+      {cart && <button
         class="hd-tool hd-cart"
         type="button"
         data-cart-open
@@ -62,7 +64,7 @@ const current = (href: string) => (l.path === href ? 'page' : l.path.startsWith(
         data-home={l.homeHref}
       >
         <Icon name="bag" /><span class="hd-tl">{s('cart.title')}</span><span class="hd-cart-n" data-cart-n hidden></span>
-      </button>
+      </button>}
       {!minimal && (
         <button class="hd-tool hd-menu-btn" type="button" popovertarget="hd-menu" aria-label={s('chrome.menuOpen')}>
           <Icon name="menu" />
