@@ -89,7 +89,7 @@ export async function openMetaToken(key: SecretBoxKey, stored: unknown): Promise
       key,
       bytes.subarray(1 + IV_BYTES),
     );
-    const token = new TextDecoder('utf-8', { fatal: true }).decode(plain);
+    const token = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(plain);
     if (token === '') throw new MetaTokenError();
     return token;
   } catch {
