@@ -96,6 +96,7 @@ describe('cart switch: owner', () => {
       callRetryMinutes: '30',
       unreachableRetryMinutes: '240',
       lowStockThreshold: '3',
+      delayedParcelDays: '5',
     });
     expect(res.status).toBe(303);
     expect(await cartSetting()).toBe(false);
