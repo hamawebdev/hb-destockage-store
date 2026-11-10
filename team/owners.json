@@ -54,7 +54,10 @@
     "CARR": "carriers",
     "SHIP": "shipping",
     "SHEET": "sheets",
-    "UX": "adminui"
+    "UX": "adminui",
+    "CART": "cart",
+    "MSET": "meta",
+    "REBR": "rebrand"
   },
   "owners": {
     "tooling": {
@@ -396,6 +399,93 @@
     "rev-k": {
       "paths": [],
       "portBase": 4470
+    },
+    "cart": {
+      "paths": [
+        "apps/storefront/**",
+        "packages/catalog/**",
+        "packages/db/src/export.ts",
+        "packages/db/test/export*",
+        "data/catalog/**",
+        "brand/copy/strings.ar.json",
+        "brand/copy/strings.fr.json",
+        "apps/admin/src/routes/settings/**",
+        "apps/admin/test/settings/**",
+        "apps/web/test/cart-*",
+        "tests/e2e/cart*"
+      ],
+      "except": [
+        "apps/storefront/src/lib/meta.mjs",
+        "apps/storefront/public/js/meta*.js",
+        "apps/storefront/test/meta-*"
+      ],
+      "reviewer": "rev-l",
+      "portBase": 4480
+    },
+    "meta": {
+      "paths": [
+        "apps/storefront/src/lib/meta.mjs",
+        "apps/storefront/public/js/meta*.js",
+        "apps/storefront/test/meta-*",
+        "apps/web/src/env.ts",
+        "apps/web/src/meta/**",
+        "apps/web/src/order/**",
+        "apps/web/src/routes/order.ts",
+        "apps/web/wrangler.jsonc",
+        "apps/web/.dev.vars.example",
+        "apps/web/scripts/csp.ts",
+        "apps/web/test/meta-*",
+        "apps/web/test/csp-meta*",
+        "apps/web/test/support/**",
+        "apps/admin/src/routes/meta/**",
+        "apps/admin/test/meta/**",
+        "apps/admin/src/app.ts",
+        "apps/admin/src/env.ts",
+        "apps/admin/src/auth/permissions.ts",
+        "apps/admin/src/ui/nav.ts",
+        "apps/admin/src/i18n/**",
+        "apps/admin/wrangler.jsonc",
+        "apps/admin/.dev.vars.example",
+        "apps/admin/test/review-admin1-r1.test.ts",
+        "packages/shared/src/meta*.ts",
+        "packages/shared/src/index.ts",
+        "packages/shared/test/meta*",
+        "packages/db/src/meta*.ts",
+        "packages/db/test/meta*",
+        ".github/workflows/pipeline.yml",
+        "scripts/deploy/**",
+        "scripts/test/deploy-*",
+        "docs/META-GO-LIVE.md",
+        "data/content/privacy.json",
+        "tests/e2e/meta-*"
+      ],
+      "reviewer": "rev-m",
+      "portBase": 4490
+    },
+    "rebrand": {
+      "paths": [
+        "brand/logo/**",
+        "brand/assets/**",
+        "brand/scripts/**",
+        "brand/test/**",
+        "brand/GUIDE.md",
+        "brand/guide.html",
+        "brand/tokens.json",
+        "brand/copy/VOICE.md",
+        "apps/admin/public/assets/brand/**"
+      ],
+      "reviewer": "rev-l",
+      "portBase": 4500
+    },
+    "rev-l": {
+      "paths": [],
+      "reviewer": null,
+      "portBase": 4510
+    },
+    "rev-m": {
+      "paths": [],
+      "reviewer": null,
+      "portBase": 4520
     }
   },
   "forbiddenGlobs": [
