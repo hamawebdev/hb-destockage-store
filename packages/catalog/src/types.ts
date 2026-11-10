@@ -507,6 +507,8 @@ export interface ProductCard {
   readonly id: Id;
   readonly kind: ProductKind;
   readonly href: string;
+  /** CART-3: this product's order form (ORDER-STEP `/{lang}/order/<slug>/`); the card's buy link when the cart is off. */
+  readonly orderHref: string;
   readonly name: string;
   readonly brandLatin: string | null;
   readonly summary: string;
@@ -566,6 +568,8 @@ export interface LayoutProps {
   readonly preloadArabicFont: boolean;
   /** Any placeholder content on this page (QA banner in dev builds). */
   readonly hasPlaceholders: boolean;
+  /** CART-3/CART-4: `settings.cartEnabled`. Off ⇒ no cart UI or code; product cards carry a buy link instead. */
+  readonly cartEnabled: boolean;
 }
 
 export interface HomeProps {
@@ -782,6 +786,8 @@ export interface SearchIndexEntry {
   /** geo's `searchKey(field, lang)` of name, brandLatin, category name and each option value label
    *  (this language), deduplicated and joined with `|` (so a match never spans two fields). */
   readonly k: string;
+  /** CART-3: order form path, only when the cart is off (search.js then renders a buy link). Absent when on. */
+  readonly o?: string;
 }
 
 export interface ContentProps {

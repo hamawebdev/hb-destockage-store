@@ -13,6 +13,7 @@ import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync, constants } from 'node:zlib';
 import { minify } from 'vite';
+import { applyBuildConstants } from './cart-switch.mjs';
 import { checkCatalogAssets, checkPage, classesIn, knownClasses, mergeStyles, pruneCustomProperties, sha256, trimUnusedRules } from './postbuild-core.mjs';
 
 async function* walk(dir) {
@@ -26,8 +27,9 @@ async function* walk(dir) {
 const br = (s) => brotliCompressSync(Buffer.from(s), { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
 
 /**
- * @param {{ allowedInlineScripts: readonly string[], routes?: () => readonly { path: string, template: string }[] | Promise<readonly { path: string, template: string }[]>, extraGroups?: readonly { pattern: RegExp, template: string }[], copy?: readonly { from: string, to: string }[], siteOrigin?: string }} opts
+ * @param {{ allowedInlineScripts: readonly string[], cartEnabled?: () => boolean | Promise<boolean>, routes?: () => readonly { path: string, template: string }[] | Promise<readonly { path: string, template: string }[]>, extraGroups?: readonly { pattern: RegExp, template: string }[], copy?: readonly { from: string, to: string }[], siteOrigin?: string }} opts
  *   allowedInlineScripts: exact bodies of the constant inline scripts (src/lib/inline-scripts.mjs).
+ *   cartEnabled: the snapshot's settings.cartEnabled (CART-3/CART-4; default true = today's build).
  *   routes: every route-map entry; each must have produced a file, and all pages of one template
  *   must carry byte-identical inline CSS (apps/web's CSP groups style hashes per template route
  *   pattern: _headers allows 100 rules x 2,000 chars, so CSS may depend on the template's
@@ -72,11 +74,15 @@ export default function hbPostbuild(opts) {
           }
         }
         // 7. Post-LCP modules: ship minified (Algerian baseline: ES2022 = Chrome 111 / Safari 16.4).
+        //    First the cart switch's build constants (cart-switch.mjs), so the minifier drops the other mode's branch.
+        const cartEnabled = opts.cartEnabled ? await opts.cartEnabled() : true;
         const jsRows = [];
         try {
           for await (const f of walk(join(root, 'js'))) {
             if (!f.endsWith('.js')) continue;
-            const code = await readFile(f, 'utf8');
+            const constants = applyBuildConstants(relative(join(root, 'js'), f).split(sep).join('/'), await readFile(f, 'utf8'), cartEnabled);
+            errors.push(...constants.errors);
+            const code = constants.code;
             const r = await minify(f, code, { compress: { target: 'es2022' }, mangle: true, module: true });
             if (r.errors.length) {
               errors.push(`minify ${relative(root, f)}: ${r.errors.map((e) => e.message).join('; ')}`);

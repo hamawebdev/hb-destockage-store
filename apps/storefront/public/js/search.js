@@ -5,6 +5,9 @@
 // must occur in an entry's key `k` (searchKey output: name, brand, category, option values).
 // Results are rendered with DOM APIs (no innerHTML) and announced through the role=status line.
 const root = typeof document === 'undefined' ? null : document.querySelector('.cat-search');
+// Cart off (CART-3): a buy link per result, to the entry's order form (`o`). hb-postbuild rewrites this exact line to
+// `false` in a cart-on build, so the minifier drops the branch and the shipped file stays as it was (cart-switch.mjs).
+const BUY = true;
 
 // --- geo GEO-5 data/geo/search.mjs normalizeForSearch, verbatim -------------------------------
 export function normalizeForSearch(s) {
@@ -94,6 +97,15 @@ if (root) {
     text.append(meta);
     a.append(text);
     li.append(a);
+    if (BUY && e.o) {
+      // Two sibling links (never nested): the row opens the product, the buy link its order form.
+      li.className = 'cat-res-row';
+      const buy = el('a', 'cat-res-buy', S['card.buy']);
+      buy.href = e.o;
+      buy.dataset.noPrefetch = '';
+      buy.append(el('span', 'cat-sr', ' ' + e.n));
+      li.append(buy);
+    }
     return li;
   };
 

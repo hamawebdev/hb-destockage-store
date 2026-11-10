@@ -36,6 +36,8 @@ export default defineConfig({
       siteOrigin: SITE_ORIGIN,
       metaEnabled: metaConfig() !== null,
       routes: async () => (await import('./src/lib/catalog.ts')).allRoutes(),
+      // The cart switch (CART-3/CART-4): settings.cartEnabled of the same snapshot, read lazily like routes.
+      cartEnabled: async () => (await import('./src/lib/catalog.ts')).cartEnabled(),
       // orderform's Worker-filled review template (not in the route map).
       extraGroups: [
         { pattern: /^\/(ar|fr)\/order\/review\/index\.html$/, template: 'order-review' },

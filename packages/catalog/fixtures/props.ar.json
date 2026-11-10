@@ -453,7 +453,8 @@
             "alt": "باك مطبخ 3 في 1"
           },
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "hero": {
           "image": {
@@ -503,6 +504,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -631,6 +633,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -697,6 +700,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/ar/p/mariyalat-matbakh/",
+            "orderHref": "/ar/order/mariyalat-matbakh/",
             "name": "مريلة مطبخ",
             "brandLatin": null,
             "summary": "مريلة قطنية، مقاسان ولونان.",
@@ -772,6 +776,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/ar/p/taqm-sakakin/",
+            "orderHref": "/ar/order/taqm-sakakin/",
             "name": "طقم سكاكين",
             "brandLatin": "HB Home",
             "summary": "خمس سكاكين وحامل.",
@@ -840,6 +845,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -1031,7 +1037,8 @@
           },
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 1,
@@ -1107,6 +1114,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -1173,6 +1181,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/ar/p/mariyalat-matbakh/",
+            "orderHref": "/ar/order/mariyalat-matbakh/",
             "name": "مريلة مطبخ",
             "brandLatin": null,
             "summary": "مريلة قطنية، مقاسان ولونان.",
@@ -1397,7 +1406,8 @@
           },
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 1,
@@ -1473,6 +1483,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/ar/p/miqlat-28-cm/",
+            "orderHref": "/ar/order/miqlat-28-cm/",
             "name": "مقلاة 28 سم",
             "brandLatin": null,
             "summary": "مقلاة غير لاصقة.",
@@ -1539,6 +1550,7 @@
             "id": 103,
             "kind": "simple",
             "href": "/ar/p/tanjara-20-cm/",
+            "orderHref": "/ar/order/tanjara-20-cm/",
             "name": "طنجرة 20 سم",
             "brandLatin": null,
             "summary": "طنجرة من الفولاذ.",
@@ -1754,7 +1766,8 @@
           },
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 1,
@@ -1830,6 +1843,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/ar/p/taqm-sakakin/",
+            "orderHref": "/ar/order/taqm-sakakin/",
             "name": "طقم سكاكين",
             "brandLatin": "HB Home",
             "summary": "خمس سكاكين وحامل.",
@@ -1896,6 +1910,7 @@
             "id": 105,
             "kind": "simple",
             "href": "/ar/p/musaffat/",
+            "orderHref": "/ar/order/musaffat/",
             "name": "مصفاة أطباق [PLACEHOLDER]",
             "brandLatin": null,
             "summary": "[PLACEHOLDER] مصفاة أطباق.",
@@ -2111,7 +2126,8 @@
           },
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 2,
@@ -2140,6 +2156,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/ar/p/miqlat-28-cm/",
+            "orderHref": "/ar/order/miqlat-28-cm/",
             "name": "مقلاة 28 سم",
             "brandLatin": null,
             "summary": "مقلاة غير لاصقة.",
@@ -2206,6 +2223,7 @@
             "id": 103,
             "kind": "simple",
             "href": "/ar/p/tanjara-20-cm/",
+            "orderHref": "/ar/order/tanjara-20-cm/",
             "name": "طنجرة 20 سم",
             "brandLatin": null,
             "summary": "طنجرة من الفولاذ.",
@@ -2369,7 +2387,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "category": {
           "id": 3,
@@ -2539,7 +2558,8 @@
             "alt": "باك مطبخ 3 في 1"
           },
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 106,
@@ -2874,6 +2894,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/ar/p/mariyalat-matbakh/",
+            "orderHref": "/ar/order/mariyalat-matbakh/",
             "name": "مريلة مطبخ",
             "brandLatin": null,
             "summary": "مريلة قطنية، مقاسان ولونان.",
@@ -2949,6 +2970,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/ar/p/taqm-sakakin/",
+            "orderHref": "/ar/order/taqm-sakakin/",
             "name": "طقم سكاكين",
             "brandLatin": "HB Home",
             "summary": "خمس سكاكين وحامل.",
@@ -3015,6 +3037,7 @@
             "id": 105,
             "kind": "simple",
             "href": "/ar/p/musaffat/",
+            "orderHref": "/ar/order/musaffat/",
             "name": "مصفاة أطباق [PLACEHOLDER]",
             "brandLatin": null,
             "summary": "[PLACEHOLDER] مصفاة أطباق.",
@@ -3081,6 +3104,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/ar/p/miqlat-28-cm/",
+            "orderHref": "/ar/order/miqlat-28-cm/",
             "name": "مقلاة 28 سم",
             "brandLatin": null,
             "summary": "مقلاة غير لاصقة.",
@@ -3339,7 +3363,8 @@
             "alt": "مريلة مطبخ حمراء"
           },
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 101,
@@ -3668,6 +3693,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -3734,6 +3760,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/ar/p/taqm-sakakin/",
+            "orderHref": "/ar/order/taqm-sakakin/",
             "name": "طقم سكاكين",
             "brandLatin": "HB Home",
             "summary": "خمس سكاكين وحامل.",
@@ -3800,6 +3827,7 @@
             "id": 105,
             "kind": "simple",
             "href": "/ar/p/musaffat/",
+            "orderHref": "/ar/order/musaffat/",
             "name": "مصفاة أطباق [PLACEHOLDER]",
             "brandLatin": null,
             "summary": "[PLACEHOLDER] مصفاة أطباق.",
@@ -3866,6 +3894,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/ar/p/miqlat-28-cm/",
+            "orderHref": "/ar/order/miqlat-28-cm/",
             "name": "مقلاة 28 سم",
             "brandLatin": null,
             "summary": "مقلاة غير لاصقة.",
@@ -4232,7 +4261,8 @@
             "alt": "مقلاة 28 سم"
           },
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 102,
@@ -4365,6 +4395,7 @@
             "id": 103,
             "kind": "simple",
             "href": "/ar/p/tanjara-20-cm/",
+            "orderHref": "/ar/order/tanjara-20-cm/",
             "name": "طنجرة 20 سم",
             "brandLatin": null,
             "summary": "طنجرة من الفولاذ.",
@@ -4431,6 +4462,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -4497,6 +4529,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/ar/p/mariyalat-matbakh/",
+            "orderHref": "/ar/order/mariyalat-matbakh/",
             "name": "مريلة مطبخ",
             "brandLatin": null,
             "summary": "مريلة قطنية، مقاسان ولونان.",
@@ -4572,6 +4605,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/ar/p/taqm-sakakin/",
+            "orderHref": "/ar/order/taqm-sakakin/",
             "name": "طقم سكاكين",
             "brandLatin": "HB Home",
             "summary": "خمس سكاكين وحامل.",
@@ -4829,7 +4863,8 @@
             "alt": "طنجرة 20 سم"
           },
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 103,
@@ -4962,6 +4997,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/ar/p/miqlat-28-cm/",
+            "orderHref": "/ar/order/miqlat-28-cm/",
             "name": "مقلاة 28 سم",
             "brandLatin": null,
             "summary": "مقلاة غير لاصقة.",
@@ -5028,6 +5064,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -5094,6 +5131,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/ar/p/mariyalat-matbakh/",
+            "orderHref": "/ar/order/mariyalat-matbakh/",
             "name": "مريلة مطبخ",
             "brandLatin": null,
             "summary": "مريلة قطنية، مقاسان ولونان.",
@@ -5169,6 +5207,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/ar/p/taqm-sakakin/",
+            "orderHref": "/ar/order/taqm-sakakin/",
             "name": "طقم سكاكين",
             "brandLatin": "HB Home",
             "summary": "خمس سكاكين وحامل.",
@@ -5426,7 +5465,8 @@
             "alt": "طقم سكاكين"
           },
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 104,
@@ -5555,6 +5595,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -5621,6 +5662,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/ar/p/mariyalat-matbakh/",
+            "orderHref": "/ar/order/mariyalat-matbakh/",
             "name": "مريلة مطبخ",
             "brandLatin": null,
             "summary": "مريلة قطنية، مقاسان ولونان.",
@@ -5696,6 +5738,7 @@
             "id": 105,
             "kind": "simple",
             "href": "/ar/p/musaffat/",
+            "orderHref": "/ar/order/musaffat/",
             "name": "مصفاة أطباق [PLACEHOLDER]",
             "brandLatin": null,
             "summary": "[PLACEHOLDER] مصفاة أطباق.",
@@ -5762,6 +5805,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/ar/p/miqlat-28-cm/",
+            "orderHref": "/ar/order/miqlat-28-cm/",
             "name": "مقلاة 28 سم",
             "brandLatin": null,
             "summary": "مقلاة غير لاصقة.",
@@ -6019,7 +6063,8 @@
             "alt": "مصفاة أطباق"
           },
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 105,
@@ -6148,6 +6193,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -6214,6 +6260,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/ar/p/mariyalat-matbakh/",
+            "orderHref": "/ar/order/mariyalat-matbakh/",
             "name": "مريلة مطبخ",
             "brandLatin": null,
             "summary": "مريلة قطنية، مقاسان ولونان.",
@@ -6289,6 +6336,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/ar/p/taqm-sakakin/",
+            "orderHref": "/ar/order/taqm-sakakin/",
             "name": "طقم سكاكين",
             "brandLatin": "HB Home",
             "summary": "خمس سكاكين وحامل.",
@@ -6355,6 +6403,7 @@
             "id": 102,
             "kind": "simple",
             "href": "/ar/p/miqlat-28-cm/",
+            "orderHref": "/ar/order/miqlat-28-cm/",
             "name": "مقلاة 28 سم",
             "brandLatin": null,
             "summary": "مقلاة غير لاصقة.",
@@ -6550,7 +6599,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 106,
@@ -6805,7 +6855,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 101,
@@ -7276,7 +7327,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 102,
@@ -7533,7 +7585,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 103,
@@ -7790,7 +7843,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 104,
@@ -8043,7 +8097,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "product": {
           "id": 105,
@@ -8309,7 +8364,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "page": {
           "id": 2,
@@ -8420,7 +8476,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "page": {
           "id": 1,
@@ -8534,7 +8591,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "indexUrl": "/search/ar.json",
         "queryParam": "q",
@@ -8604,6 +8662,7 @@
             "id": 106,
             "kind": "pack",
             "href": "/ar/p/bak-matbakh-3-fi-1/",
+            "orderHref": "/ar/order/bak-matbakh-3-fi-1/",
             "name": "باك مطبخ 3 في 1",
             "brandLatin": null,
             "summary": "مقلاة وطنجرة وملعقة.",
@@ -8670,6 +8729,7 @@
             "id": 101,
             "kind": "variable",
             "href": "/ar/p/mariyalat-matbakh/",
+            "orderHref": "/ar/order/mariyalat-matbakh/",
             "name": "مريلة مطبخ",
             "brandLatin": null,
             "summary": "مريلة قطنية، مقاسان ولونان.",
@@ -8745,6 +8805,7 @@
             "id": 104,
             "kind": "simple",
             "href": "/ar/p/taqm-sakakin/",
+            "orderHref": "/ar/order/taqm-sakakin/",
             "name": "طقم سكاكين",
             "brandLatin": "HB Home",
             "summary": "خمس سكاكين وحامل.",
@@ -8881,7 +8942,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": false
+          "hasPlaceholders": false,
+          "cartEnabled": true
         },
         "refParam": "ref",
         "deliveryHref": "/ar/tawsil/",
@@ -8959,7 +9021,8 @@
           "lcpImage": null,
           "ogImage": null,
           "preloadArabicFont": true,
-          "hasPlaceholders": true
+          "hasPlaceholders": true,
+          "cartEnabled": true
         },
         "categories": [
           {
