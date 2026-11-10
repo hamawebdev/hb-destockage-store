@@ -14,7 +14,7 @@ and the total are always clear.
 |---|---|---|
 | French / Latin | **Comptoir de Luxe** | French pages, Latin-script contexts (courier labels, sheet titles, e-mail), the logo |
 | Arabic | كونتوار دو لوكس | Arabic pages and every Arabic sentence |
-| Domain | **comptoirdeluxe.com** | `https://comptoirdeluxe.com/ar/` (default) and `/fr/`; the admin is `admin.comptoirdeluxe.com` |
+| Domain | **comptoirdeluxe.com** | `/ar/` (default) and `/fr/`; admin: `admin.comptoirdeluxe.com` |
 
 Capital C and L, lower-case *de*; capitals only inside the logo. Never "CDL", "Comptoir", "Comptoir De
 Luxe" or another Arabic spelling. «CL» exists only as the monogram. Full writing rules:

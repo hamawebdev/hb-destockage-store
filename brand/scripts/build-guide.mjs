@@ -207,6 +207,8 @@ hr{border:0;border-top:1px solid var(--border);margin:40px 0}
 table{border-collapse:collapse;width:100%;margin:16px 0 24px;font-size:.92rem}
 th,td{text-align:start;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--border)}
 th{font-weight:600;background:var(--alt)}
+td code{overflow-wrap:anywhere}
+@media(max-width:767px){table{display:block;overflow-x:auto}}
 .chip{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-inline-end:6px}
 .cover{background:var(--alt);border-radius:28px;padding:48px 32px;margin-bottom:40px}
 .cover .wm{max-width:420px}
