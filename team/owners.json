@@ -467,18 +467,22 @@
     },
     "rebrand": {
       "paths": [
-        "brand/logo/**",
-        "brand/assets/**",
-        "brand/scripts/**",
-        "brand/test/**",
-        "brand/GUIDE.md",
-        "brand/guide.html",
-        "brand/tokens.json",
-        "brand/copy/VOICE.md",
-        "apps/admin/public/assets/brand/**"
+        "**"
       ],
       "reviewer": "rev-l",
-      "portBase": 4500
+      "portBase": 4500,
+      "except": [
+        "apps/admin/src/routes/meta/**",
+        "apps/web/src/meta/**",
+        "packages/db/src/meta*.ts",
+        "packages/shared/src/meta*.ts",
+        "docs/META-GO-LIVE.md",
+        ".github/**",
+        "scripts/deploy/**",
+        "data/catalog/source/**",
+        "research-evidence/**",
+        "artifacts/**"
+      ]
     },
     "rev-l": {
       "paths": [],
