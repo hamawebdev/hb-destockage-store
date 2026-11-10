@@ -4,6 +4,11 @@ Owner: lead. Teammates read this in full before starting. It overrides the "How 
 section of CLAUDE.md until the tooling change (TOOL-1) rewrites that section.
 Spec = STACK-REPORT.md. Rules and budgets = CLAUDE.md. Review = REVIEW.md (written in TOOL-1).
 
+> **Session CLX (2026-11-10): cart switch, Meta credentials in the admin, rename to Comptoir de Luxe.**
+> Teammates `cart`, `meta`, `rebrand`, reviewers `rev-l`, `rev-m`. This session's rules are
+> `artifacts/CLX/briefs/COMMON.md` (they override this file where they differ: every task is reviewed); progress,
+> ledger and briefs are in `artifacts/CLX/`.
+
 ## 1. What we are building
 
 A cash-on-delivery store for HB Destockage that sells **any kind of product**: categories and
