@@ -115,6 +115,14 @@ describe('bulk "mark shipped"', () => {
     }
     expect(await auditsFor(b.id)).toHaveLength(0);
   });
+  test('review UX-4 r2 N1: no courier → 422 that keeps the ticks and typed tracking numbers', async () => {
+    const a = await newOrder('confirmed');
+    const res = await postMulti(USERS.owner, '/orders/shipping/ship', shipForm([a.ref], { courierName: '', [`version_${a.ref}`]: '0', [`tracking_${a.ref}`]: 'TRK-77' }));
+    expect(res.status).toBe(422);
+    const html = await res.text();
+    expect(html).toMatch(new RegExp(`name="ref" value="${a.ref}"[^>]*checked`));
+    expect(html).toContain(`name="tracking_${a.ref}" value="TRK-77"`);
+  });
   test('no courier, nothing ticked, or more than 50 → 422, nothing written', async () => {
     const a = await newOrder('confirmed');
     expect((await postMulti(USERS.owner, '/orders/shipping/ship', shipForm([a.ref], { courierName: '  ', [`version_${a.ref}`]: '0' }))).status).toBe(422);

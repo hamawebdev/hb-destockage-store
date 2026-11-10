@@ -123,11 +123,13 @@
   }
   .tabbar__item {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    min-block-size: var(--a-tabbar); padding: var(--space-1); border: 0; background: none; cursor: pointer;
-    font: inherit; font-size: var(--a-caption); line-height: var(--lh-ui);
+    min-block-size: var(--a-tabbar); padding-block: var(--space-1); padding-inline: 2px; border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 0.75rem; line-height: var(--lh-ui);
     color: var(--color-text-secondary); text-decoration: none; min-inline-size: 0;
   }
   .tabbar__label { max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Five tabs at 360 px leave ~68 px each: French "Commandes" fits at 11 px (review UX-1 r2 N4). Arabic stays 12 px. */
+  .tabbar__label:lang(fr) { font-size: 0.6875rem; }
   .tabbar__item[aria-current="page"] { color: var(--color-accent-text); }
 
   @media (min-width: 768px) { .main { padding-inline: var(--space-6); } }
@@ -263,6 +265,8 @@
   .input--area { min-block-size: 6rem; resize: vertical; }
   .field--invalid .input { border-color: var(--color-danger); }
   .field--check { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-block-size: var(--tap-min, 44px); }
+  /* The label is the tap target with its box: 44 px both ways, even for a one-word Arabic label (lead walk, UX-12). */
+  .field--check > label { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); min-inline-size: var(--tap-min, 44px); cursor: pointer; }
   .check { inline-size: 1.25rem; block-size: 1.25rem; accent-color: var(--color-accent); }
   .localized { border: var(--bw-hairline) solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin: 0; }
   .localized__legend { font-weight: var(--fw-emphasis); padding-inline: var(--space-1); font-size: var(--a-small); }
@@ -357,25 +361,36 @@
     .tbl-stack tbody tr:first-child { border-block-start: 0; }
     .tbl-stack td { display: grid; grid-template-columns: minmax(7rem, 40%) 1fr; gap: var(--space-2); border: 0; padding-block: var(--space-1); text-align: start; }
     .tbl-stack td.num { text-align: start; }
-    .tbl-stack td > * { justify-self: start; }
+    .tbl-stack td > * { justify-self: start; min-inline-size: 0; max-inline-size: 100%; }
+    .tbl-stack td .input { inline-size: 100%; }
+    .tbl-stack td a:not(.btn):not(.row-link) { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); }
+    /* Tables that stay tables on a phone (products, categories): their links are 44 px tall too. */
+    .table td a:not(.btn):not(.row-link) { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); min-inline-size: var(--tap-min, 44px); }
     .tbl-stack td::before { content: attr(data-label); color: var(--color-text-secondary); font-size: var(--a-caption); }
+    /* Everything a labelled cell holds sits in the value column, and a long badge wraps instead of
+       widening the page (lead walk, UX-12: /delivery/exceptions overflowed 25 px at 360). */
+    .tbl-stack td:not([data-label=""]) > * { grid-column: 2; }
+    .tbl-stack td .badge { white-space: normal; }
     .tbl-stack td[data-label=""]::before { content: none; }
     .table-wrap:has(.tbl-stack) { overflow-x: visible; }
   }
 
   /* Orders list */
   .cell-main { display: block; }
+  .tbl-orders .c-cust, .order-head__name { overflow-wrap: anywhere; }
   .cell-flags { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-block-start: var(--space-1); }
-  .tbl-orders .c-pick { inline-size: 2.5rem; }
+  .tbl-orders td.c-pick, .tbl-orders th.c-pick { inline-size: var(--tap-min, 44px); padding: 0; position: relative; z-index: 1; }
+  /* `td > .pick-cell` outranks `.tbl-stack td > *` (min-inline-size: 0) on phones: review UX-1 r2 I4. */
+  .pick-cell, .tbl-stack td > .pick-cell { display: flex; align-items: center; justify-content: center; min-inline-size: var(--tap-min, 44px); min-block-size: var(--tap-min, 44px); block-size: 100%; cursor: pointer; }
   .tbl-orders .c-ref a { font-weight: var(--fw-emphasis); text-decoration: none; white-space: nowrap; }
   .tbl-orders .c-ref a:hover { text-decoration: underline; }
   @media (max-width: 599.98px) {
     /* Each order is a card led by the customer and its status. */
     .tbl-orders tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-3); padding: var(--space-3) var(--space-4); }
-    .tbl-orders tr:has(.pick) { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .tbl-orders tr:has(.pick) { grid-template-columns: var(--tap-min, 44px) minmax(0, 1fr) auto; }
     .tbl-orders td { display: block; padding: 0; min-inline-size: 0; }
     .tbl-orders td::before { content: none; }
-    .tbl-orders .c-pick { grid-row: 1 / span 3; align-self: center; inline-size: auto; }
+    .tbl-orders td.c-pick { grid-row: 1 / span 3; align-self: stretch; inline-size: auto; }
     .tbl-orders .c-pick:empty { display: none; }
     .tbl-orders .c-cust { grid-column: -3 / -2; grid-row: 1; }
     .tbl-orders .c-status { grid-column: -2 / -1; grid-row: 1; text-align: end; }
@@ -445,8 +460,17 @@
   .tile__link:hover { color: var(--color-text); text-decoration: underline; }
   .tile__value { font-size: 1.75rem; font-weight: var(--fw-emphasis); line-height: var(--lh-heading); margin: 0 0 var(--space-2); font-variant-numeric: tabular-nums; }
   .tile__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--a-small); }
-  .tile__list a { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); }
+  .tile__list a { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); min-inline-size: var(--tap-min, 44px); }
   .tile__body > :last-child { margin-block-end: 0; }
+
+  .tile-group { margin-block-end: var(--space-6); }
+  .tile-group__title { font-size: var(--a-h3); margin-block-end: var(--space-3); }
+  .tile-group .tiles { margin-block-end: 0; }
+  /* Work tiles open the work: the whole tile is the link. */
+  .tiles--work .tile { position: relative; }
+  .tiles--work .tile:hover { background: var(--a-hover); }
+  .tiles--work .tile__link::after { content: ""; position: absolute; inset: 0; }
+  .tiles--orders .tile__list { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); }
 
   /* Empty state */
   .empty { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-10) var(--space-6); text-align: center; color: var(--color-text-secondary); background: var(--color-surface); border: var(--bw-hairline) dashed var(--color-border); border-radius: var(--radius-md); margin: 0; }
@@ -462,9 +486,8 @@
   .order-head__status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--a-small); }
   @media (max-width: 599.98px) { .order-head__call { inline-size: 100%; } }
 
-  .steps { list-style: none; display: flex; margin: 0 0 var(--space-5); padding: 0; overflow-x: auto; scrollbar-width: none; }
-  .steps::-webkit-scrollbar { display: none; }
-  .step { position: relative; flex: 1 0 4.75rem; display: grid; justify-items: center; gap: var(--space-1); text-align: center; color: var(--color-text-secondary); font-size: var(--a-caption); }
+  .steps { list-style: none; display: flex; margin: 0 0 var(--space-5); padding: 0; }
+  .step { position: relative; flex: 1 1 0; min-inline-size: 0; overflow-wrap: anywhere; display: grid; justify-items: center; gap: var(--space-1); text-align: center; color: var(--color-text-secondary); font-size: var(--a-caption); }
   .step + .step::before { content: ""; position: absolute; inset-block-start: 11px; inset-inline-end: 50%; inline-size: 100%; block-size: 2px; background: var(--color-border); }
   .step--done + .step::before, .step--now::before { background: var(--color-text); }
   .step__dot { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; inline-size: 24px; block-size: 24px; border-radius: 50%; border: 2px solid var(--color-border-control); background: var(--color-surface); color: var(--color-on-accent); }
@@ -481,6 +504,59 @@
   .card__body:has(> .table-wrap) { padding: 0; }
   .card__body:has(> .empty) { padding: var(--space-3); }
   .card .form + .form { margin-block-start: var(--space-4); padding-block-start: var(--space-4); border-block-start: var(--bw-hairline) solid var(--color-border); }
+
+  /* Customer history (UX-7): counts, returner warning, the phone's other orders. */
+  .history { display: grid; gap: var(--space-3); }
+  .history > * { margin: 0; }
+  .history__warn { margin: 0; }
+  .history__warn-title { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-1); color: var(--color-danger); }
+  .history__counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 0; background: var(--color-border); border: var(--bw-hairline) solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
+  .history__counts > div { background: var(--color-surface); padding: var(--space-2); min-inline-size: 0; text-align: center; }
+  .history__counts dt { font-size: var(--a-caption); color: var(--color-text-secondary); overflow-wrap: break-word; }
+  .history__counts dd { margin: 0; font-size: 1.125rem; font-weight: var(--fw-emphasis); font-variant-numeric: tabular-nums; }
+  .history__count--bad dd { color: var(--color-danger); }
+  .history__rate { font-size: var(--a-small); }
+  .history__subtitle { margin: 0; font-size: var(--a-small); font-weight: var(--fw-emphasis); color: var(--color-text-secondary); }
+  .history__list { list-style: none; margin: 0; padding: 0; display: grid; border-block-start: var(--bw-hairline) solid var(--color-border); }
+  .history__item { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); padding-block: var(--space-2); border-block-end: var(--bw-hairline) solid var(--color-border); font-size: var(--a-small); }
+  .history__ref { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); font-weight: var(--fw-emphasis); text-decoration: none; }
+  .history__ref:hover { text-decoration: underline; }
+  .history__meta { flex-basis: 100%; color: var(--color-text-secondary); margin-block-start: calc(-1 * var(--space-2)); }
+
+  /* Parcel follow-up (UX-8 delayed parcels, UX-10 success rate) */
+  .page-lead { margin: 0 0 var(--space-4); color: var(--color-text-secondary); font-size: var(--a-small); max-inline-size: 70ch; }
+  .delay { color: var(--color-warning); font-weight: var(--fw-emphasis); }
+  .tel-link { display: flex; inline-size: fit-content; align-items: center; min-block-size: var(--tap-min, 44px); position: relative; z-index: 1; }
+  .cell-link { display: inline-flex; align-items: center; min-block-size: var(--tap-min, 44px); }
+  .rate { display: grid; gap: var(--space-1); min-inline-size: 8rem; }
+  .rate__value { font-variant-numeric: tabular-nums; }
+  .rate__bar { inline-size: 100%; max-inline-size: 10rem; block-size: 6px; border: 0; border-radius: var(--radius-pill); background: var(--color-surface-alt); }
+  .rate__bar::-webkit-meter-bar { border: 0; border-radius: var(--radius-pill); background: var(--color-surface-alt); block-size: 6px; }
+  .rate__bar::-webkit-meter-optimum-value { background: var(--color-success); border-radius: var(--radius-pill); }
+  .rate__bar::-webkit-meter-suboptimum-value { background: var(--color-warning); border-radius: var(--radius-pill); }
+  .rate__bar::-webkit-meter-even-less-good-value { background: var(--color-danger); border-radius: var(--radius-pill); }
+  .rate__bar:-moz-meter-optimum::-moz-meter-bar { background: var(--color-success); }
+  .rate__bar:-moz-meter-sub-optimum::-moz-meter-bar { background: var(--color-warning); }
+  .rate__bar:-moz-meter-sub-sub-optimum::-moz-meter-bar { background: var(--color-danger); }
+
+  /* Stock alerts (UX-9) */
+  .stock-cell { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-variant-numeric: tabular-nums; }
+  .inline-set { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); }
+  .inline-set .field { margin: 0; flex: 0 1 7rem; }
+  .inline-set .field__label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* Call queue and shipping */
+  .queue-start { display: grid; gap: var(--space-4); justify-items: start; }
+  .queue-start .empty { justify-self: stretch; }
+  .queue-counts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); font-size: var(--a-body); }
+  .queue-start__action { max-inline-size: none; }
+  .queue-total { margin: var(--space-3) 0 0; padding-block-start: var(--space-3); border-block-start: var(--bw-hairline) solid var(--color-border); }
+  .plain-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); font-size: var(--a-small); }
+  .ship-fields { display: grid; gap: var(--space-3); padding: var(--space-4); }
+  @media (min-width: 768px) { .ship-fields { grid-template-columns: 2fr 1fr; } }
+  .row-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .card__body:has(> .bulk-form) { padding: 0; }
+  .card .bulk { margin: var(--space-2) var(--space-3) var(--space-3); }
 
   /* Timeline */
   .timeline { list-style: none; margin: 0 0 var(--space-3); padding: 0; font-size: var(--a-small); }
@@ -499,4 +575,13 @@
   .dialog__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
 
   .thumb { border-radius: var(--radius-sm); }
+  .photo-list { list-style: none; margin: 0 0 var(--space-4); padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--space-3); }
+  /* Captions are R2 keys with no spaces: they wrap inside their cell (review UX-4 r1 I1). */
+  .photo-list > li { min-inline-size: 0; overflow-wrap: anywhere; }
+  .photo-list .code { overflow-wrap: anywhere; white-space: normal; }
+  .photo-list img { display: block; inline-size: 100%; block-size: auto; border-radius: var(--radius-sm); background: var(--color-surface-alt); }
+
+  /* Rows of inputs under a header row: the column header (or the stacked card label) names the field. */
+  /* Fees: selected from the form, so the review-required fees code stays untouched. */
+  form[action^="/fees"] .table .field__label, .table--bare-fields .field__label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }

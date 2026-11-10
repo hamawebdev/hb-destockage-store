@@ -12,9 +12,11 @@ export interface UiContext {
   user: CurrentUser | undefined;
   /** Current path, for `aria-current` in the nav. */
   path: string;
+  /** Where the language switch comes back to: this page, or the page a failed POST was sent from. */
+  returnTo: string;
 }
 
-const fallback: UiContext = { lang: 'fr', dir: 'ltr', t: translator('fr'), csrfToken: '', user: undefined, path: '/' };
+const fallback: UiContext = { lang: 'fr', dir: 'ltr', t: translator('fr'), csrfToken: '', user: undefined, path: '/', returnTo: '/' };
 
 export const Ui = createContext<UiContext>(fallback);
 

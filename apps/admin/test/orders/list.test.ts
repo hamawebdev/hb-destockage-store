@@ -113,6 +113,18 @@ describe('default view per role', () => {
   test('status=any overrides the role default', async () => {
     expect(refs((await page(USERS.confirmer, 'status=any')).html).slice(0, 7)).toEqual(Object.values(N));
   });
+  test('review UX-1 r1 I1: the All tab keeps status=any through the filter form; a default view does not', async () => {
+    const hidden = '<input type="hidden" name="status" value="any"/>';
+    expect((await page(USERS.confirmer, 'status=any&wilaya=31')).html).toContain(hidden);
+    expect((await page(USERS.confirmer)).html).not.toContain(hidden);
+    const confirmer = refs((await page(USERS.confirmer, 'status=any&wilaya=16')).html);
+    expect(confirmer).toContain(N.n4); // confirmed: outside the confirmer's default statuses
+    expect(confirmer).toEqual(refs((await page(USERS.owner, 'status=any&wilaya=16')).html));
+  });
+  test('review UX-1 r1 I5: the language switch returns to this list with its filters, without the flash', async () => {
+    const html = (await page(USERS.owner, 'status=confirmed&wilaya=16&m=saved')).html;
+    expect(html).toContain('name="return_to" value="/orders?status=confirmed&amp;wilaya=16"');
+  });
 });
 
 describe('search', () => {

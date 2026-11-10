@@ -59,9 +59,9 @@ async function tiles(email: string): Promise<{ html: string; names: Set<string> 
 
 describe('tiles per role', () => {
   const expected: Record<string, string[]> = {
-    [USERS.owner]: ['orders', 'toCall', 'flagged', 'toShip', 'lowStock', 'placeholderFees', 'backup', 'deadNotifications', 'publish'],
-    [USERS.confirmer]: ['orders', 'toCall', 'flagged', 'deadNotifications'],
-    [USERS.logistics]: ['orders', 'toShip', 'lowStock'],
+    [USERS.owner]: ['orders', 'toCall', 'flagged', 'toShip', 'delayed', 'lowStock', 'placeholderFees', 'backup', 'deadNotifications', 'publish'],
+    [USERS.confirmer]: ['orders', 'toCall', 'flagged', 'delayed', 'deadNotifications'],
+    [USERS.logistics]: ['orders', 'toShip', 'delayed', 'lowStock'],
     [USERS.content]: ['lowStock', 'publish'],
   };
   for (const [email, names] of Object.entries(expected)) {
@@ -177,6 +177,7 @@ describe('store settings', () => {
     callRetryMinutes: '30',
     unreachableRetryMinutes: '240',
     lowStockThreshold: '5',
+    delayedParcelDays: '4',
   };
   async function setting(key: string) {
     const r = await h.db.prepare('select value from settings where key = ?').bind(key).first<{ value: string }>();
@@ -198,7 +199,8 @@ describe('store settings', () => {
     expect(await setting('contactEmail')).toBeNull();
     expect(await setting('lowStockThreshold')).toBe(5);
     const rows = (await h.db.prepare("select entity_id from audit_log where action = 'settings.update' order by id").all<{ entity_id: string }>()).results.map((r) => r.entity_id);
-    expect(rows.sort()).toEqual(['callRetryMinutes', 'contactEmail', 'contactPhone', 'lowStockThreshold', 'orderMaxUnanswered', 'storeName', 'unreachableRetryMinutes', 'whatsapp']);
+    expect(rows.sort()).toEqual(['callRetryMinutes', 'contactEmail', 'contactPhone', 'delayedParcelDays', 'lowStockThreshold', 'orderMaxUnanswered', 'storeName', 'unreachableRetryMinutes', 'whatsapp']);
+    expect(await setting('delayedParcelDays')).toBe(4);
     // The dashboard follows the new threshold.
     const { html } = await tiles(USERS.owner);
     expect(html).toContain('(≤ 5)');
@@ -219,6 +221,8 @@ describe('store settings', () => {
       { whatsapp: '0512' },
       { orderMaxUnanswered: '0' },
       { lowStockThreshold: '-1' },
+      { delayedParcelDays: '0' },
+      { delayedParcelDays: '31' },
       { storeName_ar: '' },
       { contactEmail: 'nope' },
     ]) {

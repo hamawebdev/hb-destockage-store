@@ -3,9 +3,10 @@
 import { rolesFor } from '../../auth/permissions.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import { createRouter } from '../../lib/router.ts';
+import { EmptyState } from '../../ui/badge.tsx';
 
 const r = createRouter({ roles: rolesFor('content.edit') });
 
-r.get('/', requirePerm('content.edit'), (c) => c.render(<p>{c.var.t('common.comingSoon')}</p>, { title: c.var.t('nav.content') }));
+r.get('/', requirePerm('content.edit'), (c) => c.render(<EmptyState icon="file">{c.var.t('common.comingSoon')}</EmptyState>, { title: c.var.t('nav.content') }));
 
 export default r;
