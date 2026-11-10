@@ -3,7 +3,7 @@
 // than failing the page. Plan: artifacts/ADMIN-5/plan.md.
 import { and, count, countDistinct, desc, eq, gte, inArray, isNotNull, isNull, lte, max, ne, or, sql } from 'drizzle-orm';
 import * as v from 'valibot';
-import { deliveryFees, notificationDeliveries, orders, publishRuns, settings, variants, type Db } from '@hb/db';
+import { deliveryFees, notificationDeliveries, orders, products, publishRuns, settings, variants, type Db } from '@hb/db';
 import type { OrderStatus } from '@hb/shared';
 import { startOfAlgiersDay } from '../../lib/time.ts';
 
@@ -75,7 +75,9 @@ export async function lowStockCount(db: Db, threshold: number): Promise<number> 
   const r = await db
     .select({ n: count() })
     .from(variants)
-    .where(and(eq(variants.active, true), isNotNull(variants.stock), lte(variants.stock, threshold)))
+    // Same set as /products/stock/alerts (UX-9): archived products are not counted.
+    .innerJoin(products, eq(products.id, variants.productId))
+    .where(and(eq(variants.active, true), isNotNull(variants.stock), lte(variants.stock, threshold), ne(products.status, 'archived')))
     .get();
   return r?.n ?? 0;
 }

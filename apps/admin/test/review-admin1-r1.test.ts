@@ -24,6 +24,7 @@ import content from '../src/routes/content/index.tsx';
 import media from '../src/routes/media/index.tsx';
 import publish from '../src/routes/publish/index.tsx';
 import auditRoutes from '../src/audit/routes.tsx';
+import parcels from '../src/routes/parcels/index.tsx';
 import delivery from '../src/routes/delivery/index.tsx';
 import sheets from '../src/routes/sheets/index.tsx';
 import { form, harness, postAs, testIdentify, tokenFor, USERS, type Harness } from './helpers.ts';
@@ -57,6 +58,7 @@ describe('F1: deny-by-default inside every mounted router', () => {
     ['/media', media],
     ['/publish', publish],
     ['/audit', auditRoutes],
+    ['/parcels', parcels],
     ['/delivery', delivery],
     ['/sheets', sheets],
   ];

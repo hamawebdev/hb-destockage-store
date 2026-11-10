@@ -221,3 +221,11 @@ Rules:
 - Why: client decision. The Pixel's code cannot fit in the room the budget leaves (1,673 B on the 48 product and search pages), and a visitor who has not accepted does not download it before acting.
 - Evidence: client's choice of 2026-11-09 (artifacts/META-0/lead-approval.md Addendum 7); artifacts/META-0/measure/summary.md; sizes measured the budget tool's way on a seed build of this change.
 - Status: active
+
+## D-016 — ADMIN2 branches may merge without merge.sh's per-merge gate, with one full gate after
+- Date: 2026-11-10 · Author: lead (ADMIN2) · Task: ADMIN2
+- Report says: CLAUDE.md "How work happens": only the lead merges, through `scripts/team/merge.sh`, which gates every merge result before main moves.
+- We do instead: for the remaining ADMIN2 branches (in the end only team/adminui@9440fb6, merged at 3f53b95), the lead runs `merge.sh --dry-run` (approvals ledger, ownership, net-diff, conflicts), merges with `git merge --no-ff` as the lead if it is clean, then runs one full `scripts/gate.sh` on main's merge commit. If that gate is red, the lead fixes or reverts before anything else lands. Never pushed.
+- Why: the client's owner authorised it on 2026-11-10. Main is shared by three sessions; each gate takes 1–2 h on the loaded machine, and the per-merge gates kept main busy for a day. One merge.sh run was stopped by another session when main moved under it.
+- Evidence: artifacts/ADMIN2/merge-ux-dry.log (dry-run OK; the merge tree equals the dry-run trial 7912d2a7a); the full gate log for 3f53b95 under artifacts/gate/; artifacts/ADMIN2/HANDOFF.md.
+- Status: active for ADMIN2 only; every other merge keeps merge.sh.

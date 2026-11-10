@@ -38,6 +38,8 @@ import { QueueCallPage, QueueEmptyPage } from './queue-page.tsx';
 import { ContactForm, canEditContact, communesOf, contactAudit, feeProviderFor, previewContact, type ContactCurrent, type ContactErrKey } from './contact.ts';
 import { ContactEditPage, ContactReviewPage } from './contact-page.tsx';
 import { fetchOrderByRef, fetchOrderChildren, type OrderDetail } from './detail-data.ts';
+import { fetchCustomerHistory, type CustomerHistory } from './history.ts';
+import { fetchShipmentPanel } from '../delivery/panel.tsx';
 import { OrderDetailPage, type DetailProps, type FormKind } from './detail-page.tsx';
 import { fetchOrdersPage, ordersToday, statusCounts } from './list-data.ts';
 import { OrdersListPage } from './list-page.tsx';
@@ -60,7 +62,7 @@ import {
 } from './workflow.ts';
 import { orderGuard, orderWriter } from './writer.ts';
 import { MAX_BATCH, fetchSlips, shippingCounts, shippingQuery } from './shipping-data.ts';
-import { ShippingPage, SlipsPage, type ShipResult } from './shipping-page.tsx';
+import { ShippingPage, SlipsPage, type ShipKept, type ShipResult } from './shipping-page.tsx';
 
 const r = createRouter({ roles: rolesFor('orders.view') });
 
@@ -90,10 +92,16 @@ r.get('/', requirePerm('orders.view'), async (c) => {
       url={`${url.pathname}${url.search}`}
       sensitive={sensitive}
       bulk={can(c.var.user, 'orders.shipping')}
+      send={can(c.var.user, 'delivery.send')}
     />,
     { title: m(c.var.lang)('list.title') },
   );
 });
+
+/** The phone's other orders (UX-7). Order history is sensitive: nothing is read without `customers.sensitive`. */
+function historyOf(c: Context<AppEnv>, order: OrderDetail): Promise<CustomerHistory | undefined> {
+  return order.risk ? fetchCustomerHistory(c.var.db, order.customer.id, order.id) : Promise.resolve(undefined);
+}
 
 // ---------------------------------------------------------------------------------------------
 // Call queue (AORD-3): reads, plus AORD-2's claimOrder.
@@ -106,8 +114,11 @@ async function renderQueue(c: Context<AppEnv>, opts: { afterNext?: boolean } = {
   const ref = await myClaim(c.var.db, c.var.user.id, now);
   const order = ref ? await fetchOrderByRef(c.var.db, ref, canSeeSensitive(c.var.user)) : null;
   if (order) {
-    const { items, events } = await fetchOrderChildren(c.var.db, order.id, { withAudit: false, sensitive: canSeeSensitive(c.var.user) });
-    return c.render(<QueueCallPage lang={c.var.lang} user={c.var.user} now={now} order={order} items={items} events={events} />, { title });
+    const [{ items, events }, history] = await Promise.all([
+      fetchOrderChildren(c.var.db, order.id, { withAudit: false, sensitive: canSeeSensitive(c.var.user) }),
+      historyOf(c, order),
+    ]);
+    return c.render(<QueueCallPage lang={c.var.lang} user={c.var.user} now={now} order={order} items={items} events={events} {...(history ? { history } : {})} />, { title });
   }
   const counts = await queueCounts(c.var.db, now);
   const nothingFree = opts.afterNext === true && counts.due + counts.new + counts.unreachable > 0;
@@ -134,10 +145,10 @@ r.post('/queue/next', requirePerm('orders.queue'), async (c) => {
 // ---------------------------------------------------------------------------------------------
 // Shipping hand-off (AORD-5). Plan: artifacts/AORD-5/plan.md (approved: slips only, no CSV).
 
-async function renderShipping(c: Context<AppEnv>, status: 200 | 422 = 200, extra: { error?: string; results?: ShipResult[] } = {}) {
+async function renderShipping(c: Context<AppEnv>, status: 200 | 422 = 200, extra: { error?: string; results?: ShipResult[]; kept?: ShipKept } = {}) {
   const [ready, out, counts] = await Promise.all([shippingQuery(c.var.db, 'confirmed'), shippingQuery(c.var.db, 'shipped'), shippingCounts(c.var.db)]);
   c.status(status);
-  return c.render(<ShippingPage lang={c.var.lang} ready={ready} out={out} counts={counts} {...extra} />, { title: m(c.var.lang)('ship.title') });
+  return c.render(<ShippingPage lang={c.var.lang} ready={ready} out={out} counts={counts} send={can(c.var.user, 'delivery.send')} {...extra} />, { title: m(c.var.lang)('ship.title') });
 }
 
 r.get('/shipping', requirePerm('orders.shipping'), (c) => renderShipping(c));
@@ -160,7 +171,9 @@ r.post('/shipping/ship', requirePerm('orders.shipping'), async (c) => {
   const courierName = str('courierName').trim();
   const refuse = (key: 'ship.err.none' | 'ship.err.tooMany' | 'err.courierRequired' | 'form.tooLong') => {
     noAudit(c, 'bulk ship refused before any write');
-    return renderShipping(c, 422, { error: key === 'form.tooLong' ? c.var.t('form.tooLong', { max: 80 }) : tm(key) });
+    // What was ticked and typed comes back, so fixing the courier name costs nothing (review UX-4 r2 N1).
+    const kept: ShipKept = { refs, courierName: str('courierName').slice(0, 80), tracking: Object.fromEntries(refs.map((r) => [r, str(`tracking_${r}`).slice(0, 80)])) };
+    return renderShipping(c, 422, { error: key === 'form.tooLong' ? c.var.t('form.tooLong', { max: 80 }) : tm(key), kept });
   };
   if (refs.length === 0) return refuse('ship.err.none');
   if (refs.length > MAX_BATCH) return refuse('ship.err.tooMany');
@@ -197,7 +210,7 @@ r.post('/shipping/ship', requirePerm('orders.shipping'), async (c) => {
     const res = await orderWriter.applyChange(c, order.id, p.plan, now);
     results.push({
       ref,
-      outcome: res.ok ? 'shipped' : (res.code as string) === 'shipment_in_progress' ? 'shipmentBusy' : res.code === 'version_conflict' ? 'conflict' : res.code === 'forbidden' ? 'forbidden' : res.code === 'not_found' ? 'notFound' : 'notConfirmed',
+      outcome: res.ok ? 'shipped' : res.code === 'shipment_in_progress' ? 'shipmentBusy' : res.code === 'version_conflict' ? 'conflict' : res.code === 'forbidden' ? 'forbidden' : res.code === 'not_found' ? 'notFound' : 'notConfirmed',
     });
   }
   if (!results.some((r) => r.outcome === 'shipped')) noAudit(c, 'bulk ship: no order changed, nothing written');
@@ -227,11 +240,15 @@ async function renderDetail(
   status: 200 | 403 | 409 | 422 = 200,
   extra: Pick<DetailProps, 'form' | 'conflict' | 'shipmentBusy'> = {},
 ) {
-  const children = await fetchOrderChildren(c.var.db, order.id, { withAudit: c.var.user.role === 'owner', sensitive: canSeeSensitive(c.var.user) });
+  const [children, history, shipment] = await Promise.all([
+    fetchOrderChildren(c.var.db, order.id, { withAudit: c.var.user.role === 'owner', sensitive: canSeeSensitive(c.var.user) }),
+    historyOf(c, order),
+    can(c.var.user, 'delivery.view') ? fetchShipmentPanel(c.var.db, order.id) : Promise.resolve(undefined),
+  ]);
   const tm = m(c.var.lang);
   c.status(status);
   return c.render(
-    <OrderDetailPage lang={c.var.lang} user={c.var.user} now={Date.now()} order={order} {...children} {...extra} />,
+    <OrderDetailPage lang={c.var.lang} user={c.var.user} now={Date.now()} order={order} {...children} {...extra} {...(history ? { history } : {})} {...(shipment !== undefined ? { shipment } : {})} />,
     {
       // LRI … PDI: the ref stays left-to-right inside the Arabic title.
       title: tm('detail.title', { ref: `\u2066${order.ref}\u2069` }),
@@ -310,11 +327,9 @@ async function mutate<S extends FormSchema>(
     const back = ret === 'queue' ? '/orders/queue' : ret === 'shipping' ? '/orders/shipping' : `/orders/${order.ref}`;
     return c.redirect(withFlash(back, 'saved'), 303);
   }
-  // A parcel is being sent for this order (SHIP-1 refuses the change). The cast compiles both before
-  // and after @hb/db adds the code to its union; the cast can go once SHIP-1b is on main.
-  if ((res.code as string) === 'shipment_in_progress') return renderDetail(c, order, 409, { shipmentBusy: true });
-  const code = res.code as Exclude<typeof res.code, 'shipment_in_progress'>;
-  switch (code) {
+  // A parcel is being sent for this order: the open-slot guard (SHIP-1) refuses the change.
+  if (res.code === 'shipment_in_progress') return renderDetail(c, order, 409, { shipmentBusy: true });
+  switch (res.code) {
     case 'not_found':
       return c.notFound();
     case 'version_conflict':
@@ -484,9 +499,8 @@ r.post(`/${REF}/contact`, requirePerm('orders.edit'), async (c) => {
     { extra: [row] },
   );
   if (res.ok) return c.redirect(withFlash(`/orders/${order.ref}`, 'saved'), 303);
-  if ((res.code as string) === 'shipment_in_progress') return renderDetail(c, order, 409, { shipmentBusy: true });
-  const code = res.code as Exclude<typeof res.code, 'shipment_in_progress'>;
-  switch (code) {
+  if (res.code === 'shipment_in_progress') return renderDetail(c, order, 409, { shipmentBusy: true });
+  switch (res.code) {
     case 'not_found':
       return c.notFound();
     case 'version_conflict':
@@ -510,7 +524,7 @@ r.post(`/${REF}/contact`, requirePerm('orders.edit'), async (c) => {
       return renderContactEdit(c, order, f.values, 422, contactErrors(c, { name: 'contact.err.nameInvalid' }));
     default: {
       // Exhaustive: a new DB-6 result code fails typecheck here instead of falling through.
-      const unhandled: never = code;
+      const unhandled: never = res.code;
       throw new Error(`updateOrderContact: unhandled result code ${String(unhandled)}`);
     }
   }
