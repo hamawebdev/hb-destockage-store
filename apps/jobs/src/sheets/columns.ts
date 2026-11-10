@@ -8,7 +8,7 @@ export const HEADERS: Readonly<Record<SheetLang, readonly string[]>> = {
 };
 
 export const TAB_TITLE: Readonly<Record<SheetLang, string>> = { fr: 'Commandes', ar: 'الطلبات' };
-export const FILE_NAME: Readonly<Record<SheetLang, string>> = { fr: 'HB Destockage - Commandes', ar: 'HB Destockage - الطلبات' };
+export const FILE_NAME: Readonly<Record<SheetLang, string>> = { fr: 'Comptoir de Luxe - Commandes', ar: 'كونتوار دو لوكس - الطلبات' };
 
 const ORDER_STATUS: Readonly<Record<SheetLang, Readonly<Record<string, string>>>> = {
   fr: { new: 'Nouvelle', called: 'Appelée', confirmed: 'Confirmée', unreachable: 'Injoignable', cancelled: 'Annulée', shipped: 'Expédiée', delivered: 'Livrée', returned: 'Retournée' },

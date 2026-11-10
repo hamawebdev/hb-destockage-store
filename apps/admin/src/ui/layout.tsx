@@ -109,7 +109,7 @@ function Brand(props: { ui: UiContext }) {
   return (
     <a class="brand" href="/dashboard">
       <img class="brand__mark" src={ASSET.monogram} width="32" height="32" alt="" />
-      <span class="brand__name"><bdi lang="fr" dir="ltr">HB Destockage</bdi></span>
+      <span class="brand__name"><bdi>{props.ui.lang === 'ar' ? 'كونتوار دو لوكس' : 'Comptoir de Luxe'}</bdi></span>
       <span class="visually-hidden">{props.ui.t('app.name')}</span>
     </a>
   );

@@ -55,7 +55,7 @@ export function generateOtpCode(): string {
 }
 
 export function otpText(code: string, lang: 'ar' | 'fr'): string {
-  return lang === 'ar' ? `رمز تأكيد طلبك HB: ${code}` : `HB Destockage : votre code de confirmation est ${code}`;
+  return lang === 'ar' ? `رمز تأكيد طلبك في كونتوار دو لوكس: ${code}` : `Comptoir de Luxe : votre code de confirmation est ${code}`;
 }
 
 /**

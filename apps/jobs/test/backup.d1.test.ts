@@ -208,7 +208,7 @@ describe('modes and failures', { timeout: 180_000 }, () => {
     expect(s.lastSuccess).toEqual(before.lastSuccess); // not recorded as a success
     expect(s.lastFailure).toMatchObject({ runId: '20261104T020300Z', stage: 'consistency', error: 'InconsistentSnapshot' });
     expect(alert).toHaveBeenCalledOnce();
-    expect(alert.mock.calls[0]![0]).toBe('HB backup FAILED');
+    expect(alert.mock.calls[0]![0]).toBe('Comptoir de Luxe backup FAILED');
     expect(await p.env.BACKUPS.head('d1/in_progress.json')).toBeNull();
   });
 
@@ -238,7 +238,7 @@ describe('modes and failures', { timeout: 180_000 }, () => {
     expect(alert).not.toHaveBeenCalled();
     expect(await backupHealthCheck(p.env, { now: () => last + 27 * 3_600_000, alert })).toBe(false);
     expect(alert).toHaveBeenCalledOnce();
-    expect(alert.mock.calls[0]![0]).toBe('HB backup STALE');
+    expect(alert.mock.calls[0]![0]).toBe('Comptoir de Luxe backup STALE');
     expect((await readStatus(p.env.BACKUPS)).health).toMatchObject({ stale: true, lastSuccessAgeHours: 27 });
   });
 

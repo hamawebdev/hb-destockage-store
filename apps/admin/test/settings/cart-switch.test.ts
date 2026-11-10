@@ -87,8 +87,8 @@ describe('cart switch: owner', () => {
   test('a store-settings save does not touch the cart switch', async () => {
     await postAs(h, USERS.owner, '/settings/cart', { cartEnabled: 'off' });
     const res = await postAs(h, USERS.owner, '/settings', {
-      storeName_fr: 'HB Destockage',
-      storeName_ar: 'إتش بي ديستوكاج',
+      storeName_fr: 'Comptoir de Luxe',
+      storeName_ar: 'كونتوار دو لوكس',
       contactPhone: '0560417403',
       whatsapp: '0779942022',
       contactEmail: '',

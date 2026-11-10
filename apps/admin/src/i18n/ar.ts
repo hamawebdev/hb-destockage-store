@@ -3,7 +3,7 @@
 import type { Dict } from './index.ts';
 
 export const ar = {
-  'app.name': 'HB Destockage — الإدارة',
+  'app.name': 'كونتوار دو لوكس — الإدارة',
   'app.skip': 'انتقل إلى المحتوى',
   'nav.label': 'التنقل الرئيسي',
   'nav.menu': 'القائمة',
