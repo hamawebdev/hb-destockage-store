@@ -1,4 +1,4 @@
-# Review rules — HB Destockage
+# Review rules — Comptoir de Luxe
 
 Simplified by the client on 2026-11-08 (DECISIONS.md D-004). The spec is [STACK-REPORT.md](STACK-REPORT.md); rules and
 budgets are in [CLAUDE.md](CLAUDE.md); deviations are in [DECISIONS.md](DECISIONS.md).
