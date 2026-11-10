@@ -1,4 +1,4 @@
-# CI + production deployment for the HB Destockage store. Docs: docs/DEPLOY.md.
+# CI + production deployment for the Comptoir de Luxe store. Docs: docs/DEPLOY.md.
 # Checks run on a clean runner for PRs and pushes; deploy needs them, for the same commit.
 name: pipeline
 

@@ -1,6 +1,6 @@
-# HB Destockage storefront — project rules
+# Comptoir de Luxe storefront — project rules
 
-Cash-on-delivery store for HB Destockage, customers in Algeria. It sells **any kind of product**: categories and sub-categories, variants (size, colour…), multiple photos, stock, packs.
+Cash-on-delivery store for Comptoir de Luxe (Arabic كونتوار دو لوكس, formerly HB Destockage, on comptoirdeluxe.com), customers in Algeria. It sells **any kind of product**: categories and sub-categories, variants (size, colour…), multiple photos, stock, packs.
 Arabic (`/ar/`, RTL, primary) and French (`/fr/`). Hosted on Cloudflare. **The spec is [STACK-REPORT.md](STACK-REPORT.md).**
 Any deviation from it needs a measurement or a cited source, recorded in [DECISIONS.md](DECISIONS.md) before the change is reviewed.
 

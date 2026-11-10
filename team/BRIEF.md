@@ -1,4 +1,4 @@
-# Team brief — HB Destockage build
+# Team brief — Comptoir de Luxe build (formerly HB Destockage)
 
 Owner: lead. Teammates read this in full before starting. It overrides the "How work happens"
 section of CLAUDE.md until the tooling change (TOOL-1) rewrites that section.
@@ -11,7 +11,7 @@ Spec = STACK-REPORT.md. Rules and budgets = CLAUDE.md. Review = REVIEW.md (writt
 
 ## 1. What we are building
 
-A cash-on-delivery store for HB Destockage that sells **any kind of product**: categories and
+A cash-on-delivery store for Comptoir de Luxe (formerly HB Destockage) that sells **any kind of product**: categories and
 sub-categories, variants (size, colour, other), multiple photos, stock, and packs. Arabic (`/ar/`,
 RTL, primary) and French (`/fr/`). Seed catalogue = the client's real products from
 https://hbdestockagedz.com/ plus clearly marked placeholders in a few other categories.

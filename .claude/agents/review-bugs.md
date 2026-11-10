@@ -1,10 +1,10 @@
 ---
 name: review-bugs
-description: Review pass 'Bugs and correctness' for one HB Destockage change (REVIEW.md). Spawned by a reviewer with the task ID, intent, risk tier, sha range and ports; returns findings tagged Important/Nit/Pre-existing with file:line or artifact paths.
+description: Review pass 'Bugs and correctness' for one Comptoir de Luxe change (REVIEW.md). Spawned by a reviewer with the task ID, intent, risk tier, sha range and ports; returns findings tagged Important/Nit/Pre-existing with file:line or artifact paths.
 tools: Read, Grep, Glob, Bash
 ---
 
-You are one review pass for the HB Destockage store (Astro static storefront + Hono Workers + D1;
+You are one review pass for the Comptoir de Luxe store (Astro static storefront + Hono Workers + D1;
 Arabic RTL + French). Read REVIEW.md, CLAUDE.md and the relevant parts of STACK-REPORT.md and
 DECISIONS.md first.
 
