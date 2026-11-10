@@ -1,4 +1,4 @@
-// Meta settings in D1 (MSET-1, artifacts/MSET-0/plan.md §1, D-016). The admin is the only source of
+// Meta settings in D1 (MSET-1, artifacts/MSET-0/plan.md §1, D-017). The admin is the only source of
 // truth for the Pixel ID, the Conversions API access token, the test event code and the consent
 // setting; they live as key/value rows in `settings`.
 //
@@ -9,7 +9,7 @@
 // bound to hb-admin (encrypts) and hb-web (decrypts). It is never stored in D1.
 //
 // Nothing here logs, and no error carries key material, plaintext or the stored value.
-// Key rotation is out of scope (D-016): a changed key makes the stored token unreadable, which every
+// Key rotation is out of scope (D-017): a changed key makes the stored token unreadable, which every
 // reader treats as "no token" (fail closed) until the owner enters it again.
 import { isMetaPixelId } from '@hb/shared';
 import { importSecretBoxKey, type SecretBoxKey } from './secret-box.ts';

@@ -1,6 +1,6 @@
 // The pure rules of public/js/meta.js (META-5; contract §3, §5, §6, §8). Plain JS served as-is, so
 // these hold it to @hb/shared's rules and to the consent and Purchase behaviour.
-import { META_ID_RE as SHARED_META_ID_RE } from '@hb/shared/meta';
+import { META_ID_RE as SHARED_META_ID_RE, META_PIXEL_ID_RE as SHARED_META_PIXEL_ID_RE } from '@hb/shared/meta';
 import { ORDER_REF_RE } from '@hb/shared';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -65,15 +65,21 @@ describe('the stored choice', () => {
 });
 
 describe('signals', () => {
+  const PIXEL = '100000000000001';
   const fbp = 'fb.1.1596403881668.1116446470';
   it('reads only well-formed browser ids', () => {
-    expect(signals(`a=b; _fbp=${fbp}; _fbc=not-an-id`)).toEqual({ consent: true, fbp });
+    expect(signals(`a=b; _fbp=${fbp}; _fbc=not-an-id`, PIXEL)).toEqual({ consent: true, pixel: PIXEL, fbp });
   });
   it('drops 4,000-character cookies before they reach the order body', () => {
     const long = `fb.1.1596403881668.${'a'.repeat(4000)}`;
-    expect(signals(`_fbp=${long}; _fbc=${long}`)).toEqual({ consent: true });
+    expect(signals(`_fbp=${long}; _fbc=${long}`, PIXEL)).toEqual({ consent: true, pixel: PIXEL });
   });
-  it('never invents an id', () => expect(signals('')).toEqual({ consent: true }));
+  it('never invents an id', () => expect(signals('', PIXEL)).toEqual({ consent: true, pixel: PIXEL }));
+  it('carries the page Pixel ID, which the server must find stored in D1 (MSET-3)', () => {
+    const body = signals('', PIXEL);
+    expect(body.pixel).toBe(PIXEL);
+    expect(SHARED_META_PIXEL_ID_RE.test(body.pixel)).toBe(true);
+  });
   it('readCookie matches the exact name', () => {
     expect(readCookie('x_fbp=1; _fbp=2', '_fbp')).toBe('2');
     expect(readCookie('', '_fbp')).toBeNull();
