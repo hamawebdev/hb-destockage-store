@@ -385,5 +385,5 @@ describe('courier down (check 25)', () => {
     expect(Date.now() - t0).toBeLessThan(8000);
     expect(await res.text()).toContain('Liste du transporteur non chargée');
     await standin.control('yalidine/scenario', { slowMs: 0 });
-  }, 60_000);
+  }, 300_000); // setup inserts 50 orders one by one; only the request itself is held to 8 s
 });
