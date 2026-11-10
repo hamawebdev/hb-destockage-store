@@ -75,7 +75,7 @@ export function renderError(c: Context<AppEnv>, status: ErrorStatus, detail?: Er
   );
 }
 
-function sameSiteReferer(c: Context<AppEnv>): string | undefined {
+export function sameSiteReferer(c: Context<AppEnv>): string | undefined {
   const ref = c.req.header('Referer');
   if (!ref) return undefined;
   try {

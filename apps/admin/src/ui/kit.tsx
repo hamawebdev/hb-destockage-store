@@ -99,12 +99,20 @@ export function BulkBar(props: { selected: string; children: Child }) {
 }
 
 /** Row checkbox of a bulk table. */
-export function Pick(props: { name: string; value: string; label: string }) {
-  return <input type="checkbox" class="check pick" name={props.name} value={props.value} aria-label={props.label} />;
+export function Pick(props: { name: string; value: string; label: string; checked?: boolean }) {
+  return (
+    <label class="pick-cell">
+      <input type="checkbox" class="check pick" name={props.name} value={props.value} aria-label={props.label} checked={props.checked} />
+    </label>
+  );
 }
 
 /** Tick-all box for the header of a bulk table (shown only when admin.js runs). */
 export function PickAll(props: { label: string }) {
   const { t } = useUi();
-  return <input type="checkbox" class="check pick-all" data-pick-all="" aria-label={props.label || t('common.actions')} />;
+  return (
+    <label class="pick-cell">
+      <input type="checkbox" class="check pick-all" data-pick-all="" aria-label={props.label || t('common.actions')} />
+    </label>
+  );
 }

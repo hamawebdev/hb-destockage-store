@@ -81,6 +81,8 @@ function Filters(props: { tm: OrdersMessages; lang: Lang; parsed: ParsedOrdersFi
   const anyFilter = selected.length > 0 || f.wilaya !== null || from !== '' || to !== '' || riskCount > 0 || props.q !== '';
   return (
     <Form action="/orders" method="get" class="filters">
+      {/* On the All tab, filtering must not fall back to the role's default statuses. */}
+      {!parsed.defaulted && f.statuses.length === 0 ? <input type="hidden" name="status" value="any" /> : null}
       <SearchField name="q" label={tm('filter.q')} placeholder={tm('filter.q.hint')} value={props.q} maxlength={64} />
       <div class="chips">
         <FilterChip label={tm('filter.status')} value={selected.length > 0 ? String(selected.length) : undefined} apply={tm('filter.submit')}>
@@ -285,6 +287,8 @@ export function OrdersListPage(props: {
   sensitive: boolean;
   /** can(user, 'orders.shipping'): row checkboxes and the bulk bar. */
   bulk: boolean;
+  /** `delivery.send`: the bulk bar offers shipping's send page for the ticked orders. */
+  send: boolean;
 }) {
   const tm = m(props.lang);
   const { parsed, page, today } = props;
@@ -319,6 +323,7 @@ export function OrdersListPage(props: {
         <Form action="/orders/shipping/slips" class="bulk-form">
           {table}
           <BulkBar selected={tm('bulk.selected')}>
+            {props.send ? <button type="submit" class="btn btn--primary" formaction="/delivery/send">{tm('bulk.send')}</button> : null}
             <button type="submit" class="btn btn--secondary" formaction="/orders/shipping/slips" formtarget="_blank">{tm('ship.print')}</button>
           </BulkBar>
         </Form>

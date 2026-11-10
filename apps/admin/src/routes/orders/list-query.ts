@@ -118,21 +118,21 @@ export function classifySearch(raw: string): OrdersSearch | null {
 
 /**
  * GET query → filter. Tolerant: a value we cannot use is dropped and reported in `invalid`.
- * `status` may repeat; `status=any` means every status (overrides the role default).
+ * `status` may repeat; `status=any` means every status (overrides the role default), unless
+ * concrete statuses are chosen alongside it (the list keeps a hidden `any` while on the All tab).
  */
 export function parseOrdersFilter(params: URLSearchParams, role: AdminRole): ParsedOrdersFilter {
   const invalid = new Set<InvalidField>();
 
   const rawStatuses = params.getAll('status').filter((s) => s !== '');
   let statuses: OrderStatus[] = [];
-  let any = false;
   for (const s of rawStatuses) {
-    if (s === 'any') any = true;
-    else if (isOrderStatus(s)) {
+    // `any` only stops the role default below; concrete statuses next to it still apply.
+    if (s === 'any') continue;
+    if (isOrderStatus(s)) {
       if (!statuses.includes(s)) statuses.push(s);
     } else invalid.add('status');
   }
-  if (any) statuses = [];
   statuses.sort((a, b) => ORDER_STATUSES.indexOf(a) - ORDER_STATUSES.indexOf(b));
 
   let wilaya: WilayaCode | null = null;
