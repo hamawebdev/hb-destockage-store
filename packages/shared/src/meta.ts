@@ -8,6 +8,14 @@ import * as v from 'valibot';
 import type { Lang } from './lang.ts';
 import type { PhoneE164 } from './phone.ts';
 
+/** A Meta Pixel ID: 15 or 16 digits. `isMetaPixelId` also refuses all zeros (a test value, never real). */
+export const META_PIXEL_ID_RE = /^\d{15,16}$/;
+
+/** The one Pixel ID rule (admin, Worker; `apps/storefront/src/lib/meta.mjs` carries the same, parity test). */
+export function isMetaPixelId(value: unknown): value is string {
+  return typeof value === 'string' && META_PIXEL_ID_RE.test(value) && !/^0+$/.test(value);
+}
+
 /** Shape of the `_fbp`/`_fbc` values we accept. `public/js/meta.js` carries the same pattern (parity test). */
 export const META_ID_RE = /^fb\.\d\.\d{10,16}\.[\w.-]{1,480}$/;
 

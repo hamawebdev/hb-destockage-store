@@ -4,7 +4,7 @@
  * .claude/skills/meta-conversions-api/references/normalization.md.
  */
 import { describe, expect, test } from 'vitest';
-import { META_ID_RE, buildPurchaseEvent, metaPhoneDigits, parseMetaSignals, sha256Hex } from '../src/meta.ts';
+import { META_ID_RE, buildPurchaseEvent, isMetaPixelId, metaPhoneDigits, parseMetaSignals, sha256Hex } from '../src/meta.ts';
 import { normalizePhone, type PhoneE164 } from '../src/phone.ts';
 
 const PH_213770123456 = 'dd3dea3b3c8160042672c4dd2b4e95a91dca39dac8b95de1ff3bf63de922d738';
@@ -124,5 +124,26 @@ describe('buildPurchaseEvent', () => {
   });
   test.each([[null], ['']])('no user agent (%j): no event', async (userAgent) => {
     expect(await buildPurchaseEvent(input({ userAgent }))).toBeNull();
+  });
+});
+
+describe('isMetaPixelId (MSET-1)', () => {
+  test.each(['100000000000001', '1234567890123456'])('%s: a Pixel ID', (id) => {
+    expect(isMetaPixelId(id)).toBe(true);
+  });
+  test.each<[string, unknown]>([
+    ['all zeros (15)', '000000000000000'],
+    ['all zeros (16)', '0000000000000000'],
+    ['14 digits', '10000000000001'],
+    ['17 digits', '10000000000000001'],
+    ['letters', '10000000000000a'],
+    ['spaces', ' 100000000000001'],
+    ['a trailing newline', '100000000000001\n'],
+    ['Eastern Arabic digits', '١٠٠٠٠٠٠٠٠٠٠٠٠٠١'],
+    ['a number', 100000000000001],
+    ['empty', ''],
+    ['null', null],
+  ])('%s: refused', (_label, id) => {
+    expect(isMetaPixelId(id)).toBe(false);
   });
 });
