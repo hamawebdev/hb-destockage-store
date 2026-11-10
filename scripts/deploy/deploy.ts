@@ -186,11 +186,7 @@ try {
     repoRoot: REPO,
     workDir,
     imageCache,
-    meta: {
-      pixelId: (process.env['META_PIXEL_ID'] ?? '').trim(),
-      token: process.env['META_ACCESS_TOKEN'] ?? '',
-      testEventCode: (process.env['META_TEST_EVENT_CODE'] ?? '').trim(),
-    },
+    settingsKey: process.env['SETTINGS_ENCRYPTION_KEY'] ?? '',
   };
   await PHASES[phase as keyof typeof PHASES](cfg, io);
 } catch (err) {
