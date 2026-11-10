@@ -27,7 +27,7 @@ const mode = pickerMode({ options, variants });
 <div class="container of-page cat-pdp cat-step" data-mode={mode}>
   <div class="cat-pdp-buy">
     <h1 class="of-title">{t(strings, 'order.title')}</h1>
-    <OrderForm lang={lang} form={orderForm} productName={product.name} brandLatin={product.brandLatin} strings={strings} contact={layout.contact} image={image}>
+    <OrderForm lang={lang} form={orderForm} productName={product.name} brandLatin={product.brandLatin} strings={strings} contact={layout.contact} image={image} cartEnabled={layout.cartEnabled}>
       <Fragment slot="price"><VariantBlocks options={options} variants={variants} lang={lang} strings={strings} /></Fragment>
       <Fragment slot="picker"><VariantPicker options={options} variants={variants} strings={strings} /></Fragment>
     </OrderForm>

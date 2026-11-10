@@ -42,3 +42,21 @@ describe('build constants', () => {
     expect(versionSalt('variant.js', false)).toBeUndefined();
   });
 });
+
+describe('order.js (CART-4, order path)', () => {
+  test('cart off: the shipped order.js has no cart mode left (no "cart" at all); cart on: as today', async () => {
+    const off = await ship('order.js', false);
+    const on = await ship('order.js', true);
+    expect(off.match(/cart/gi)).toBeNull();
+    expect(off).not.toContain('import(');
+    expect(on).toMatch(/import\(\w+\.cart\)/);
+    const today = await minify('order.js', src('order.js'), { compress: { target: 'es2022' }, mangle: true, module: true });
+    expect(on).toBe(today.code);
+    expect(off.length).toBeLessThan(on.length);
+  });
+
+  test('order.js gets a salted ?v= only in a cart-off build', () => {
+    expect(versionSalt('order.js', true)).toBeUndefined();
+    expect(versionSalt('order.js', false)).toBe('cart-off');
+  });
+});

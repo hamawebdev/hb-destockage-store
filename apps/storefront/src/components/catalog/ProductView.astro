@@ -65,7 +65,7 @@ const askHref = `${layout.contact.whatsappHref}?text=${encodeURIComponent(t(stri
           <div class="cat-ctas">
             <button class="cat-btn cat-cta" type="submit" data-cta-btn>{cta}</button>
             <a class="cat-btn cat-cta" href={ctaHref} data-cta={stepHref} hidden>{cta}</a>
-            <button class="cat-btn cat-cta cat-add-cart" type="button" data-cart-add={product.id} data-form="cat-buy">{t(strings, 'cart.add')}</button>
+            {layout.cartEnabled && <button class="cat-btn cat-cta cat-add-cart" type="button" data-cart-add={product.id} data-form="cat-buy">{t(strings, 'cart.add')}</button>}
           </div>
         ) : (
           <a class="cat-btn cat-btn--wa" href={askHref}>{t(strings, 'product.outOfStock.ask')}</a>

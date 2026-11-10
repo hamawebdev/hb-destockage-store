@@ -51,8 +51,9 @@ describe.each(['ar', 'fr'] as const)('cards (%s)', (lang) => {
       expect(l![2]).toBe(props.layout.strings['product.orderCta']);
       expect(l![3]).toBe(c.name);
     }
-    // The PDP's own add-to-cart button is CART-4's; the cards never carry one when the cart is off.
-    if (template !== 'product') expect(html).not.toContain('data-cart-add');
+    // No add-to-cart anywhere when the cart is off: cards (CART-3) and the PDP's own button (CART-4).
+    expect(html).not.toContain('data-cart-add');
+    expect(html).not.toContain('cat-add-cart');
   });
 
   it.each(VIEWS)('%s, cart on: no buy link (today\'s markup)', async (template, View) => {
@@ -60,6 +61,7 @@ describe.each(['ar', 'fr'] as const)('cards (%s)', (lang) => {
     const html = await container.renderToString(View as never, { props: props as never });
     expect(html).not.toContain('cat-card-buy');
     if (template === 'home') expect(html).toContain('data-cart-add');
+    if (template === 'product') expect(html).toContain('cat-add-cart');
   });
 
   it('search, cart off: the results\' buy label travels in data-i18n; cart on: it does not', async () => {

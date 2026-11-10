@@ -15,6 +15,9 @@
 export const BUILD_CONSTANTS = [
   // search.js: the buy-link branch exists for cart-off builds; a cart-on build ships search.js as it was before CART-3.
   { file: 'search.js', when: 'cartOn', from: 'const BUY = true;', to: 'const BUY = false;' },
+  // order.js: its cart mode (checkout lines, import of cart.js) exists only for /{lang}/checkout/; a cart-off build ships
+  // the single-product form alone (CART-4). The line is order.js's own, unchanged: cart-on stays byte-identical.
+  { file: 'order.js', when: 'cartOff', from: "const cartMode = ds.mode === 'cart';", to: 'const cartMode = false;' },
 ];
 
 /**
