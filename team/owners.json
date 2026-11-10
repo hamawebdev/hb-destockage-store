@@ -361,7 +361,8 @@
         "apps/jobs/src/index.ts",
         "apps/jobs/src/env.ts",
         "apps/jobs/wrangler.jsonc",
-        "apps/jobs/.dev.vars.example"
+        "apps/jobs/.dev.vars.example",
+        "apps/admin/test/review-admin1-r1.test.ts"
       ],
       "reviewer": "rev-j",
       "portBase": 4420
