@@ -40,6 +40,13 @@ export interface Env {
   GOOGLE_REDIRECT_URI?: string;
   /** Non-production only: loopback stand-in base URL. Ignored in production. */
   GOOGLE_STANDIN_URL?: string;
+
+  /**
+   * 32 random bytes, base64 (secret; D-017). Seals the Meta access token stored in `settings`
+   * (`metaAccessTokenEnc`). Shared with hb-web, which opens it at send time. Unset or invalid: the
+   * Meta screen refuses to save a token; everything else works.
+   */
+  SETTINGS_ENCRYPTION_KEY?: string;
 }
 
 export type Role = DbAdminRole;

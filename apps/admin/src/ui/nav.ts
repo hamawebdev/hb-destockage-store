@@ -59,6 +59,7 @@ export const NAV: readonly NavGroup[] = [
       { href: '/settings', label: 'nav.settings', perm: 'settings.edit', icon: 'sliders' },
       { href: '/delivery/settings', label: 'nav.deliverySettings', perm: 'delivery.settings', icon: 'truck', parent: '/settings' },
       { href: '/sheets', label: 'nav.sheets', perm: 'sheets.settings', icon: 'sheet', parent: '/settings' },
+      { href: '/meta', label: 'nav.meta', perm: 'meta.settings', icon: 'chart', parent: '/settings' },
       { href: '/audit', label: 'nav.audit', perm: 'audit.view', icon: 'list' },
     ],
   },

@@ -64,6 +64,10 @@ export const PERMISSIONS = {
 
   // Google Sheets connection (sheets): owner only (ADMIN2 brief §5).
   'sheets.settings': ['owner'],
+
+  // Meta Pixel and Conversions API credentials (MSET-2, D-017): owner only. The access token is
+  // write-only; see routes/meta.
+  'meta.settings': ['owner'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
