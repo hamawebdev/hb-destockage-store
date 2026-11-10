@@ -12,5 +12,6 @@
     102
   ],
   "homeHeroProductId": null,
-  "turnstileSiteKey": null
+  "turnstileSiteKey": null,
+  "cartEnabled": true
 }

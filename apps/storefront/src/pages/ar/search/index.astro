@@ -7,6 +7,6 @@ import { pageProps } from '../../../lib/catalog.ts';
 
 const props = pageProps('search', 'ar');
 ---
-<Base layout={props.layout} scripts={[searchScript()]}>
+<Base layout={props.layout} scripts={[searchScript(props.layout.cartEnabled)]}>
   <SearchView {...props} />
 </Base>

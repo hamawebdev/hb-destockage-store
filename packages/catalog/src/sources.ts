@@ -3,7 +3,7 @@
  *
  *  - `fromSeed(repoRoot)`: assembles a snapshot from the repository's `data/`:
  *      data/catalog/categories.json      SnapshotCategory[]               (seed)
- *      data/catalog/settings.json        SnapshotSettings                  (seed)
+ *      data/catalog/settings.json        settings key → JSON (as in D1), mapped by settingsFromKeyValues (seed)
  *      data/catalog/products/*.json      one SnapshotProduct per file      (seed)
  *      data/geo/index.mjs loadWilayas()  the 69 wilayas (or wilayas.json)  (geo)
  *      data/content/*.json               one SnapshotContentPage per file  (brand)
@@ -20,6 +20,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fixtureSnapshot } from './fixtures/snapshot.ts';
 import { parseSnapshot, SnapshotError, type SnapshotIssue } from './schema.ts';
+import { MissingSettingError, settingsFromKeyValues } from './settings.ts';
 import { parseSiteOrigin } from './url.ts';
 import { SNAPSHOT_VERSION, type CatalogSnapshot, type Localized, type SnapshotWilaya, type StringTable } from './types.ts';
 
@@ -142,13 +143,24 @@ function withPrintedPrices(product: unknown, printed: ReadonlyMap<string, readon
   };
 }
 
+/** data/catalog/settings.json holds D1-style keys (the seed upserts them into `settings`): map them like the D1 export does. */
+function seedSettings(raw: unknown, file: string): unknown {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) throw new SnapshotError([{ path: file, message: 'must be an object of settings keys' }], file);
+  try {
+    return settingsFromKeyValues(Object.entries(raw), file);
+  } catch (e) {
+    if (e instanceof MissingSettingError) throw new SnapshotError([{ path: file, message: `settings.${e.key} is missing` }], file);
+    throw e;
+  }
+}
+
 export async function fromSeed(repoRoot: string, opts: SeedOptions = {}): Promise<CatalogSnapshot> {
   const root = resolve(repoRoot);
   const at = (p: string): string => join(root, p);
   if (opts.seedValidation !== false) await runSeedValidation(root);
 
   const categories = await readJson(at('data/catalog/categories.json'));
-  const settings = await readJson(at('data/catalog/settings.json'));
+  const settings = seedSettings(await readJson(at('data/catalog/settings.json')), at('data/catalog/settings.json'));
   const productFiles = await jsonFilesIn(at('data/catalog/products'));
   const printed = await loadPrintedPrices(at('data/photos/manifest.json'));
   const products = (await Promise.all(productFiles.map(readJson))).map((p) => withPrintedPrices(p, printed));

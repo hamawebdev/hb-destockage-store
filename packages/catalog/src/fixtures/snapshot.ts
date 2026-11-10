@@ -310,6 +310,8 @@ export const fixtureSnapshot: CatalogSnapshot = {
     homeFeaturedProductIds: [106, 101, 104],
     homeHeroProductId: 106,
     turnstileSiteKey: null,
+    cartEnabled: true,
+    metaPixel: null,
   },
   wilayas: [
     { code: 7, name: { fr: 'Biskra', ar: 'بسكرة' }, courierCode: null },

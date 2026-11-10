@@ -7,9 +7,10 @@
 // - Array order is the contract (CAT-1): by `position` (or `sort`), then id.
 // - The result is validated with @hb/catalog parseSnapshot before it is returned, so a publish fails
 //   here, with the list of issues, rather than in the build.
-import { asc } from 'drizzle-orm';
+import { asc, inArray } from 'drizzle-orm';
 import {
   parseSnapshot,
+  settingsFromKeyValues,
   SNAPSHOT_VERSION,
   type CatalogSnapshot,
   type ContentBlock,
@@ -33,6 +34,7 @@ import {
   variants,
   wilayas,
 } from './schema.ts';
+import { STOREFRONT_SETTINGS_KEYS } from './enums.ts';
 import type { Db, Image } from './index.ts';
 
 export interface ExportOptions {
@@ -73,22 +75,17 @@ function image(i: Image): SnapshotImage {
   };
 }
 
-/** Exports only CAT-1's storefront keys (STOREFRONT_SETTINGS_KEYS); internal keys (jobs.*, seed.owned) are read with the table but never exported. */
+/**
+ * Settings go through an explicit allowlist (CART-1): only STOREFRONT_SETTINGS_KEYS, the same list the
+ * deploy pipeline copies out of production (equal to @hb/catalog SNAPSHOT_SETTINGS_KEYS, tested), are
+ * selected from D1, and settingsFromKeyValues reads only those again. Internal keys (jobs.*,
+ * seed.owned, order/call settings) and the Meta server secrets (metaAccessTokenEnc,
+ * metaTestEventCode, any metaAccess*) never reach the snapshot.
+ * A missing required key fails the export (never a silent default).
+ */
 function readSettings(rows: readonly { key: string; value: unknown }[]): SnapshotSettings {
-  const m = new Map(rows.map((r) => [r.key, r.value]));
-  const need = (k: string): unknown => {
-    if (!m.has(k)) throw new Error(`exportCatalogSnapshot: settings.${k} is missing`);
-    return m.get(k);
-  };
-  return {
-    storeName: need('storeName') as SnapshotSettings['storeName'],
-    contactPhone: need('contactPhone') as string,
-    whatsapp: need('whatsapp') as string,
-    contactEmail: (m.get('contactEmail') ?? null) as string | null,
-    homeFeaturedProductIds: (m.get('homeFeaturedProductIds') ?? []) as number[],
-    homeHeroProductId: (m.get('homeHeroProductId') ?? null) as number | null,
-    turnstileSiteKey: (m.get('turnstileSiteKey') ?? null) as string | null,
-  };
+  // Unvalidated here; parseSnapshot below checks it with the rest of the snapshot.
+  return settingsFromKeyValues(rows.map((r) => [r.key, r.value] as const), 'exportCatalogSnapshot') as SnapshotSettings;
 }
 
 export async function exportCatalogSnapshot(db: Db, opts: ExportOptions = {}): Promise<CatalogSnapshot> {
@@ -102,7 +99,7 @@ export async function exportCatalogSnapshot(db: Db, opts: ExportOptions = {}): P
     db.select().from(packItems),
     db.select().from(images),
     db.select().from(contentPages).orderBy(asc(contentPages.id)),
-    db.select().from(settings),
+    db.select({ key: settings.key, value: settings.value }).from(settings).where(inArray(settings.key, [...STOREFRONT_SETTINGS_KEYS])),
     db.select().from(wilayas).orderBy(asc(wilayas.code)),
   ]);
 

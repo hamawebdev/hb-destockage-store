@@ -370,6 +370,7 @@ export function productCard(ctx: BuildContext, p: SnapshotProduct, lang: Lang, l
     id: p.id,
     kind: p.kind,
     href: ctx.router.url(lang, ref('product', p.id)),
+    orderHref: ctx.router.url(lang, ref('order-step', p.id)),
     name: p.name[lang],
     brandLatin: p.brandLatin,
     summary: p.summary[lang],
@@ -490,6 +491,7 @@ function layout(ctx: BuildContext, entry: RouteEntry, x: LayoutExtras): LayoutPr
     ogImage: x.ogImage,
     preloadArabicFont: lang === 'ar',
     hasPlaceholders: x.hasPlaceholders,
+    cartEnabled: ctx.snapshot.settings.cartEnabled,
   };
 }
 

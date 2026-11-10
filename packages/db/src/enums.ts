@@ -111,9 +111,12 @@ export const SHEETS_CONNECTION_STATUSES = ['disconnected', 'connected', 'needs_r
 export type SheetsConnectionStatus = (typeof SHEETS_CONNECTION_STATUSES)[number];
 
 /**
- * Settings key registry (`settings` is key → JSON). Only the storefront keys (CAT-1
- * SnapshotSettings) are exported in the catalogue snapshot (`@hb/db/export`); every other key is
- * internal and never leaves the database through the export.
+ * Settings key registry (`settings` is key → JSON). Only the storefront keys are read into the
+ * catalogue snapshot (`@hb/db/export`, mapped by `@hb/catalog` settingsFromKeyValues) and copied out of
+ * production by the deploy pipeline (scripts/deploy/orchestrate.ts); every other key is internal and
+ * never leaves the database. Must equal `@hb/catalog` SNAPSHOT_SETTINGS_KEYS (packages/db/test/enums
+ * and export tests). D1 keys, not snapshot fields: `metaPixelId` + `metaConsentRequired` become
+ * `settings.metaPixel` (CART-1).
  */
 export const STOREFRONT_SETTINGS_KEYS = [
   'storeName',
@@ -123,6 +126,12 @@ export const STOREFRONT_SETTINGS_KEYS = [
   'homeFeaturedProductIds',
   'homeHeroProductId',
   'turnstileSiteKey',
+  /** CART-1: storefront cart switch, JSON boolean; missing ⇒ on. */
+  'cartEnabled',
+  /** CART-1 / D-014: public Meta Pixel ID, JSON string of 15–16 digits; missing or "" ⇒ no Pixel. */
+  'metaPixelId',
+  /** CART-1 / D-014: JSON boolean; missing ⇒ true (the Pixel waits for consent). */
+  'metaConsentRequired',
 ] as const;
 
 export const INTERNAL_SETTINGS_KEYS = {
@@ -134,4 +143,8 @@ export const INTERNAL_SETTINGS_KEYS = {
   'jobs.runtime_budget': 'jobs',
   /** db seed (DB-3 r4): ids the local seed owns {products, categories}. Local only. */
   'seed.owned': 'db',
+  /** meta (D-015): Conversions API access token, encrypted. Server only: never in the snapshot or a deploy export. */
+  metaAccessTokenEnc: 'meta',
+  /** meta (D-015): Events Manager test event code. Server only: never in the snapshot or a deploy export. */
+  metaTestEventCode: 'meta',
 } as const;
