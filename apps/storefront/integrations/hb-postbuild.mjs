@@ -54,6 +54,14 @@ export default function hbPostbuild(opts) {
 
         const errors = [];
 
+        // Meta off (D-014): nothing Meta-related ships. Before the JS scan and the token pruning below,
+        // so an unconfigured build carries no trace of it.
+        if (!opts.metaEnabled) {
+          await rm(join(root, 'js', 'meta.js'), { force: true });
+          await rm(join(root, 'js', 'meta-full.js'), { force: true });
+          for (const lang of ['ar', 'fr']) await rm(join(root, lang, 'meta'), { recursive: true, force: true });
+        }
+
         // 6. Brand assets.
         for (const { from, to } of opts.copy ?? []) {
           try {
@@ -117,7 +125,9 @@ export default function hbPostbuild(opts) {
         }
         let jsText = '';
         try {
-          for await (const f of walk(join(root, 'js'))) if (f.endsWith('.js')) jsText += await readFile(f, 'utf8');
+          // The Meta files style only their own bar and carry literal values (D-014): scanning them would change every
+          // page's CSS, and so its hash and bytes, when Meta is configured.
+          for await (const f of walk(join(root, 'js'))) if (f.endsWith('.js') && !f.endsWith(`${sep}meta.js`) && !f.endsWith(`${sep}meta-full.js`)) jsText += await readFile(f, 'utf8');
         } catch (e) {
           if (/** @type {NodeJS.ErrnoException} */ (e).code !== 'ENOENT') throw e;
         }

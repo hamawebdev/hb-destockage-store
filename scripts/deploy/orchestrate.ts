@@ -68,6 +68,15 @@ export interface RunConfig {
   readonly repoRoot: string;
   readonly workDir: string; // private directory, kept between the job's steps
   readonly imageCache: string;
+  /** Meta settings from the workflow (docs/META-GO-LIVE.md); absent or empty means Meta stays off. */
+  readonly meta?: MetaSettings;
+}
+
+export interface MetaSettings {
+  readonly pixelId: string;
+  /** Only present on the "Deploy Workers" step. */
+  readonly token: string;
+  readonly testEventCode: string;
 }
 
 /** What one step leaves for a later one, in workDir. Holds no secret. */
@@ -89,6 +98,9 @@ export interface Io {
   migrationFiles(): Promise<MigrationFile[]>;
   readConfig(path: string): Promise<WranglerConfig>;
   writeFile(path: string, content: string): Promise<void>;
+  /** Writes a file only the current user can read. */
+  writeSecret(path: string, content: string): Promise<void>;
+  removeFile(path: string): Promise<void>;
   readFile(path: string): Promise<string>;
   readState(): Promise<DeployState>;
   writeState(state: DeployState): Promise<void>;
@@ -309,6 +321,29 @@ export function exportedTables(sql: string): string[] {
   return [...new Set([...sql.matchAll(/^INSERT INTO "([^"]+)"/gm)].map((m) => m[1]!))];
 }
 
+/** Pixel ID problems found before anything changes. Names the variable, never its value. */
+export function metaProblems(meta: MetaSettings | undefined): string[] {
+  const id = meta?.pixelId ?? '';
+  if (id === '') return [];
+  return /^\d{15,16}$/.test(id) && !/^0+$/.test(id) ? [] : ['META_PIXEL_ID is not a real Pixel ID (15 or 16 digits, not all zeros)'];
+}
+
+export interface MetaDeploy {
+  /** Extra arguments for `wrangler deploy` of hb-web; empty when Meta is not configured. */
+  readonly args: readonly string[];
+  readonly secretsFile: string | null;
+}
+
+/** What deploying hb-web adds for Meta. With no Pixel ID there is nothing at all. */
+export function metaDeployArgs(meta: MetaSettings | undefined, workDir: string): MetaDeploy {
+  if (!meta || meta.pixelId === '') return { args: [], secretsFile: null };
+  const args = ['--var', `META_PIXEL_ID:${meta.pixelId}`];
+  if (meta.testEventCode !== '') args.push('--var', `META_TEST_EVENT_CODE:${meta.testEventCode}`);
+  if (meta.token === '') return { args, secretsFile: null };
+  const secretsFile = join(workDir, 'meta-secrets.json');
+  return { args: [...args, '--secrets-file', secretsFile], secretsFile };
+}
+
 /** Step without the token: is this commit allowed, and are the Worker configs ready? */
 export async function check(cfg: RunConfig, io: Io): Promise<boolean> {
   io.summary(`# Deployment: ${cfg.mode} of \`${cfg.sha}\``);
@@ -316,11 +351,14 @@ export async function check(cfg: RunConfig, io: Io): Promise<boolean> {
     io.setOutput('proceed', 'false');
     return false;
   }
-  const problems = preflightProblems({
-    jobs: await io.readConfig(JOBS.config),
-    web: await io.readConfig(WEB.config),
-    admin: await io.readConfig(ADMIN.config),
-  });
+  const problems = [
+    ...preflightProblems({
+      jobs: await io.readConfig(JOBS.config),
+      web: await io.readConfig(WEB.config),
+      admin: await io.readConfig(ADMIN.config),
+    }),
+    ...metaProblems(cfg.meta),
+  ];
   if (problems.length > 0) {
     problems.forEach((p) => io.summary(`- ${p}`));
     fail(`Worker configuration is not ready for production:\n${problems.join('\n')}`);
@@ -546,14 +584,24 @@ export async function importSite(cfg: RunConfig, io: Io): Promise<void> {
 /** Deploy job, with the token: deploys in order, recording each Worker before it is touched. */
 export async function deployWorkers(cfg: RunConfig, io: Io): Promise<void> {
   const before = cfg.before ?? fail('no recorded Worker versions from the export job');
+  if (cfg.meta?.token.startsWith('FAKE')) fail('META_ACCESS_TOKEN is a test value: it must never reach production');
+  if (cfg.meta?.testEventCode) {
+    io.summary('**Warning: META_TEST_EVENT_CODE is set. Production Purchases are being tagged as test events. Remove it after the Test Events check.**');
+  }
+  const meta = metaDeployArgs(cfg.meta, cfg.workDir);
   const deployed: string[] = [];
-  for (const w of targetsOf(cfg)) {
-    deployed.push(w.name); // recorded first: a deploy that failed half-way is rolled back too
-    await io.writeState({ deployed: [...deployed] });
-    // --no-experimental-provision: a missing bucket or queue must fail the deploy, never be created by it.
-    // --cwd: wrangler runs apps/web's build.command from its own directory.
-    await wr(io, ['deploy', '--cwd', dirname(w.config), ...w.deployArgs, '--no-experimental-provision', '--message', `pipeline ${cfg.sha.slice(0, 12)}`]);
-    io.log(`${w.name} deployed`);
+  try {
+    if (meta.secretsFile !== null) await io.writeSecret(meta.secretsFile, JSON.stringify({ META_ACCESS_TOKEN: cfg.meta?.token }));
+    for (const w of targetsOf(cfg)) {
+      deployed.push(w.name); // recorded first: a deploy that failed half-way is rolled back too
+      await io.writeState({ deployed: [...deployed] });
+      // --no-experimental-provision: a missing bucket or queue must fail the deploy, never be created by it.
+      // --cwd: wrangler runs apps/web's build.command from its own directory.
+      await wr(io, ['deploy', '--cwd', dirname(w.config), ...w.deployArgs, ...(w === WEB ? meta.args : []), '--no-experimental-provision', '--message', `pipeline ${cfg.sha.slice(0, 12)}`]);
+      io.log(`${w.name} deployed`);
+    }
+  } finally {
+    if (meta.secretsFile !== null) await io.removeFile(meta.secretsFile);
   }
   for (const w of targetsOf(cfg)) {
     const previous = before[w.name] ?? null;

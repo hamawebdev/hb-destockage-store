@@ -37,6 +37,8 @@
     { "name": "RUM_RL_IP", "namespace_id": "1003", "simple": { "limit": 60, "period": 60 } }
   ],
   // Secrets (never here): TURNSTILE_SECRET, ORDER_SIGNING_KEY, IP_HASH_KEY — `.dev.vars` locally.
+  // Meta settings are never here either: the pipeline passes META_PIXEL_ID as a --var and
+  // META_ACCESS_TOKEN through --secrets-file, only when set (docs/META-GO-LIVE.md).
   // TOP LEVEL = PRODUCTION (what `wrangler deploy` and `npm run build` = `deploy --dry-run --env=""`
   // ship). ENV=production refuses placeholder (invented, seeded) delivery fees. Nothing local here:
   // development values come only from the dev script (`--var ENV:development --var SITE_HOSTS:…`,

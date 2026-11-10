@@ -112,6 +112,11 @@ function harness(opts: Options = {}) {
     migrationFiles: async () => opts.files ?? [safe],
     readConfig: async (p) => goodConfigs[p]!,
     writeFile: async (path, content) => void (written[path] = content),
+    writeSecret: async (path, content) => {
+      steps.push(`write secret ${path}`);
+      written[path] = content;
+    },
+    removeFile: async (path) => void steps.push(`remove ${path}`),
     readFile: async () => opts.exportSql ?? 'PRAGMA defer_foreign_keys=TRUE;\nINSERT INTO "products" ("id") VALUES (1);\n',
     readState: async () => state,
     writeState: async (s) => void (state = s),

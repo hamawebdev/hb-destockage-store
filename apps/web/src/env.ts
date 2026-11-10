@@ -29,6 +29,16 @@ export interface Env {
   readonly TURNSTILE_SECRET?: string;
   readonly ORDER_SIGNING_KEY?: string;
   readonly IP_HASH_KEY?: string;
+
+  // Meta Conversions API (artifacts/META-0/contract.md §2.1). All optional: unset means off.
+  /** Same id as the static build's. Server events also need META_ACCESS_TOKEN. */
+  readonly META_PIXEL_ID?: string;
+  /** Secret. Reaches the Worker through the pipeline's `--secrets-file`, or `.dev.vars` locally. */
+  readonly META_ACCESS_TOKEN?: string;
+  /** Sent as test_event_code when set. For the go-live check only. */
+  readonly META_TEST_EVENT_CODE?: string;
+  /** Local stand-in for Meta. Ignored in production; outside it, only a loopback URL is used. */
+  readonly META_GRAPH_BASE?: string;
 }
 
 export interface Config {

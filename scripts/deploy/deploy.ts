@@ -3,7 +3,7 @@
 // prepare, deploy and rollback hold the Cloudflare token; the others refuse to run with it.
 import { spawn } from 'node:child_process';
 import { appendFileSync, existsSync } from 'node:fs';
-import { cp, lstat, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -79,6 +79,8 @@ const io: Io = {
     return parseJsonc(path, await readFile(join(REPO, path), 'utf8')) as WranglerConfig;
   },
   writeFile: (path, content) => writeFile(path, content),
+  writeSecret: (path, content) => writeFile(path, content, { mode: 0o600 }),
+  removeFile: (path) => rm(path, { force: true }),
   readFile: (path) => readFile(path, 'utf8'),
   readState: async () => (existsSync(stateFile) ? (JSON.parse(await readFile(stateFile, 'utf8')) as DeployState) : {}),
   writeState: (state) => writeFile(stateFile, JSON.stringify(state)),
@@ -184,6 +186,11 @@ try {
     repoRoot: REPO,
     workDir,
     imageCache,
+    meta: {
+      pixelId: (process.env['META_PIXEL_ID'] ?? '').trim(),
+      token: process.env['META_ACCESS_TOKEN'] ?? '',
+      testEventCode: (process.env['META_TEST_EVENT_CODE'] ?? '').trim(),
+    },
   };
   await PHASES[phase as keyof typeof PHASES](cfg, io);
 } catch (err) {

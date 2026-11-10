@@ -6,11 +6,14 @@
  * stripped, dev pill; HB_STRICT_COPY=1 refuses it), and a page marked placeholder shows the dev
  * banner (dev.placeholderBanner) in non-strict builds only. Links: same-origin paths, tel: and
  * https://wa.me/ (plain links; validated by @hb/catalog). Owner: shell.
+ * Privacy page, when Meta is configured (D-014): a section from brand copy, at the top of the body, because the page's
+ * own text comes from D1 and cannot change at build time. It is marked as awaiting legal review.
  */
 import type { ContentBlock, ContentProps } from '@hb/catalog';
 import Breadcrumbs from '../catalog/Breadcrumbs.astro';
 import Copy from '../Copy.astro';
-import { t } from '../../lib/strings.ts';
+import { placeholderParts, t } from '../../lib/strings.ts';
+import { metaConfig } from '../../lib/meta.mjs';
 
 interface Props {
   props: ContentProps;
@@ -21,6 +24,19 @@ const strict = process.env['HB_STRICT_COPY'] === '1';
 const date = new Intl.DateTimeFormat(l.lang === 'ar' ? 'ar-DZ' : 'fr-DZ', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Algiers' }).format(new Date(p.page.updatedAt));
 const isExternal = (href: string) => href.startsWith('https://');
 const blocks: readonly ContentBlock[] = p.page.blocks;
+const meta = p.page.key === 'privacy' ? metaConfig() : null;
+// META_CONSENT_REQUIRED=0: no choice is asked, so the text must not promise one (Addendum 4).
+const metaKeys = meta?.consent === 'off' ? 'privacy.meta.off' : 'privacy.meta';
+/**
+ * The Meta section's copy, with its legal-review mark as plain bracketed text (Addendum 8): the dev pill would bring
+ * its own CSS, and so a style hash, onto the configured privacy page.
+ */
+const legal = (k: string): string =>
+  placeholderParts(t(l.strings, k))
+    .map((x) => ('text' in x ? x.text : `[${x.note ?? ''}]`))
+    .join(' ');
+// The reset button is last on the page: meta.js reveals it after load, and nothing but the footer sits below it.
+// Both Meta slots sit directly against their neighbours, so with Meta off the page gains no whitespace.
 ---
 <article class="container ct">
   <Breadcrumbs items={p.breadcrumbs} strings={l.strings} />
@@ -29,7 +45,15 @@ const blocks: readonly ContentBlock[] = p.page.blocks;
     <h1 class="ct-title"><Copy strings={l.strings} text={p.page.title} /></h1>
     <p class="ct-date">{t(l.strings, 'content.lastUpdated', { date })}</p>
   </header>
-  <div class="ct-body reading">
+  <div class="ct-body reading">{meta && (
+      <Fragment>
+        <h2>{legal('privacy.meta.title')}</h2>
+        <p data-legal-review={`${metaKeys}.body1`}>{legal(`${metaKeys}.body1`)}</p>
+        <p data-legal-review={`${metaKeys}.body2`}>{legal(`${metaKeys}.body2`)}</p>
+        <p data-legal-review={`${metaKeys}.body3`}>{legal(`${metaKeys}.body3`)}</p>
+        <p data-legal-review={`${metaKeys}.body4`}>{legal(`${metaKeys}.body4`)}</p>
+      </Fragment>
+    )}
     {
       blocks.map((b) => {
         switch (b.type) {
@@ -51,7 +75,7 @@ const blocks: readonly ContentBlock[] = p.page.blocks;
             );
         }
       })
-    }
+    }{meta && <p><button type="button" class="btn btn-secondary" data-meta-reset hidden>{t(l.strings, 'consent.change')}</button></p>}
   </div>
 </article>
 

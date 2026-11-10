@@ -27,6 +27,7 @@ import VariantBlocks from './VariantBlocks.astro';
 import VariantPicker from './VariantPicker.astro';
 import { latinLang, showDevMarkers, t } from './lib/i18n.ts';
 import { priceModel } from './lib/variants.ts';
+import { metaConfig } from '../../lib/meta.mjs';
 
 type Props = ProductProps;
 const p = Astro.props;
@@ -39,7 +40,7 @@ const ctaHref = def ? `${stepHref}?v=${def.id}` : stepHref;
 const cta = t(strings, 'product.orderCta');
 const askHref = `${layout.contact.whatsappHref}?text=${encodeURIComponent(t(strings, 'product.outOfStock.message', { product: product.name, sku: def?.sku ?? '' }))}`;
 ---
-<div class="container cat-pdp" data-mode={mode}>
+<div class="container cat-pdp" data-mode={mode} data-meta-content={metaConfig() && def ? `${def.id}:${def.price.amountDzd}` : undefined}>
   <div class="cat-pdp-crumbs"><Breadcrumbs items={breadcrumbs} strings={strings} /></div>
 
   <div class="cat-pdp-top">

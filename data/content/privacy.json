@@ -10,20 +10,20 @@
     "fr": "Politique de confidentialité"
   },
   "summary": {
-    "ar": "بيانات طلبك: الاسم والهاتف والعنوان تُستعمل فقط لمعالجة طلبك.",
-    "fr": "Vos données de commande : le nom, le téléphone et l'adresse servent uniquement à traiter votre commande."
+    "ar": "بيانات طلبك: الاسم والهاتف والعنوان تُستعمل لمعالجة طلبك.",
+    "fr": "Vos données de commande : le nom, le téléphone et l'adresse servent à traiter votre commande."
   },
   "body": {
     "ar": [
       {
         "type": "p",
-        "text": "اسمك ورقم هاتفك وعنوانك تُستعمل فقط لمعالجة طلبك."
+        "text": "اسمك ورقم هاتفك وعنوانك تُستعمل لمعالجة طلبك. وإذا قبلت قياس إعلاناتنا مع ميتا، يُرسل رقم هاتفك أيضاً إلى ميتا بصيغة مجزّأة."
       },
       {
         "type": "ul",
         "items": [
-          "لا يستعمل الموقع أي ملفات تعريف ارتباط (كوكيز).",
-          "لا نستعمل أدوات تحليل أو إعلانات: يقيس الموقع سرعة عرض صفحاته فقط، دون كوكيز أو أي معرّف.",
+          "لا يستعمل الموقع أي ملفات تعريف ارتباط (كوكيز)، إلا ملفات ميتا إذا قبلت ذلك صراحة.",
+          "لا نستعمل أدوات تحليل أو إعلانات، إلا قياس ميتا إذا قبلت ذلك صراحة: يقيس الموقع سرعة عرض صفحاته فقط، دون كوكيز أو أي معرّف.",
           "لرصد الطلبات الآلية أو المتكررة، تستعمل استمارة الطلب خدمة Cloudflare Turnstile وعنوان IP الخاص بك، ولا نحتفظ مع الطلب إلا ببصمة لا يمكن عكسها لهذا العنوان."
         ]
       },
@@ -49,13 +49,13 @@
     "fr": [
       {
         "type": "p",
-        "text": "Votre nom, votre numéro de téléphone et votre adresse servent uniquement à traiter votre commande."
+        "text": "Votre nom, votre numéro de téléphone et votre adresse servent à traiter votre commande. Si vous acceptez la mesure de nos publicités avec Meta, votre numéro est aussi transmis à Meta sous forme hachée."
       },
       {
         "type": "ul",
         "items": [
-          "Le site n'utilise aucun cookie.",
-          "Aucun outil d'analyse ni de publicité : le site mesure seulement sa vitesse d'affichage, sans cookie ni identifiant.",
+          "Le site n'utilise aucun cookie, sauf ceux de Meta si vous l'acceptez expressément.",
+          "Aucun outil d'analyse ni de publicité, sauf la mesure Meta si vous l'acceptez expressément : le site mesure seulement sa vitesse d'affichage, sans cookie ni identifiant.",
           "Pour repérer les envois automatisés ou répétés, le formulaire de commande utilise Cloudflare Turnstile et votre adresse IP : seule une empreinte non réversible de cette adresse est conservée avec la commande."
         ]
       },
