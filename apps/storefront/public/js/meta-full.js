@@ -1,4 +1,4 @@
-// Meta Pixel, consent choice and funnel events (D-011, artifacts/META-0/contract.md §5, §6). Loaded by the stub meta.js:
+// Meta Pixel, consent choice and funnel events (D-014, artifacts/META-0/contract.md §5, §6). Loaded by the stub meta.js:
 // after the first input for the choice, or at once for a stored `granted`; an unconfigured build does not ship this file.
 // Nothing loads from or is sent to Meta before the visitor accepts. The choice is stored without a cookie.
 // Pure helpers are exported for the tests, as order.js does.

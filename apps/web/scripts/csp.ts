@@ -19,7 +19,7 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const TURNSTILE_ORIGIN = 'https://challenges.cloudflare.com';
-/** Meta's Pixel (D-011), only on pages whose <body> carries data-meta-pixel. */
+/** Meta's Pixel (D-014), only on pages whose <body> carries data-meta-pixel. */
 export const META_SCRIPT_ORIGIN = 'https://connect.facebook.net';
 export const META_PIXEL_ORIGIN = 'https://www.facebook.com';
 export const MAX_RULES = 100;

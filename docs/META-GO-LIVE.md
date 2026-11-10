@@ -2,7 +2,7 @@
 
 **Status: built and merged switched off. Nothing here has been checked against the real Meta.** Everything was tested against a local stand-in, because no Pixel ID or access token exists yet. The Meta checks at the end are **not done**.
 
-Decision record: D-011 in `DECISIONS.md`.
+Decision record: D-014 in `DECISIONS.md`.
 
 ## Where the values go
 
@@ -48,4 +48,4 @@ Each of these needs the real Pixel ID and token, so none has been run.
 
 - An order placed without JavaScript sends nothing to Meta, because that path has no consent.
 - A shopper who reaches the order step without any earlier scroll, key press or tap never sees the choice, so that order is not counted.
-- Consent reaches the server as the browser's own claim (see D-011).
+- Consent reaches the server as the browser's own claim (see D-014).
