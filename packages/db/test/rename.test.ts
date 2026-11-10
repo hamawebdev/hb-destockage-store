@@ -87,8 +87,18 @@ describe('0013 rename to Comptoir de Luxe', () => {
     const kept = before({ fr: 'Ma Boutique', ar: 'متجري' });
     const row = () => kept.prepare("SELECT value, updated_at FROM settings WHERE key = 'storeName'").get();
     const was = row();
-    for (const s of statements(FILE).slice(0, 1)) kept.exec(s);
+    apply(kept);
     expect(row()).toEqual(was);
+  });
+
+  test('a storeName without an "ar" key gets none; other spellings in pages are left and not re-stamped', () => {
+    const db = before({ fr: 'HB Destockage' } as unknown as { fr: string; ar: string });
+    db.prepare("UPDATE content_pages SET summary_fr = 'HB DESTOCKAGE en majuscules' WHERE key = 'delivery'").run();
+    apply(db);
+    expect(storeName(db)).toEqual({ fr: 'Comptoir de Luxe' });
+    const delivery = db.prepare("SELECT summary_fr, updated_at, created_at FROM content_pages WHERE key = 'delivery'").get() as Record<string, unknown>;
+    expect(delivery['summary_fr']).toBe('HB DESTOCKAGE en majuscules');
+    expect(delivery['updated_at']).toBe(delivery['created_at']);
   });
 
   test('a no-op on an empty database', () => {
