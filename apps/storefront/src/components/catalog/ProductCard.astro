@@ -66,8 +66,7 @@ const dev = showDevMarkers();
         ))}
       </ul>
     )}
-  </div>
-  {buy && <a class="cat-card-buy" href={card.orderHref} data-no-prefetch>{t(strings, 'product.orderCta')}<span class="cat-sr"> {card.name}</span></a>}
+  </div>{buy && <a class="cat-card-buy" href={card.orderHref} data-no-prefetch>{t(strings, 'product.orderCta')}<span class="cat-sr"> {card.name}</span></a>}
 </article>
 
 <style is:global>
