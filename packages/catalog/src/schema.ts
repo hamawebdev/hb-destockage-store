@@ -173,6 +173,17 @@ const SettingsSchema = v.strictObject({
   homeFeaturedProductIds: v.array(id),
   homeHeroProductId: v.nullable(id),
   turnstileSiteKey: v.nullable(v.pipe(v.string(), v.regex(/^[0-9A-Za-z_-]{1,64}$/, 'turnstileSiteKey must be [0-9A-Za-z_-]{1,64}'))),
+  cartEnabled: v.boolean('cartEnabled must be true or false'),
+  metaPixel: v.nullable(
+    v.strictObject({
+      pixelId: v.pipe(
+        v.string('metaPixelId must be a string of 15 or 16 digits'),
+        v.regex(/^\d{15,16}$/, 'metaPixelId must be 15 or 16 digits (Events Manager → Data sources → the Pixel/dataset ID)'),
+        v.check((s) => /[1-9]/.test(s), 'metaPixelId must not be all zeros'),
+      ),
+      consentRequired: v.boolean('metaConsentRequired must be true or false'),
+    }),
+  ),
 });
 
 const WilayaSchema = v.strictObject({

@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { fixtureSnapshot, parseSnapshot, type CatalogSnapshot } from '@hb/catalog';
+import { fixtureSnapshot, parseSnapshot, settingsToKeyValues, type CatalogSnapshot } from '@hb/catalog';
 import { exportCatalogSnapshot } from '../src/export.ts';
 import { buildSeedStatements, type SeedInput } from '../src/seed/build.ts';
 import { loadSeedInput } from '../src/seed/load.ts';
@@ -33,7 +33,7 @@ function fromSnapshot(s: CatalogSnapshot): SeedInput {
     categories: s.categories,
     products: s.products,
     contentPages: s.contentPages,
-    settings: s.settings as unknown as Record<string, unknown>,
+    settings: settingsToKeyValues(s.settings),
     adminUsers: DEV_ADMIN_USERS,
   };
 }
@@ -66,10 +66,81 @@ describe('exportCatalogSnapshot', () => {
     const out = await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false } });
     expect(new Set(out.products.map((p) => p.status))).toEqual(new Set(fixtureSnapshot.products.map((p) => p.status)));
     const json = JSON.stringify(out);
-    expect(Object.keys(out.settings).sort()).toEqual([...STOREFRONT_SETTINGS_KEYS].sort());
+    // D1 keys → snapshot fields: metaPixelId + metaConsentRequired become metaPixel (CART-1).
+    const snapshotFields = [...STOREFRONT_SETTINGS_KEYS.filter((k) => k !== 'metaPixelId' && k !== 'metaConsentRequired'), 'metaPixel'];
+    expect(Object.keys(out.settings).sort()).toEqual(snapshotFields.sort());
     expect(json).not.toContain('Secret Customer');
     expect(json).not.toContain('661234567');
     expect(json).not.toContain('@dev.local');
+  });
+
+  test('CART-1: cartEnabled missing ⇒ true; false is carried', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    await exec(d1, "delete from settings where key = 'cartEnabled'");
+    expect((await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false } })).settings.cartEnabled).toBe(true);
+    await exec(d1, "insert into settings (key, value) values ('cartEnabled', 'false')");
+    expect((await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false } })).settings.cartEnabled).toBe(false);
+  });
+
+  test('CART-1: metaPixel from metaPixelId + metaConsentRequired (missing ⇒ true); no or empty ID ⇒ null', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    const exp = async () => (await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false } })).settings.metaPixel;
+    await exec(d1, "delete from settings where key in ('metaPixelId', 'metaConsentRequired')");
+    expect(await exp()).toBeNull();
+    await exec(d1, `insert into settings (key, value) values ('metaPixelId', '"123456789012345"')`);
+    expect(await exp()).toEqual({ pixelId: '123456789012345', consentRequired: true });
+    await exec(d1, "insert into settings (key, value) values ('metaConsentRequired', 'false')");
+    expect(await exp()).toEqual({ pixelId: '123456789012345', consentRequired: false });
+    await exec(d1, `update settings set value = '""' where key = 'metaPixelId'`);
+    expect(await exp()).toBeNull();
+  });
+
+  test('CART-1: an invalid Pixel ID fails the export with a clear message', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    await exec(d1, `insert into settings (key, value) values ('metaPixelId', '"00000000000000000"') on conflict (key) do update set value = excluded.value`);
+    await expect(exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false } })).rejects.toThrow(/settings\.metaPixel\.pixelId: metaPixelId must be 15 or 16 digits/);
+  });
+
+  test('CART-1: Meta server secrets (metaAccessTokenEnc, metaTestEventCode, any metaAccess*) never reach the snapshot', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    const SENTINEL = 'SENTINEL-meta-secret-91c4';
+    await exec(
+      d1,
+      `insert into settings (key, value) values
+         ('metaPixelId', '"123456789012345"'),
+         ('metaAccessTokenEnc', '"${SENTINEL}"'),
+         ('metaAccessTokenIv', '"${SENTINEL}"'),
+         ('metaAccessTokenUpdatedAt', '{"by":"${SENTINEL}"}'),
+         ('metaTestEventCode', '"${SENTINEL}"')
+       on conflict (key) do update set value = excluded.value`,
+    );
+    const out = await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false } });
+    expect(out.settings.metaPixel).toEqual({ pixelId: '123456789012345', consentRequired: true });
+    expect(JSON.stringify(out)).not.toContain(SENTINEL);
+  });
+
+  test('CART-1: the deploy path agrees: copying only STOREFRONT_SETTINGS_KEYS rows (orchestrate settingsSql) exports the same settings', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    await exec(
+      d1,
+      `insert into settings (key, value) values
+         ('cartEnabled', 'false'), ('metaPixelId', '"123456789012345"'), ('metaConsentRequired', 'false'),
+         ('metaAccessTokenEnc', '"SENTINEL-deploy-path"'), ('metaTestEventCode', '"SENTINEL-deploy-path"'), ('orderMaxUnanswered', '3')
+       on conflict (key) do update set value = excluded.value`,
+    );
+    const direct = await exportCatalogSnapshot(db, { generatedAt: 1, integrity: { requireAllWilayas: false } });
+    // What the pipeline does in production: SELECT … WHERE key IN (STOREFRONT_SETTINGS_KEYS), then load
+    // those rows into the build's local D1 (which has no other settings) and export there.
+    const keys = STOREFRONT_SETTINGS_KEYS.map((k) => `'${k}'`).join(', ');
+    const copied = (await d1.prepare(`select key, value from settings where key in (${keys})`).all<{ key: string; value: string }>()).results;
+    expect(copied.map((r) => r.key).sort()).toEqual([...STOREFRONT_SETTINGS_KEYS].sort());
+    await exec(d1, 'delete from settings');
+    for (const r of copied) await d1.prepare('insert into settings (key, value) values (?, ?)').bind(r.key, r.value).run();
+    const viaDeploy = await exportCatalogSnapshot(db, { generatedAt: 1, integrity: { requireAllWilayas: false } });
+    expect(viaDeploy.settings).toEqual(direct.settings);
+    expect(direct.settings.cartEnabled).toBe(false);
+    expect(direct.settings.metaPixel).toEqual({ pixelId: '123456789012345', consentRequired: false });
+    expect(JSON.stringify(direct)).not.toContain('SENTINEL-deploy-path');
   });
 
   test('a missing required setting fails the export (never a silent default)', async () => {

@@ -251,6 +251,24 @@ export interface SnapshotSettings {
   readonly homeHeroProductId: Id | null;
   /** Public Turnstile site key; null ⇒ the form does not load Turnstile (orders are flagged). */
   readonly turnstileSiteKey: string | null;
+  /**
+   * CART-1. Storefront cart switch (D1 settings key `cartEnabled`, JSON boolean; key missing ⇒
+   * `true`). Off ⇒ the build emits no cart UI or code and product cards link to the order form.
+   */
+  readonly cartEnabled: boolean;
+  /**
+   * CART-1. Meta Pixel browser settings (D1 keys `metaPixelId`, `metaConsentRequired`); null when no
+   * Pixel ID is set. Never carries the Conversions API token or test code (server-only keys).
+   */
+  readonly metaPixel: SnapshotMetaPixel | null;
+}
+
+/** CART-1. Public Meta Pixel settings. */
+export interface SnapshotMetaPixel {
+  /** 15–16 ASCII digits, not all zeros. */
+  readonly pixelId: string;
+  /** D1 `metaConsentRequired`, missing ⇒ true: the Pixel loads only after the visitor consents. */
+  readonly consentRequired: boolean;
 }
 
 /** DB-1 `wilayas`. */

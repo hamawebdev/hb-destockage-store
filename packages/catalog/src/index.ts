@@ -4,4 +4,5 @@ export * from './routes.ts';
 export * from './schema.ts';
 export * from './publication.ts';
 export * from './url.ts';
+export * from './settings.ts';
 export { fixtureSnapshot } from './fixtures/snapshot.ts';

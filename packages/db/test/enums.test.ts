@@ -1,6 +1,7 @@
 // The SQL CHECK lists in the migrations must equal the vocabularies @hb/shared owns.
 import { describe, expect, test } from 'vitest';
 import { ADMIN_ROLES, LANGS, ORDER_STATUSES } from '@hb/shared';
+import { SNAPSHOT_SETTINGS_KEYS } from '@hb/catalog';
 import * as enums from '../src/enums.ts';
 import { freshDb } from './helpers.ts';
 
@@ -46,5 +47,20 @@ describe('delivery enums match their SQL CHECK lists', () => {
     ['sheets_connection', 'sheets_connection_status_enum', enums.SHEETS_CONNECTION_STATUSES],
   ] as const)('%s.%s', (table, constraint, list) => {
     expect(checkList(ddl(table), constraint)).toEqual([...list]);
+  });
+});
+
+describe('settings key registry (CART-1)', () => {
+  test('STOREFRONT_SETTINGS_KEYS (copied by the deploy export) equals @hb/catalog SNAPSHOT_SETTINGS_KEYS (read by the snapshot)', () => {
+    expect([...enums.STOREFRONT_SETTINGS_KEYS].sort()).toEqual([...SNAPSHOT_SETTINGS_KEYS].sort());
+  });
+  test('the cart switch and the public Meta keys are storefront keys', () => {
+    expect(enums.STOREFRONT_SETTINGS_KEYS).toEqual(expect.arrayContaining(['cartEnabled', 'metaPixelId', 'metaConsentRequired']));
+  });
+  test('Meta server secrets are registered as internal and are never storefront keys', () => {
+    expect(enums.INTERNAL_SETTINGS_KEYS).toMatchObject({ metaAccessTokenEnc: 'meta', metaTestEventCode: 'meta' });
+    const storefront = new Set<string>(enums.STOREFRONT_SETTINGS_KEYS);
+    for (const k of Object.keys(enums.INTERNAL_SETTINGS_KEYS)) expect(storefront.has(k)).toBe(false);
+    for (const k of enums.STOREFRONT_SETTINGS_KEYS) expect(/^metaAccess|^metaTestEventCode$/.test(k)).toBe(false);
   });
 });

@@ -31,6 +31,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkSnapshotIntegrity, checkSnapshotStructure } from '@hb/catalog/schema';
+import { settingsFromKeyValues } from '@hb/catalog/settings';
 
 /** @typedef {{ path: string, message: string }} SeedIssue */
 
@@ -58,7 +59,8 @@ export function loadSeed(repoRoot) {
   };
 }
 
-/** The seed as a `CatalogSnapshot` (wilayas and content pages are owned by geo/brand: left empty). */
+/** The seed as a `CatalogSnapshot` (wilayas and content pages are owned by geo/brand: left empty). `settings` stays the
+ *  file's D1 key/values (the db seed loader upserts them as rows); validateLoadedSeed maps them for the CAT-1 check. */
 export function toSnapshot(seed) {
   return {
     meta: { version: 1, source: 'seed', generatedAt: 0, publishRunId: null },
@@ -112,7 +114,16 @@ export function validateLoadedSeed(seed) {
   };
 
   // 1. CAT-1 structure. If it fails, stop: the rules below assume well-formed data.
-  const snapshot = toSnapshot(seed);
+  //    settings.json holds D1 keys (the seed upserts them into `settings`); check them the way the
+  //    publish export maps them (CART-1: cartEnabled, metaPixelId/metaConsentRequired → metaPixel).
+  let settings;
+  try {
+    settings = settingsFromKeyValues(Object.entries(seed.settings ?? {}), 'settings.json');
+  } catch (e) {
+    add('settings', /** @type {Error} */ (e).message);
+    return issues;
+  }
+  const snapshot = { ...toSnapshot(seed), settings };
   const structure = checkSnapshotStructure(snapshot);
   if (structure.length) {
     for (const i of structure) add(where(i.path), i.message);

@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
-import { fixtureSnapshot, SnapshotError } from '../src/index.ts';
+import { fixtureSnapshot, settingsToKeyValues, SnapshotError } from '../src/index.ts';
 import { fromExport, fromSeed, loadSnapshot, toSnapshotWilayas } from '../src/sources.ts';
 
 const dirs: string[] = [];
@@ -22,7 +22,7 @@ async function fakeRepo(opts: { geo?: 'json' | 'module' | 'none'; content?: bool
   dirs.push(root);
   const s = fixtureSnapshot;
   await put(root, 'data/catalog/categories.json', s.categories);
-  await put(root, 'data/catalog/settings.json', s.settings);
+  await put(root, 'data/catalog/settings.json', settingsToKeyValues(s.settings));
   for (const p of s.products) await put(root, `data/catalog/products/${p.slug.fr}.json`, p);
   await put(root, 'data/catalog/provenance.json', { ignored: true });
   const rows = ALL_WILAYAS.map((w) => ({ code: w.code, name_ar: w.name.ar, name_fr: w.name.fr }));
@@ -59,6 +59,28 @@ describe('fromSeed', () => {
     expect(byId(snap.contentPages)).toEqual(byId(fixtureSnapshot.contentPages));
     expect(snap.settings).toEqual(fixtureSnapshot.settings);
     expect(snap.wilayas).toEqual(ALL_WILAYAS);
+  });
+
+  test('CART-1: settings.json holds D1 keys; cartEnabled/metaPixel default to cart on, no Pixel', async () => {
+    const root = await fakeRepo();
+    const { cartEnabled: _c, metaPixelId: _p, metaConsentRequired: _m, ...today } = settingsToKeyValues(fixtureSnapshot.settings);
+    await put(root, 'data/catalog/settings.json', today);
+    const snap = await fromSeed(root, { generatedAt: 1 });
+    expect(snap.settings.cartEnabled).toBe(true);
+    expect(snap.settings.metaPixel).toBeNull();
+    await put(root, 'data/catalog/settings.json', { ...today, cartEnabled: false, metaPixelId: '1234567890123456' });
+    const off = await fromSeed(root, { generatedAt: 1 });
+    expect(off.settings.cartEnabled).toBe(false);
+    expect(off.settings.metaPixel).toEqual({ pixelId: '1234567890123456', consentRequired: true });
+  });
+
+  test('CART-1: a missing required setting or a bad Pixel ID in settings.json fails with the file named', async () => {
+    const root = await fakeRepo();
+    const { contactPhone: _x, ...noPhone } = settingsToKeyValues(fixtureSnapshot.settings);
+    await put(root, 'data/catalog/settings.json', noPhone);
+    await expect(fromSeed(root)).rejects.toThrow(/settings\.json.*settings\.contactPhone is missing/s);
+    await put(root, 'data/catalog/settings.json', { ...settingsToKeyValues(fixtureSnapshot.settings), metaPixelId: '12345' });
+    await expect(fromSeed(root)).rejects.toThrow(/metaPixelId must be 15 or 16 digits/);
   });
 
   test("prefers geo's loadWilayas() module", async () => {
