@@ -10,14 +10,14 @@
     "fr": "Qui sommes-nous"
   },
   "summary": {
-    "ar": "HB Destockage متجر جزائري عبر الإنترنت: الدفع عند الاستلام، مكالمة لتأكيد الطلب، والتوصيل إلى 69 ولاية.",
-    "fr": "HB Destockage, boutique en ligne algérienne : paiement à la livraison, appel de confirmation et livraison dans les 69 wilayas."
+    "ar": "كونتوار دو لوكس متجر جزائري عبر الإنترنت: الدفع عند الاستلام، مكالمة لتأكيد الطلب، والتوصيل إلى 69 ولاية.",
+    "fr": "Comptoir de Luxe, boutique en ligne algérienne : paiement à la livraison, appel de confirmation et livraison dans les 69 wilayas."
   },
   "body": {
     "ar": [
       {
         "type": "p",
-        "text": "HB Destockage متجر جزائري عبر الإنترنت."
+        "text": "كونتوار دو لوكس متجر جزائري عبر الإنترنت."
       },
       {
         "type": "h2",
@@ -49,7 +49,7 @@
     "fr": [
       {
         "type": "p",
-        "text": "HB Destockage est une boutique en ligne algérienne."
+        "text": "Comptoir de Luxe est une boutique en ligne algérienne."
       },
       {
         "type": "h2",

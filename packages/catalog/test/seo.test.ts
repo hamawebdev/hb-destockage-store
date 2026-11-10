@@ -44,13 +44,13 @@ describe('serialisers', () => {
     const xml = sitemapXml(entries);
     expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">')).toBe(true);
     expect(xml.match(/<url>/g)!.length).toBe(entries.length);
-    expect(xml.match(/<xhtml:link rel="alternate" hreflang="x-default" href="https:\/\/hbdestockage\.example\/ar\/"\/>/g)!.length).toBe(2);
+    expect(xml.match(/<xhtml:link rel="alternate" hreflang="x-default" href="https:\/\/comptoirdeluxe\.example\/ar\/"\/>/g)!.length).toBe(2);
     expect(xml.trimEnd().endsWith('</urlset>')).toBe(true);
     const tricky = sitemapXml([{ loc: 'https://x.example/a?b=1&c=<2>', lang: 'fr', template: 'home', alternates: [], lastmod: null }]);
     expect(tricky).toContain('<loc>https://x.example/a?b=1&amp;c=&lt;2&gt;</loc>');
   });
 
   test('robots.txt', () => {
-    expect(robotsTxt(FIXTURE_SITE_URL)).toBe('User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: https://hbdestockage.example/sitemap.xml\n');
+    expect(robotsTxt(FIXTURE_SITE_URL)).toBe('User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: https://comptoirdeluxe.example/sitemap.xml\n');
   });
 });

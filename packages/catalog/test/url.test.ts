@@ -66,7 +66,7 @@ describe('isImageKey', () => {
 
 describe('parseSiteOrigin (publish builds need a public https origin)', () => {
   test.each([
-    'http://hbdestockagedz.com',
+    'http://comptoirdeluxe.com',
     'https://127.0.0.1',
     'https://10.1',
     'https://192.168.1.10',
@@ -77,19 +77,19 @@ describe('parseSiteOrigin (publish builds need a public https origin)', () => {
     'https://hb.local',
     'https://hb.internal',
     'https://hb.test',
-    'https://hbdestockage.example',
+    'https://comptoirdeluxe.example',
     'https://hb.invalid',
     'https://example.com',
     'https://www.example.org',
     'https://shop.example.net',
-    'https://hbdestockagedz.com:8443',
-    'https://hbdestockagedz.com/shop',
-    'https://hbdestockagedz.com?x=1',
-    'https://hbdestockagedz.com#x',
-    'https://user@hbdestockagedz.com',
-    'https://user:pw@hbdestockagedz.com',
-    'https://hbdestockagedz',
-    'https://HBDESTOCKAGEDZ.COM',
+    'https://comptoirdeluxe.com:8443',
+    'https://comptoirdeluxe.com/shop',
+    'https://comptoirdeluxe.com?x=1',
+    'https://comptoirdeluxe.com#x',
+    'https://user@comptoirdeluxe.com',
+    'https://user:pw@comptoirdeluxe.com',
+    'https://comptoirdeluxe',
+    'https://COMPTOIRDELUXE.COM',
     'https://-bad.dz',
     'http://localhost:8787',
     'http://127.0.0.1:4180',
@@ -100,7 +100,7 @@ describe('parseSiteOrigin (publish builds need a public https origin)', () => {
     expect(r.ok).toBe(false);
     expect(isPublicSiteOrigin(o)).toBe(false);
   });
-  test.each(['https://hbdestockagedz.com', 'https://www.hbdestockagedz.com', 'https://hb-destockage.dz', 'https://myexample.com'])(
+  test.each(['https://comptoirdeluxe.com', 'https://www.comptoirdeluxe.com', 'https://comptoir-de-luxe.com', 'https://myexample.com'])(
     'publish accepts %j',
     (o) => {
       expect(parseSiteOrigin(o, { publish: true })).toEqual({ ok: true, origin: o });
@@ -108,9 +108,9 @@ describe('parseSiteOrigin (publish builds need a public https origin)', () => {
     },
   );
   test('a trailing slash is normalised', () => {
-    expect(parseSiteOrigin('https://hbdestockagedz.com/', { publish: true })).toEqual({ ok: true, origin: 'https://hbdestockagedz.com' });
+    expect(parseSiteOrigin('https://comptoirdeluxe.com/', { publish: true })).toEqual({ ok: true, origin: 'https://comptoirdeluxe.com' });
   });
-  test.each(['http://localhost:8787', 'http://localhost', 'http://127.0.0.1', 'http://127.0.0.1:4180', 'https://hbdestockage.example'])(
+  test.each(['http://localhost:8787', 'http://localhost', 'http://127.0.0.1', 'http://127.0.0.1:4180', 'https://comptoirdeluxe.example'])(
     'non-publish also accepts %j (local dev origin; the fixture origin)',
     (o) => {
       expect(parseSiteOrigin(o, { publish: false }).ok).toBe(true);
@@ -118,15 +118,15 @@ describe('parseSiteOrigin (publish builds need a public https origin)', () => {
     },
   );
   test('publish refusal of reserved names cites RFC 2606/6761; fixture mode keeps its .example origin', async () => {
-    expect(parseSiteOrigin('https://hbdestockage.example', { publish: true })).toEqual({
+    expect(parseSiteOrigin('https://comptoirdeluxe.example', { publish: true })).toEqual({
       ok: false,
-      reason: 'reserved documentation/invalid hostname (RFC 2606/6761): hbdestockage.example',
+      reason: 'reserved documentation/invalid hostname (RFC 2606/6761): comptoirdeluxe.example',
     });
     const { siteOriginFromEnv, FIXTURE_ORIGIN } = await import('../src/sources.ts');
     expect(siteOriginFromEnv({ HB_SNAPSHOT: 'fixture' })).toBe(FIXTURE_ORIGIN);
     expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_PUBLISH: '1', HB_SITE_ORIGIN: FIXTURE_ORIGIN })).toThrow(/RFC 2606/);
   });
-  test.each(['https://127.0.0.1', 'https://localhost', 'https://hb.test', 'http://hbdestockagedz.com', 'https://hb.dz:8443'])('non-publish still refuses %j', (o) => {
+  test.each(['https://127.0.0.1', 'https://localhost', 'https://hb.test', 'http://comptoirdeluxe.com', 'https://hb.dz:8443'])('non-publish still refuses %j', (o) => {
     expect(parseSiteOrigin(o, { publish: false }).ok).toBe(false);
     expect(isSiteOrigin(o)).toBe(false);
   });

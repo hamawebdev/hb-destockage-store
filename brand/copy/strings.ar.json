@@ -2,7 +2,7 @@
   "_meta.lang": "ar",
   "_meta.note": "Storefront UI strings (not rendered). Flat dotted keys (packages/catalog StringTable); identical key set in both files. Variables: {name}. Insert {phone}, {whatsapp}, {ref}, {sku}, {q} and Latin names inside <bdi> (dir=\"ltr\" for phones and refs). Numbers, prices, dates: Intl ar-DZ before insertion. Plurals: suffixes .zero .one .two .few .many .other exist in both files; pick with new Intl.PluralRules(lang).select(n). Example phone numbers inside Arabic sentences are written without spaces on purpose (spaced digit groups reorder in RTL). dev.* keys contain [PLACEHOLDER] on purpose (QA banners); any other [PLACEHOLDER] value awaits the client's confirmation.",
 
-  "common.brandName": "HB Destockage",
+  "common.brandName": "كونتوار دو لوكس",
   "common.close": "إغلاق",
   "common.back": "رجوع",
   "common.retry": "إعادة المحاولة",
@@ -13,7 +13,7 @@
   "common.free": "مجاناً",
 
   "chrome.skip": "الانتقال إلى المحتوى",
-  "chrome.homeLink": "HB Destockage، الصفحة الرئيسية",
+  "chrome.homeLink": "كونتوار دو لوكس، الصفحة الرئيسية",
   "chrome.navLabel": "القائمة الرئيسية",
   "chrome.menu": "القائمة",
   "chrome.menuOpen": "فتح القائمة",
@@ -36,7 +36,7 @@
   "footer.whatsapp": "واتساب",
   "footer.whatsappDisplay": "+213 779 942 022",
   "footer.whatsappCta": "راسلنا على واتساب",
-  "footer.copyright": "© {year} HB Destockage",
+  "footer.copyright": "© {year} كونتوار دو لوكس",
 
   "links.about": "من نحن",
   "links.delivery": "التوصيل والرسوم",
@@ -287,21 +287,21 @@
   "a11y.closeDialog": "إغلاق",
   "a11y.currentPage": "الصفحة الحالية",
 
-  "meta.titleTemplate": "{title} · HB Destockage",
-  "meta.siteName": "HB Destockage",
-  "meta.home.title": "HB Destockage · أسعار التصفية والدفع عند الاستلام في الجزائر",
+  "meta.titleTemplate": "{title} · كونتوار دو لوكس",
+  "meta.siteName": "كونتوار دو لوكس",
+  "meta.home.title": "كونتوار دو لوكس · أسعار التصفية والدفع عند الاستلام في الجزائر",
   "meta.home.description": "منتجات مختارة بأسعار التصفية. اطلب عبر الإنترنت وادفع عند الاستلام. التوصيل إلى 69 ولاية.",
   "meta.category.title": "{category}",
   "meta.category.description": "{category} بأسعار التصفية. الدفع عند الاستلام والتوصيل إلى 69 ولاية في الجزائر.",
   "meta.product.title": "{product}",
   "meta.product.description": "{product} بسعر {price}. الدفع عند الاستلام، والتأكيد عبر الهاتف، والتوصيل إلى 69 ولاية.",
   "meta.search.title": "بحث",
-  "meta.search.description": "ابحث في منتجات HB Destockage.",
+  "meta.search.description": "ابحث في منتجات كونتوار دو لوكس.",
   "meta.confirmation.title": "تم تسجيل الطلب",
   "meta.confirmation.description": "تم تسجيل طلبك. سنتصل بك لتأكيده.",
   "meta.notFound.title": "الصفحة غير موجودة",
-  "meta.notFound.description": "هذه الصفحة غير موجودة على HB Destockage.",
-  "meta.ogImageAlt": "HB Destockage: أسعار التصفية، الدفع عند الاستلام، التوصيل إلى 69 ولاية",
+  "meta.notFound.description": "هذه الصفحة غير موجودة على كونتوار دو لوكس.",
+  "meta.ogImageAlt": "كونتوار دو لوكس: أسعار التصفية، الدفع عند الاستلام، التوصيل إلى 69 ولاية",
 
   "cart.title": "السلة",
   "cart.open": "فتح السلة",
@@ -342,6 +342,6 @@
   "privacy.meta.off.body3": "تتلقى ميتا معلومات عن زيارتك (الصفحات والمنتجات التي تصفحتها، الإضافات إلى السلة، عنوان IP، نوع المتصفح) وتضع ملفات تعريف الارتباط الخاصة بها. وعند الطلب، نرسل إليها أيضاً رقم هاتفك بصيغة مجزّأة، ومبلغ الطلب والمنتجات المطلوبة.",
   "privacy.meta.off.body4": "يمحو الزر أدناه الاختيار المحفوظ في متصفحك.",
   "dev.placeholder": "[PLACEHOLDER]",
-  "dev.placeholderBanner": "محتوى مؤقت في انتظار موافقة HB Destockage. [PLACEHOLDER]",
+  "dev.placeholderBanner": "محتوى مؤقت في انتظار موافقة كونتوار دو لوكس. [PLACEHOLDER]",
   "dev.photoPlaceholder": "صورة مؤقتة [PLACEHOLDER]"
 }

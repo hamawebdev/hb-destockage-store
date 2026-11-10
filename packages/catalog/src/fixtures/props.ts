@@ -10,7 +10,7 @@ import { fixtureSnapshot } from './snapshot.ts';
 import stringsAr from './strings.ar.json' with { type: 'json' };
 import stringsFr from './strings.fr.json' with { type: 'json' };
 
-export const FIXTURE_SITE_URL = 'https://hbdestockage.example';
+export const FIXTURE_SITE_URL = 'https://comptoirdeluxe.example';
 export const FIXTURE_PAGE_SIZE = 2;
 
 export function fixtureContext(): BuildContext {

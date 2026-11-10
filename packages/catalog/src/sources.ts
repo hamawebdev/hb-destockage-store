@@ -277,7 +277,7 @@ export async function loadStrings(repoRoot: string): Promise<Localized<StringTab
 }
 
 /** The fixture's origin: only ever used with HB_SNAPSHOT=fixture. */
-export const FIXTURE_ORIGIN = 'https://hbdestockage.example';
+export const FIXTURE_ORIGIN = 'https://comptoirdeluxe.example';
 
 /**
  * A publish build: `HB_PUBLISH=1`, or a snapshot that is an export file (anything but `seed` or
@@ -303,8 +303,8 @@ export function siteOriginFromEnv(env: Readonly<Record<string, string | undefine
     if (env['HB_SNAPSHOT'] === 'fixture' && !publish) return FIXTURE_ORIGIN;
     throw new Error(
       publish
-        ? 'HB_SITE_ORIGIN is not set: a publish build needs the real public origin (e.g. https://hbdestockagedz.com)'
-        : "HB_SITE_ORIGIN is not set: required for every build except HB_SNAPSHOT=fixture (e.g. https://hbdestockagedz.com)",
+        ? 'HB_SITE_ORIGIN is not set: a publish build needs the real public origin (e.g. https://comptoirdeluxe.com)'
+        : "HB_SITE_ORIGIN is not set: required for every build except HB_SNAPSHOT=fixture (e.g. https://comptoirdeluxe.com)",
     );
   }
   const r = parseSiteOrigin(raw, { publish });

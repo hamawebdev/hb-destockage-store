@@ -12,9 +12,9 @@ describe('siteOriginFromEnv (lead ruling on CAT-6 r1: one origin source)', () =>
     expect(siteOriginFromEnv({ HB_SNAPSHOT: 'fixture' })).toBe(FIXTURE_ORIGIN);
   });
   test('validated and normalised', () => {
-    expect(siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'https://hbdestockagedz.com/' })).toBe('https://hbdestockagedz.com');
+    expect(siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'https://comptoirdeluxe.com/' })).toBe('https://comptoirdeluxe.com');
     expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'https://hb.dz/shop' })).toThrow(/rejected/);
-    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'hbdestockagedz.com' })).toThrow(/not https/);
+    expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'comptoirdeluxe.com' })).toThrow(/not https/);
   });
   test('local dev origin only outside publish builds (clean-checkout build uses http://localhost:8787)', () => {
     expect(siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'http://localhost:8787' })).toBe('http://localhost:8787');
@@ -22,7 +22,7 @@ describe('siteOriginFromEnv (lead ruling on CAT-6 r1: one origin source)', () =>
     expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_PUBLISH: '1', HB_SITE_ORIGIN: 'http://localhost:8787' })).toThrow(/publish build/);
     expect(() => siteOriginFromEnv({ HB_SNAPSHOT: '/x/export.json', HB_SITE_ORIGIN: 'http://localhost:8787' })).toThrow(/publish build/);
     expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'seed', HB_SITE_ORIGIN: 'https://127.0.0.1' })).toThrow(/IP literal/);
-    expect(siteOriginFromEnv({ HB_SNAPSHOT: '/x/export.json', HB_SITE_ORIGIN: 'https://hbdestockagedz.com' })).toBe('https://hbdestockagedz.com');
+    expect(siteOriginFromEnv({ HB_SNAPSHOT: '/x/export.json', HB_SITE_ORIGIN: 'https://comptoirdeluxe.com' })).toBe('https://comptoirdeluxe.com');
   });
   test('CAT-6 r3: a publish build never falls back to the fixture origin or catalogue', async () => {
     expect(() => siteOriginFromEnv({ HB_SNAPSHOT: 'fixture', HB_PUBLISH: '1' })).toThrow(/publish build needs the real public origin/);

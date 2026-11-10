@@ -22,7 +22,7 @@ type Lang = 'fr' | 'ar';
 const T = {
   fr: {
     title: 'Système visuel',
-    intro: 'Jetons de design, police, icônes et composants de la boutique HB Destockage. Page générée, ne pas modifier.',
+    intro: 'Jetons de design, police, icônes et composants de la boutique Comptoir de Luxe. Page générée, ne pas modifier.',
     other: 'العربية', otherLabel: 'Lire cette page en arabe',
     colours: 'Couleurs', pairs: 'Contraste des paires autorisées', ratio: 'rapport', min: 'min.', use: 'usage',
     type: 'Échelle typographique', typeNote: 'Fluide de 360 à 1440 px. Valeurs à 360 / 1440 px.',
@@ -39,7 +39,7 @@ const T = {
   },
   ar: {
     title: 'النظام البصري',
-    intro: 'رموز التصميم والخط والأيقونات ومكوّنات متجر [[fr|HB Destockage]]. صفحة مولَّدة، لا تُعدَّل يدويًا.',
+    intro: 'رموز التصميم والخط والأيقونات ومكوّنات متجر كونتوار دو لوكس. صفحة مولَّدة، لا تُعدَّل يدويًا.',
     other: 'Français', otherLabel: 'Lire cette page en français',
     colours: 'الألوان', pairs: 'تباين الأزواج المسموح بها', ratio: 'النسبة', min: 'الأدنى', use: 'الاستعمال',
     type: 'سلّم الخطوط', typeNote: 'متدرّج من 360 إلى 1440 بكسل. القيم عند 360 / 1440 بكسل.',
@@ -160,7 +160,7 @@ export function buildSpecimen(lang: Lang, x: SpecimenInput): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escHtml(t.title)} · HB Destockage</title>
+<title>${escHtml(t.title)} · ${escHtml(lang === 'ar' ? 'كونتوار دو لوكس' : 'Comptoir de Luxe')}</title>
 <link rel="alternate" hreflang="${other}" href="${other}.html">
 <style>
 ${css}

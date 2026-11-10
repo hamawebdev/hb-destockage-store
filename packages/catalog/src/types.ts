@@ -859,7 +859,7 @@ export interface NotFoundProps {
 // ---------------------------------------------------------------------------------------------
 
 export interface BuildOptions {
-  /** Absolute origin without trailing slash, e.g. `https://hbdestockage.dz`. */
+  /** Absolute origin without trailing slash, e.g. `https://comptoirdeluxe.com`. */
   readonly siteUrl: string;
   /** Products per category page. Default 24. */
   readonly pageSize?: number;
