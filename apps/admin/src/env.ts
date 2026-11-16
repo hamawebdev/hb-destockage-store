@@ -47,6 +47,13 @@ export interface Env {
    * Meta screen refuses to save a token; everything else works.
    */
   SETTINGS_ENCRYPTION_KEY?: string;
+
+  /**
+   * Telegram order messages (TGS-4). Non-production only: loopback stand-in base URL
+   * (`http://127.0.0.1:<port>`). Ignored in production, where the Bot API address is fixed. The bot
+   * token itself is entered on /telegram and sealed with COURIER_KEYS_KEY; it is never an env value.
+   */
+  TELEGRAM_STANDIN_URL?: string;
 }
 
 export type Role = DbAdminRole;

@@ -46,6 +46,7 @@ import publish from './routes/publish/index.tsx';
 import delivery from './routes/delivery/index.tsx';
 import sheets from './routes/sheets/index.tsx';
 import meta from './routes/meta/index.tsx';
+import telegram from './routes/telegram/index.tsx';
 import auditRoutes from './audit/routes.tsx';
 import parcels from './routes/parcels/index.tsx';
 
@@ -129,6 +130,7 @@ export function createApp(opts: AppOptions = {}): Hono<AppEnv> {
   app.route('/delivery', delivery);
   app.route('/sheets', sheets);
   app.route('/meta', meta);
+  app.route('/telegram', telegram);
   app.route('/audit', auditRoutes);
   app.route('/parcels', parcels);
 

@@ -18,3 +18,8 @@ GOOGLE_STANDIN_URL=http://127.0.0.1:4420
 # Seals the Meta access token entered on /meta (D-017): `openssl rand -base64 32`, the same value as
 # apps/web/.dev.vars. Unset = the Meta screen refuses to save a token. Local-only placeholder below.
 SETTINGS_ENCRYPTION_KEY=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA=
+
+# Telegram order messages (/telegram) against the local stand-in
+# (node tools/standins/telegram/server.mjs --port 4430). Honoured only when ENV is not `production`.
+# The bot token is never an env value: the owner enters it on /telegram (sealed with COURIER_KEYS_KEY).
+# TELEGRAM_STANDIN_URL=http://127.0.0.1:4430
