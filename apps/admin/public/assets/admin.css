@@ -585,3 +585,6 @@
   /* Fees: selected from the form, so the review-required fees code stays untouched. */
   form[action^="/fees"] .table .field__label, .table--bare-fields .field__label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
+
+/* Telegram message preview (TGS-4): long lines wrap at 360 px instead of scrolling sideways. */
+pre[data-telegram-preview] { white-space: pre-wrap; overflow-wrap: anywhere; margin-block: 0.5rem; }
