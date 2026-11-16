@@ -338,7 +338,7 @@ describe('details and preview', () => {
     const page = await html();
     for (const f of ['ref', 'name', 'phone', 'place', 'address', 'items', 'fee', 'total', 'note']) expect(page).toMatch(new RegExp(`name="field_${f}" value="1" checked=""`));
     for (const label of ['Référence', 'Nom du client', 'Téléphone', 'Wilaya et commune', 'Adresse', 'Produits (variante et quantité)', 'Frais de livraison', 'Total', 'Note']) expect(page).toContain(`>${label}</label>`);
-    expect(page).toMatch(/<pre class="tg-preview" dir="auto"[^>]*>Nouvelle commande HB-TEST1/);
+    expect(page).toMatch(/<pre dir="auto"[^>]*>Nouvelle commande HB-TEST1/);
   });
 
   test('ticks and language are saved in field order, audited, and the preview follows exactly', async () => {
@@ -354,7 +354,7 @@ describe('details and preview', () => {
     expect(page).toMatch(/name="field_name" value="1"(?! checked)/);
     expect(page).toMatch(/<option value="ar" selected="">/);
     const expected = formatTelegramOrder(TELEGRAM_SAMPLE_ORDER, ['ref', 'phone', 'total'], 'ar');
-    const shown = /<pre class="tg-preview"[^>]*>([\s\S]*?)<\/pre>/.exec(page)![1]!;
+    const shown = /<pre dir="auto"[^>]*>([\s\S]*?)<\/pre>/.exec(page)![1]!;
     expect(shown).toBe(expected);
     expect(shown).toContain('طلب جديد');
     expect(shown).not.toContain(TELEGRAM_SAMPLE_ORDER.name);

@@ -57,9 +57,9 @@ function TelegramCard(props: { c: Ctx; state: TelegramState }) {
   const confirmed = confirmedTelegramChats(s).length;
   return (
     <Card title={tm('title')} id="reception-telegram">
-      <div class="reception" data-reception="telegram" data-state={s.enabled ? 'on' : 'off'}>
+      <div data-reception="telegram" data-state={s.enabled ? 'on' : 'off'}>
         <p>{tm('card.what')}</p>
-        <dl>
+        <dl class="details">
           <dt>{t('state')}</dt>
           <dd>
             <StatusBadge tone={s.enabled ? 'success' : 'neutral'} label={tm(s.enabled ? 'state.on' : 'state.off')} />
@@ -106,9 +106,9 @@ function SheetsCard(props: { c: Ctx; data: SheetsCardData }) {
   const stopped = state === 'needs_reconnect' || state === 'sheet_lost' || state === 'layout_changed';
   return (
     <Card title={t('sheets.title')} id="reception-sheets">
-      <div class="reception" data-reception="sheets" data-state={state}>
+      <div data-reception="sheets" data-state={state}>
         <p>{t('sheets.what')}</p>
-        <dl>
+        <dl class="details">
           <dt>{t('state')}</dt>
           <dd>
             <StatusBadge tone={SHEETS_TONE[state]} label={t(`sheets.badge.${badge}`)} />
@@ -152,10 +152,10 @@ function SheetsCard(props: { c: Ctx; data: SheetsCardData }) {
           {state === 'needs_reconnect' ? <a class="btn btn--primary" href="/sheets/connect">{t('sheets.reconnect')}</a> : null}
           {state === 'sheet_lost' || state === 'layout_changed' ? (
             <>
-              <Form action="/sheets/resync" class="tg-inline">
+              <Form action="/sheets/resync" class="form-actions">
                 <Submit variant="primary">{ts('action.resync')}</Submit>
               </Form>
-              <Form action="/sheets/new-sheet" class="tg-inline" confirm={ts('confirm.newSheet')}>
+              <Form action="/sheets/new-sheet" class="form-actions" confirm={ts('confirm.newSheet')}>
                 <Submit variant="secondary">{ts('action.newSheet')}</Submit>
               </Form>
             </>

@@ -1,5 +1,8 @@
 // The /telegram page (TGS-4). Rendering only: no reads, no writes. The token input never carries a
 // value. Chat titles come from Telegram users: text nodes only (escaped by JSX), inside <bdi>.
+// Existing admin.css classes only (this branch does not own the stylesheet): `dl.details` wraps long
+// values, `.plain-list` + `.callout` make the one-column chat list, `.table-wrap` keeps a long
+// preview line scrolling inside its box instead of widening the page at 360 px.
 import { confirmedTelegramChats, formatTelegramOrder, TELEGRAM_FIELDS, TELEGRAM_MAX_CHATS, TELEGRAM_SAMPLE_ORDER, type TelegramChat, type TelegramSettings, type TelegramStatus } from '@hb/shared/telegram';
 import { StatusBadge } from '../../ui/badge.tsx';
 import { ErrorSummary, fieldId, Form, FormActions, Select, Submit } from '../../ui/form.tsx';
@@ -44,15 +47,21 @@ export function chatProblemText(tm: Tm, label: string): string {
   return tm(label.includes('chat_rejected') ? 'chatProblem.chat_rejected' : 'chatProblem.other');
 }
 
+/** Type and title as the first pair of a chat's `dl.details` (its dd wraps anywhere). */
 const ChatTitle = (props: { chat: TelegramChat; tm: Tm }) => (
-  <p class="tg-chat__title">
-    <bdi>{props.chat.title}</bdi> <span class="tg-chat__type">({props.tm(`type.${props.chat.type}`)})</span>
-  </p>
+  <>
+    <dt>{props.tm(`type.${props.chat.type}`)}</dt>
+    <dd>
+      <strong>
+        <bdi>{props.chat.title}</bdi>
+      </strong>
+    </dd>
+  </>
 );
 
 function ChatAction(props: { action: string; chatId: string; label: string; variant?: 'primary' | 'secondary' | 'danger'; confirm?: string }) {
   return (
-    <Form action={props.action} class="tg-inline" {...(props.confirm ? { confirm: props.confirm } : {})}>
+    <Form action={props.action} class="form-actions" {...(props.confirm ? { confirm: props.confirm } : {})}>
       <input type="hidden" name="chatId" value={props.chatId} />
       <Submit variant={props.variant ?? 'secondary'}>{props.label}</Submit>
     </Form>
@@ -111,10 +120,12 @@ export function TelegramPage(props: TelegramPageProps) {
       {props.testResults ? (
         <Card title={tm('test.results')} id="telegram-test-results">
           <div role="status">
-            <ul class="tg-chats">
+            <ul class="plain-list">
               {props.testResults.map((r) => (
-                <li class="tg-chat">
-                  <ChatTitle chat={r.chat} tm={tm} />
+                <li class="callout">
+                  <dl class="details">
+                    <ChatTitle chat={r.chat} tm={tm} />
+                  </dl>
                   <p>
                     <StatusBadge tone={r.ok ? 'success' : 'danger'} label={r.ok ? 'OK' : tm('chats.problem')} /> {r.ok ? tm('test.ok') : r.problem}
                   </p>
@@ -130,7 +141,7 @@ export function TelegramPage(props: TelegramPageProps) {
           <StatusBadge tone={s.enabled ? 'success' : 'neutral'} label={tm(s.enabled ? 'state.on' : 'state.off')} /> {tm(s.enabled ? 'state.onNote' : 'state.offNote')}
         </p>
         {s.enabled && confirmed.length === 0 ? <div class="callout callout--warning"><p>{tm('state.noChats')}</p></div> : null}
-        <dl class="meta">
+        <dl class="details">
           <dt>{tm('state.lastOk')}</dt>
           <dd>{status.lastOkAt ? <DateTime ms={status.lastOkAt} /> : tm('state.never')}</dd>
           {status.lastErrorCode ? (
@@ -156,7 +167,7 @@ export function TelegramPage(props: TelegramPageProps) {
 
       <Card title={tm('token.title')} id="telegram-token">
         <p class="field__hint">{tm('token.help')}</p>
-        <dl class="meta">
+        <dl class="details">
           <dt>{tm('token.state')}</dt>
           <dd>
             {bot ? (
@@ -190,7 +201,7 @@ export function TelegramPage(props: TelegramPageProps) {
           <>
             <p>{tm('chats.help', { bot: botAt })}</p>
             <p>
-              <a class="tg-link" href={`https://t.me/${bot.username}`} rel="noopener noreferrer" target="_blank">
+              <a class="btn btn--secondary" href={`https://t.me/${bot.username}`} rel="noopener noreferrer" target="_blank">
                 {tm('chats.open', { bot: botAt })}
               </a>
             </p>
@@ -205,10 +216,12 @@ export function TelegramPage(props: TelegramPageProps) {
               <>
                 <h3>{tm('chats.pending')}</h3>
                 {full ? <p class="field__hint">{tm('chats.max', { max: TELEGRAM_MAX_CHATS })}</p> : null}
-                <ul class="tg-chats" data-telegram-pending>
+                <ul class="plain-list" data-telegram-pending>
                   {pending.map((chat) => (
-                    <li class="tg-chat">
-                      <ChatTitle chat={chat} tm={tm} />
+                    <li class="callout">
+                      <dl class="details">
+                        <ChatTitle chat={chat} tm={tm} />
+                      </dl>
                       <div class="form-actions">
                         {full ? null : <ChatAction action="/telegram/chats/confirm" chatId={chat.id} label={tm('chats.confirm')} variant="primary" />}
                         <ChatAction action="/telegram/chats/ignore" chatId={chat.id} label={tm('chats.ignore')} />
@@ -221,20 +234,22 @@ export function TelegramPage(props: TelegramPageProps) {
             {confirmed.length > 0 ? (
               <>
                 <h3>{tm('chats.confirmed')}</h3>
-                <ul class="tg-chats" data-telegram-confirmed>
+                <ul class="plain-list" data-telegram-confirmed>
                   {confirmed.map((chat) => {
                     const d = props.deliveries.get(chat.id);
                     return (
-                      <li class="tg-chat">
-                        <ChatTitle chat={chat} tm={tm} />
-                        <p class="field__hint">
-                          {tm('chats.lastSent')} : {d?.lastSentAt ? <DateTime ms={d.lastSentAt} /> : tm('chats.neverSent')}
-                        </p>
-                        {d?.lastError ? (
-                          <p class="field__error">
-                            {tm('chats.problem')} : {chatProblemText(tm, d.lastError)}
-                          </p>
-                        ) : null}
+                      <li class="callout">
+                        <dl class="details">
+                          <ChatTitle chat={chat} tm={tm} />
+                          <dt>{tm('chats.lastSent')}</dt>
+                          <dd>{d?.lastSentAt ? <DateTime ms={d.lastSentAt} /> : tm('chats.neverSent')}</dd>
+                          {d?.lastError ? (
+                            <>
+                              <dt>{tm('chats.problem')}</dt>
+                              <dd>{chatProblemText(tm, d.lastError)}</dd>
+                            </>
+                          ) : null}
+                        </dl>
                         <div class="form-actions">
                           <ChatAction action="/telegram/chats/remove" chatId={chat.id} label={tm('chats.remove')} variant="danger" confirm={tm('chats.removeConfirm')} />
                         </div>
@@ -278,7 +293,11 @@ export function TelegramPage(props: TelegramPageProps) {
           </FormActions>
         </Form>
         <h3 id="telegram-preview-title">{tm('details.preview')}</h3>
-        <pre class="tg-preview" dir="auto" aria-labelledby="telegram-preview-title" tabindex={0}>{preview}</pre>
+        <div>
+          <div class="callout table-wrap" tabindex={0} role="group" aria-labelledby="telegram-preview-title">
+            <pre dir="auto" data-telegram-preview>{preview}</pre>
+          </div>
+        </div>
       </Card>
 
       <Card title={tm('test.title')} id="telegram-test">

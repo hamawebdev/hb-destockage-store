@@ -30,7 +30,7 @@ beforeEach(async () => {
 
 const page = async (email: string = OWNER, path = '/settings') => (await h.as(email, path)).text();
 /** The HTML of one card. */
-const card = (html: string, which: 'telegram' | 'sheets') => new RegExp(`<div class="reception" data-reception="${which}"[\\s\\S]*?</section>`).exec(html)?.[0] ?? '';
+const card = (html: string, which: 'telegram' | 'sheets') => new RegExp(`<div data-reception="${which}"[\\s\\S]*?</section>`).exec(html)?.[0] ?? '';
 const stateOf = (html: string, which: 'telegram' | 'sheets') => new RegExp(`data-reception="${which}" data-state="([a-z_]+)"`).exec(html)?.[1];
 
 describe('the section', () => {
