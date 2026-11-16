@@ -57,7 +57,8 @@
     "UX": "adminui",
     "CART": "cart",
     "MSET": "meta",
-    "REBR": "rebrand"
+    "REBR": "rebrand",
+    "TGS": "notify"
   },
   "owners": {
     "tooling": {
@@ -493,6 +494,27 @@
       "paths": [],
       "reviewer": null,
       "portBase": 4520
+    },
+    "notify": {
+      "paths": [
+        "apps/admin/src/**",
+        "apps/admin/test/**",
+        "apps/admin/wrangler.jsonc",
+        "apps/admin/.dev.vars.example",
+        "apps/jobs/src/**",
+        "apps/jobs/test/**",
+        "apps/jobs/wrangler.jsonc",
+        "apps/jobs/.dev.vars.example",
+        "packages/shared/src/**",
+        "packages/shared/test/**",
+        "packages/db/src/**",
+        "packages/db/test/**",
+        "tools/standins/**",
+        "docs/DEPLOY.md",
+        "docs/TELEGRAM-SHEETS.md"
+      ],
+      "reviewer": null,
+      "portBase": 4530
     }
   },
   "forbiddenGlobs": [
