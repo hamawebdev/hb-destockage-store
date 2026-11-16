@@ -8,22 +8,22 @@ export interface Env {
   /** Private backup bucket (JOBS-1). Never public, never the media bucket. */
   BACKUPS: R2Bucket;
 
-  // Order notifications (JOBS-2). All optional: a channel is enabled only when all its values are set.
-  /** Secret. */
-  TELEGRAM_BOT_TOKEN?: string;
-  /** Secret. */
-  TELEGRAM_CHAT_ID?: string;
+  // Order notifications (JOBS-2). Email is enabled only when all its values are set.
+  // Telegram (TGS-2, D-022) has no secret here: the bot token, the chats and the ticked details come
+  // from the admin (settings rows); the token is opened with COURIER_KEYS_KEY.
+  /** Non-production only: loopback Bot API stand-in or the local live proxy. Ignored in production. */
+  TELEGRAM_STANDIN_URL?: string;
   /** `send_email` binding (Cloudflare Email Routing, verified destination). */
   NOTIFY_EMAIL?: SendEmailBinding;
   NOTIFY_EMAIL_FROM?: string;
   NOTIFY_EMAIL_TO?: string;
-  /** Staff message language: 'fr' (default) or 'ar'. */
+  /** Staff email language: 'fr' (default) or 'ar'. (The Telegram language is chosen in the admin.) */
   NOTIFY_LANG?: string;
   /** Producer binding to the notifications DLQ, for permanent failures and malformed messages. */
   ORDER_NOTIFICATIONS_DLQ?: Queue<unknown>;
 
   // Courier status sync (SHIP-5). Unset or invalid key = no courier is called; D1-only steps still run.
-  /** 32 random bytes, base64 (secret), the same value as the admin's. Opens the sealed courier keys. */
+  /** 32 random bytes, base64 (secret), the same value as the admin's. Opens the sealed courier keys, the Google refresh token and the Telegram bot token. */
   COURIER_KEYS_KEY?: string;
   /** Local courier stand-in. Honoured only when ENV is not `production`. */
   COURIER_STANDIN_URL?: string;
@@ -44,5 +44,5 @@ export const CRON_DAILY_BACKUP = '0 2 * * *';
 export const CRON_BACKUP_HEALTH = '0 9 * * *';
 /** 02:30 UTC = 03:30 Algiers: RUM rollup + 90-day purge (JOBS-5). */
 export const CRON_RUM_ROLLUP = '30 2 * * *';
-/** Courier status sync and Sheets sync. Each runs on its own; neither can block the other. */
+/** Courier status sync, Sheets sync and the Telegram sweep. Each runs on its own; none can block another. */
 export const CRON_EVERY_MINUTE = '* * * * *';

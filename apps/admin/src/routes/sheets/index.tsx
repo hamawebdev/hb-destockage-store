@@ -58,7 +58,7 @@ async function adminConfig(env: Env): Promise<AdminConfig | null> {
   }
 }
 
-const readConnection = async (c: Ctx): Promise<SheetsConnection> => {
+export const readConnection = async (c: Ctx): Promise<SheetsConnection> => {
   const [row] = await c.var.db.select().from(sheetsConnection).where(eq(sheetsConnection.id, 1)).limit(1);
   if (!row) throw new Error('sheets_connection singleton row is missing');
   return row;
@@ -304,7 +304,7 @@ const POSITIVE = new Set(['connected', 'reconnected', 'disconnected', 'resync', 
 const KNOWN_ERRORS = new Set(['config_missing', 'revoke_abandoned', 'drive_full', 'rate_limited', 'timeout', 'network', 'server_error', 'google_client_config', 'google_config', 'internal_error']);
 const STATUS_TONE: Readonly<Record<string, Tone>> = { disconnected: 'neutral', connected: 'success', creating: 'info', needs_reconnect: 'danger', sheet_lost: 'danger', layout_changed: 'warning' };
 
-async function pendingCount(c: Ctx, generation: number): Promise<number> {
+export async function pendingCount(c: Ctx, generation: number): Promise<number> {
   const row = await c.env.DB.prepare(
     `SELECT COUNT(*) AS n FROM orders o
      LEFT JOIN sheets_rows r ON r.order_id = o.id AND r.generation = ?1
@@ -316,13 +316,22 @@ async function pendingCount(c: Ctx, generation: number): Promise<number> {
   return row?.n ?? 0;
 }
 
-function sheetLink(env: Env, id: string): string {
+/** When the newest order row of this generation was written to the sheet; null = none yet. */
+export async function lastWrittenAt(c: Ctx, generation: number): Promise<number | null> {
+  const row = await c.env.DB.prepare('SELECT MAX(synced_at) AS at FROM sheets_rows WHERE generation = ?1').bind(generation).first<{ at: number | null }>();
+  return row?.at ?? null;
+}
+
+/** The server holds a usable Google client, redirect URI and sealing key. */
+export const sheetsConfigured = async (env: Env): Promise<boolean> => (await adminConfig(env)) !== null;
+
+export function sheetLink(env: Env, id: string): string {
   return env.ENV === 'production' || !env.GOOGLE_STANDIN_URL
     ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/edit`
     : `${env.GOOGLE_STANDIN_URL.replace(/\/$/, '')}/__control/sheet?id=${encodeURIComponent(id)}`;
 }
 
-function errorText(t: Tr, code: string): string {
+export function errorText(t: Tr, code: string): string {
   return KNOWN_ERRORS.has(code) ? t(`error.${code}` as MessageKey) : t('error.other', { code });
 }
 
@@ -333,6 +342,7 @@ r.get('/', requirePerm('sheets.settings'), async (c) => {
   const creating = conn.status === 'connected' && conn.tabId === null;
   const statusKey = creating ? 'creating' : conn.status;
   const pending = conn.status === 'connected' ? await pendingCount(c, conn.generation) : null;
+  const lastWritten = conn.status === 'disconnected' ? null : await lastWrittenAt(c, conn.generation);
   const resultParam = c.req.query('r');
   const result = resultParam !== undefined && RESULT_CODES.has(resultParam) ? resultParam : null;
   const canConnect = configured && conn.status !== 'connected';
@@ -381,6 +391,8 @@ r.get('/', requirePerm('sheets.settings'), async (c) => {
           <>
             <dt>{t('field.lastSuccess')}</dt>
             <dd>{conn.lastSuccessAt ? <DateTime ms={conn.lastSuccessAt} /> : t('never')}</dd>
+            <dt>{t('field.lastWritten')}</dt>
+            <dd data-sheets-last-written>{lastWritten ? <DateTime ms={lastWritten} /> : t('lastWritten.none')}</dd>
           </>
         )}
         {pending !== null ? (

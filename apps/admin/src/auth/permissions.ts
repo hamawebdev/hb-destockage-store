@@ -68,6 +68,10 @@ export const PERMISSIONS = {
   // Meta Pixel and Conversions API credentials (MSET-2, D-017): owner only. The access token is
   // write-only; see routes/meta.
   'meta.settings': ['owner'],
+
+  // Telegram order messages (TGS-4, D-022): bot token (write-only), chats and ticked details.
+  // Owner only; see routes/telegram.
+  'telegram.settings': ['owner'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

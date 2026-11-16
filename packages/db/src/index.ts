@@ -96,3 +96,4 @@ export * from './webhook-token.ts';
 export * from './shipments.ts';
 export * from './courier-directory.ts';
 export * from './delivery-exceptions.ts';
+export * from './telegram-settings.ts';

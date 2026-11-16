@@ -147,4 +147,10 @@ export const INTERNAL_SETTINGS_KEYS = {
   metaAccessTokenEnc: 'meta',
   /** meta (D-015): Events Manager test event code. Server only: never in the snapshot or a deploy export. */
   metaTestEventCode: 'meta',
+  /** telegram (TGS-1, D-022): TelegramSettings {enabled, chats, fields, bot…}; written only by the admin. Never in the snapshot or a deploy export. */
+  telegram: 'telegram',
+  /** telegram (TGS-1): bot token, AES-GCM sealed under COURIER_KEYS_KEY. Server only: never in the snapshot or a deploy export. */
+  telegramBotTokenEnc: 'telegram',
+  /** jobs (TGS-2): Telegram health {lastOkAt, lastErrorCode, lastErrorAt}; read by the admin. */
+  'jobs.telegram_status': 'jobs',
 } as const;

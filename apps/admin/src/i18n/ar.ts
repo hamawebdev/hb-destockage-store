@@ -27,6 +27,7 @@ export const ar = {
   'nav.deliverySettings': 'شركات التوصيل',
   'nav.sheets': 'Google Sheets',
   'nav.meta': 'ميتا (فيسبوك)',
+  'nav.telegram': 'تيليغرام',
   'nav.audit': 'سجل التدقيق',
   'user.signedInAs': 'متصل:',
   'nav.more': 'إظهار أو إخفاء: {label}',

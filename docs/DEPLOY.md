@@ -138,10 +138,10 @@ Both ship switched off. With nothing below set, the admin, the storefront and or
 
 ### Shared key (once)
 
-- `COURIER_KEYS_KEY`: 32 random bytes, base64 (`openssl rand -base64 32`). It seals the courier keys and the Google refresh token stored in D1. Set the **same value** as a Cloudflare secret on **`admin` and `jobs`**.
-- Never change it while couriers or Sheets are connected. A new value can't open what the old one sealed, so the owner would have to enter every courier's keys and reconnect Google.
+- `COURIER_KEYS_KEY`: 32 random bytes, base64 (`openssl rand -base64 32`). It seals the courier keys, the Google refresh token and the Telegram bot token stored in D1. Set the **same value** as a Cloudflare secret on **`admin` and `jobs`**.
+- Never change it while couriers, Sheets or Telegram are connected. A new value can't open what the old one sealed, so the owner would have to enter every courier's keys, reconnect Google and paste the bot token again.
 - `ENV` stays `production` on admin, jobs and web: it is the default in each `wrangler.jsonc`. Outside production, courier and Google calls are held to `127.0.0.1` (the stand-ins).
-- Never set `COURIER_STANDIN_URL` or `GOOGLE_STANDIN_URL` in production.
+- Never set `COURIER_STANDIN_URL`, `GOOGLE_STANDIN_URL` or `TELEGRAM_STANDIN_URL` in production. `tools/standins/` (the stand-ins and `live-proxy.mjs`) is for a developer's machine only and is never deployed.
 
 ### Couriers (owner, in the admin)
 
@@ -187,3 +187,17 @@ Both ship switched off. With nothing below set, the admin, the storefront and or
    - The admin stays the source of truth: a hand edit to one of our columns is overwritten at that order's next change.
    - If Google is down, orders still go through, and the rows catch up on their own.
    - **Reconnexion nécessaire** means Google withdrew access (a revoked token, or a consent screen left in Testing): reconnect the same account and the missing rows follow.
+
+### Telegram (owner, in the admin: no secret to set)
+
+There is no Telegram secret on any Worker. `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are no longer read: if they are still set on `jobs` from an earlier setup, delete them. The only requirement is `COURIER_KEYS_KEY` on admin and jobs (above).
+
+1. The owner makes a bot with @BotFather and copies its token.
+2. In the admin, **Telegram** (Administration): paste the token and save. It is checked with Telegram, sealed in D1 and never shown again in full.
+3. He writes a message to the bot, or adds it to a group, then presses **Chercher de nouvelles discussions** and confirms each chat that should receive orders.
+4. He ticks the details a message carries, sends a test message, and switches Telegram on.
+   - From then on every new order goes to every confirmed chat within seconds (the jobs queue consumer).
+   - If Telegram is down, the order still goes through; the jobs cron retries every minute and the message follows once Telegram is back, for up to 72 hours.
+   - Orders placed while Telegram was switched off, or before a chat was confirmed, are not sent later.
+   - Backup alerts go to the same chats.
+   - The settings page shows the last message sent and, in plain words, any problem (token refused, a chat that removed the bot, Telegram unreachable).

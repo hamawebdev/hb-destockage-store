@@ -20,6 +20,7 @@ import { renderError } from '../../ui/error-page.tsx';
 import { DEFAULT_DELAY_DAYS, DELAY_MAX, DELAY_MIN } from '../parcels/data.ts';
 import { Card } from '../../ui/kit.tsx';
 import { cm } from './cart-messages.ts';
+import { loadReception, Reception } from './reception.tsx';
 
 const r = createRouter({ roles: rolesFor('self.lang') });
 
@@ -178,9 +179,11 @@ function CartSwitch(props: { c: Context<AppEnv>; enabled: boolean; error?: strin
   );
 }
 
-function renderStore(c: Context<AppEnv>, values: Record<string, string | undefined>, errors: Record<string, string> | undefined, cart: { enabled: boolean; error?: string }) {
+async function renderStore(c: Context<AppEnv>, values: Record<string, string | undefined>, errors: Record<string, string> | undefined, cart: { enabled: boolean; error?: string }) {
   const t = c.var.t;
   const wa = values['whatsapp'] ? normalizePhone(values['whatsapp']) : null;
+  // Order reception (TGS-4): Telegram and Google Sheets cards, outside the store form.
+  const reception = await loadReception(c);
   return c.render(
     <>
     <Form action="/settings">
@@ -200,14 +203,6 @@ function renderStore(c: Context<AppEnv>, values: Record<string, string | undefin
       <NumberInput name="unreachableRetryMinutes" label={t('settings.unreachableRetryMinutes')} value={values['unreachableRetryMinutes']} error={errors?.['unreachableRetryMinutes']} required hint={t('settings.range', { min: 15, max: 10080 })} />
       <h2>{t('settings.stock')}</h2>
       <NumberInput name="lowStockThreshold" label={t('settings.lowStockThreshold')} value={values['lowStockThreshold']} error={errors?.['lowStockThreshold']} required hint={t('settings.range', { min: 0, max: 1000 })} />
-      {can(c.var.user, 'sheets.settings') ? (
-        <>
-          <h2>{t('settings.sheets')}</h2>
-          <p class="field__hint">
-            {t('settings.sheetsHint')} <a href="/sheets">{t('settings.sheetsLink')}</a>
-          </p>
-        </>
-      ) : null}
       <h2>{t('settings.delivery')}</h2>
       {can(c.var.user, 'delivery.settings') ? (
         <p class="field__hint">
@@ -219,6 +214,7 @@ function renderStore(c: Context<AppEnv>, values: Record<string, string | undefin
         <Submit>{t('common.save')}</Submit>
       </FormActions>
     </Form>
+    <Reception c={c} data={reception} />
     <CartSwitch c={c} enabled={cart.enabled} error={cart.error} />
     </>,
     { title: t('nav.settings') },

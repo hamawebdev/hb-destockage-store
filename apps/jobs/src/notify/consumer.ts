@@ -5,8 +5,13 @@ import { PermanentError, TransientError, type NotificationProvider } from './pro
 import { log } from '../log.ts';
 
 export interface ConsumerDeps {
-  /** Enabled providers only. Empty list = notifications disabled, messages are acked untouched. */
+  /** Enabled providers only (email). Empty list and no `telegram` = messages are acked untouched. */
   providers: readonly NotificationProvider[];
+  /**
+   * Telegram (TGS-2): sends the order to the confirmed chats right away. It never throws and never
+   * affects ack/retry/DLQ: what it could not send is left to the per-minute sweep.
+   */
+  telegram?: ((orderId: number) => Promise<void>) | undefined;
   /** Required when at least one provider is enabled. */
   store: DeliveryStore | null;
   /**
@@ -35,8 +40,8 @@ export async function handleOrderNotifications(batch: MessageBatch<unknown>, dep
   const now = deps.now ?? Date.now;
   const leaseMs = deps.leaseMs ?? 60_000;
 
-  if (deps.providers.length === 0) {
-    // No secrets set: nothing to send, no network calls. The order is already durable in D1.
+  if (deps.providers.length === 0 && !deps.telegram) {
+    // Nothing configured: nothing to send, no network calls. The order is already durable in D1.
     log('notify.disabled', { messages: batch.messages.length });
     batch.ackAll();
     return;
@@ -48,6 +53,18 @@ export async function handleOrderNotifications(batch: MessageBatch<unknown>, dep
       log('notify.invalid_message', { messageId: msg.id });
       // The raw body is not forwarded: it failed validation, so it may hold anything (review r1).
       await sendToDlq(deps, { type: 'invalid', messageId: msg.id, attempts: msg.attempts, at: now() });
+      msg.ack();
+      continue;
+    }
+    if (deps.telegram) {
+      try {
+        await deps.telegram(order.orderId);
+      } catch (err) {
+        // The notifier does not throw; this is a guard so Telegram can never fail the message.
+        log('notify.telegram_error', { ref: order.ref, error: errorClass(err) });
+      }
+    }
+    if (deps.providers.length === 0) {
       msg.ack();
       continue;
     }

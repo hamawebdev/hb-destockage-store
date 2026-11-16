@@ -4,8 +4,10 @@ import type { StaffNotification } from './provider.ts';
 
 export type StaffLang = 'fr' | 'ar';
 
-// Staff-facing text. Deliberately minimal: ref, total, wilaya, flags. Staff open the admin
-// for the customer's name, phone and items; none of those ever reach Telegram or email.
+// Staff-facing EMAIL text. Deliberately minimal: ref, total, wilaya, flags. Staff open the admin
+// for the customer's name, phone and items; none of those ever reach email.
+// Telegram is different since D-022: the owner ticks which details a message carries
+// (@hb/shared formatTelegramOrder, ./telegram.ts).
 // Wilaya names: TODO when data/geo lands (GEO); the code alone is unambiguous for staff.
 export function formatOrderCreated(m: OrderCreatedMessage, lang: StaffLang = 'fr'): StaffNotification {
   const total = formatPrice(m.totalDzd, lang);

@@ -212,3 +212,53 @@ describe('worker.queue', () => {
     expect(m.outcome).toBe('retry');
   });
 });
+
+describe('TGS-2: Telegram in the consumer never decides ack/retry/DLQ', () => {
+  test('Telegram only (no email): the notifier gets the order id and the message is acked', async () => {
+    const seen: number[] = [];
+    const m = fakeMessage(body);
+    await handleOrderNotifications(fakeBatch([m]), { providers: [], store: null, telegram: async (id) => void seen.push(id) });
+    expect(seen).toEqual([42]);
+    expect(m.outcome).toBe('ack');
+  });
+
+  test('a notifier that throws still acks, sends nothing to the DLQ, and logs only the error class', async () => {
+    const sent: unknown[] = [];
+    const dlq = { send: async (b: unknown) => void sent.push(b) } as unknown as Queue<unknown>;
+    const m = fakeMessage(body);
+    const cap = captureConsole();
+    try {
+      await handleOrderNotifications(fakeBatch([m]), {
+        providers: [],
+        store: null,
+        dlq,
+        telegram: async () => Promise.reject(new Error('https://api.telegram.org/bot123456:TEST-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sendMessage')),
+      });
+    } finally {
+      cap.restore();
+    }
+    expect(m.outcome).toBe('ack');
+    expect(sent).toEqual([]);
+    expect(cap.lines.join('\n')).not.toMatch(/TEST-aaaa|api\.telegram/);
+  });
+
+  test('with email too: Telegram runs first and the email outcome alone decides the message', async () => {
+    const order: string[] = [];
+    const email = new FakeProvider('email');
+    email.failures.push(new TransientError('email: send failed'));
+    const d = deps([email]);
+    const m = fakeMessage(body);
+    await handleOrderNotifications(fakeBatch([m]), { ...d, telegram: async () => void order.push('telegram') });
+    expect(order).toEqual(['telegram']);
+    expect(m.outcome).toBe('retry');
+    expect([...d.store.rows.keys()]).toEqual(['42:email']);
+  });
+
+  test('a malformed message never reaches Telegram', async () => {
+    const seen: number[] = [];
+    const m = fakeMessage<unknown>({ nope: true });
+    await handleOrderNotifications(fakeBatch([m]), { providers: [], store: null, telegram: async (id) => void seen.push(id) });
+    expect(seen).toEqual([]);
+    expect(m.outcome).toBe('ack');
+  });
+});

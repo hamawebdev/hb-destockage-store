@@ -25,6 +25,7 @@ export const fr = {
   'nav.deliverySettings': 'Transporteurs',
   'nav.sheets': 'Google Sheets',
   'nav.meta': 'Meta (Facebook)',
+  'nav.telegram': 'Telegram',
   'nav.audit': 'Journal d’audit',
   'user.signedInAs': 'Connecté :',
   'nav.more': 'Afficher ou masquer : {label}',

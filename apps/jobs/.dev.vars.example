@@ -9,3 +9,9 @@ COURIER_KEYS_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 GOOGLE_CLIENT_ID=standin-client
 GOOGLE_CLIENT_SECRET=standin-secret
 GOOGLE_STANDIN_URL=http://127.0.0.1:4420
+
+# Telegram (TGS): the bot token and the chats are set in the admin, never here. Outside production
+# Telegram is off unless this points at a loopback stand-in
+# (node tools/standins/telegram/server.mjs --port 4430) or at the local live proxy
+# (node tools/standins/live-proxy.mjs --port 4430, local acceptance only).
+# TELEGRAM_STANDIN_URL=http://127.0.0.1:4430
