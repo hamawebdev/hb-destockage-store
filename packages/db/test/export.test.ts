@@ -119,6 +119,28 @@ describe('exportCatalogSnapshot', () => {
     expect(JSON.stringify(out)).not.toContain(SENTINEL);
   });
 
+  test('TGS-1: the Telegram rows (settings, sealed bot token, jobs status) never reach the snapshot', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    const SENTINEL = 'SENTINEL-telegram-5d2e';
+    await exec(
+      d1,
+      `insert into settings (key, value) values
+         ('telegram', '{"enabled":true,"chats":[{"id":"42","title":"${SENTINEL}"}],"tokenLast4":"${SENTINEL}"}'),
+         ('telegramBotTokenEnc', '"${SENTINEL}.${SENTINEL}"'),
+         ('jobs.telegram_status', '{"lastErrorCode":"${SENTINEL}"}')
+       on conflict (key) do update set value = excluded.value`,
+    );
+    const out = await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false } });
+    const json = JSON.stringify(out);
+    expect(json).not.toContain(SENTINEL);
+    expect(json).not.toMatch(/telegram/i);
+    // The deploy export copies exactly these keys out of production (orchestrate settingsSql refuses any other).
+    const keys = STOREFRONT_SETTINGS_KEYS.map((k) => `'${k}'`).join(', ');
+    const copied = (await d1.prepare(`select key, value from settings where key in (${keys})`).all<{ key: string; value: string }>()).results;
+    expect(JSON.stringify(copied)).not.toContain(SENTINEL);
+    expect(copied.some((r) => /telegram/i.test(r.key))).toBe(false);
+  });
+
   test('CART-1: the deploy path agrees: copying only STOREFRONT_SETTINGS_KEYS rows (orchestrate settingsSql) exports the same settings', async () => {
     await load(fromSnapshot(fixtureSnapshot));
     await exec(
