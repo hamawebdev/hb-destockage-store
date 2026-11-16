@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'deploy = full pipeline; publish = rebuild and redeploy hb-web from current production data, no migrations'
+        description: 'deploy = full pipeline; publish = rebuild and redeploy hb-web from current production data, no migrations; backoffice = hb-jobs and hb-admin only, storefront untouched (D-025)'
         type: choice
-        options: [deploy, publish]
+        options: [deploy, publish, backoffice]
         default: deploy
       sha:
         description: 'Full commit SHA on main (empty = current main)'
@@ -164,7 +164,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node scripts/deploy/deploy.ts prepare
       - name: Pass the catalogue to the build
-        if: steps.check.outputs.proceed == 'true'
+        if: steps.check.outputs.proceed == 'true' && env.DEPLOY_MODE != 'backoffice'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: catalogue
@@ -177,7 +177,7 @@ jobs:
 
   build-site:
     needs: [export-catalogue]
-    if: needs.export-catalogue.outputs.proceed == 'true'
+    if: needs.export-catalogue.outputs.proceed == 'true' && inputs.mode != 'backoffice'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -219,7 +219,8 @@ jobs:
 
   deploy:
     needs: [export-catalogue, build-site]
-    if: needs.export-catalogue.outputs.proceed == 'true'
+    # backoffice (D-025): build-site is skipped on purpose, so this job must not wait for its success.
+    if: ${{ !cancelled() && needs.export-catalogue.result == 'success' && needs.export-catalogue.outputs.proceed == 'true' && (needs.build-site.result == 'success' || (inputs.mode == 'backoffice' && needs.build-site.result == 'skipped')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: production
@@ -240,11 +241,13 @@ jobs:
           node-version-file: .nvmrc
       - run: npm ci --ignore-scripts --no-audit --no-fund --fetch-retries=6
       - name: Fetch the built site
+        if: env.DEPLOY_MODE != 'backoffice'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: site
           path: ${{ runner.temp }}/hb-deploy/site/
       - name: Check and install the built site
+        if: env.DEPLOY_MODE != 'backoffice'
         run: node scripts/deploy/deploy.ts import-site
       - name: Deploy Workers
         timeout-minutes: 10

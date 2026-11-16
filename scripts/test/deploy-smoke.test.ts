@@ -77,6 +77,13 @@ describe('runSmokeOnce', () => {
     expect(JSON.parse(String(calls.find((c) => c.url.endsWith('/api/quote'))?.init?.body))).toEqual({ items: [{ variantId: 3, qty: 1 }], wilayaCode: 16 });
   });
 
+  it('admin scope checks only the admin and needs no catalogue', async () => {
+    const { get, calls } = fetcher();
+    expect(await runSmokeOnce(targets, null, get, 'admin')).toEqual([]);
+    expect(calls.length).toBe(1);
+    expect(calls[0]!.url.startsWith(targets.adminOrigin)).toBe(true);
+  });
+
   it('publish scope leaves the admin alone', async () => {
     const { get, calls } = fetcher();
     await runSmokeOnce(targets, snapshot, get, 'site');

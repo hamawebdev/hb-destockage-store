@@ -132,6 +132,10 @@ The site build runs a large tree of third-party packages (Astro, sharp, the cata
 - Runtime secrets (`TURNSTILE_SECRET`, `ORDER_SIGNING_KEY`, `IP_HASH_KEY`, `CSRF_SECRET`, …) live in Cloudflare. The pipeline never reads or sets them, with one exception: `SETTINGS_ENCRYPTION_KEY` (the key that encrypts the Meta access token entered in the admin, D-017). If that GitHub `production` secret exists, the *Deploy Workers* step uploads it to hb-web and hb-admin with their new versions; if not, nothing is uploaded. See `docs/META-GO-LIVE.md`.
 - The report workflow's measurements cover the test catalogue only.
 
+## Deploying the admin and jobs only (`backoffice`)
+
+Start the pipeline by hand with `mode = backoffice` to deploy **hb-jobs and hb-admin only**, at main's tip (D-025). The checks run as usual. Nothing is exported from production, the site is not built, and hb-web and the storefront stay exactly as they are; the smoke check covers the admin's front door only, and a failure rolls the two Workers back. It refuses to run while migrations are pending (run a full deploy for those). Use it when a change touches only the admin or the jobs and a full deploy is not possible, for example while the production catalogue is empty.
+
 ## Switching on delivery and Google Sheets
 
 Both ship switched off. With nothing below set, the admin, the storefront and orders work as before: the delivery pages say keys are needed, and the Sheets page says it is not configured. Nothing here goes in the repo, a log or the browser, and no relay sits between us and the courier or Google.

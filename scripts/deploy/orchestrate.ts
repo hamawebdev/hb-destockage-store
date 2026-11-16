@@ -53,7 +53,8 @@ export interface CommandResult {
 export type OlderCommit = 'no' | 'yes' | 'with-newer-migrations';
 
 export interface RunConfig {
-  readonly mode: 'deploy' | 'publish';
+  /** `backoffice` (D-025): hb-jobs and hb-admin only; no catalogue export, no site build, hb-web untouched. */
+  readonly mode: 'deploy' | 'publish' | 'backoffice';
   readonly sha: string;
   readonly event: string; // push | workflow_dispatch
   readonly ref: string;
@@ -112,7 +113,7 @@ export interface Io {
   listSite(dir: string): Promise<SiteEntry[]>;
   /** Copies the validated artifact into apps/storefront/dist. */
   installSite(dir: string): Promise<void>;
-  smoke(snapshot: SmokeSnapshot, scope: 'all' | 'site'): Promise<string[]>;
+  smoke(snapshot: SmokeSnapshot | null, scope: 'all' | 'site' | 'admin'): Promise<string[]>;
   setOutput(name: string, value: string): void;
   log(line: string): void;
   summary(line: string): void;
@@ -218,6 +219,7 @@ async function verifyCommit(cfg: RunConfig, io: Io): Promise<boolean> {
     io.summary(`Skipped: main has moved on to \`${tip}\`; that newer commit's run deploys everything.`);
     return false;
   }
+  if (cfg.mode === 'backoffice') fail(`backoffice only runs on main's tip: main is at ${tip}, this run is for ${cfg.sha}. Start it again.`);
   if (cfg.mode === 'publish') fail(`publish only runs on main's tip: main is at ${tip}, this run is for ${cfg.sha}. Start it again.`);
   if (cfg.olderCommit === 'no') {
     fail(`main is at ${tip}, this run is for ${cfg.sha}, which would overwrite newer code. Start it again, or to go back on purpose set older_commit and give the sha.`);
@@ -305,13 +307,13 @@ async function ensureNoPendingMigrations(io: Io): Promise<void> {
   const state = await readMigrationState(io);
   const plan = planMigrations({ files: await io.migrationFiles(), applied: state.applied, userTables: state.userTables, approval: '' });
   if (plan.pending.length > 0) {
-    fail(`publish needs a database at this commit's schema, but migrations are pending: ${plan.pending.map((m) => m.name).join(', ')}. Run a full deploy first.`);
+    fail(`publish and backoffice need a database at this commit's schema, but migrations are pending: ${plan.pending.map((m) => m.name).join(', ')}. Run a full deploy first.`);
   }
 }
 
 const exportFile = (cfg: RunConfig): string => join(cfg.workDir, 'catalogue.sql');
 const originalsDir = (cfg: RunConfig): string => join(cfg.workDir, 'originals');
-const targetsOf = (cfg: RunConfig): readonly Worker[] => (cfg.mode === 'publish' ? [WEB] : DEPLOY_ORDER);
+const targetsOf = (cfg: RunConfig): readonly Worker[] => (cfg.mode === 'publish' ? [WEB] : cfg.mode === 'backoffice' ? [JOBS, ADMIN] : DEPLOY_ORDER);
 
 /** Tables named by the INSERTs of an export. Anything outside the allowlist must never be processed. */
 export function exportedTables(sql: string): string[] {
@@ -481,6 +483,14 @@ export async function prepare(cfg: RunConfig, io: Io): Promise<void> {
   if (cfg.mode === 'deploy') await applyMigrations(cfg, io);
   else await ensureNoPendingMigrations(io);
 
+  if (cfg.mode === 'backoffice') {
+    // D-025: the storefront Worker and its site are not touched, so nothing is exported or built and
+    // the empty-catalogue check below (which protects the site build) does not apply.
+    io.setOutput('before', JSON.stringify(before));
+    io.summary('Backoffice deployment: hb-jobs and hb-admin only. hb-web and the storefront stay as they are; no catalogue was exported.');
+    return;
+  }
+
   const [counts] = await queryD1(
     io,
     REMOTE_CONFIG,
@@ -618,6 +628,12 @@ export async function deployWorkers(cfg: RunConfig, io: Io): Promise<void> {
 
 /** Deploy job, no token. A failure here triggers the rollback step. */
 export async function smoke(cfg: RunConfig, io: Io): Promise<void> {
+  if (cfg.mode === 'backoffice') {
+    const adminProblems = await io.smoke(null, 'admin');
+    if (adminProblems.length > 0) fail(`smoke checks failed:\n${adminProblems.join('\n')}`);
+    io.summary('Smoke checks (admin only): passed.');
+    return;
+  }
   const catalogue = cfg.smokeCatalogue ?? fail('no smoke catalogue from the export job');
   if (catalogue.quoteWilayas.length === 0) io.summary('Warning: no confirmed delivery fees: customers cannot order yet.');
   const problems = await io.smoke(catalogue, cfg.mode === 'publish' ? 'site' : 'all');

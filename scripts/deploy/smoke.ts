@@ -118,8 +118,18 @@ export function checkAdmin(status: number, location: string | null): string[] {
 }
 
 /** All checks once; returns every problem found. */
-export async function runSmokeOnce(targets: SmokeTargets, snapshot: SmokeSnapshot, get: Fetcher, scope: 'all' | 'site'): Promise<string[]> {
+export async function runSmokeOnce(targets: SmokeTargets, snapshot: SmokeSnapshot | null, get: Fetcher, scope: 'all' | 'site' | 'admin'): Promise<string[]> {
   const problems: string[] = [];
+  if (scope === 'admin' || snapshot === null) {
+    // Backoffice deployment (D-025): only the admin's front door is checked; the site was not deployed.
+    try {
+      const r = await get(`${targets.adminOrigin}/`, { headers: { 'User-Agent': UA }, redirect: 'manual' });
+      problems.push(...checkAdmin(r.status, r.headers.get('location')));
+    } catch (err) {
+      problems.push(`admin: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    return problems;
+  }
   const attempt = async (label: string, f: () => Promise<void>): Promise<void> => {
     try {
       await f();
@@ -184,9 +194,9 @@ export async function runSmokeOnce(targets: SmokeTargets, snapshot: SmokeSnapsho
 /** Repeats the checks until they pass or the attempts run out (new versions take a moment to reach every colo). */
 export async function runSmoke(
   targets: SmokeTargets,
-  snapshot: SmokeSnapshot,
+  snapshot: SmokeSnapshot | null,
   get: Fetcher,
-  scope: 'all' | 'site',
+  scope: 'all' | 'site' | 'admin',
   opts: { attempts: number; delayMs: number; sleep: (ms: number) => Promise<void>; log: (line: string) => void },
 ): Promise<string[]> {
   let problems: string[] = [];

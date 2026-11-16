@@ -135,7 +135,9 @@ describe('workflow security', () => {
   it('deploys only after the checks, from main', () => {
     expect(exportJob).toMatch(/needs: \[typecheck, test, build\]/);
     expect(exportJob).toMatch(/if: github\.ref == 'refs\/heads\/main'/);
-    for (const j of [buildJob, deployJob]) expect(j).toMatch(/if: needs\.export-catalogue\.outputs\.proceed == 'true'/);
+    expect(buildJob).toMatch(/if: needs\.export-catalogue\.outputs\.proceed == 'true' && inputs\.mode != 'backoffice'/);
+    // D-025: the deploy job may run with build-site skipped only in backoffice mode; it still needs the export job's go-ahead.
+    expect(deployJob).toContain("if: ${{ !cancelled() && needs.export-catalogue.result == 'success' && needs.export-catalogue.outputs.proceed == 'true' && (needs.build-site.result == 'success' || (inputs.mode == 'backoffice' && needs.build-site.result == 'skipped')) }}");
   });
 
   it('serialises the whole production run, with a queue, without cancelling anything', () => {

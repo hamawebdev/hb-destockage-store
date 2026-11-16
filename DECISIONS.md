@@ -298,3 +298,12 @@ Rules:
 - Why: the owner authorised it on 2026-11-16 ("if the Google values have to be set as secrets on the production Workers by hand, I authorise that as the owner, as a one-time exception"). The sync was built on 2026-11-09 and never switched on because no Google project existed.
 - Evidence: `wrangler secret list` shows the three names on hb-admin and the two on hb-jobs (none before); the same client connected the client's Google account on a local run and wrote three orders to a sheet in his Drive (artifacts/TGS/acceptance.md). The downloaded client file is kept outside the repo, owner-only; its secret is in no commit, log or artifact.
 - Status: done, one use. The consent screen must stay "In production": in "Testing", Google ends the connection after 7 days.
+
+## D-025 — The pipeline gains a `backoffice` mode: hb-jobs and hb-admin deploy without the storefront
+- Date: 2026-11-16 · Author: lead (owner instruction) · Task: BOOT-37
+- Report says: D-007 and docs/DEPLOY.md: a deployment is the full pipeline (migrations, catalogue export from production, site build, hb-jobs, hb-web, hb-admin, smoke checks), or `publish` for hb-web alone. An empty production catalogue stops the run before any Worker is deployed.
+- We do instead: a third mode, started by hand only, deploys hb-jobs and hb-admin at main's tip after the same typecheck, tests and build. It exports nothing, builds no site and leaves hb-web and the storefront untouched; it refuses to run with migrations pending; its smoke check is the admin's front door, and a failure rolls both Workers back. The empty-catalogue stop is unchanged for `deploy` and `publish`, where it protects the site build.
+- Why: the owner asked on 2026-11-16 to put Telegram and Google Sheets live now ("the user will add his products and link later … find a way"). Production holds 0 products since some time after 2026-11-10, so the full pipeline stops (runs 43857654985 and 43886315469). Telegram and Sheets live entirely in hb-admin and hb-jobs. Loading products into production by hand, or skipping the stop for the storefront, were the alternatives and were not taken.
+- Known limit: hb-web stays on its 2026-11-10 build until a full deploy. It shares packages with the other two; this change added only new files to them that hb-web does not import, and no migration.
+- Evidence: scripts/test/deploy-orchestrate.test.ts ("backoffice mode"), deploy-smoke.test.ts, deploy-guards.test.ts; the backoffice pipeline run for this commit.
+- Status: active

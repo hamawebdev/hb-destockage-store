@@ -170,7 +170,7 @@ try {
     throw new DeployHalt(`the ${phase} step must run without the Cloudflare token`);
   }
   const mode = required('DEPLOY_MODE');
-  if (mode !== 'deploy' && mode !== 'publish') throw new DeployHalt(`unknown mode ${mode}`);
+  if (mode !== 'deploy' && mode !== 'publish' && mode !== 'backoffice') throw new DeployHalt(`unknown mode ${mode}`);
   const olderCommit = (process.env['OLDER_COMMIT'] || 'no') as OlderCommit;
   if (!OLDER_COMMIT.includes(olderCommit)) throw new DeployHalt(`unknown older_commit ${olderCommit}`);
   const imageCache = (process.env['HB_IMAGE_CACHE'] ?? join(homedir(), '.cache/hb-image-derivatives')).replace(/^~(?=\/)/, homedir());

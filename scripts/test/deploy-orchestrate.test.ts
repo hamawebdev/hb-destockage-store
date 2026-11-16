@@ -162,6 +162,27 @@ async function run(c: RunConfig, io: Io): Promise<void> {
   }
 }
 
+describe('backoffice mode (D-025)', () => {
+  it('deploys jobs and admin only: no export, no build, hb-web untouched, admin-only smoke', async () => {
+    const h = harness({ applied: [safe.name] });
+    const c = cfg({ mode: 'backoffice', event: 'workflow_dispatch' });
+    expect(await check(c, h.io)).toBe(true);
+    await prepare(c, h.io);
+    const next: RunConfig = { ...c, before: JSON.parse(h.outputs['before']!) as Record<string, string | null> };
+    await deployWorkers(next, h.io);
+    await smoke(next, h.io);
+    expect(h.steps.filter((x) => x.startsWith('deploy '))).toEqual(['deploy apps/jobs', 'deploy apps/admin']);
+    expect(h.steps).toContain('smoke admin');
+    for (const never of ['export', 'fetch originals', 'publish', 'install site', 'deploy apps/web', 'migrate remote']) expect(h.steps).not.toContain(never);
+    expect(Object.keys(next.before ?? {}).sort()).toEqual(['hb-admin', 'hb-jobs']);
+  });
+
+  it('refuses a commit that is no longer the tip', async () => {
+    const h = harness({ tip: 'b'.repeat(40) });
+    await expect(check(cfg({ mode: 'backoffice', event: 'workflow_dispatch' }), h.io)).rejects.toThrow(/backoffice only runs on main's tip/);
+  });
+});
+
 describe('deploy order', () => {
   it('restore point, migrations, catalogue, jobs, web, admin, smoke', async () => {
     const h = harness();
