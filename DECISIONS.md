@@ -290,3 +290,11 @@ Rules:
 - Why: the owner authorised it on 2026-11-16 with a four-hour deadline ("merge without it and run typecheck, tests and build once on the final main"); a per-merge gate takes 1–2 h on this machine.
 - Evidence: artifacts/TGS/final/ (typecheck, test and build logs on main); the pipeline run for the pushed commit.
 - Status: one use, for this branch only; every later merge keeps merge.sh.
+
+## D-024 — The Google client values were set by hand on hb-admin and hb-jobs, once
+- Date: 2026-11-16 · Author: lead · Task: BOOT-36
+- Report says: CLAUDE.md Non-goals and D-007: nothing reaches the production account by hand; runtime secrets live in Cloudflare and the pipeline never reads or sets them (docs/DEPLOY.md "Google Sheets").
+- We do instead: one exception, as D-021 was for the courier key. The Google Cloud project `comptoirdeluxe-orders` (number 328628747241) was created with the Google CLI in the client's own Google account, with the Sheets and Drive APIs enabled. Google allows the consent screen and the OAuth client only in its web console (the CLI's `iap oauth-brands create` answers "Project must belong to an organization"), so the owner created them there: a Web client with the redirect URI `https://admin.comptoirdeluxe.com/sheets/callback` and two loopback ones for the local run. Its values were then set with `wrangler secret put`: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` on `hb-admin` and `hb-jobs`, `GOOGLE_REDIRECT_URI` on `hb-admin`. Nothing else was changed in production: no deploy, no D1 command, no other secret. `hb-web` holds none of them.
+- Why: the owner authorised it on 2026-11-16 ("if the Google values have to be set as secrets on the production Workers by hand, I authorise that as the owner, as a one-time exception"). The sync was built on 2026-11-09 and never switched on because no Google project existed.
+- Evidence: `wrangler secret list` shows the three names on hb-admin and the two on hb-jobs (none before); the same client connected the client's Google account on a local run and wrote three orders to a sheet in his Drive (artifacts/TGS/acceptance.md). The downloaded client file is kept outside the repo, owner-only; its secret is in no commit, log or artifact.
+- Status: done, one use. The consent screen must stay "In production": in "Testing", Google ends the connection after 7 days.
