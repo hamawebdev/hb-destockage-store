@@ -56,7 +56,8 @@
   // Email notifications are off unless NOTIFY_EMAIL_FROM and NOTIFY_EMAIL_TO are also set
   // (vars/secrets). Destination must be verified in Email Routing.
   "send_email": [{ "name": "NOTIFY_EMAIL" }],
-  // TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID: `wrangler secret put` (or .dev.vars locally). Unset = disabled.
+  // Telegram has no variable or secret here: the owner sets the bot token and the chats in the admin
+  // (sealed in D1, opened with COURIER_KEYS_KEY). TGS-2, D-022.
   "observability": { "enabled": true },
   "dev": { "port": 4120 }
 }

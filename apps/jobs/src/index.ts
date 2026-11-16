@@ -10,6 +10,7 @@ import { handleOrderNotifications } from './notify/consumer.ts';
 import { D1DeliveryStore } from './notify/deliveries.ts';
 import type { EmailMessageFactory } from './notify/email.ts';
 import { buildProviders, emailEnabled } from './notify/providers.ts';
+import { createTelegramNotifier, runTelegramSync, telegramAlerter } from './notify/telegram.ts';
 import { log } from './log.ts';
 import { runCourierSync } from './couriers/sync.ts';
 
@@ -20,13 +21,14 @@ async function emailFactory(env: Env): Promise<EmailMessageFactory | undefined> 
   return (from, to, raw) => new EmailMessage(from, to, raw);
 }
 
-/** Alerts go to the same staff channels as order notifications, when configured. */
+/** Alerts go to the same staff channels as order notifications: email when configured, and the confirmed Telegram chats when Telegram is on. */
 async function staffAlert(env: Env): Promise<((subject: string, text: string, id: string) => Promise<void>) | undefined> {
   const makeEmailMessage = await emailFactory(env);
   const providers = buildProviders(env, makeEmailMessage ? { makeEmailMessage } : {});
-  if (providers.length === 0) return undefined;
+  const telegram = await telegramAlerter(env);
+  if (providers.length === 0 && telegram === null) return undefined;
   return async (subject, text, id) => {
-    await Promise.allSettled(providers.map((p) => p.send({ id, subject, text })));
+    await Promise.allSettled([...providers.map((p) => p.send({ id, subject, text })), ...(telegram ? [telegram(subject, text)] : [])]);
   };
 }
 
@@ -49,8 +51,8 @@ export default {
         return;
       }
       case CRON_EVERY_MINUTE: {
-        // Courier sync (SHIP-5) and Sheets sync (SHEET-2). allSettled: neither can block the other.
-        await Promise.allSettled([runCourierSync(env), runSheetsSync(env)]);
+        // Courier sync (SHIP-5), Sheets sync (SHEET-2), Telegram sweep (TGS-2). allSettled: none can block another.
+        await Promise.allSettled([runCourierSync(env), runSheetsSync(env), runTelegramSync(env)]);
         return;
       }
       default:
@@ -72,6 +74,7 @@ export default {
     }
     await handleOrderNotifications(batch, {
       providers,
+      telegram: createTelegramNotifier(env),
       store: providers.length ? new D1DeliveryStore(env.DB) : null,
       dlq: env.ORDER_NOTIFICATIONS_DLQ,
       lang: env.NOTIFY_LANG === 'ar' ? 'ar' : 'fr',

@@ -18,7 +18,7 @@ export const INVALID_COUNTER_KEY = 'jobs.notify_invalid';
 
 export interface DeadLetterDeps {
   db: D1Database;
-  /** Channels of the enabled providers (e.g. ['telegram', 'email']); [] = no channel expected. */
+  /** Channels of the enabled providers (e.g. ['email']); [] = no channel expected. Never a `telegram:<chatId>` one. */
   channels?: readonly string[];
   now?: () => number;
   random?: () => number;
@@ -41,7 +41,9 @@ export async function handleDeadLetters(batch: MessageBatch<unknown>, deps: Dead
           continue;
         }
         const marked = await deps.db
-          .prepare(`UPDATE notification_deliveries SET status = 'dead', dead_at = ?2, lease_until = NULL WHERE order_id = ?1 AND status = 'sending'`)
+          // `telegram:<chatId>` rows belong to the Telegram sweep (TGS-2): it retries them for 72 h and
+          // they never become 'dead', whatever happened to the email of the same order.
+          .prepare(`UPDATE notification_deliveries SET status = 'dead', dead_at = ?2, lease_until = NULL WHERE order_id = ?1 AND status = 'sending' AND channel NOT LIKE 'telegram:%'`)
           .bind(order.orderId, at)
           .run();
         let changes = marked.meta.changes ?? 0;
@@ -50,7 +52,7 @@ export async function handleDeadLetters(batch: MessageBatch<unknown>, deps: Dead
           // Rows that exist are already 'sent' or 'dead' (recorded); a '*' row means the failure
           // is already visible. Only configured channels with NO row at all are missing.
           const existing = (
-            await deps.db.prepare('SELECT channel FROM notification_deliveries WHERE order_id = ?1').bind(order.orderId).all<{ channel: string }>()
+            await deps.db.prepare(`SELECT channel FROM notification_deliveries WHERE order_id = ?1 AND channel NOT LIKE 'telegram:%'`).bind(order.orderId).all<{ channel: string }>()
           ).results.map((r) => r.channel);
           const missing = (deps.channels ?? []).filter((c) => !existing.includes(c));
           if (!existing.includes('*') && (existing.length === 0 || missing.length > 0)) {

@@ -24,7 +24,10 @@ describe('apps/jobs/wrangler.jsonc: production by default', () => {
     expect(vars['SMS_OTP_ENABLED']).toBeUndefined();
     expect(vars['NOTIFY_EMAIL_FROM']).toBeUndefined();
     expect(vars['NOTIFY_EMAIL_TO']).toBeUndefined();
-    expect(vars['TELEGRAM_BOT_TOKEN']).toBeUndefined(); // secrets never in config
+    // TGS-2: Telegram has no variable or secret in this Worker at all (the admin is the only source),
+    // and the stand-in URL is a local-only setting.
+    expect(Object.keys(vars).filter((k) => /telegram/i.test(k))).toEqual([]);
+    expect(raw).not.toMatch(/TELEGRAM_(BOT_TOKEN|CHAT_ID|STANDIN_URL)/);
   });
 
   test('no env overrides that could flip behaviour; the "dev" block only sets the local port', () => {
@@ -35,5 +38,16 @@ describe('apps/jobs/wrangler.jsonc: production by default', () => {
   test('the backups bucket is a private R2 binding (no public domain configured here)', () => {
     expect(cfg['r2_buckets']).toEqual([{ binding: 'BACKUPS', bucket_name: 'hb-backups' }]);
     expect(JSON.stringify(cfg)).not.toMatch(/r2\.dev|custom_domain/);
+  });
+});
+
+describe('TGS-2: the Telegram env secrets are gone from the jobs Worker', () => {
+  const read = (rel: string) => readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', rel), 'utf8');
+  test.each(['src/env.ts', 'src/index.ts', 'src/notify/providers.ts', 'src/notify/telegram.ts', '.dev.vars.example'])('%s names no TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID', (rel) => {
+    expect(read(rel)).not.toMatch(/TELEGRAM_(BOT_TOKEN|CHAT_ID)/);
+  });
+  test('.dev.vars.example offers only the commented loopback stand-in line', () => {
+    const lines = read('.dev.vars.example').split('\n').filter((l) => /TELEGRAM_/.test(l));
+    expect(lines).toEqual(['# TELEGRAM_STANDIN_URL=http://127.0.0.1:4430']);
   });
 });
