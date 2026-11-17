@@ -54,6 +54,13 @@ export interface Env {
    * token itself is entered on /telegram and sealed with COURIER_KEYS_KEY; it is never an env value.
    */
   TELEGRAM_STANDIN_URL?: string;
+
+  /**
+   * GitHub fine-grained token (secret; D-028), limited to this repository with "Actions: read and write".
+   * /publish uses it to start the pipeline's `publish` mode and to list its runs. Unset: the page explains
+   * that publishing from the admin is not enabled; everything else works.
+   */
+  GITHUB_PUBLISH_TOKEN?: string;
 }
 
 export type Role = DbAdminRole;

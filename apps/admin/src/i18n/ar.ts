@@ -156,6 +156,7 @@ export const ar = {
   'dash.notifyInvalid': 'رسائل إشعار غير صالحة: {count}',
   'dash.lastPublish': 'آخر نشر',
   'dash.publishNever': 'لم يُنشر بعد',
+  'dash.publish.requested': 'مطلوب',
   'dash.publish.queued': 'في الانتظار',
   'dash.publish.running': 'جارٍ',
   'dash.publish.succeeded': 'ناجح',

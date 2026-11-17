@@ -476,7 +476,9 @@ export function StatusSection(props: { agg: ProductAggregate; issues?: readonly 
         {p.status !== 'draft' ? button('draft', tm('status.toDraft')) : null}
         {p.status !== 'archived' ? button('archived', tm('status.archive')) : null}
       </div>
-      <p class="muted">{tm('status.publishNote')}</p>
+      <p class="muted">
+        {tm('status.publishNote')} <a href="/publish">{tm('status.publishLink')}</a>
+      </p>
       <p>
         <a class="btn btn--danger" href={`/products/${p.id}/delete`}>{tm('delete')}</a>
       </p>

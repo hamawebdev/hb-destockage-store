@@ -3,7 +3,7 @@
 // than failing the page. Plan: artifacts/ADMIN-5/plan.md.
 import { and, count, countDistinct, desc, eq, gte, inArray, isNotNull, isNull, lte, max, ne, or, sql } from 'drizzle-orm';
 import * as v from 'valibot';
-import { deliveryFees, notificationDeliveries, orders, products, publishRuns, settings, variants, type Db } from '@hb/db';
+import { auditLog, deliveryFees, notificationDeliveries, orders, products, publishRuns, settings, variants, type Db } from '@hb/db';
 import type { OrderStatus } from '@hb/shared';
 import { startOfAlgiersDay } from '../../lib/time.ts';
 
@@ -157,12 +157,12 @@ export async function deadNotifications(db: Db): Promise<DeadSummary> {
   return { orders: agg?.n ?? 0, lastAt: agg?.lastAt ?? null, invalidMessages: invalidCount, recent };
 }
 
+/** The latest local publish run, or the latest publication requested from /publish (D-028), whichever is newer. */
 export async function lastPublish(db: Db): Promise<{ status: string; at: number } | null> {
-  const r = await db
-    .select({ status: publishRuns.status, at: publishRuns.requestedAt })
-    .from(publishRuns)
-    .orderBy(desc(publishRuns.requestedAt), desc(publishRuns.id))
-    .limit(1)
-    .get();
-  return r ?? null;
+  const [run, asked] = await Promise.all([
+    db.select({ status: publishRuns.status, at: publishRuns.requestedAt }).from(publishRuns).orderBy(desc(publishRuns.requestedAt), desc(publishRuns.id)).limit(1).get(),
+    db.select({ at: auditLog.at }).from(auditLog).where(eq(auditLog.action, 'publish.request')).orderBy(desc(auditLog.at), desc(auditLog.id)).limit(1).get(),
+  ]);
+  if (asked !== undefined && (run === undefined || asked.at > run.at)) return { status: 'requested', at: asked.at };
+  return run ?? null;
 }

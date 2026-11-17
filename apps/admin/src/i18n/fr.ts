@@ -154,6 +154,7 @@ export const fr = {
   'dash.notifyInvalid': 'Messages de notification invalides : {count}',
   'dash.lastPublish': 'Dernière publication',
   'dash.publishNever': 'Jamais publié',
+  'dash.publish.requested': 'Demandée',
   'dash.publish.queued': 'En attente',
   'dash.publish.running': 'En cours',
   'dash.publish.succeeded': 'Réussie',

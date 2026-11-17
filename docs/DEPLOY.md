@@ -65,6 +65,18 @@ Merge to `main`. To deploy by hand: **Actions → pipeline → Run workflow**, o
 
 **Actions → pipeline → Run workflow**, on branch `main`, `mode=publish`.
 
+The owner and content editors can also publish themselves: admin → **Publier** → **Publier la boutique**. The page
+starts the same `mode=publish` run on `main` through the GitHub API and lists the pipeline's latest runs (D-028). A
+second click while a run is still waiting to start sends nothing: that run exports the catalogue when it starts. A
+publication takes about 10 minutes (checks, export, build, deploy of `hb-web`).
+
+It needs the Worker secret `GITHUB_PUBLISH_TOKEN` on `hb-admin`: a GitHub **fine-grained** personal access token,
+repository access **only** `hamawebdev/hb-destockage-store`, permission **Actions: Read and write** (Metadata: read is
+added automatically), nothing else. Set it with `npx wrangler secret put GITHUB_PUBLISH_TOKEN --name hb-admin` and paste
+the token at the prompt. Without it the page says publishing is not enabled; nothing else changes. When it expires,
+the page says GitHub refuses the key: create a new one the same way. Runs it starts appear in GitHub as started by the
+token's owner.
+
 ## First deployment
 
 1. The first run applies the migrations to the empty database, then stops red because the catalogue is empty. That is expected, and no Worker has been deployed.

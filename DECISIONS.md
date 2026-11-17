@@ -325,3 +325,12 @@ Rules:
 - Why: the owner asked on 2026-11-17 to "add a product then update the storefront … do not ask me".
 - Evidence: artifacts/BOOT-39/ (the script and the two SQL files as run); the same script rehearsed first on a local database emptied like production, then the whole site built from it (29 pages); the pipeline run for this commit.
 - Status: done, one use. Later products go through the admin.
+
+## D-028 — The admin starts the storefront publication itself
+- Date: 2026-11-17 · Author: lead (owner instruction) · Task: BOOT-41
+- Report says: D-007 and docs/DEPLOY.md: the storefront is rebuilt by the GitHub pipeline (`mode=publish`), started by hand in GitHub Actions; the admin's /publish page was a placeholder. STACK-REPORT §2: the admin Worker talks to D1, R2 and the services it is configured for.
+- We do instead: /publish (permission `publish.run`: owner, content) starts that same run through the GitHub REST API (`workflow_dispatch` of `pipeline.yml` on `main`, input `mode=publish`) and lists the pipeline's five latest runs on main. Repository, workflow, branch and input are constants in the code, never read from the request; the form has no fields. A click while a run is waiting to start sends nothing (that run will export the catalogue when it starts). Each request writes a `publish.request` audit row; the dashboard tile shows the latest one. Nothing else in the pipeline changes: the publish run keeps its checks, its main-tip rule and its refusal while migrations are pending.
+- The token: Worker secret `GITHUB_PUBLISH_TOKEN` on hb-admin, a fine-grained token limited to this repository with "Actions: read and write" only. It can start and cancel workflow runs and read their state; it cannot read or change code, secrets or settings. It is sent only in the Authorization header to api.github.com, never rendered, logged, audited or exported. The developer's `gh` login token (scopes repo, workflow on every repository) was not used.
+- Why: the client asked on 2026-11-17 not to have to contact the developer after each new product.
+- Evidence: apps/admin/test/catalog/publish.test.ts (fake GitHub: dispatch body, the waiting rule, errors, roles, CSRF, no token leak); the pipeline run started from the admin once the secret is set.
+- Status: active
