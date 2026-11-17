@@ -575,11 +575,19 @@
   .dialog__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
 
   .thumb { border-radius: var(--radius-sm); }
-  .photo-list { list-style: none; margin: 0 0 var(--space-4); padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--space-3); }
+  /* One card per photo, wide enough for its form: the alt texts are sentences, so the two languages stack. */
+  .photo-list { list-style: none; margin: 0 0 var(--space-4); padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: var(--space-4); align-items: start; }
   /* Captions are R2 keys with no spaces: they wrap inside their cell (review UX-4 r1 I1). */
   .photo-list > li { min-inline-size: 0; overflow-wrap: anywhere; }
   .photo-list .code { overflow-wrap: anywhere; white-space: normal; }
-  .photo-list img { display: block; inline-size: 100%; block-size: auto; border-radius: var(--radius-sm); background: var(--color-surface-alt); }
+  .photo-list > li { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3); border: var(--bw-hairline) solid var(--color-border); border-radius: var(--radius-md); }
+  .photo-list > li > p { margin: 0; font-size: var(--a-small); }
+  /* Every thumbnail the same height, whatever the photo's shape; the whole photo stays visible. */
+  .photo-list img { display: block; inline-size: 100%; block-size: 14rem; object-fit: contain; border-radius: var(--radius-sm); background: var(--color-surface-alt); }
+  .photo-list form:not(.inline-form) { display: grid; gap: var(--space-3); margin: 0; }
+  .photo-list .localized__pair { grid-template-columns: minmax(0, 1fr); }
+  .photo-list .input { inline-size: 100%; }
+  .photo-list .form-actions { margin-block-start: auto; }
 
   /* Rows of inputs under a header row: the column header (or the stacked card label) names the field. */
   /* Fees: selected from the form, so the review-required fees code stays untouched. */
