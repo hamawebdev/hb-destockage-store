@@ -136,13 +136,16 @@ describe('workflow security', () => {
     expect(exportJob).toMatch(/needs: \[typecheck, test, build, approve\]/);
     // Every check must have passed (not merely not failed), and the D-028 approval succeeded or was not needed.
     for (const j of ['typecheck', 'test', 'build']) expect(exportJob).toContain(`needs.${j}.result == 'success'`);
-    expect(exportJob).toContain("(needs.approve.result == 'success' || needs.approve.result == 'skipped')");
+    expect(exportJob).toContain("(needs.approve.result == 'skipped' || (needs.approve.result == 'success' && needs.approve.outputs.attempt == format('{0}', github.run_attempt)))");
     expect(exportJob).toContain("github.ref == 'refs/heads/main'");
     // D-028: anything but a plain publication started by hand waits for a person in GitHub.
     const approveJob = job('approve');
     expect(approveJob).toContain('environment: manual-approval');
     expect(approveJob).toContain("if: github.event_name == 'workflow_dispatch' && !(inputs.mode == 'publish' && inputs.sha == '' && inputs.older_commit == 'no' && inputs.approve_destructive_migrations == '')");
     expect(approveJob).not.toMatch(/secrets\./);
+    // r2: the approval is bound to the attempt that asked for it (re-running export alone cannot replay it).
+    expect(approveJob).toContain('ATTEMPT: ${{ github.run_attempt }}');
+    expect(approveJob).toContain('attempt: ${{ steps.ok.outputs.attempt }}');
     // D-028: a skipped `approve` must not skip the build through the implicit success(): every job after the export checks results explicitly.
     expect(buildJob).toContain("if: ${{ !cancelled() && needs.export-catalogue.result == 'success' && needs.export-catalogue.outputs.proceed == 'true' && inputs.mode != 'backoffice' }}");
     for (const j of ['export-catalogue', 'build-site', 'deploy']) expect(job(j)).toMatch(/if: \$\{\{ !cancelled\(\) && /);

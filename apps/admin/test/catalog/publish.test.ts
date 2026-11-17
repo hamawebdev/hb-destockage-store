@@ -12,7 +12,7 @@ const RUNS = '/repos/hamawebdev/hb-destockage-store/actions/workflows/pipeline.y
 const DISPATCH = '/repos/hamawebdev/hb-destockage-store/actions/workflows/pipeline.yml/dispatches';
 
 interface Fake {
-  runs: { id: number; status: string; conclusion: string | null; event: string; created_at: string; updated_at: string }[];
+  runs: { id: number; status: string; conclusion: string | null; event: string; display_title: string; created_at: string; updated_at: string }[];
   calls: { method: string; path: string; auth: string | null; body: unknown }[];
   /** Status the API answers with (200/204 when unset). */
   failWith: number | null;
@@ -40,7 +40,7 @@ beforeEach(async () => {
     if (init?.method === 'POST' && url.pathname === DISPATCH) {
       if (gh.dispatchFails === 'drop') throw new DOMException('timed out', 'TimeoutError');
       if (gh.dispatchFails !== null) return new Response('{"message":"x"}', { status: gh.dispatchFails });
-      gh.runs.unshift({ id: 900 + gh.runs.length, status: 'queued', conclusion: null, event: 'workflow_dispatch', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+      gh.runs.unshift({ id: 900 + gh.runs.length, status: 'queued', conclusion: null, event: 'workflow_dispatch', display_title: 'pipeline · publish', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
       return new Response(null, { status: 204 });
     }
     return new Response('', { status: 404 });
@@ -49,8 +49,8 @@ beforeEach(async () => {
 });
 afterEach(() => setGithubFetchForTests(undefined));
 
-const run = (id: number, status: string, conclusion: string | null, event = 'workflow_dispatch') =>
-  ({ id, status, conclusion, event, created_at: '2026-11-17T10:00:00Z', updated_at: '2026-11-17T10:08:00Z' });
+const run = (id: number, status: string, conclusion: string | null, event = 'workflow_dispatch', title = event === 'workflow_dispatch' ? 'pipeline · publish' : 'BOOT-1: a commit') =>
+  ({ id, status, conclusion, event, display_title: title, created_at: '2026-11-17T10:00:00Z', updated_at: '2026-11-17T10:08:00Z' });
 const requests = () => h.db.prepare("select actor_email, entity, after from audit_log where action = 'publish.request' order by id").all<{ actor_email: string; entity: string; after: string }>().then((x) => x.results);
 const page = async (email: string = USERS.owner) => (await h.as(email, '/publish')).text();
 
@@ -207,6 +207,7 @@ describe('review BOOT-41 r1', () => {
     expect(await res.text()).toContain('Réponse inattendue de GitHub');
     const failed = await h.db.prepare("select after from audit_log where action = 'publish.requestFailed' order by id desc").first<{ after: string }>();
     expect(JSON.parse(failed!.after)).toEqual({ error: 'unexpected' });
+    expect(await (await h.as(USERS.owner, '/dashboard')).text()).toMatch(/data-tile="publish"[\s\S]*?Échec/);
     gh.dispatchFails = null;
     expect((await postAs(h, USERS.owner, '/publish', {})).status).toBe(303);
   });
@@ -250,5 +251,45 @@ describe('review BOOT-41 r1', () => {
       await h.db.prepare('delete from products where id = 7001').run();
     }
     expect(await page()).not.toContain('data-publish-aside');
+  });
+});
+
+describe('review BOOT-41 r2', () => {
+  const dispatches = () => gh.calls.filter((x) => x.method === 'POST').length;
+
+  test.each([
+    ['a queued backoffice run (it rebuilds no storefront)', run(8, 'queued', null, 'workflow_dispatch', 'pipeline · backoffice')],
+    ['a publication held for approval (it may never start)', run(9, 'waiting', null, 'workflow_dispatch', 'pipeline · publish')],
+    ['a queued deploy started by hand (held by the approval gate)', run(10, 'waiting', null, 'workflow_dispatch', 'pipeline · deploy')],
+  ])('%s does not count as covering the changes: the request goes through', async (_n, r) => {
+    gh.runs = [r];
+    expect((await postAs(h, USERS.owner, '/publish', {})).status).toBe(303);
+    expect(dispatches()).toBe(1);
+  });
+
+  test('a queued push deploy covers the changes (it exports and rebuilds the storefront)', async () => {
+    gh.runs = [run(11, 'queued', null, 'push')];
+    expect((await postAs(h, USERS.owner, '/publish', {})).status).toBe(409);
+    expect(dispatches()).toBe(0);
+  });
+
+  test('a manual run that is not a publication is shown as a technical update, not as a publication', async () => {
+    gh.runs = [run(12, 'completed', 'success', 'workflow_dispatch', 'pipeline · backoffice')];
+    const html = await page();
+    expect(html).toContain('Mise à jour technique');
+  });
+
+  test('an online product that would still break a rule as a draft is listed as blocking the publication', async () => {
+    await h.db.prepare("insert into products (id, slug_fr, slug_ar, name_fr, name_ar, status) values (7002, 'bloquant', 'bloquant', 'Produit bloquant', 'منتج', 'active')").run();
+    await h.db.prepare("insert into variants (product_id, sku, price_dzd, is_default, active) values (7002, 'BLOCK-1', 1000, 1, 0)").run();
+    try {
+      const html = await page();
+      expect(html).toContain('<a href="/products/7002">Produit bloquant</a>');
+      expect(html).toContain('data-publish-blocking');
+      expect(html).toContain('bloque toute la publication');
+    } finally {
+      await h.db.prepare('delete from variants where product_id = 7002').run();
+      await h.db.prepare('delete from products where id = 7002').run();
+    }
   });
 });

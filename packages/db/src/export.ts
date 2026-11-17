@@ -181,7 +181,7 @@ export async function exportCatalogSnapshot(db: Db, opts: ExportOptions = {}): P
 
   const aside = setAsideUnpublishable(outProducts, new Set(outCategories.map((c) => c.id)));
   if (opts.onSetAside) opts.onSetAside(aside.setAside);
-  else for (const p of aside.setAside) console.warn(`export: product ${p.id} (${p.name.fr}) is online but cannot be shown, published as a draft: ${p.issues.map((i) => i.message).join('; ')}`);
+  else for (const p of aside.setAside) console.warn(`export: product ${p.id} (${p.name.fr}) is online but cannot be shown${p.blocking ? '' : ', published as a draft'}: ${p.issues.map((i) => i.message).join('; ')}`);
 
   const snapshot: CatalogSnapshot = {
     meta: { version: SNAPSHOT_VERSION, source: 'd1', generatedAt: opts.generatedAt ?? Date.now(), publishRunId: opts.publishRunId ?? null },

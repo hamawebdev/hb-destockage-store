@@ -61,6 +61,15 @@ describe('exportCatalogSnapshot', () => {
     expect(again.products.filter((p) => p.id !== id).map((p) => p.status)).toEqual(fixtureSnapshot.products.filter((p) => p.id !== id).map((p) => p.status));
   });
 
+  test('D-028 r2: a product that still breaks a rule as a draft is not set aside: the export fails on it', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    const p = fixtureSnapshot.products.find((x) => x.status === 'active' && x.kind === 'simple')!;
+    await exec(d1, `update variants set active = 0 where product_id = ${p.id}`);
+    const seen: { id: number; blocking: boolean }[] = [];
+    await expect(exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false }, onSetAside: (x) => void seen.push(...(x as never[])) })).rejects.toThrow(/default variant is inactive/);
+    expect(seen).toEqual([expect.objectContaining({ id: p.id, blocking: true })]);
+  });
+
   test('D-028: with nothing to set aside the callback gets [] and the default warns nothing', async () => {
     await load(fromSnapshot(fixtureSnapshot));
     const seen: unknown[] = [];

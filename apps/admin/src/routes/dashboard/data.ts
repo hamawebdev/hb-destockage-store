@@ -161,8 +161,14 @@ export async function deadNotifications(db: Db): Promise<DeadSummary> {
 export async function lastPublish(db: Db): Promise<{ status: string; at: number } | null> {
   const [run, asked] = await Promise.all([
     db.select({ status: publishRuns.status, at: publishRuns.requestedAt }).from(publishRuns).orderBy(desc(publishRuns.requestedAt), desc(publishRuns.id)).limit(1).get(),
-    db.select({ at: auditLog.at }).from(auditLog).where(eq(auditLog.action, 'publish.request')).orderBy(desc(auditLog.at), desc(auditLog.id)).limit(1).get(),
+    db
+      .select({ at: auditLog.at, action: auditLog.action })
+      .from(auditLog)
+      .where(inArray(auditLog.action, ['publish.request', 'publish.requestFailed']))
+      .orderBy(desc(auditLog.at), desc(auditLog.id))
+      .limit(1)
+      .get(),
   ]);
-  if (asked !== undefined && (run === undefined || asked.at > run.at)) return { status: 'requested', at: asked.at };
+  if (asked !== undefined && (run === undefined || asked.at > run.at)) return { status: asked.action === 'publish.requestFailed' ? 'failed' : 'requested', at: asked.at };
   return run ?? null;
 }

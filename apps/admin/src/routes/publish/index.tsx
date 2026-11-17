@@ -82,6 +82,7 @@ function PublishPage(props: { configured: boolean; runs: PipelineRun[] | null; a
             {props.aside.map((p) => (
               <li>
                 <a href={`/products/${p.id}`}>{lang === 'ar' ? p.name.ar : p.name.fr}</a> : {t(reasonOf(p))}
+                {p.blocking ? <strong data-publish-blocking> {t('aside.blocking')}</strong> : null}
               </li>
             ))}
           </ul>
@@ -154,7 +155,7 @@ r.post('/', requirePerm('publish.run'), async (c) => {
     noAudit(c, 'GitHub unavailable while checking the pipeline: nothing requested');
     return render(c, runs.error === 'auth' ? 503 : 502, { tone: 'danger', key: `err.${runs.error}` });
   }
-  if (runs.value.some((x) => x.publishes && x.state === 'waiting')) {
+  if (runs.value.some((x) => x.covers)) {
     noAudit(c, 'a pipeline run is already waiting to start: nothing requested');
     return render(c, 409, { tone: 'warning', key: 'already' });
   }

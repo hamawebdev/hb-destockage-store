@@ -1,6 +1,8 @@
 # CI + production deployment for the Comptoir de Luxe store. Docs: docs/DEPLOY.md.
 # Checks run on a clean runner for PRs and pushes; deploy needs them, for the same commit.
 name: pipeline
+# D-028: a run started by hand is titled with its mode (the admin's Publier page reads it); others keep GitHub's title.
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('pipeline · {0}', inputs.mode) || (github.event_name == 'pull_request' && github.event.pull_request.title || github.event.head_commit.message) }}
 
 on:
   pull_request:
@@ -133,12 +135,19 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     environment: manual-approval
+    # The approval holds for this attempt only: re-running a later job alone (which keeps this job's earlier
+    # success) must not replay an old approval (review BOOT-41 r2). Re-run all jobs to ask again.
+    outputs:
+      attempt: ${{ steps.ok.outputs.attempt }}
     steps:
-      - run: echo "approved by a repository admin"
+      - id: ok
+        env:
+          ATTEMPT: ${{ github.run_attempt }}
+        run: echo "attempt=$ATTEMPT" >> "$GITHUB_OUTPUT"
 
   export-catalogue:
     needs: [typecheck, test, build, approve]
-    if: ${{ !cancelled() && needs.typecheck.result == 'success' && needs.test.result == 'success' && needs.build.result == 'success' && (needs.approve.result == 'success' || needs.approve.result == 'skipped') && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ !cancelled() && needs.typecheck.result == 'success' && needs.test.result == 'success' && needs.build.result == 'success' && (needs.approve.result == 'skipped' || (needs.approve.result == 'success' && needs.approve.outputs.attempt == format('{0}', github.run_attempt))) && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     environment: production

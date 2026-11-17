@@ -39,6 +39,7 @@ export const pm = defineMessages({
     'reason.pack': 'le contenu du pack est vide ou invalide',
     'reason.options': 'les options et déclinaisons sont incomplètes',
     'reason.other': 'une règle du catalogue n’est pas respectée',
+    'aside.blocking': '— ce produit bloque toute la publication tant qu’il n’est pas corrigé ou repassé en brouillon.',
   },
   ar: {
     'title': 'نشر المتجر',
@@ -77,5 +78,6 @@ export const pm = defineMessages({
     'reason.pack': 'محتوى الحزمة فارغ أو غير صالح',
     'reason.options': 'الخيارات والتشكيلات غير مكتملة',
     'reason.other': 'قاعدة من قواعد الكتالوج غير محترمة',
+    'aside.blocking': '— هذا المنتج يمنع النشر كله إلى أن يُصحَّح أو يُعاد إلى المسودة.',
   },
 });

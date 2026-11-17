@@ -24,8 +24,12 @@ export interface PipelineRun {
   state: RunState;
   /** manual = started by hand or from this page; push = a code change by the developer. */
   origin: 'manual' | 'push' | 'other';
-  /** A pull-request run never exports the catalogue: it does not count as a waiting publication. */
-  publishes: boolean;
+  /**
+   * Queued (not started, not waiting for an approval) and a run that rebuilds the storefront: a push deploy or
+   * a publication. When it starts it exports the catalogue, so it already covers every change. A backoffice
+   * run, a gated manual run or a pull-request run does not count (review BOOT-41 r1/r2).
+   */
+  covers: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -80,6 +84,11 @@ async function call(token: string, method: 'GET' | 'POST', path: string, body?: 
 }
 
 const WAITING = new Set(['queued', 'waiting', 'pending', 'requested']);
+/** Not started yet and not held by an environment approval (`waiting`). */
+const QUEUED = new Set(['queued', 'pending', 'requested']);
+/** The pipeline's run-name for a run started by hand in publish mode. */
+export const PUBLISH_TITLE = 'pipeline · publish';
+const isPublish = (x: Record<string, unknown>): boolean => x['event'] === 'workflow_dispatch' && x['display_title'] === PUBLISH_TITLE;
 
 function stateOf(status: unknown, conclusion: unknown): RunState {
   if (typeof status === 'string' && WAITING.has(status)) return 'waiting';
@@ -106,8 +115,8 @@ export async function listRuns(token: string, count = 5): Promise<GithubResult<P
     runs.push({
       id: x['id'],
       state: stateOf(x['status'], x['conclusion']),
-      origin: x['event'] === 'workflow_dispatch' ? 'manual' : x['event'] === 'push' ? 'push' : 'other',
-      publishes: x['event'] === 'workflow_dispatch' || x['event'] === 'push',
+      origin: isPublish(x) ? 'manual' : x['event'] === 'push' || x['event'] === 'workflow_dispatch' ? 'push' : 'other',
+      covers: QUEUED.has(String(x['status'])) && (x['event'] === 'push' || isPublish(x)),
       createdAt: ms(x['created_at']),
       updatedAt: ms(x['updated_at']),
     });

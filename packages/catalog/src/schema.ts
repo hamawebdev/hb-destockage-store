@@ -317,13 +317,16 @@ export interface SetAsideProduct {
   readonly id: Id;
   readonly name: Localized<string>;
   readonly issues: readonly SnapshotIssue[];
+  /** Still breaks a rule as a draft: not set aside, the export fails on it (review BOOT-41 r2). */
+  readonly blocking: boolean;
 }
 
 /**
  * D-028: an `active` product that breaks a per-product rule (e.g. its last general photo was deleted after
  * it went online) is published as a draft, so one product never blocks the publication of all the others.
- * Returns the products to publish (those products with `status: 'draft'`) and the list set aside. Only
- * `active` products are touched: a rule broken by a draft or archived product still fails the export.
+ * Returns the products to publish (those products with `status: 'draft'`) and the list. Only `active`
+ * products are touched, and only when the draft copy passes every rule: a product that would still break a
+ * rule as a draft is left active (`blocking: true`) and fails the export, as does a broken draft or archived one.
  */
 export function setAsideUnpublishable(
   products: readonly SnapshotProduct[],
@@ -337,8 +340,10 @@ export function setAsideUnpublishable(
     if (p.status !== 'active') return p;
     const issues = checkProductIntegrity(p, ctx);
     if (issues.length === 0) return p;
-    setAside.push({ id: p.id, name: p.name, issues });
-    return { ...p, status: 'draft' as const };
+    const draft = { ...p, status: 'draft' as const };
+    const blocking = checkProductIntegrity(draft, ctx).length > 0;
+    setAside.push({ id: p.id, name: p.name, issues, blocking });
+    return blocking ? p : draft;
   });
   return { products: out, setAside };
 }
