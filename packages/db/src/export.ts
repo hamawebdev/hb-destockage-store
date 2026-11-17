@@ -10,12 +10,14 @@
 import { asc, inArray } from 'drizzle-orm';
 import {
   parseSnapshot,
+  setAsideUnpublishable,
   settingsFromKeyValues,
   SNAPSHOT_VERSION,
   type CatalogSnapshot,
   type ContentBlock,
   type ContentPageKey,
   type IntegrityOptions,
+  type SetAsideProduct,
   type SnapshotCategory,
   type SnapshotImage,
   type SnapshotProduct,
@@ -44,6 +46,11 @@ export interface ExportOptions {
   readonly publishRunId?: number | null;
   /** Passed to parseSnapshot (default: require all 69 wilayas). */
   readonly integrity?: IntegrityOptions;
+  /**
+   * Online products the storefront cannot show, published as drafts instead of failing the export (D-028).
+   * Called once, before validation, with [] when there are none. Default: a warning line per product.
+   */
+  readonly onSetAside?: (products: readonly SetAsideProduct[]) => void;
 }
 
 /** Map.groupBy without the ES2024 lib. */
@@ -172,10 +179,14 @@ export async function exportCatalogSnapshot(db: Db, opts: ExportOptions = {}): P
     images: (imgsByProduct.get(p.id) ?? []).map(image),
   }));
 
+  const aside = setAsideUnpublishable(outProducts, new Set(outCategories.map((c) => c.id)));
+  if (opts.onSetAside) opts.onSetAside(aside.setAside);
+  else for (const p of aside.setAside) console.warn(`export: product ${p.id} (${p.name.fr}) is online but cannot be shown, published as a draft: ${p.issues.map((i) => i.message).join('; ')}`);
+
   const snapshot: CatalogSnapshot = {
     meta: { version: SNAPSHOT_VERSION, source: 'd1', generatedAt: opts.generatedAt ?? Date.now(), publishRunId: opts.publishRunId ?? null },
     categories: outCategories,
-    products: outProducts,
+    products: aside.products,
     contentPages: pages.map((c) => ({
       id: c.id,
       key: c.key as ContentPageKey,

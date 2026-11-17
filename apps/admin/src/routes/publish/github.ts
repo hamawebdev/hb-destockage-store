@@ -24,6 +24,8 @@ export interface PipelineRun {
   state: RunState;
   /** manual = started by hand or from this page; push = a code change by the developer. */
   origin: 'manual' | 'push' | 'other';
+  /** A pull-request run never exports the catalogue: it does not count as a waiting publication. */
+  publishes: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -34,7 +36,8 @@ export type GithubResult<T> = { ok: true; value: T } | { ok: false; error: Githu
 /** The configured token, or null (feature off). */
 export function publishToken(env: { GITHUB_PUBLISH_TOKEN?: string | undefined }): string | null {
   const t = env.GITHUB_PUBLISH_TOKEN?.trim() ?? '';
-  return /^[A-Za-z0-9_]{20,255}$/.test(t) ? t : null;
+  // Fine-grained tokens only (github_pat_…): a classic or `gh` login token would reach every repository.
+  return /^github_pat_[A-Za-z0-9_]{40,250}$/.test(t) ? t : null;
 }
 
 async function call(token: string, method: 'GET' | 'POST', path: string, body?: unknown): Promise<GithubResult<{ status: number; json: unknown }>> {
@@ -59,7 +62,12 @@ async function call(token: string, method: 'GET' | 'POST', path: string, body?: 
   if (res.status === 401 || res.status === 403 || res.status === 404) return { ok: false, error: 'auth' };
   if (res.status >= 500 || res.status === 429) return { ok: false, error: 'unreachable' };
   if (res.status < 200 || res.status >= 300) return { ok: false, error: 'unexpected' };
-  const text = await res.text();
+  let text: string;
+  try {
+    text = await res.text();
+  } catch {
+    return { ok: false, error: 'unreachable' };
+  }
   let json: unknown = null;
   if (text !== '') {
     try {
@@ -99,6 +107,7 @@ export async function listRuns(token: string, count = 5): Promise<GithubResult<P
       id: x['id'],
       state: stateOf(x['status'], x['conclusion']),
       origin: x['event'] === 'workflow_dispatch' ? 'manual' : x['event'] === 'push' ? 'push' : 'other',
+      publishes: x['event'] === 'workflow_dispatch' || x['event'] === 'push',
       createdAt: ms(x['created_at']),
       updatedAt: ms(x['updated_at']),
     });

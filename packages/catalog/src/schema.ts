@@ -6,7 +6,7 @@
  *  - `validateSnapshot` / `parseSnapshot`: both together.
  */
 import * as v from 'valibot';
-import { RESERVED_ORDER_SLUGS, RESERVED_SEGMENTS, SNAPSHOT_VERSION, type CatalogSnapshot, type Id, type ProductKind, type SnapshotProduct } from './types.ts';
+import { RESERVED_ORDER_SLUGS, RESERVED_SEGMENTS, SNAPSHOT_VERSION, type CatalogSnapshot, type Id, type Localized, type ProductKind, type SnapshotProduct } from './types.ts';
 import { isContentLinkHref, isImageKey } from './url.ts';
 
 const id = v.pipe(v.number(), v.integer(), v.minValue(1));
@@ -310,6 +310,37 @@ export function checkProductIntegrity(p: SnapshotProduct, ctx: ProductIntegrityC
     add(`${at}.images`, 'active product needs ≥ 1 general image (no variant or option-value binding)');
   }
   return issues;
+}
+
+/** An online product the storefront cannot show, and why (D-028). */
+export interface SetAsideProduct {
+  readonly id: Id;
+  readonly name: Localized<string>;
+  readonly issues: readonly SnapshotIssue[];
+}
+
+/**
+ * D-028: an `active` product that breaks a per-product rule (e.g. its last general photo was deleted after
+ * it went online) is published as a draft, so one product never blocks the publication of all the others.
+ * Returns the products to publish (those products with `status: 'draft'`) and the list set aside. Only
+ * `active` products are touched: a rule broken by a draft or archived product still fails the export.
+ */
+export function setAsideUnpublishable(
+  products: readonly SnapshotProduct[],
+  categoryIds: ReadonlySet<Id>,
+): { products: SnapshotProduct[]; setAside: SetAsideProduct[] } {
+  const variantKindById = new Map<Id, ProductKind>();
+  for (const p of products) for (const x of p.variants) variantKindById.set(x.id, p.kind);
+  const ctx: ProductIntegrityContext = { variantKindById, categoryIds };
+  const setAside: SetAsideProduct[] = [];
+  const out = products.map((p) => {
+    if (p.status !== 'active') return p;
+    const issues = checkProductIntegrity(p, ctx);
+    if (issues.length === 0) return p;
+    setAside.push({ id: p.id, name: p.name, issues });
+    return { ...p, status: 'draft' as const };
+  });
+  return { products: out, setAside };
 }
 
 /** Cross-reference checks on a structurally valid snapshot. Empty array = valid. */

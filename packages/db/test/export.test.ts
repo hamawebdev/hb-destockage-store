@@ -46,6 +46,28 @@ describe('exportCatalogSnapshot', () => {
     expect({ ...out, meta: fixtureSnapshot.meta }).toEqual(fixtureSnapshot);
   });
 
+  test('D-028: an online product the site cannot show is published as a draft, the rest still exports', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    const id = fixtureSnapshot.products.find((p) => p.status === 'active' && p.images.length > 0)!.id;
+    await exec(d1, `delete from images where product_id = ${id}`);
+    const seen: { id: number; issues: { message: string }[] }[][] = [];
+    const snap = await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false }, onSetAside: (x) => void seen.push(x as never) });
+    expect(snap.products.find((p) => p.id === id)!.status).toBe('draft');
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.map((x) => x.id)).toEqual([id]);
+    expect(seen[0]![0]!.issues[0]!.message).toMatch(/general image/);
+    // Nothing else changed.
+    const again = await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false }, onSetAside: () => {} });
+    expect(again.products.filter((p) => p.id !== id).map((p) => p.status)).toEqual(fixtureSnapshot.products.filter((p) => p.id !== id).map((p) => p.status));
+  });
+
+  test('D-028: with nothing to set aside the callback gets [] and the default warns nothing', async () => {
+    await load(fromSnapshot(fixtureSnapshot));
+    const seen: unknown[] = [];
+    await exportCatalogSnapshot(db, { integrity: { requireAllWilayas: false }, onSetAside: (x) => void seen.push(x) });
+    expect(seen).toEqual([[]]);
+  });
+
   test('carries the prices printed on a photo (DB-8), only on the images that have some', async () => {
     await load(fromSnapshot(fixtureSnapshot));
     await exec(d1, "update images set printed_prices_dzd = '[14600]' where id = 5021");

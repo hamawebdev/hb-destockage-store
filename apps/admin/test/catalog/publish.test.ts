@@ -7,7 +7,7 @@ import { idAndLabelProblems } from './html.ts';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
 
-const TOKEN = 'github_pat_TESTONLY_0000000000aaaaaaaaaabbbbbbbbbb';
+const TOKEN = 'github_pat_TESTONLY_0000000000aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd';
 const RUNS = '/repos/hamawebdev/hb-destockage-store/actions/workflows/pipeline.yml/runs';
 const DISPATCH = '/repos/hamawebdev/hb-destockage-store/actions/workflows/pipeline.yml/dispatches';
 
@@ -16,6 +16,8 @@ interface Fake {
   calls: { method: string; path: string; auth: string | null; body: unknown }[];
   /** Status the API answers with (200/204 when unset). */
   failWith: number | null;
+  /** Status the dispatch alone answers with; 'hang' = never answers (timeout). */
+  dispatchFails: number | 'drop' | null;
   down: boolean;
 }
 let gh: Fake;
@@ -24,8 +26,9 @@ beforeAll(async () => {
   h = await harness();
 });
 afterAll(async () => h?.close());
-beforeEach(() => {
-  gh = { runs: [], calls: [], failWith: null, down: false };
+beforeEach(async () => {
+  await h.db.prepare("delete from settings where key = 'admin.publish_last_request'").run();
+  gh = { runs: [], calls: [], failWith: null, dispatchFails: null, down: false };
   setGithubFetchForTests((async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
     const headers = new Headers(init?.headers);
@@ -35,6 +38,8 @@ beforeEach(() => {
     if (url.host !== 'api.github.com') return new Response('', { status: 404 });
     if ((init?.method ?? 'GET') === 'GET' && url.pathname === RUNS) return Response.json({ total_count: gh.runs.length, workflow_runs: gh.runs });
     if (init?.method === 'POST' && url.pathname === DISPATCH) {
+      if (gh.dispatchFails === 'drop') throw new DOMException('timed out', 'TimeoutError');
+      if (gh.dispatchFails !== null) return new Response('{"message":"x"}', { status: gh.dispatchFails });
       gh.runs.unshift({ id: 900 + gh.runs.length, status: 'queued', conclusion: null, event: 'workflow_dispatch', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
       return new Response(null, { status: 204 });
     }
@@ -167,5 +172,83 @@ describe('publish request', () => {
     const res = await postAs(h, USERS.owner, '/publish', { mode: 'deploy' });
     expect(res.status).toBe(400);
     expect(gh.calls).toEqual([]);
+  });
+});
+
+describe('review BOOT-41 r1', () => {
+  const dispatches = () => gh.calls.filter((x) => x.method === 'POST').length;
+
+  test('a second request within two minutes is refused (cooldown), even while no run shows yet', async () => {
+    expect((await postAs(h, USERS.owner, '/publish', {})).status).toBe(303);
+    gh.runs = []; // GitHub does not list the new run yet
+    const res = await postAs(h, USERS.content, '/publish', {});
+    expect(res.status).toBe(429);
+    expect(await res.text()).toContain('Attendez deux minutes');
+    expect(dispatches()).toBe(1);
+  });
+
+  test('simultaneous requests (two tabs, a script): exactly one reaches GitHub, exactly one audit row', async () => {
+    const before = (await requests()).length;
+    const res = await Promise.all([1, 2, 3, 4].map(() => postAs(h, USERS.owner, '/publish', {})));
+    expect(res.map((r) => r.status).sort()).toEqual([303, 429, 429, 429]);
+    expect(dispatches()).toBe(1);
+    expect((await requests()).length).toBe(before + 1);
+  });
+
+  test('after the cooldown a new request goes through', async () => {
+    await h.db.prepare("insert into settings (key, value) values ('admin.publish_last_request', ?)").bind(JSON.stringify({ at: Date.now() - 2 * 60_000 - 1 })).run();
+    expect((await postAs(h, USERS.owner, '/publish', {})).status).toBe(303);
+  });
+
+  test('a refused dispatch gives the claim back (retry allowed) and is audited as failed', async () => {
+    gh.dispatchFails = 422;
+    const res = await postAs(h, USERS.owner, '/publish', {});
+    expect(res.status).toBe(502);
+    expect(await res.text()).toContain('Réponse inattendue de GitHub');
+    const failed = await h.db.prepare("select after from audit_log where action = 'publish.requestFailed' order by id desc").first<{ after: string }>();
+    expect(JSON.parse(failed!.after)).toEqual({ error: 'unexpected' });
+    gh.dispatchFails = null;
+    expect((await postAs(h, USERS.owner, '/publish', {})).status).toBe(303);
+  });
+
+  test('a dispatch that times out keeps the claim and says the run may have started', async () => {
+    gh.dispatchFails = 'drop';
+    const res = await postAs(h, USERS.owner, '/publish', {});
+    expect(res.status).toBe(502);
+    expect(await res.text()).toContain('a peut-être démarré');
+    expect(await h.db.prepare("select count(*) n from audit_log where action = 'publish.requestUncertain'").first<{ n: number }>()).toMatchObject({ n: expect.any(Number) });
+    gh.dispatchFails = null;
+    expect((await postAs(h, USERS.owner, '/publish', {})).status).toBe(429);
+  });
+
+  test.each([
+    ['a gh login token', 'gho_' + 'a'.repeat(36)],
+    ['a classic token', 'ghp_' + 'a'.repeat(36)],
+    ['garbage with a newline', 'github_pat_' + 'a'.repeat(50) + '\nX-Evil: 1'],
+  ])('only fine-grained tokens are used: %s means "not enabled", no GitHub call', async (_n, token) => {
+    h.env.GITHUB_PUBLISH_TOKEN = token;
+    expect(await page()).toContain('pas encore activée');
+    expect(gh.calls).toEqual([]);
+  });
+
+  test('a waiting pull-request run does not count as a waiting publication', async () => {
+    gh.runs = [run(7, 'queued', null, 'pull_request')];
+    expect((await postAs(h, USERS.owner, '/publish', {})).status).toBe(303);
+    expect(dispatches()).toBe(1);
+  });
+
+  test('D-028: an online product the site cannot show is listed with the reason and a link', async () => {
+    await h.db.prepare("insert into products (id, slug_fr, slug_ar, name_fr, name_ar, status) values (7001, 'sans-photo', 'sans-photo', 'Produit sans photo', 'منتج بلا صورة', 'active')").run();
+    await h.db.prepare("insert into variants (product_id, sku, price_dzd, is_default) values (7001, 'NOPHOTO-1', 1000, 1)").run();
+    try {
+      const html = await page();
+      expect(html).toContain('data-publish-aside');
+      expect(html).toContain('<a href="/products/7001">Produit sans photo</a>');
+      expect(html).toContain('aucune photo générale');
+    } finally {
+      await h.db.prepare('delete from variants where product_id = 7001').run();
+      await h.db.prepare('delete from products where id = 7001').run();
+    }
+    expect(await page()).not.toContain('data-publish-aside');
   });
 });

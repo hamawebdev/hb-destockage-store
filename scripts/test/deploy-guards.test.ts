@@ -133,8 +133,16 @@ describe('workflow security', () => {
   });
 
   it('deploys only after the checks, from main', () => {
-    expect(exportJob).toMatch(/needs: \[typecheck, test, build\]/);
-    expect(exportJob).toMatch(/if: github\.ref == 'refs\/heads\/main'/);
+    expect(exportJob).toMatch(/needs: \[typecheck, test, build, approve\]/);
+    // Every check must have passed (not merely not failed), and the D-028 approval succeeded or was not needed.
+    for (const j of ['typecheck', 'test', 'build']) expect(exportJob).toContain(`needs.${j}.result == 'success'`);
+    expect(exportJob).toContain("(needs.approve.result == 'success' || needs.approve.result == 'skipped')");
+    expect(exportJob).toContain("github.ref == 'refs/heads/main'");
+    // D-028: anything but a plain publication started by hand waits for a person in GitHub.
+    const approveJob = job('approve');
+    expect(approveJob).toContain('environment: manual-approval');
+    expect(approveJob).toContain("if: github.event_name == 'workflow_dispatch' && !(inputs.mode == 'publish' && inputs.sha == '' && inputs.older_commit == 'no' && inputs.approve_destructive_migrations == '')");
+    expect(approveJob).not.toMatch(/secrets\./);
     expect(buildJob).toMatch(/if: needs\.export-catalogue\.outputs\.proceed == 'true' && inputs\.mode != 'backoffice'/);
     // D-025: the deploy job may run with build-site skipped only in backoffice mode; it still needs the export job's go-ahead.
     expect(deployJob).toContain("if: ${{ !cancelled() && needs.export-catalogue.result == 'success' && needs.export-catalogue.outputs.proceed == 'true' && (needs.build-site.result == 'success' || (inputs.mode == 'backoffice' && needs.build-site.result == 'skipped')) }}");

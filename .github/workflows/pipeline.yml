@@ -124,9 +124,21 @@ jobs:
   # export-catalogue (token): chooses the commit, applies migrations, exports the catalogue.
   # build-site (no environment, no secrets): runs the build's dependencies on that export.
   # deploy (token): fresh checkout, install without scripts, treats the built site as data.
+  # D-028: the admin's GitHub token can start this workflow with any inputs. A started-by-hand run that is not
+  # a plain publication (mode=publish, no sha, no older commit, no migration approval) waits here until a
+  # repository admin approves it in GitHub (environment `manual-approval`: required reviewer, no secrets).
+  # Pushes and plain publications skip it. The token cannot approve (it has no Deployments permission).
+  approve:
+    if: github.event_name == 'workflow_dispatch' && !(inputs.mode == 'publish' && inputs.sha == '' && inputs.older_commit == 'no' && inputs.approve_destructive_migrations == '')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: manual-approval
+    steps:
+      - run: echo "approved by a repository admin"
+
   export-catalogue:
-    needs: [typecheck, test, build]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [typecheck, test, build, approve]
+    if: ${{ !cancelled() && needs.typecheck.result == 'success' && needs.test.result == 'success' && needs.build.result == 'success' && (needs.approve.result == 'success' || needs.approve.result == 'skipped') && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     environment: production

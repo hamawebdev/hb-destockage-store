@@ -77,6 +77,16 @@ the token at the prompt. Without it the page says publishing is not enabled; not
 the page says GitHub refuses the key: create a new one the same way. Runs it starts appear in GitHub as started by the
 token's owner.
 
+**Approval of other manual runs (D-028).** Because that token can start the workflow with any inputs, a run started by
+hand that is not a plain publication (`mode=deploy` or `backoffice`, a `sha`, `older_commit`, or
+`approve_destructive_migrations`) now waits in the `approve` job until a repository admin approves it:
+**Actions → the run → Review deployments → manual-approval → Approve** (or
+`gh api -X POST repos/hamawebdev/hb-destockage-store/actions/runs/<id>/pending_deployments -f "environment_ids[]=<id>" -f state=approved -f comment=ok`).
+Pushes to `main` and plain publications do not wait.
+
+**One product does not block a publication.** An online product the site cannot show (for example its last general
+photo was deleted) is published as a draft and logged as a warning in the run; the admin's Publier page lists it.
+
 ## First deployment
 
 1. The first run applies the migrations to the empty database, then stops red because the catalogue is empty. That is expected, and no Worker has been deployed.

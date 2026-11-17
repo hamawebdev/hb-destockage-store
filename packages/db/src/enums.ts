@@ -153,4 +153,6 @@ export const INTERNAL_SETTINGS_KEYS = {
   telegramBotTokenEnc: 'telegram',
   /** jobs (TGS-2): Telegram health {lastOkAt, lastErrorCode, lastErrorAt}; read by the admin. */
   'jobs.telegram_status': 'jobs',
+  /** admin (BOOT-41, D-028): last publication requested from /publish {at}; the 2-minute cooldown claim. */
+  'admin.publish_last_request': 'admin',
 } as const;
