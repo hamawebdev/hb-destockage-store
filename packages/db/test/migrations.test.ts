@@ -207,6 +207,8 @@ describe('0014 rebuilds products without losing its child rows', () => {
     sqlite.exec(`insert into product_options (id, product_id, kind, name_fr, name_ar) values (3, 7, 'size', 'T', 'T')`);
     sqlite.exec(`insert into option_values (id, option_id, value_fr, value_ar) values (4, 3, 'M', 'M')`);
     sqlite.exec(`insert into variant_option_values (variant_id, option_value_id) values (70, 4)`);
+    // A category photo tied to an option value: the cascade nulls the link, the migration restores it.
+    sqlite.exec(`insert into images (id, category_id, option_value_id, r2_key, width, height, alt_fr, alt_ar) values (5, 1, 4, 'c/1.jpg', 10, 10, 'a', 'b')`);
     sqlite.exec(`insert into products (id, category_id, slug_fr, slug_ar, name_fr, name_ar, kind) values (9, 1, 'k', 'k', 'K', 'K', 'pack')`);
     sqlite.exec(`insert into pack_items (pack_product_id, variant_id, qty) values (9, 70, 2)`);
     sqlite.exec(`delete from products where id = 9`);
@@ -219,7 +221,7 @@ describe('0014 rebuilds products without losing its child rows', () => {
     const sqlite = new Database(':memory:');
     sqlite.pragma('foreign_keys = ON');
     upTo0013(sqlite);
-    const dump = () => ['products', 'variants', 'product_options', 'option_values', 'variant_option_values'].map((t) => sqlite.prepare(`select * from ${t}`).all());
+    const dump = () => ['products', 'variants', 'product_options', 'option_values', 'variant_option_values', 'images'].map((t) => sqlite.prepare(`select * from ${t}`).all());
     const before = dump();
     sqlite.exec('BEGIN');
     run0014(sqlite);

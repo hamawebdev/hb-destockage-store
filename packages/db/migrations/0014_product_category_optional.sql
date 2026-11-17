@@ -57,6 +57,8 @@ INSERT INTO `variant_option_values` SELECT * FROM `__keep_variant_option_values`
 -- Category photos (product_id NULL) were not deleted.
 INSERT INTO `images` SELECT * FROM `__keep_images` WHERE `id` NOT IN (SELECT `id` FROM `images`);--> statement-breakpoint
 INSERT INTO `pack_items` SELECT * FROM `__keep_pack_items`;--> statement-breakpoint
+-- A surviving category photo that pointed at an option value had the link set to NULL by the cascade.
+UPDATE `images` SET `option_value_id` = (SELECT k.`option_value_id` FROM `__keep_images` k WHERE k.`id` = `images`.`id`) WHERE `option_value_id` IS NULL AND `id` IN (SELECT `id` FROM `__keep_images` WHERE `option_value_id` IS NOT NULL);--> statement-breakpoint
 -- Refuse to commit unless every row is back: a false result breaks the CHECK and rolls everything back.
 CREATE TABLE `__migration_0014_check` (`ok` integer NOT NULL, CONSTRAINT "migration_0014_rows_restored" CHECK("ok" = 1));--> statement-breakpoint
 INSERT INTO `__migration_0014_check` (`ok`) SELECT (SELECT count(*) FROM `product_options`) = (SELECT count(*) FROM `__keep_product_options`) AND (SELECT count(*) FROM `option_values`) = (SELECT count(*) FROM `__keep_option_values`) AND (SELECT count(*) FROM `variant_option_values`) = (SELECT count(*) FROM `__keep_variant_option_values`) AND (SELECT count(*) FROM `images`) = (SELECT count(*) FROM `__keep_images`) AND (SELECT count(*) FROM `pack_items`) = (SELECT count(*) FROM `__keep_pack_items`);--> statement-breakpoint
