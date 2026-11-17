@@ -82,7 +82,7 @@ hand that is not a plain publication (`mode=deploy` or `backoffice`, a `sha`, `o
 `approve_destructive_migrations`) now waits in the `approve` job until a repository admin approves it:
 **Actions → the run → Review deployments → manual-approval → Approve** (or
 `gh api -X POST repos/hamawebdev/hb-destockage-store/actions/runs/<id>/pending_deployments -f "environment_ids[]=<id>" -f state=approved -f comment=ok`).
-Pushes to `main` and plain publications do not wait. The approval is valid for that attempt only: to run such a run again, use **Re-run all jobs** (it asks again); re-running a failed later job alone is refused.
+Pushes to `main` and plain publications do not wait. The approval is valid for that attempt only: to run such a run again, use **Re-run all jobs** (it asks again); re-running a later job alone skips the export, the build and the deploy, and the run still ends **green with nothing deployed**: check the job list.
 
 **One product does not block a publication.** An online product the site cannot show (for example its last general
 photo was deleted) is published as a draft and logged as a warning in the run; the admin's Publier page lists it.
