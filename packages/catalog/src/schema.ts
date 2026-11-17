@@ -125,7 +125,7 @@ const CategorySchema = v.strictObject({
 const ProductSchema = v.strictObject({
   id,
   kind: v.picklist(['simple', 'variable', 'pack']),
-  categoryId: id,
+  categoryId: v.nullable(id),
   slug: localized(productSlug),
   name: localized(nonEmpty),
   brandLatin: v.nullable(nonEmpty),
@@ -247,7 +247,7 @@ export function checkProductIntegrity(p: SnapshotProduct, ctx: ProductIntegrityC
   const issues: SnapshotIssue[] = [];
   const add = (path: string, message: string): void => void issues.push({ path, message });
   
-  if (!ctx.categoryIds.has(p.categoryId)) add(`${at}.categoryId`, `unknown category ${p.categoryId}`);
+  if (p.categoryId !== null && !ctx.categoryIds.has(p.categoryId)) add(`${at}.categoryId`, `unknown category ${p.categoryId}`);
 
   const active = p.variants.filter((x) => x.active);
   const defaults = active.filter((x) => x.isDefault);

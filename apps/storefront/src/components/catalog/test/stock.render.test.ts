@@ -95,7 +95,7 @@ describe.each(['ar', 'fr'] as const)('stock states (%s)', (l) => {
     const html = await container.renderToString(ProductView, { props: { ...p } });
     expect(html).toContain('id="cat-rel-h"');
     for (const r of p.related) expect(html).toContain(`href="${r.href}"`);
-    expect(html).toContain(`href="${p.category.href}"`);
+    expect(html).toContain(`href="${p.category!.href}"`);
     const none = await container.renderToString(ProductView, { props: { ...p, related: [] } });
     expect(none).not.toContain('cat-rel-h');
   });

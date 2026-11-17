@@ -40,7 +40,7 @@ export interface SeedCategory {
 export interface SeedProduct {
   readonly id: number;
   readonly kind: 'simple' | 'variable' | 'pack';
-  readonly categoryId: number;
+  readonly categoryId: number | null;
   readonly slug: Localized<string>;
   readonly name: Localized<string>;
   readonly brandLatin: string | null;

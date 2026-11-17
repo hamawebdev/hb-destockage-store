@@ -97,6 +97,24 @@ export function normalizeSku(s: string): string {
   return s.trim().toUpperCase();
 }
 
+/** Prefix of the SKUs the admin proposes for a new product: `CDL-0001`, `CDL-0002`, … */
+export const AUTO_SKU_PREFIX = 'CDL-';
+
+/**
+ * The SKU proposed for a new product: `CDL-` + the number after the highest one in use, four digits
+ * at least. `existing` = the SKUs that start with the prefix. A number counts as used by `CDL-0007`
+ * and by its variants (`CDL-0007-ROUGE`), so a new product never lands inside another one's family.
+ * Only a proposal: the editor may type any other SKU.
+ */
+export function nextAutoSku(existing: Iterable<string>): string {
+  let max = 0;
+  for (const sku of existing) {
+    const m = /^CDL-(\d{1,9})(?:-|$)/.exec(normalizeSku(sku));
+    if (m !== null) max = Math.max(max, Number(m[1]));
+  }
+  return `${AUTO_SKU_PREFIX}${String(max + 1).padStart(4, '0')}`;
+}
+
 function buildSku(base: string, codes: readonly string[]): string {
   const joined = [base, ...codes].join('-');
   return joined.length <= SKU_MAX ? joined : joined.slice(0, SKU_MAX).replace(/[-._]+$/, '');

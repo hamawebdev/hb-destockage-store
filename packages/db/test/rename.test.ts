@@ -45,8 +45,8 @@ function leftovers(db: Database.Database): string[] {
 }
 
 describe('0013 rename to Comptoir de Luxe', () => {
-  test('is the last migration and holds only UPDATE statements', () => {
-    expect(migrationFiles().at(-1)).toBe(FILE);
+  test('is in the migration list and holds only UPDATE statements', () => {
+    expect(migrationFiles()).toContain(FILE);
     for (const s of statements(FILE)) expect(s.replace(/^--.*$/gm, '').trim()).toMatch(/^UPDATE /);
   });
 

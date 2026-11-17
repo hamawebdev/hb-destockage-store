@@ -118,8 +118,9 @@ export interface ListRow {
   kind: Product['kind'];
   status: Product['status'];
   placeholder: boolean;
-  categoryNameFr: string;
-  categoryNameAr: string;
+  /** Null when the product has no category. */
+  categoryNameFr: string | null;
+  categoryNameAr: string | null;
   minPrice: number | null;
   maxPrice: number | null;
   variantCount: number;
@@ -160,7 +161,7 @@ export async function listProducts(c: Ctx, f: ListFilters, limit: number, offset
         untrackedCount: sql<number>`(select count(*) from variants v where v.product_id = ${products.id} and v.active = 1 and v.stock is null)`,
       })
       .from(products)
-      .innerJoin(categories, eq(categories.id, products.categoryId))
+      .leftJoin(categories, eq(categories.id, products.categoryId))
       .where(cond)
       .orderBy(desc(products.updatedAt), desc(products.id))
       .limit(limit)
@@ -477,7 +478,8 @@ export async function activationIssues(c: Ctx, agg: ProductAggregate): Promise<A
     categoryIds: new Set(cats.map((k) => k.id)),
   }).map((i) => ({ rule: 'integrity' as const, detail: i.message }));
   if (agg.variants.some((x) => x.active && x.priceDzd < 1)) issues.push({ rule: 'price' });
-  if (!categoryPublished(cats, agg.product.categoryId)) issues.push({ rule: 'category' });
+  // No category is fine; a chosen one must be on sale, with its ancestors.
+  if (agg.product.categoryId !== null && !categoryPublished(cats, agg.product.categoryId)) issues.push({ rule: 'category' });
   return issues;
 }
 

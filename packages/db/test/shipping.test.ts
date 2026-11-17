@@ -176,8 +176,11 @@ describe.skipIf(!hasData)('migrations 0011 and 0012 on a seeded database', () =>
   test('existing rows are untouched and the triggers work on real data', async () => {
     const sqlite = new Database(':memory:');
     sqlite.pragma('foreign_keys = ON');
+    // One transaction per file, as D1 applies a migration (0014 relies on it).
     const applyFile = (file: string) => {
+      sqlite.exec('BEGIN');
       for (const stmt of readFileSync(join(MIGRATIONS_DIR, file), 'utf8').split('--> statement-breakpoint')) if (stmt.trim()) sqlite.exec(stmt);
+      sqlite.exec('COMMIT');
     };
     const files = migrationFiles();
     const firstNew = files.findIndex((f) => f.startsWith('0011_'));

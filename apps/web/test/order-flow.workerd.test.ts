@@ -307,3 +307,38 @@ describe('no-JS review → confirm → 303, real D1', () => {
     expect(JSON.parse((await one<{ flags: string }>(`select flags from orders where ref = ?`, ref))!.flags)).toEqual(['fast_fill', 'turnstile_missing']);
   });
 });
+
+describe('products with no category can be ordered (simple, variable, pack)', () => {
+  beforeAll(async () => {
+    for (const sql of [
+      `insert into products (id, kind, category_id, slug_fr, slug_ar, name_fr, name_ar, status) values
+         (501, 'simple',   null, 'sans-categorie',   'bila-sinf',   'Sans catégorie',   'بدون صنف',   'active'),
+         (502, 'variable', null, 'sans-categorie-v', 'bila-sinf-v', 'Sans catégorie V', 'بدون صنف ب', 'active'),
+         (503, 'pack',     null, 'sans-categorie-p', 'bila-sinf-p', 'Sans catégorie P', 'بدون صنف ح', 'active')`,
+      `insert into variants (id, product_id, sku, price_dzd, stock, active, is_default) values
+         (5011, 501, 'CDL-0001',   1900, 4,    1, 1),
+         (5021, 502, 'CDL-0002-M', 2500, null, 1, 1),
+         (5022, 502, 'CDL-0002-L', 2700, null, 1, 0),
+         (5031, 503, 'CDL-0003',   4000, null, 1, 1)`,
+      `insert into product_options (id, product_id, kind, name_fr, name_ar, position) values (501, 502, 'size', 'Taille', 'المقاس', 0)`,
+      `insert into option_values (id, option_id, value_fr, value_ar, position) values (5011, 501, 'M', 'متوسط', 0), (5012, 501, 'L', 'كبير', 1)`,
+      `insert into variant_option_values (variant_id, option_value_id) values (5021, 5011), (5022, 5012)`,
+      `insert into pack_items (pack_product_id, variant_id, qty) values (503, 5011, 2)`,
+    ]) await h.env.DB.prepare(sql).run();
+  });
+
+  test.each([
+    ['simple', 5011, 1900],
+    ['variable', 5022, 2700],
+    ['pack', 5031, 4000],
+  ])('%s: 201 with the server totals and the line recorded', async (_kind, variantId, price) => {
+    const { status, json } = await send(order({ items: [{ variantId, qty: 1 }], expectedTotalDzd: price + 600 }));
+    expect(status).toBe(201);
+    expect(json).toMatchObject({ ok: true, status: 'new', subtotalDzd: price, feeDzd: 600, totalDzd: price + 600 });
+    const line = await one<{ variant_id: number; product_id: number; unit_price_dzd: number }>(
+      'select oi.variant_id, oi.product_id, oi.unit_price_dzd from order_items oi join orders o on o.id = oi.order_id where o.ref = ?',
+      json['ref'],
+    );
+    expect(line).toEqual({ variant_id: variantId, product_id: Math.floor(variantId / 10), unit_price_dzd: price });
+  });
+});

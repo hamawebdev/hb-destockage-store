@@ -17,12 +17,12 @@ export interface SearchFolding {
 
 const STOCK_CODE: Readonly<Record<StockState, 0 | 1 | 2>> = { in_stock: 0, low_stock: 1, out_of_stock: 2 };
 
-/** Fields folded into `k`, in this order, `|`-separated: name, brand, category, option values. */
+/** Fields folded into `k`, in this order, `|`-separated: name, brand, category (when it has one), option values. */
 export function searchFields(ctx: BuildContext, productId: number, lang: Lang): string[] {
   const p = ctx.productById.get(productId)!;
-  const cat = ctx.categoryById.get(p.categoryId)!;
+  const cat = p.categoryId === null ? undefined : ctx.categoryById.get(p.categoryId);
   const values = p.options.flatMap((o) => o.values.map((x) => x.value[lang]));
-  return [p.name[lang], ...(p.brandLatin ? [p.brandLatin] : []), cat.name[lang], ...values];
+  return [p.name[lang], ...(p.brandLatin ? [p.brandLatin] : []), ...(cat ? [cat.name[lang]] : []), ...values];
 }
 
 export function buildSearchIndex(ctx: BuildContext, lang: Lang, folding: SearchFolding): SearchIndex {
@@ -34,7 +34,7 @@ export function buildSearchIndex(ctx: BuildContext, lang: Lang, folding: SearchF
       id: p.id,
       n: card.name,
       b: card.brandLatin,
-      c: ctx.categoryById.get(p.categoryId)!.name[lang],
+      c: p.categoryId === null ? null : ctx.categoryById.get(p.categoryId)!.name[lang],
       p: card.price.amountDzd,
       u: assertSameOriginPath(card.href, `search ${lang} ${p.id}`),
       t: thumb === null ? null : assertSameOriginPath(thumb, `search thumb ${lang} ${p.id}`),

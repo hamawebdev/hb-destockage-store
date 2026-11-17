@@ -1,6 +1,12 @@
 // ACAT-2 products, options/matrix, variant grid, status: HTTP tests on a real D1.
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { harness, postAs, USERS, type Harness } from '../helpers.ts';
+import { fileURLToPath } from 'node:url';
+import { createDb } from '@hb/db';
+import { exportCatalogSnapshot } from '@hb/db/export';
+import { buildAllPages, buildHomeProps, buildProductProps, createBuildContext } from '@hb/catalog/build';
+import { stubImageManifest } from '@hb/catalog/image-stub';
+import { findRepoRoot, loadStrings } from '@hb/catalog/sources';
 import { idAndLabelProblems } from './html.ts';
 
 // The shared machine is heavily loaded: real-D1 HTTP tests can take seconds each.
@@ -352,5 +358,110 @@ describe('accessibility of repeated cards (rev-f a7c5393 F1)', () => {
       expect(idAndLabelProblems(html)).toEqual([]);
       expect(idAndLabelProblems(grid.slice(0, grid.indexOf('</section>')), /<fieldset class="localized">[\s\S]*?<\/fieldset>/)).toEqual([]);
     }
+  });
+});
+
+describe('no category, automatic SKU', () => {
+  const bare = (kind: string, n: number) => ({ kind, name_fr: `Sans catégorie ${n}`, name_ar: `بدون صنف ${n}`, price: '1900' });
+  const skuOf = async (pid: number) => (await variantsOf(pid))[0]!.sku;
+  const categoryOf = async (pid: number) => (await one<{ category_id: number | null }>('select category_id from products where id = ?', pid))!.category_id;
+  const publish = async (pid: number) => {
+    await h.db.prepare("insert into images (product_id, r2_key, width, height, alt_fr, alt_ar) values (?, ?, 1200, 1200, 'Photo', 'صورة')").bind(pid, `p/nc-${pid}.jpg`).run();
+    return post(USERS.content, `/products/${pid}/status`, { to: 'active', v: String((await productOf(pid))!.updated_at) });
+  };
+
+  test('the create form proposes the next SKU and does not require a category', async () => {
+    const html = await (await h.as(USERS.content, '/products/new')).text();
+    expect(html).toMatch(/<input[^>]*name="sku"[^>]*value="CDL-0001"/);
+    expect(html).toMatch(/<input[^>]*name="sku_auto"[^>]*value="CDL-0001"/);
+    expect(/<select[^>]*name="category_id"[^>]*>/.exec(html)![0]).not.toContain('required');
+    expect(/<input[^>]*name="sku"[^>]*>/.exec(html)![0]).not.toContain('required');
+    expect(html).toContain('Sans catégorie');
+    expect(idAndLabelProblems(html)).toEqual([]);
+  });
+
+  test('simple, variable and pack are created with no category and no SKU typed, each with its own SKU, then published', async () => {
+    const simple = await create({ ...bare('simple', 1), category_id: '', sku: '' });
+    const variable = await create({ ...bare('variable', 2), category_id: '', sku: '' });
+    // As the form posts it: the proposed SKU left untouched.
+    const pack = await create({ ...bare('pack', 3), category_id: '', sku: 'CDL-0003', sku_auto: 'CDL-0003' });
+    expect(await Promise.all([simple, variable, pack].map(categoryOf))).toEqual([null, null, null]);
+    expect(await Promise.all([simple, variable, pack].map(skuOf))).toEqual(['CDL-0001', 'CDL-0002', 'CDL-0003']);
+
+    // Variable: every variant gets its own SKU, built on the product's.
+    const form = await optionsForm(variable, [{ fr: 'Taille', ar: 'المقاس', values: [['M', 'م'], ['L', 'ل']] }, { kind: 'colour', fr: 'Couleur', ar: 'اللون', values: [['Rouge', 'أحمر'], ['Noir', 'أسود']] }]);
+    expect((await post(USERS.content, `/products/${variable}/options/apply`, { ...form, base_sku: 'CDL-0002' })).status).toBe(303);
+    const skus = (await variantsOf(variable)).map((x) => x.sku);
+    expect(skus).toEqual(['CDL-0002', 'CDL-0002-M-NOIR', 'CDL-0002-L-ROUGE', 'CDL-0002-L-NOIR']);
+    // The next product does not land inside that family.
+    expect(await skuOf(await create({ ...bare('simple', 4), category_id: '', sku: '' }))).toBe('CDL-0004');
+
+    // Pack contents, then all three go on sale with no category.
+    const item = (await variantsOf(simple))[0]!.id;
+    expect((await post(USERS.content, `/products/${pack}/pack/add`, { v: String((await productOf(pack))!.updated_at), variant_id: String(item), qty: '2' })).status).toBe(303);
+    for (const pid of [simple, variable, pack]) {
+      const res = await publish(pid);
+      expect(res.status, `product ${pid}`).toBe(303);
+      expect((await productOf(pid))!.status).toBe('active');
+    }
+    // What the next publish builds: the export of this database, through the storefront's page builder.
+    for (const sql of [
+      "insert into settings (key, value) values ('storeName', '{\"fr\":\"CDL\",\"ar\":\"CDL\"}') on conflict (key) do nothing",
+      "insert into settings (key, value) values ('contactPhone', '\"0560417403\"') on conflict (key) do nothing",
+      "insert into settings (key, value) values ('whatsapp', '\"213779942022\"') on conflict (key) do nothing",
+    ]) await h.db.prepare(sql).run();
+    const snapshot = await exportCatalogSnapshot(createDb(h.db), { integrity: { requireAllWilayas: false } });
+    const strings = await loadStrings(findRepoRoot(fileURLToPath(import.meta.url)));
+    const ctx = createBuildContext(snapshot, { siteUrl: 'https://comptoirdeluxe.com', strings, images: stubImageManifest(snapshot) });
+    expect(() => buildAllPages(ctx)).not.toThrow();
+    for (const lang of ['ar', 'fr'] as const) {
+      const home = buildHomeProps(ctx, lang);
+      expect(home.featured.map((x) => x.id).slice(0, home.pinnedCount).sort()).toEqual([simple, variable, pack].sort());
+      for (const pid of [simple, variable, pack]) {
+        const page = buildProductProps(ctx, lang, pid);
+        expect(page.category).toBeNull();
+        expect(page.orderForm.orderable).toBe(true);
+        expect(home.featured.find((x) => x.id === pid)!.href).toBe(page.product.href);
+      }
+      // Under no category: the only category has no product.
+      expect(home.categories.every((x) => x.count === 0)).toBe(true);
+    }
+
+    // Listed in the admin under "Sans catégorie"; the edit page still offers the categories.
+    expect(await (await h.as(USERS.content, '/products')).text()).toContain('Sans catégorie');
+    const edit = await (await h.as(USERS.content, `/products/${simple}`)).text();
+    expect(edit).toContain('Cuisine');
+    expect(idAndLabelProblems(edit.slice(0, edit.indexOf('</form>')))).toEqual([]);
+  });
+
+  test('a SKU typed by hand is kept, on creation and afterwards', async () => {
+    const pid = await create({ ...bare('simple', 5), category_id: '', sku: 'mon-sku-01', sku_auto: 'CDL-0001' });
+    expect(await skuOf(pid)).toBe('MON-SKU-01');
+    const v = (await variantsOf(pid))[0]!;
+    expect((await post(USERS.content, `/products/${pid}/variants`, { ...(await gridValues(pid)), [`sku_${v.id}`]: 'AUTRE-REF' })).status).toBe(303);
+    expect(await skuOf(pid)).toBe('AUTRE-REF');
+    // A typed SKU that is taken is refused, never replaced silently.
+    const res = await post(USERS.content, '/products', { ...bare('simple', 6), sku: 'autre-ref', sku_auto: 'CDL-0001' });
+    expect(res.status).toBe(422);
+    expect(await res.text()).toContain('déjà utilisé');
+  });
+
+  test('a proposed SKU taken by someone else meanwhile is replaced by the next one', async () => {
+    await create({ ...bare('simple', 7), sku: 'CDL-0001' });
+    const pid = await create({ ...bare('simple', 8), sku: 'CDL-0001', sku_auto: 'CDL-0001' });
+    expect(await skuOf(pid)).toBe('CDL-0002');
+  });
+
+  test('a category can still be chosen, and removed or set later', async () => {
+    const pid = await create({ ...bare('simple', 9), category_id: String(catId), sku: '' });
+    expect(await categoryOf(pid)).toBe(catId);
+    const details = async (category_id: string) => {
+      const p = (await one<{ slug_fr: string; slug_ar: string; updated_at: number }>('select * from products where id = ?', pid))!;
+      return post(USERS.content, `/products/${pid}`, { category_id, name_fr: 'Sans catégorie 9', name_ar: 'بدون صنف 9', slug_fr: p.slug_fr, slug_ar: p.slug_ar, v: String(p.updated_at) });
+    };
+    expect((await details('')).status).toBe(303);
+    expect(await categoryOf(pid)).toBeNull();
+    expect((await details(String(catId))).status).toBe(303);
+    expect(await categoryOf(pid)).toBe(catId);
   });
 });

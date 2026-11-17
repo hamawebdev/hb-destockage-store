@@ -91,7 +91,7 @@ if (root) {
     }
     const price = money.format(e.p);
     meta.append(el('span', 'cat-res-price', e.f ? fill(S['price.from'], { price }) : price));
-    meta.append(' · ' + e.c);
+    if (e.c) meta.append(' · ' + e.c);
     if (e.s === 2) meta.append(' · ', el('span', 'cat-res-out', S['stock.out']));
     if (e.x && S['dev.placeholder']) meta.append(' ' + S['dev.placeholder']);
     text.append(meta);

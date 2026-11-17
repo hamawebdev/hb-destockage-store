@@ -5,7 +5,8 @@ import { fixtureContext, FIXTURE_SITE_URL } from '../src/fixtures/props.ts';
 import stringsAr from '../src/fixtures/strings.ar.json' with { type: 'json' };
 import stringsFr from '../src/fixtures/strings.fr.json' with { type: 'json' };
 import { stubImageManifest } from '../src/image-stub.ts';
-import { fixtureSnapshot, LANGS } from '../src/index.ts';
+import { fixtureSnapshot, LANGS, validateSnapshot } from '../src/index.ts';
+import { buildSearchIndex } from '../src/search.ts';
 
 const ctx = fixtureContext();
 const strings = { ar: stringsAr as Record<string, string>, fr: stringsFr as Record<string, string> };
@@ -419,5 +420,71 @@ describe('photos with a printed price (HOME-0: never on the homepage)', () => {
     const h = buildHomeProps(c, 'fr');
     expect(h.hero.image).toBeNull();
     expect(h.layout.lcpImage).toBeNull();
+  });
+});
+
+describe('a product with no category', () => {
+  type Snap = typeof fixtureSnapshot;
+  // 105 loses its category; the admin's home selection (106, 101, 104) does not name it.
+  function build(mut: (s: Snap) => void = () => {}) {
+    const snapshot = structuredClone(fixtureSnapshot) as Snap;
+    (snapshot.products.find((p) => p.id === 105)! as { categoryId: number | null }).categoryId = null;
+    mut(snapshot);
+    return createBuildContext(snapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: stubImageManifest(snapshot) });
+  }
+  const c = build();
+  const folding = { searchKey: (x: string) => x.toLowerCase(), normalizeForSearch: (x: string) => x.toLowerCase() };
+
+  test('the snapshot is valid and the product is published, with its page and its order page', () => {
+    expect(validateSnapshot(c.snapshot, { requireAllWilayas: false }).ok).toBe(true);
+    expect(c.publishedProductIds.has(105)).toBe(true);
+    const templates = c.router.entries().filter((e) => e.entityId === 105 && (e.template === 'product' || e.template === 'order-step')).map((e) => `${e.lang} ${e.template}`).sort();
+    expect(templates).toEqual(['ar order-step', 'ar product', 'fr order-step', 'fr product']);
+    expect(() => buildAllPages(c)).not.toThrow();
+  });
+
+  test.each(LANGS)('home (%s): always in the products section, first, whatever the selection', (lang) => {
+    const h = buildHomeProps(c, lang);
+    expect(h.featured[0]!.id).toBe(105);
+    expect(h.pinnedCount).toBe(1);
+    expect(h.featured.map((x) => x.id).slice(1)).toEqual(buildHomeProps(fixtureContext(), lang).featured.map((x) => x.id).filter((id) => id !== 105));
+    expect(h.featured[0]!.href).toBe(c.router.url(lang, { template: 'product', id: 105 }));
+    expect(buildHomeProps(fixtureContext(), lang).pinnedCount).toBe(0);
+  });
+
+  test('home: listed even with no photo, and never with a photo that prints a price', () => {
+    const none = build((s) => void ((s.products.find((p) => p.id === 105)! as unknown as { images: unknown[] }).images = []));
+    expect(buildHomeProps(none, 'fr').featured[0]).toMatchObject({ id: 105, image: null });
+    const printed = build((s) => {
+      for (const img of s.products.find((p) => p.id === 105)!.images) (img as { printedPricesDzd?: readonly number[] }).printedPricesDzd = [1900];
+    });
+    expect(buildHomeProps(printed, 'fr').featured[0]).toMatchObject({ id: 105, image: null });
+  });
+
+  test.each(LANGS)('product page (%s): no category, breadcrumb Home › product, orderable', (lang) => {
+    const p = buildProductProps(c, lang, 105);
+    expect(p.category).toBeNull();
+    expect(p.breadcrumbs.map((b) => b.href)).toEqual([c.router.url(lang, { template: 'home' }), null]);
+    expect(p.orderForm.orderable).toBe(true);
+    expect(p.orderForm.productId).toBe(105);
+  });
+
+  test('under no category: not in any listing, count or navigation total; still found by search', () => {
+    for (const cat of c.categories) {
+      expect(c.subtreeProducts.get(cat.id)!.map((p) => p.id)).not.toContain(105);
+    }
+    const before = fixtureContext();
+    const was = fixtureSnapshot.products.find((p) => p.id === 105)!.categoryId!;
+    expect(c.subtreeProducts.get(was)!.length).toBe(before.subtreeProducts.get(was)!.length - 1);
+    const entry = buildSearchIndex(c, 'fr', folding).entries.find((e) => e.id === 105)!;
+    expect(entry.c).toBeNull();
+    expect(entry.k).toContain(c.productById.get(105)!.name.fr.toLowerCase());
+  });
+
+  test('a category that does not exist is still refused', () => {
+    const s = structuredClone(fixtureSnapshot) as Snap;
+    (s.products.find((p) => p.id === 105)! as { categoryId: number | null }).categoryId = 9999;
+    const r = validateSnapshot(s, { requireAllWilayas: false });
+    expect(r.ok ? [] : r.issues.map((i) => i.message)).toContain('unknown category 9999');
   });
 });

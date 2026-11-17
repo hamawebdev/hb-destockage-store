@@ -55,7 +55,10 @@ export const DetailsSchema = v.strictObject({
 export const CreateSchema = v.strictObject({
   ...detailsEntries,
   kind: vPicklist(['simple', 'variable', 'pack'] as const),
-  sku: v.pipe(vText(40), v.transform(normalizeSku)),
+  /** Empty = take the next automatic SKU. */
+  sku: v.pipe(vOptionalText(40), v.transform((s) => (s === null ? null : normalizeSku(s)))),
+  /** The SKU the form proposed: when `sku` still equals it and it got taken meanwhile, the next one is used. */
+  sku_auto: v.pipe(vOptionalText(40), v.transform((s) => (s === null ? null : normalizeSku(s)))),
   price: vMoneyDzd(LIMITS.price),
   compare_at: vOptionalMoneyDzd(LIMITS.price),
   stock: optionalInt(0, LIMITS.stock),
@@ -66,7 +69,8 @@ export type DetailsData = v.InferOutput<typeof DetailsSchema>;
 export type CreateData = v.InferOutput<typeof CreateSchema>;
 
 export interface ProductRow {
-  categoryId: number;
+  /** Null = no category. */
+  categoryId: number | null;
   nameFr: string;
   nameAr: string;
   brandLatin: string | null;
@@ -118,7 +122,8 @@ export function finishDetails(data: DetailsData | CreateData, ctx: DetailsContex
   };
   const slugFr = slug('fr', data.slug_fr, nameFr);
   const slugAr = slug('ar', data.slug_ar, nameAr);
-  if (data.category_id === null || !ctx.categoryIds.has(data.category_id)) errors['category_id'] = 'err.category';
+  // The category is optional; one that is chosen must exist.
+  if (data.category_id !== null && !ctx.categoryIds.has(data.category_id)) errors['category_id'] = 'err.category';
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   const translationPlaceholder: ('fr' | 'ar')[] = [];
   if (data.tp_fr === true) translationPlaceholder.push('fr');
@@ -126,7 +131,7 @@ export function finishDetails(data: DetailsData | CreateData, ctx: DetailsContex
   return {
     ok: true,
     row: {
-      categoryId: data.category_id as number,
+      categoryId: data.category_id,
       nameFr,
       nameAr,
       brandLatin,
@@ -143,11 +148,11 @@ export function finishDetails(data: DetailsData | CreateData, ctx: DetailsContex
   };
 }
 
-/** First variant of a new product. */
-export function finishFirstVariant(data: CreateData, skuTaken: (sku: string) => boolean): { ok: true } | { ok: false; errors: Errors } {
+/** First variant of a new product. `sku` = the one typed, or the automatic one when the field was left as proposed. */
+export function finishFirstVariant(data: CreateData, sku: string, skuTaken: (sku: string) => boolean): { ok: true } | { ok: false; errors: Errors } {
   const errors: Errors = {};
-  if (!SKU_RE.test(data.sku)) errors['sku'] = 'err.sku_format';
-  else if (skuTaken(data.sku)) errors['sku'] = 'err.sku_taken';
+  if (!SKU_RE.test(sku)) errors['sku'] = 'err.sku_format';
+  else if (skuTaken(sku)) errors['sku'] = 'err.sku_taken';
   if (data.compare_at !== null && data.compare_at <= data.price) errors['compare_at'] = 'err.compare_at';
   return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true };
 }

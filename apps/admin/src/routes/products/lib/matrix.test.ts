@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  nextAutoSku,
   generateMatrix,
   MATRIX_LIMITS,
   SKU_MAX,
@@ -221,5 +222,17 @@ describe('generateMatrix: errors', () => {
     expect(errs({ options: [o(1, MATRIX_LIMITS.maxValuesPerOption + 1)] })).toContain('too_many_values');
     expect(errs({ options: [o(1, 11), o(2, 10)] })).toEqual(['too_many_combinations']);
     expect(errs({ options: [o(1, 10), o(2, 10)] })).toEqual([]);
+  });
+});
+
+describe('nextAutoSku', () => {
+  it('starts at CDL-0001 and follows the highest number in use, variants included', () => {
+    expect(nextAutoSku([])).toBe('CDL-0001');
+    expect(nextAutoSku(['CDL-0001', 'CDL-0007-ROUGE', 'cdl-0003'])).toBe('CDL-0008');
+    expect(nextAutoSku(['CDL-9999'])).toBe('CDL-10000');
+  });
+  it('ignores SKUs that are not of that form, and always matches the SKU format', () => {
+    expect(nextAutoSku(['CDL-ABC', 'CDL-12X', 'HB-POELE', 'CDL-'])).toBe('CDL-0001');
+    expect(SKU_RE.test(nextAutoSku(['CDL-123456789']))).toBe(true);
   });
 });

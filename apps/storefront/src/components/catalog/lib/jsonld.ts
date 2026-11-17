@@ -34,7 +34,7 @@ export function productJsonLd(p: ProductProps): Record<string, unknown> {
     ...(p.images.length ? { image: p.images.map(largest) } : {}),
     ...(def ? { sku: def.sku } : {}),
     ...(p.product.brandLatin ? { brand: { '@type': 'Brand', name: p.product.brandLatin } } : {}),
-    category: p.category.name,
+    ...(p.category ? { category: p.category.name } : {}),
     offers: offers.length === 1 ? offers[0] : offers,
   };
 }

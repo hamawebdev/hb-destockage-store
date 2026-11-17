@@ -104,7 +104,8 @@ export type ProductStatus = 'draft' | 'active' | 'archived';
 export interface SnapshotProduct {
   readonly id: Id;
   readonly kind: ProductKind;
-  readonly categoryId: Id;
+  /** Null = no category: published like any other product (own page, home, search), listed under no category. */
+  readonly categoryId: Id | null;
   readonly slug: Localized<string>;
   readonly name: Localized<string>;
   /** Latin brand name, rendered in `<bdi lang="fr">` on Arabic pages. Null when unbranded. */
@@ -578,7 +579,11 @@ export interface HomeProps {
   readonly hero: { readonly image: ImageProps | null; readonly product: ProductCard | null };
   /** Top-level categories. */
   readonly categories: readonly CategoryLink[];
+  /** The products section. Products with no category come first. */
   readonly featured: readonly ProductCard[];
+  /** How many leading `featured` cards are products with no category: the page must never hide them
+   *  (it trims trailing cards to whole rows), the home page being the only listing they are on. */
+  readonly pinnedCount: number;
   readonly packs: readonly ProductCard[];
 }
 
@@ -718,8 +723,8 @@ export interface ProductProps {
     readonly placeholder: boolean;
     readonly translationPlaceholder: boolean;
   };
-  /** The product's own category (for "more in …" and JSON-LD `category`). */
-  readonly category: { readonly id: Id; readonly name: string; readonly href: string };
+  /** The product's own category (for "more in …" and JSON-LD `category`). Null when it has none. */
+  readonly category: { readonly id: Id; readonly name: string; readonly href: string } | null;
   /** ORDER-STEP: the product's order page /{lang}/order/<slug>/ (the GET form's action, the CTA link). */
   readonly orderStepHref: string;
   readonly breadcrumbs: readonly Breadcrumb[];
@@ -769,8 +774,8 @@ export interface SearchIndexEntry {
   readonly n: string;
   /** Latin brand or null. */
   readonly b: string | null;
-  /** Category name. */
-  readonly c: string;
+  /** Category name; null when the product has no category. */
+  readonly c: string | null;
   /** Price DZD (lowest). */
   readonly p: number;
   /** Product page path. */
@@ -830,7 +835,7 @@ export interface OrderStepProps {
     readonly translationPlaceholder: boolean;
   };
   /** The product's own category (same object as ProductProps.category). */
-  readonly category: { readonly id: Id; readonly name: string; readonly href: string };
+  readonly category: { readonly id: Id; readonly name: string; readonly href: string } | null;
   /**
    * Main photo for the ≤ 120 px summary: candidates ≤ 480 w only, `sizes: 120px`, `lcp: false`.
    * Render loading="eager" without fetchpriority and without a preload. Null when the product has no image.

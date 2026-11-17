@@ -33,9 +33,12 @@ const featuredIds = new Set(p.featured.map((c) => c.id));
 const morePacks = p.packs.filter((c) => !featuredIds.has(c.id));
 const cards = [...p.featured, ...morePacks];
 // Whole rows of cards at 2, 3 and 4 columns: a short last row reads as unfinished.
-const trim2 = cards.length - (cards.length % 2);
-const trim3 = cards.length >= 3 ? cards.length - (cards.length % 3) : cards.length;
-const trim4 = cards.length >= 4 ? cards.length - (cards.length % 4) : cards.length;
+// Never at the cost of a product with no category (the first `pinnedCount` cards): this page is the only
+// listing it is on, so a trim that would hide one is skipped.
+const keep = (n: number) => (n >= p.pinnedCount ? n : cards.length);
+const trim2 = keep(cards.length - (cards.length % 2));
+const trim3 = keep(cards.length >= 3 ? cards.length - (cards.length % 3) : cards.length);
+const trim4 = keep(cards.length >= 4 ? cards.length - (cards.length % 4) : cards.length);
 ---
 <section class="hm-hero" aria-labelledby="hm-title">
   <div class="container hm-hero-in">

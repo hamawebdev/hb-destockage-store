@@ -3,7 +3,7 @@
  * sitemap so they can never disagree.
  *  - A category is published when it and every ancestor are `active`.
  *  - A product is published when `status === 'active'`, it has ≥ 1 active variant, and its
- *    category is published.
+ *    category is published or it has no category (`categoryId === null`).
  *  - A content page is published when `active`.
  * Ordering: `sort`, then `id`.
  */
@@ -28,7 +28,7 @@ export function publishedProducts(
 ): SnapshotProduct[] {
   const cats = new Set(categories.map((c) => c.id));
   return snapshot.products
-    .filter((p) => p.status === 'active' && cats.has(p.categoryId) && p.variants.some((v) => v.active))
+    .filter((p) => p.status === 'active' && (p.categoryId === null || cats.has(p.categoryId)) && p.variants.some((v) => v.active))
     .sort(bySortThenId);
 }
 
@@ -59,5 +59,5 @@ export function categoryProductIds(
   products: readonly SnapshotProduct[] = publishedProducts(snapshot),
 ): Id[] {
   const ids = categoryDescendantIds(snapshot, categoryId);
-  return products.filter((p) => ids.has(p.categoryId)).map((p) => p.id);
+  return products.filter((p) => p.categoryId !== null && ids.has(p.categoryId)).map((p) => p.id);
 }

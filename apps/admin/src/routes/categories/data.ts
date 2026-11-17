@@ -41,6 +41,7 @@ export async function productCounts(c: Ctx): Promise<Map<number, ProductCounts>>
     .groupBy(products.categoryId, products.status);
   const out = new Map<number, ProductCounts>();
   for (const r of rows) {
+    if (r.categoryId === null) continue; // products with no category
     const cur = out.get(r.categoryId) ?? { total: 0, active: 0 };
     cur.total += r.n;
     if (r.status === 'active') cur.active += r.n;

@@ -145,9 +145,8 @@ export const products = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     kind: text('kind', { enum: PRODUCT_KINDS }).notNull().default('simple'),
-    categoryId: integer('category_id')
-      .notNull()
-      .references(() => categories.id, { onDelete: 'restrict' }),
+    /** NULL = no category: the product is sold (home, search, own page) but listed under no category. */
+    categoryId: integer('category_id').references(() => categories.id, { onDelete: 'restrict' }),
     slugFr: text('slug_fr').notNull(),
     slugAr: text('slug_ar').notNull(),
     nameFr: text('name_fr').notNull(),

@@ -136,7 +136,13 @@ describe('data loaded at 0000 survives every later migration', () => {
     const tables = (sqlite.prepare("select name from sqlite_master where type = 'table' and name not like 'sqlite_%'").all() as { name: string }[]).map((r) => r.name);
     const before = Object.fromEntries(tables.map((t) => [t, (sqlite.prepare(`select count(*) n from "${t}"`).get() as { n: number }).n]));
     expect(Object.values(before).every((n) => n >= 1)).toBe(true);
-    for (const f of files.slice(1)) for (const s of statements(f)) sqlite.exec(s);
+    // One transaction per file, as D1 applies a migration: 0014 relies on it (PRAGMA defer_foreign_keys
+    // lasts until the commit, and its DROP TABLE fails on purpose outside one).
+    for (const f of files.slice(1)) {
+      sqlite.exec('BEGIN');
+      for (const s of statements(f)) sqlite.exec(s);
+      sqlite.exec('COMMIT');
+    }
     const bad = await columnNameValues(
       tables,
       async (t) => sqlite.prepare('select name, type from pragma_table_info(?)').all(t) as { name: string; type: string }[],
@@ -164,7 +170,15 @@ describe('data loaded at 0000 survives every later migration', () => {
       for (const s of statements(files[0]!)) await d1.prepare(s).run();
       for (const s of fixture) await d1.prepare(s).run();
       const tables = (await d1.prepare("select name from sqlite_master where type = 'table' and name not like 'sqlite_%' and name not like '_cf_%' and name <> 'd1_migrations'").all<{ name: string }>()).results.map((r) => r.name);
-      for (const f of files.slice(1)) for (const s of statements(f)) await d1.prepare(s).run();
+      const countAll = async () => Object.fromEntries(await Promise.all(tables.map(async (t) => [t, (await d1.prepare(`select count(*) n from "${t}"`).first<{ n: number }>())!.n] as const)));
+      const before = await countAll();
+      expect(Object.values(before).every((n) => n >= 1)).toBe(true);
+      // One batch (= one transaction) per file, as `wrangler d1 migrations apply` sends it.
+      for (const f of files.slice(1)) await d1.batch(statements(f).map((s) => d1.prepare(s)));
+      // 0014 rebuilds `products`: on D1 the DROP cascades into its child tables, which the migration
+      // must put back. Every fixture row is still there, and nothing dangles.
+      expect(await countAll()).toEqual(before);
+      expect((await d1.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
       const bad = await columnNameValues(
         tables,
         async (t) => (await d1.prepare('select name, type from pragma_table_info(?)').bind(t).all<{ name: string; type: string }>()).results,
@@ -180,5 +194,50 @@ describe('data loaded at 0000 survives every later migration', () => {
     } finally {
       await dispose();
     }
+  });
+});
+
+describe('0014 rebuilds products without losing its child rows', () => {
+  const upTo0013 = (sqlite: Database.Database) => {
+    for (const f of files.filter((f) => f < '0014')) for (const s of statements(f)) sqlite.exec(s);
+    // The fixture is written for the 0000 schema; rows that later migrations would reject are not needed here.
+    sqlite.exec(`insert into categories (id, slug_fr, slug_ar, name_fr, name_ar) values (1, 'c', 'c', 'C', 'C')`);
+    sqlite.exec(`insert into products (id, category_id, slug_fr, slug_ar, name_fr, name_ar) values (7, 1, 'p', 'p', 'P', 'P')`);
+    sqlite.exec(`insert into variants (id, product_id, sku, price_dzd, is_default) values (70, 7, 'SKU-7', 100, 1)`);
+    sqlite.exec(`insert into product_options (id, product_id, kind, name_fr, name_ar) values (3, 7, 'size', 'T', 'T')`);
+    sqlite.exec(`insert into option_values (id, option_id, value_fr, value_ar) values (4, 3, 'M', 'M')`);
+    sqlite.exec(`insert into variant_option_values (variant_id, option_value_id) values (70, 4)`);
+    sqlite.exec(`insert into products (id, category_id, slug_fr, slug_ar, name_fr, name_ar, kind) values (9, 1, 'k', 'k', 'K', 'K', 'pack')`);
+    sqlite.exec(`insert into pack_items (pack_product_id, variant_id, qty) values (9, 70, 2)`);
+    sqlite.exec(`delete from products where id = 9`);
+  };
+  const run0014 = (sqlite: Database.Database) => {
+    for (const s of statements(files.find((f) => f.startsWith('0014'))!)) sqlite.exec(s);
+  };
+
+  test('in one transaction: rows kept, category optional, the id of a deleted product is not reused', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    upTo0013(sqlite);
+    const dump = () => ['products', 'variants', 'product_options', 'option_values', 'variant_option_values'].map((t) => sqlite.prepare(`select * from ${t}`).all());
+    const before = dump();
+    sqlite.exec('BEGIN');
+    run0014(sqlite);
+    sqlite.exec('COMMIT');
+    expect(dump()).toEqual(before);
+    expect(sqlite.pragma('foreign_key_check')).toEqual([]);
+    sqlite.exec(`insert into products (slug_fr, slug_ar, name_fr, name_ar) values ('n', 'n', 'N', 'N')`);
+    expect(sqlite.prepare(`select id, category_id from products where slug_fr = 'n'`).get()).toEqual({ id: 10, category_id: null });
+    // The category stays protected while a product uses it.
+    expect(() => sqlite.exec('delete from categories where id = 1')).toThrow(/FOREIGN KEY/);
+  });
+
+  test('statement by statement (no transaction) it stops at DROP TABLE and loses nothing', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    upTo0013(sqlite);
+    expect(() => run0014(sqlite)).toThrow(/FOREIGN KEY/);
+    expect((sqlite.prepare('select count(*) n from option_values').get() as { n: number }).n).toBe(1);
+    expect((sqlite.prepare('select count(*) n from products').get() as { n: number }).n).toBe(1);
   });
 });

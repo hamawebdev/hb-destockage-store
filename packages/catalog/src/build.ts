@@ -163,7 +163,7 @@ export function createBuildContext(snapshot: CatalogSnapshot, input: BuildInput)
   const subtreeProducts = new Map<Id, SnapshotProduct[]>();
   for (const c of categories) {
     const ids = categoryDescendantIds(snapshot, c.id);
-    subtreeProducts.set(c.id, products.filter((p) => ids.has(p.categoryId)));
+    subtreeProducts.set(c.id, products.filter((p) => p.categoryId !== null && ids.has(p.categoryId)));
   }
   const variantOwner = new Map<Id, { product: SnapshotProduct; variant: SnapshotVariant }>();
   for (const p of snapshot.products) for (const v of p.variants) variantOwner.set(v.id, { product: p, variant: v });
@@ -355,7 +355,8 @@ const ref = (template: TemplateName, id?: Id, page?: number): PageRef =>
 // Shared pieces
 // ---------------------------------------------------------------------------------------------
 
-export function productCard(ctx: BuildContext, p: SnapshotProduct, lang: Lang, lcp = false, img: SnapshotImage | undefined = mainImage(p)): ProductCard {
+/** `img`: the photo to show; omitted = the main image, `null` = no photo at all. */
+export function productCard(ctx: BuildContext, p: SnapshotProduct, lang: Lang, lcp = false, img: SnapshotImage | null | undefined = mainImage(p)): ProductCard {
   const vs = sellableVariants(ctx, p);
   const cheapest = [...vs].sort((a, b) => a.priceDzd - b.priceDzd || a.id - b.id)[0]!;
   const from = new Set(vs.map((v) => v.priceDzd)).size > 1;
@@ -524,14 +525,19 @@ export function buildHomeProps(ctx: BuildContext, lang: Lang): HomeProps {
   const wanted = named.length ? named : ctx.products.slice(0, ctx.featuredCount);
   const showable = wanted.filter((p) => cleanImage(p) !== undefined);
   const fill = showable.length < wanted.length ? ctx.products.filter((p) => cleanImage(p) !== undefined && !showable.includes(p)) : [];
-  const featuredProducts = [...showable, ...fill.slice(0, Math.max(0, HOME_MIN_PRODUCTS - showable.length))];
+  const listed = [...showable, ...fill.slice(0, Math.max(0, HOME_MIN_PRODUCTS - showable.length))];
+  // A product with no category has no category page to be found on: the home page always lists it,
+  // first (the page trims trailing cards to whole rows), whatever the admin's selection. Its card
+  // carries its clean photo or none, never a photo with a printed price.
+  const uncategorised = ctx.products.filter((p) => p.categoryId === null);
+  const featuredProducts = [...uncategorised, ...listed.filter((p) => p.categoryId !== null)];
   // Only an explicitly chosen, published hero product: no fallback (lead: a photo with burned-in
   // prices must never become the hero by accident; null ⇒ type-led hero without image).
   const heroProduct =
     homeHeroProductId !== null && ctx.publishedProductIds.has(homeHeroProductId) ? ctx.productById.get(homeHeroProductId) : undefined;
   const heroImg = heroProduct ? cleanImage(heroProduct) : undefined;
   const heroImage = heroImg ? toImageProps(ctx, heroImg, lang, 'hero', true) : null;
-  const featured = featuredProducts.map((p) => productCard(ctx, p, lang, false, cleanImage(p)));
+  const featured = featuredProducts.map((p) => productCard(ctx, p, lang, false, cleanImage(p) ?? null));
   const packs = ctx.products
     .filter((p) => p.kind === 'pack' && cleanImage(p) !== undefined)
     .slice(0, ctx.featuredCount)
@@ -549,6 +555,7 @@ export function buildHomeProps(ctx: BuildContext, lang: Lang): HomeProps {
     hero,
     categories,
     featured,
+    pinnedCount: uncategorised.length,
     packs,
   };
 }
@@ -599,7 +606,7 @@ function relatedProducts(ctx: BuildContext, p: SnapshotProduct): SnapshotProduct
     for (const x of xs) if (x.id !== p.id && !out.includes(x) && out.length < ctx.relatedCount) out.push(x);
   };
   push(ctx.products.filter((x) => x.categoryId === p.categoryId));
-  const parent = ctx.categoryById.get(p.categoryId)?.parentId ?? null;
+  const parent = p.categoryId === null ? null : (ctx.categoryById.get(p.categoryId)?.parentId ?? null);
   if (parent !== null) push(ctx.subtreeProducts.get(parent) ?? []);
   push(ctx.products);
   return out;
@@ -678,7 +685,7 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
   });
 
   const related = relatedProducts(ctx, p).map((x) => productCard(ctx, x, lang));
-  const cat = ctx.categoryById.get(p.categoryId)!;
+  const cat = p.categoryId === null ? null : ctx.categoryById.get(p.categoryId)!;
   const defProps = variants.find((v) => v.id === def.id)!;
 
   const orderForm: OrderFormProps = {
@@ -719,9 +726,9 @@ export function buildProductProps(ctx: BuildContext, lang: Lang, productId: Id):
       placeholder: p.placeholder,
       translationPlaceholder: isTranslationPlaceholder(p, lang),
     },
-    category: { id: cat.id, name: cat.name[lang], href: ctx.router.url(lang, ref('category', cat.id)) },
+    category: cat === null ? null : { id: cat.id, name: cat.name[lang], href: ctx.router.url(lang, ref('category', cat.id)) },
     orderStepHref: ctx.router.url(lang, ref('order-step', p.id)),
-    breadcrumbs: breadcrumbs(ctx, lang, categoryChain(ctx, p.categoryId), name),
+    breadcrumbs: breadcrumbs(ctx, lang, p.categoryId === null ? [] : categoryChain(ctx, p.categoryId), name),
     images,
     price: defProps.price,
     stock: defProps.stock,

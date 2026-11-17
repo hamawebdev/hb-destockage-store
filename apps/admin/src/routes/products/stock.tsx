@@ -10,7 +10,7 @@ import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { Context, Hono } from 'hono';
 import * as v from 'valibot';
-import { categories, products, variants } from '@hb/db';
+import { products, variants } from '@hb/db';
 import { audit, noAudit } from '../../audit/audit.ts';
 import { requirePerm } from '../../auth/require-role.ts';
 import type { AppEnv } from '../../env.ts';
@@ -119,7 +119,6 @@ async function listStock(c: Ctx, f: StockFilters, page: number): Promise<{ rows:
       .select(rowColumns)
       .from(variants)
       .innerJoin(products, eq(products.id, variants.productId))
-      .innerJoin(categories, eq(categories.id, products.categoryId))
       .where(cond)
       .orderBy(sql`${variants.stock} is null`, asc(variants.stock), asc(products.nameFr), asc(variants.position), asc(variants.id))
       .limit(DEFAULT_PAGE_SIZE)

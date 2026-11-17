@@ -27,7 +27,7 @@ import { descendantIds } from '../categories/tree.ts';
 import { uniqueViolation } from './lib/db-errors.ts';
 import { fieldMessages } from './lib/field-messages.ts';
 import { isGuardAbort } from './lib/guard.ts';
-import { generateMatrix, MATRIX_LIMITS, SKU_RE, type MatrixError, type MatrixPlan } from './lib/matrix.ts';
+import { AUTO_SKU_PREFIX, generateMatrix, MATRIX_LIMITS, nextAutoSku, SKU_RE, type MatrixError, type MatrixPlan } from './lib/matrix.ts';
 import { cleanText } from './lib/text.ts';
 import {
   activationIssues,
@@ -125,7 +125,7 @@ async function productSlugTaken(c: Ctx, selfId: number | null) {
 
 function detailsValuesOf(p: ProductAggregate['product']): Record<string, string> {
   const out: Record<string, string> = {
-    category_id: String(p.categoryId),
+    category_id: p.categoryId === null ? '' : String(p.categoryId),
     name_fr: p.nameFr,
     name_ar: p.nameAr,
     brand_latin: p.brandLatin ?? '',
@@ -247,6 +247,10 @@ r.get('/new', requirePerm('catalog.edit'), async (c) => {
   const values: Record<string, string> = { kind: 'simple', sort: '0' };
   const cat = c.req.query('category');
   if (cat !== undefined && /^\d{1,9}$/.test(cat)) values['category_id'] = cat;
+  // Proposed SKU: editable, and re-checked on save (`sku_auto` tells the POST it was left untouched).
+  const sku = nextAutoSku(await skusWithPrefix(c, AUTO_SKU_PREFIX));
+  values['sku'] = sku;
+  values['sku_auto'] = sku;
   return c.render(<CreateForm values={values} categories={cats} />, { title: tm(c)('new'), breadcrumbs: crumbs(c) });
 });
 
@@ -259,12 +263,18 @@ r.post('/', requirePerm('catalog.edit'), async (c) => {
   };
   if (!f.ok) return render(422, f.errors);
   const details = finishDetails(f.data, { categoryIds: new Set(cats.map((k) => k.id)), slugTaken: await productSlugTaken(c, null) });
-  const taken = await takenSkus(c, [f.data.sku]);
-  const first = finishFirstVariant(f.data, (s) => taken.has(s));
+  // SKU: the one typed. Left empty, or left as proposed while another product took it meanwhile: the next automatic one.
+  let sku = f.data.sku ?? nextAutoSku(await skusWithPrefix(c, AUTO_SKU_PREFIX));
+  let taken = await takenSkus(c, [sku]);
+  if (taken.has(sku) && f.data.sku !== null && f.data.sku === f.data.sku_auto) {
+    sku = nextAutoSku(await skusWithPrefix(c, AUTO_SKU_PREFIX));
+    taken = await takenSkus(c, [sku]);
+  }
+  const first = finishFirstVariant(f.data, sku, (s) => taken.has(s));
   if (!details.ok || !first.ok) return render(422, translate(c, { ...(details.ok ? {} : details.errors), ...(first.ok ? {} : first.errors) }));
   try {
     const id = await createProduct(c, f.data.kind, details.row, {
-      sku: f.data.sku,
+      sku,
       priceDzd: f.data.price,
       compareAtDzd: f.data.compare_at,
       stock: f.data.stock,
@@ -289,7 +299,7 @@ r.get('/:id', requirePerm('catalog.view'), async (c) => {
   if (!can(c.var.user, 'catalog.edit')) {
     const cats: Category[] = await loadCategories(c);
     const cat = cats.find((k) => k.id === agg.product.categoryId);
-    return c.render(<ProductReadonly agg={agg} categoryName={cat ? nameOf(c, cat) : ''} />, { title: nameOf(c, agg.product), breadcrumbs: crumbs(c) });
+    return c.render(<ProductReadonly agg={agg} categoryName={cat ? nameOf(c, cat) : tm(c)('category.none')} />, { title: nameOf(c, agg.product), breadcrumbs: crumbs(c) });
   }
   return renderEdit(c, agg);
 });

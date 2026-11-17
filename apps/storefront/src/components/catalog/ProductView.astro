@@ -89,7 +89,7 @@ const askHref = `${layout.contact.whatsappHref}?text=${encodeURIComponent(t(stri
     <section class="cat-sec cat-rel" aria-labelledby="cat-rel-h">
       <div class="cat-sec-bar">
         <h2 id="cat-rel-h" class="cat-sec-h">{t(strings, 'product.related.title')}</h2>
-        <a class="cat-more" href={category.href}>{t(strings, 'product.category.more', { category: category.name })}<span class="cat-chev cat-chev--end" aria-hidden="true"></span></a>
+        {category && <a class="cat-more" href={category.href}>{t(strings, 'product.category.more', { category: category.name })}<span class="cat-chev cat-chev--end" aria-hidden="true"></span></a>}
       </div>
       <ProductGrid cards={related} lang={lang} strings={strings} level={3} defer buy={!layout.cartEnabled} />
     </section>

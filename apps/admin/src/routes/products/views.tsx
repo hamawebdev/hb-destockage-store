@@ -73,7 +73,7 @@ export function ProductList(props: {
       ),
     },
     { key: 'kind', header: tm('col.kind'), cell: (r) => tm(`kind.${r.kind}`) },
-    { key: 'category', header: tm('col.category'), cell: (r) => (lang === 'ar' ? r.categoryNameAr : r.categoryNameFr) },
+    { key: 'category', header: tm('col.category'), cell: (r) => (lang === 'ar' ? r.categoryNameAr : r.categoryNameFr) ?? tm('category.none') },
     {
       key: 'price',
       header: tm('col.price'),
@@ -137,10 +137,10 @@ function DetailsFields(props: { values: FormValues; errors?: FieldErrors | undef
       <Select
         name="category_id"
         label={tm('field.category')}
-        required
+        hint={tm('field.categoryHint')}
         value={props.values['category_id']}
         error={props.errors?.['category_id']}
-        placeholder="—"
+        placeholder={tm('category.none')}
         options={categoryOptions(props.categories, lang)}
       />
       <LocalizedField name="name" label={tm('field.name')} values={props.values} errors={props.errors} maxlength={LIMITS.name} required />
@@ -176,7 +176,8 @@ export function CreateForm(props: { values: FormValues; errors?: FieldErrors | u
         ]}
       />
       <DetailsFields values={props.values} errors={props.errors} categories={props.categories} />
-      <TextInput name="sku" label={tm('field.baseSku')} hint={tm('field.baseSkuHint')} value={props.values['sku']} error={props.errors?.['sku']} dir="ltr" maxlength={40} required />
+      <TextInput name="sku" label={tm('field.baseSku')} hint={tm('field.baseSkuHint')} value={props.values['sku']} error={props.errors?.['sku']} dir="ltr" maxlength={40} />
+      <input type="hidden" name="sku_auto" value={props.values['sku_auto'] ?? ''} />
       <MoneyInput name="price" label={tm('field.price')} value={props.values['price']} error={props.errors?.['price']} required />
       <MoneyInput name="compare_at" label={tm('field.compareAt')} hint={tm('field.compareAtHint')} value={props.values['compare_at']} error={props.errors?.['compare_at']} />
       <NumberInput name="stock" label={tm('field.stock')} hint={tm('field.stockHint')} value={props.values['stock']} error={props.errors?.['stock']} />
