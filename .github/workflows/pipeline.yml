@@ -189,7 +189,8 @@ jobs:
 
   build-site:
     needs: [export-catalogue]
-    if: needs.export-catalogue.outputs.proceed == 'true' && inputs.mode != 'backoffice'
+    # Explicit result checks (D-028): a skipped `approve` upstream would otherwise skip this job through the implicit success().
+    if: ${{ !cancelled() && needs.export-catalogue.result == 'success' && needs.export-catalogue.outputs.proceed == 'true' && inputs.mode != 'backoffice' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:

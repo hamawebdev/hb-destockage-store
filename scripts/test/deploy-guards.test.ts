@@ -143,7 +143,9 @@ describe('workflow security', () => {
     expect(approveJob).toContain('environment: manual-approval');
     expect(approveJob).toContain("if: github.event_name == 'workflow_dispatch' && !(inputs.mode == 'publish' && inputs.sha == '' && inputs.older_commit == 'no' && inputs.approve_destructive_migrations == '')");
     expect(approveJob).not.toMatch(/secrets\./);
-    expect(buildJob).toMatch(/if: needs\.export-catalogue\.outputs\.proceed == 'true' && inputs\.mode != 'backoffice'/);
+    // D-028: a skipped `approve` must not skip the build through the implicit success(): every job after the export checks results explicitly.
+    expect(buildJob).toContain("if: ${{ !cancelled() && needs.export-catalogue.result == 'success' && needs.export-catalogue.outputs.proceed == 'true' && inputs.mode != 'backoffice' }}");
+    for (const j of ['export-catalogue', 'build-site', 'deploy']) expect(job(j)).toMatch(/if: \$\{\{ !cancelled\(\) && /);
     // D-025: the deploy job may run with build-site skipped only in backoffice mode; it still needs the export job's go-ahead.
     expect(deployJob).toContain("if: ${{ !cancelled() && needs.export-catalogue.result == 'success' && needs.export-catalogue.outputs.proceed == 'true' && (needs.build-site.result == 'success' || (inputs.mode == 'backoffice' && needs.build-site.result == 'skipped')) }}");
   });
