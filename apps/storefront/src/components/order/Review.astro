@@ -7,20 +7,19 @@
  * The inline <style> must stay byte-identical across ar/fr (one CSP hash): nothing data-driven in it.
  * Owner: orderform.
  */
-import type { ContactProps, Lang, StringTable } from '@hb/catalog';
+import type { Lang, StringTable } from '@hb/catalog';
 import { ORDER_MAX_QTY } from '@hb/catalog';
 import { PHONE_INPUT_MAX_LENGTH } from './form-model.ts';
-import { ltr, str } from './str.ts';
+import { str } from './str.ts';
 import { REVIEW_ERROR_CODES, REVIEW_FIELD_CODES } from './review-codes.ts';
 
 interface Props {
   lang: Lang;
   strings: StringTable;
-  contact: ContactProps;
 }
-const { lang, strings, contact } = Astro.props;
+const { lang, strings } = Astro.props;
 const t = (k: string) => str(strings, k);
-const err = (code: string) => str(strings, `order.errors.${code}`, { phone: ltr(contact.phoneDisplay), max: ORDER_MAX_QTY });
+const err = (code: string) => str(strings, `order.errors.${code}`, { max: ORDER_MAX_QTY });
 
 const FIELD_CODES = REVIEW_FIELD_CODES;
 ---
@@ -34,10 +33,6 @@ const FIELD_CODES = REVIEW_FIELD_CODES;
       <ul class="or-errors-list">
         {REVIEW_ERROR_CODES.map((c) => <li data-hb-error={c} hidden>{err(c)}</li>)}
       </ul>
-      <p class="or-help">
-        <a class="or-link" href={contact.phoneHref}><bdi dir="ltr">{contact.phoneDisplay}</bdi></a>
-        <a class="or-link" href={contact.whatsappHref}>{t('order.whatsappCta')}</a>
-      </p>
     </div>
   </div>
 
@@ -92,9 +87,8 @@ const FIELD_CODES = REVIEW_FIELD_CODES;
   .or { max-inline-size: var(--reading-max); padding-block: var(--section-block); display: grid; gap: var(--space-5); }
   .or-title { font-size: var(--fs-h1); line-height: var(--lh-heading); margin: 0; }
   .or-intro { margin: 0; color: var(--color-text-secondary); }
-  .or-errors-h, .or-errors-list, .or-help { margin: 0; }
+  .or-errors-h, .or-errors-list { margin: 0; }
   .or-errors-list { padding-inline-start: var(--space-5); display: grid; gap: var(--space-1); }
-  .or-help { display: flex; flex-wrap: wrap; gap: var(--space-3); }
   .or-form { display: grid; gap: var(--space-5); }
   .or-form p { margin: 0; }
   /* .or-ferr stays rendered even when every message is hidden: it is the aria-describedby target, and a hidden

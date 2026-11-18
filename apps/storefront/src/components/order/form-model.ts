@@ -10,11 +10,11 @@
  *    qty, name, phone, wilayaCode, communeId, website, step.
  * Owner: orderform.
  */
-import type { ContactProps, Lang, OrderFormProps, StringTable, VariantProps } from '@hb/catalog';
+import type { Lang, OrderFormProps, StringTable, VariantProps } from '@hb/catalog';
 import { DZ_MOBILE_NSN_PATTERN } from '@hb/shared/phone';
 import { HONEYPOT_FIELD, NAME_MIN_LENGTH } from '@hb/shared/order-schema';
 import { createHash } from 'node:crypto';
-import { ltr, str } from './str.ts';
+import { str } from './str.ts';
 
 /**
  * Raw phone input cap = @hb/shared `PHONE_INPUT_MAX_LENGTH` (SHARED-2, 64; not yet on this branch's shared copy:
@@ -31,8 +31,6 @@ export interface OrderFormInput {
   readonly brandLatin: string | null;
   /** `LayoutProps.strings`. */
   readonly strings: StringTable;
-  /** `LayoutProps.contact` (unavailable state, error messages with {phone}). */
-  readonly contact: ContactProps;
   /** Privacy page (`LayoutProps.footerLinks` key `privacy`); null hides the link. */
   readonly privacyHref?: string | null;
   /** `?v=` content hash of /js/order.js; null ⇒ no `data-js` (script not built yet). */
@@ -119,21 +117,20 @@ export interface OrderFormConfig {
   readonly re: string;
   /** Fallback confirmation URL (the server's answer carries confirmationUrl). */
   readonly confirm: string;
-  /** Error and confirm-gate messages, page language, {phone} already filled inside LTR isolates. */
+  /** Error and confirm-gate messages, page language. No shop phone: shoppers get it after ordering only (D-029). */
   readonly m: Readonly<Record<keyof typeof ERROR_MESSAGE_KEYS, string>>;
 }
 
-export function orderFormConfig(lang: Lang, strings: StringTable, contact: ContactProps): OrderFormConfig {
-  const phone = ltr(contact.phoneDisplay);
+export function orderFormConfig(lang: Lang, strings: StringTable): OrderFormConfig {
   const m = Object.fromEntries(
-    (Object.keys(ERROR_MESSAGE_KEYS) as (keyof typeof ERROR_MESSAGE_KEYS)[]).map((k) => [k, str(strings, ERROR_MESSAGE_KEYS[k], { phone })]),
+    (Object.keys(ERROR_MESSAGE_KEYS) as (keyof typeof ERROR_MESSAGE_KEYS)[]).map((k) => [k, str(strings, ERROR_MESSAGE_KEYS[k])]),
   ) as OrderFormConfig['m'];
   return { v: 1, re: DZ_MOBILE_NSN_PATTERN, confirm: `/${lang}/order/confirmation/`, m };
 }
 
 /** Serialised config + its content hash (`?v=`, so web can serve every {lang}/order/form.json immutable). */
-export function orderFormConfigJson(lang: Lang, strings: StringTable, contact: ContactProps): { json: string; version: string } {
-  const json = JSON.stringify(orderFormConfig(lang, strings, contact));
+export function orderFormConfigJson(lang: Lang, strings: StringTable): { json: string; version: string } {
+  const json = JSON.stringify(orderFormConfig(lang, strings));
   return { json, version: createHash('sha256').update(json).digest('base64url').slice(0, 10) };
 }
 
@@ -171,7 +168,6 @@ export interface OrderFormModel {
   };
   /** Every visible string, resolved (missing keys appear as `[PLACEHOLDER] key`). */
   readonly t: (key: string) => string;
-  readonly contact: ContactProps;
   readonly privacyHref: string | null;
 }
 
@@ -185,12 +181,11 @@ export function defaultVariant(form: OrderFormProps): VariantProps | undefined {
 }
 
 export function orderFormModel(input: OrderFormInput): OrderFormModel {
-  const { lang, form, strings, contact } = input;
+  const { lang, form, strings } = input;
   const t = (key: string): string => str(strings, key);
-  // {phone} filled here inside LTR isolates; {total}, {wilaya} are filled by order.js.
-  const phone = ltr(contact.phoneDisplay);
+  // {total}, {wilaya} are filled by order.js. No {phone}: the shop's number is shown after ordering only (D-029).
   const uiKeys: Record<string, string> = input.cart ? { ...UI_MESSAGE_KEYS, ...CART_MESSAGE_KEYS } : UI_MESSAGE_KEYS;
-  const uiMessages = Object.keys(uiKeys).map((code) => ({ code: code as UiCode, text: str(strings, uiKeys[code]!, { phone }) }));
+  const uiMessages = Object.keys(uiKeys).map((code) => ({ code: code as UiCode, text: str(strings, uiKeys[code]!) }));
 
   const dv = defaultVariant(form);
   const maxQty = Math.max(1, Math.min(form.qty.max, dv?.maxQty ?? form.qty.max));
@@ -209,7 +204,7 @@ export function orderFormModel(input: OrderFormInput): OrderFormModel {
     dataAttrs['data-vl'] = JSON.stringify(Object.fromEntries(form.variants.map((v) => [v.id, v.label])));
   }
   // Error copy, phone pattern and confirmation fallback: /{lang}/order/form.json, versioned by content (BUG-12).
-  dataAttrs['data-cfg'] = `/${lang}/order/form.json?v=${orderFormConfigJson(lang, strings, contact).version}`;
+  dataAttrs['data-cfg'] = `/${lang}/order/form.json?v=${orderFormConfigJson(lang, strings).version}`;
   // Turnstile: first-party loader imported by order.js on the first interaction; never a third-party URL here.
   if (form.turnstileSiteKey && input.tsJsVersion) {
     dataAttrs['data-ts-key'] = form.turnstileSiteKey;
@@ -249,7 +244,6 @@ export function orderFormModel(input: OrderFormInput): OrderFormModel {
       total: '—',
     },
     t,
-    contact,
     privacyHref: input.privacyHref ?? null,
   };
 }

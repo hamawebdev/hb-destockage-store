@@ -112,12 +112,22 @@ test("no exclamation marks (calm voice)", () => {
 });
 
 test("no message lets the customer confirm without a total or promises the fee by phone", () => {
-  // Lead rule: a failed fee quote = retry or contact us; never "confirm anyway", never "fee told by phone".
+  // Lead rule: a failed fee quote = retry; never "confirm anyway", never "fee told by phone".
   assert.doesNotMatch(fr["order.errors.quote_failed"], /confirm|au téléphone|par téléphone/i);
   assert.doesNotMatch(ar["order.errors.quote_failed"], /تأكيد|أكّد|عبر الهاتف/);
-  for (const k of ["order.errors.quote_failed", "order.errors.rate_limited", "order.errors.delivery_unavailable"]) {
-    assert.match(fr[k], /\{phone\}.*WhatsApp/, k);
-    assert.match(ar[k], /\{phone\}.*واتساب/, k);
+});
+
+test("before an order no message gives the shop's phone or WhatsApp, and each still gives a next step (D-029)", () => {
+  const preOrder = ["quote_failed", "rate_limited", "delivery_unavailable", "server_error", "order_total_out_of_range"].map((c) => `order.errors.${c}`);
+  // order.whatsappCta is the confirmation page's button (after the order): the one order.* key allowed to name WhatsApp.
+  const before = (k) => (k.startsWith("order.") || k.startsWith("cart.") || k.startsWith("product.")) && k !== "order.whatsappCta";
+  for (const k of Object.keys(fr).filter(before)) {
+    assert.doesNotMatch(fr[k], /\{phone\}|\{whatsapp\}|WhatsApp|appelez-nous/i, k);
+    assert.doesNotMatch(ar[k], /\{phone\}|\{whatsapp\}|واتساب|اتصل بنا/, k);
+  }
+  for (const k of preOrder) {
+    assert.match(fr[k], /Réessayez|réessayez|Réduisez|Choisissez/, k);
+    assert.match(ar[k], /حاول|قلّل|اختر/, k);
   }
 });
 

@@ -1,14 +1,12 @@
 ---
 /**
- * Site footer on the surface-alt band. Columns: brand and contact full width with shop + help side
- * by side at 360 and 768, four columns from 1024:
- * brand + tagline · shop (top categories) · help (content pages) · contact (phone, WhatsApp).
- * Phone and WhatsApp are plain links (tel:, https://wa.me/…), numbers isolated with <bdi dir="ltr">.
- * Never a chat widget. Owner: shell.
+ * Site footer on the surface-alt band. Columns: brand full width with shop + help side by side at
+ * 360 and 768, three columns from 1024: brand + tagline · shop (top categories) · help (content pages).
+ * No shop phone or WhatsApp here: shoppers get them on the order confirmation only (D-029). Never a
+ * chat widget. Owner: shell.
  */
 import type { LayoutProps } from '@hb/catalog';
-import Icon from '../Icon.astro';
-import { groupPhone, t } from '../../lib/strings.ts';
+import { t } from '../../lib/strings.ts';
 import { buildYear } from '../../lib/build-env.mjs';
 
 interface Props {
@@ -16,7 +14,6 @@ interface Props {
 }
 const { layout: l } = Astro.props;
 const s = (key: string, vars?: Record<string, string | number>) => t(l.strings, key, vars);
-const c = l.contact;
 const legalKeys = new Set(['privacy', 'legal']);
 const help = l.footerLinks.filter((f) => !legalKeys.has(f.key));
 const legal = l.footerLinks.filter((f) => legalKeys.has(f.key));
@@ -42,24 +39,6 @@ const legal = l.footerLinks.filter((f) => legalKeys.has(f.key));
           {help.map((f) => <li><a href={f.href}>{f.label}</a></li>)}
         </ul>
       </nav>
-
-      <section aria-labelledby="ft-contact">
-        <h2 id="ft-contact" class="ft-h">{s('footer.contact')}</h2>
-        <ul role="list">
-          <li>
-            <a class="ft-ct" href={c.phoneHref}>
-              <Icon name="phone" /><span class="visually-hidden">{s('footer.phone')}</span>
-              <bdi dir="ltr" class="nums">{groupPhone(c.phoneDisplay)}</bdi>
-            </a>
-          </li>
-          <li>
-            <a class="ft-ct" href={c.whatsappHref}>
-              <Icon name="whatsapp" /><span class="visually-hidden">{s('footer.whatsapp')}</span>
-              <bdi dir="ltr" class="nums">{c.whatsappDisplay}</bdi>
-            </a>
-          </li>
-        </ul>
-      </section>
     </div>
 
     <div class="ft-legal">
@@ -85,10 +64,10 @@ const legal = l.footerLinks.filter((f) => legalKeys.has(f.key));
       font-size: var(--fs-small);
     }
     .ft-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8) var(--space-4); }
-    .ft-brand, .ft-grid > section { grid-column: 1 / -1; }
+    .ft-brand { grid-column: 1 / -1; }
     @media (min-width: 1024px) {
-      .ft-grid { grid-template-columns: 1.4fr 1fr 1fr 1.2fr; gap: var(--space-10); }
-      .ft-brand, .ft-grid > section { grid-column: auto; }
+      .ft-grid { grid-template-columns: 1.4fr 1fr 1fr; gap: var(--space-10); }
+      .ft-brand { grid-column: auto; }
     }
     .ft-name { color: var(--color-text); font-weight: var(--fw-emphasis); font-size: var(--fs-body); }
     .ft-tag { margin-block-start: var(--space-2); max-inline-size: 34ch; }
@@ -111,7 +90,6 @@ const legal = l.footerLinks.filter((f) => legalKeys.has(f.key));
       text-decoration: none;
     }
     .ft a:hover { color: var(--color-text); text-decoration: underline; }
-    .ft-ct { color: var(--color-text); }
     .ft-legal {
       display: flex;
       flex-wrap: wrap;

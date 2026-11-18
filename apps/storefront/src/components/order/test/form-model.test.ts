@@ -4,11 +4,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { DZ_MOBILE_NSN_PATTERN, normalizePhone } from '@hb/shared/phone';
 import { ERROR_MESSAGE_KEYS, PHONE_INPUT_MAX_LENGTH, UI_MESSAGE_KEYS, orderFormConfig, orderFormConfigJson, orderFormModel, variantsAttr } from '../form-model.ts';
 import { str } from '../str.ts';
-import { contact, singleForm, strings, variableForm } from './fixtures.ts';
+import { SHOP_NUMBER, singleForm, strings, variableForm } from './fixtures.ts';
 
 const LANGS = ['ar', 'fr'] as const;
 const model = (lang: 'ar' | 'fr', form = singleForm(lang), extra = {}) =>
-  orderFormModel({ lang, form, productName: 'Pack 3 en 1', brandLatin: null, strings: strings[lang], contact, ...extra });
+  orderFormModel({ lang, form, productName: 'Pack 3 en 1', brandLatin: null, strings: strings[lang], ...extra });
 
 describe('orderFormModel', () => {
   it.each(LANGS)('lists all 69 wilayas in code order (%s)', (lang) => {
@@ -19,7 +19,7 @@ describe('orderFormModel', () => {
   });
 
   it('renders the shared libphonenumber pattern, never ^0[567]', () => {
-    const cfg = orderFormConfig('ar', strings.ar, contact); // /ar/order/form.json (BUG-12)
+    const cfg = orderFormConfig('ar', strings.ar); // /ar/order/form.json (BUG-12)
     const re = new RegExp(`^(?:${cfg.re})$`);
     expect(cfg.re).toBe(DZ_MOBILE_NSN_PATTERN);
     for (const ok of ['555123456', '661234567', '771234567', '540123456', '560123456']) expect(re.test(ok)).toBe(true);
@@ -76,18 +76,20 @@ describe('orderFormModel', () => {
     const m = model(lang, variableForm(lang));
     expect(m.uiMessages.map((x) => x.code)).toEqual(Object.keys(UI_MESSAGE_KEYS));
     for (const { code, text } of m.uiMessages) expect(text, code).not.toContain('[PLACEHOLDER]');
-    const cfg = orderFormConfig(lang, strings[lang], contact);
+    const cfg = orderFormConfig(lang, strings[lang]);
     expect(Object.keys(cfg.m)).toEqual(Object.keys(ERROR_MESSAGE_KEYS));
     for (const [code, text] of Object.entries(cfg.m)) {
       expect(text, code).not.toContain('[PLACEHOLDER]');
       expect(text, code).not.toMatch(/\{(phone|option)\}/);
     }
-    expect(cfg.m.rate_limited).toContain('⁦0560417403⁩'); // phone isolated LTR inside RTL text
+    // No shop number before an order (D-029): every message gives its next step without one.
+    expect(JSON.stringify(cfg)).not.toMatch(SHOP_NUMBER);
+    expect(JSON.stringify(m.uiMessages)).not.toMatch(SHOP_NUMBER);
     expect(cfg.confirm).toBe(`/${lang}/order/confirmation/`);
   });
 
   it('versions data-cfg by the exact JSON the endpoint serves', () => {
-    const { json, version } = orderFormConfigJson('fr', strings.fr, contact);
+    const { json, version } = orderFormConfigJson('fr', strings.fr);
     expect(model('fr').dataAttrs['data-cfg']).toBe(`/fr/order/form.json?v=${version}`);
     expect(version).toMatch(/^[\w-]{10}$/);
     expect(JSON.parse(json).v).toBe(1);
@@ -121,7 +123,7 @@ describe('no client length cap below what the server accepts (ORDER-1 review r1 
   });
   it.each(LONGEST_ACCEPTED)('%j fits in the phone input and is accepted by the server', (spelling) => {
     expect(normalizePhone(spelling).ok).toBe(true);
-    expect(spelling.length).toBeLessThanOrEqual(orderFormModel({ lang: 'ar', form: singleForm('ar'), productName: 'x', brandLatin: null, strings: strings.ar, contact }).phone.maxLength);
+    expect(spelling.length).toBeLessThanOrEqual(orderFormModel({ lang: 'ar', form: singleForm('ar'), productName: 'x', brandLatin: null, strings: strings.ar }).phone.maxLength);
   });
   it('mirrors @hb/shared PHONE_INPUT_MAX_LENGTH (64) and caps nothing else', () => {
     expect(PHONE_INPUT_MAX_LENGTH).toBe(64);
@@ -174,7 +176,7 @@ describe('real CAT-3 props fixtures (packages/catalog/fixtures/props.<lang>.json
     const products = Object.entries(load(lang).pages).filter(([, p]) => p.template === 'product');
     expect(products.length).toBeGreaterThan(2);
     for (const [path, { props }] of products) {
-      const m = orderFormModel({ lang, form: props.orderForm, productName: props.product.name, brandLatin: props.product.brandLatin, strings: props.layout.strings, contact: props.layout.contact });
+      const m = orderFormModel({ lang, form: props.orderForm, productName: props.product.name, brandLatin: props.product.brandLatin, strings: props.layout.strings });
       expect(m.wilayas.map((w) => w.value), path).toEqual(props.orderForm.wilayas.map((w: any) => String(w.code))); // fixture snapshot has a few wilayas; 69 is asserted above
       expect(m.dataAttrs['data-communes'], path).toBe(`/geo/communes/${lang}/{code}.json`);
       expect(m.dataAttrs['data-cfg'], path).toMatch(new RegExp(`^/${lang}/order/form\\.json\\?v=`));

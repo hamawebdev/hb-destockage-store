@@ -5,7 +5,7 @@ import { writeFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import OrderForm from '../OrderForm.astro';
 import { orderFormConfigJson } from '../form-model.ts';
-import { contact, singleForm, strings, variableForm } from './fixtures.ts';
+import { SHOP_NUMBER, singleForm, strings, variableForm } from './fixtures.ts';
 
 let container: AstroContainer;
 beforeAll(async () => {
@@ -14,7 +14,7 @@ beforeAll(async () => {
 
 const render = async (lang: 'ar' | 'fr', form = singleForm(lang), name = 'single') => {
   const html = await container.renderToString(OrderForm, {
-    props: { lang, form, productName: 'Pack 3 en 1', brandLatin: null, strings: strings[lang], contact, privacyHref: `/${lang}/privacy/` },
+    props: { lang, form, productName: 'Pack 3 en 1', brandLatin: null, strings: strings[lang], privacyHref: `/${lang}/privacy/` },
   });
   const out = process.env['ORDER_RENDER_OUT'];
   if (out) writeFileSync(`${out}/${lang}-${name}.html`, html);
@@ -25,7 +25,7 @@ const attrs = (html: string, id: string) => html.match(new RegExp(`<[a-z]+ [^>]*
 describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
   it('cart mode does not depend on the borrowed product being orderable (review I3)', async () => {
     const html = await container.renderToString(OrderForm, {
-      props: { lang, mode: 'cart', form: { ...singleForm(lang), orderable: false }, strings: strings[lang], contact },
+      props: { lang, mode: 'cart', form: { ...singleForm(lang), orderable: false }, strings: strings[lang] },
     });
     expect(html).not.toMatch(/<fieldset[^>]*\bdisabled/);
     expect(html).not.toContain('of-unavail');
@@ -34,7 +34,7 @@ describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
 
   it('the variant picker comes last, after the delivery panel, still inside the form', async () => {
     const html = await container.renderToString(OrderForm, {
-      props: { lang, form: singleForm(lang), strings: strings[lang], contact },
+      props: { lang, form: singleForm(lang), strings: strings[lang] },
       slots: { picker: '<div class="cat-picker">x</div>' },
     });
     expect(html.indexOf('class="cat-picker"')).toBeGreaterThan(html.indexOf('id="of-sum"'));
@@ -94,13 +94,12 @@ describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
     const tpl = html.slice(html.indexOf('<template id="of-ui">'));
     expect(tpl.match(/data-k=/g)).toHaveLength(10); // 6 UI states + 4 messages a quote can trigger before form.json
     expect(tpl).toContain('data-k="delivery_unavailable"');
-    expect(tpl).toContain('\u20660560417403\u2069'); // {phone} filled, isolated LTR
     expect(tpl).not.toMatch(/\{phone\}|\[PLACEHOLDER\]/);
     expect(tpl).not.toContain('data-k="network_error"');
     expect(html).not.toContain('of-msgs');
     expect(html).toMatch(/data-cfg="\/(ar|fr)\/order\/form\.json\?v=[\w-]+"/);
     const out = process.env['ORDER_RENDER_OUT'];
-    if (out) writeFileSync(`${out}/${lang}-form.json`, orderFormConfigJson(lang, strings[lang], contact).json);
+    if (out) writeFileSync(`${out}/${lang}-form.json`, orderFormConfigJson(lang, strings[lang]).json);
   });
 
   it('lets pages post the variant for multi-variant products', async () => {
@@ -117,9 +116,15 @@ describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
     expect(html).not.toMatch(/challenges\.cloudflare\.com|preconnect|dns-prefetch/);
   });
 
-  it('disables the form and offers WhatsApp when nothing is orderable', async () => {
+  it('disables the form and links back to the shop when nothing is orderable', async () => {
     const html = await render(lang, singleForm(lang, { orderable: false }), 'oos');
     expect(html).toMatch(/<fieldset class="of-fields" disabled>/);
-    expect(html).toMatch(/id="of-unavail">[\s\S]*href="https:\/\/wa\.me\/213779942022"/);
+    expect(html).toMatch(new RegExp(`id="of-unavail">[\\s\\S]*href="/${lang}/"`));
+  });
+
+  it('shows no shop phone or WhatsApp before an order, in any state (D-029)', async () => {
+    for (const form of [singleForm(lang), singleForm(lang, { orderable: false }), variableForm(lang)]) expect(await render(lang, form)).not.toMatch(SHOP_NUMBER);
+    const cart = await container.renderToString(OrderForm, { props: { lang, mode: 'cart', form: singleForm(lang), strings: strings[lang] } });
+    expect(cart).not.toMatch(SHOP_NUMBER);
   });
 });

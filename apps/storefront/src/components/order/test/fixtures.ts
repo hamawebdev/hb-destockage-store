@@ -13,6 +13,9 @@ export const contact: ContactProps = {
   email: null,
 };
 
+/** The fixture shop's numbers in any form (display, tel:, wa.me). Pages before an order must not contain them (D-029). */
+export const SHOP_NUMBER = /0560|560417403|779942022|779 942 022|wa\.me|tel:/;
+
 const fmt = (n: number, lang: Lang) =>
   new Intl.NumberFormat(lang === 'ar' ? 'ar-DZ' : 'fr-DZ', { style: 'currency', currency: 'DZD', maximumFractionDigits: 0 }).format(n);
 

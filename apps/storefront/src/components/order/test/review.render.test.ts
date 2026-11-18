@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import Review from '../Review.astro';
 import { REVIEW_ERROR_CODES, REVIEW_FIELD_CODES } from '../review-codes.ts';
-import { contact, strings } from './fixtures.ts';
+import { SHOP_NUMBER, strings } from './fixtures.ts';
 
 let container: AstroContainer;
 beforeAll(async () => {
@@ -14,7 +14,7 @@ beforeAll(async () => {
 const tag = (html: string, re: RegExp) => html.match(re)?.[0] ?? '';
 
 describe.each(['ar', 'fr'] as const)('Review template (%s)', (lang) => {
-  const render = () => container.renderToString(Review, { props: { lang, strings: strings[lang], contact } });
+  const render = () => container.renderToString(Review, { props: { lang, strings: strings[lang] } });
 
   it('posts to /api/order and carries no hidden input of its own (the Worker appends them)', async () => {
     const html = await render();
@@ -40,7 +40,7 @@ describe.each(['ar', 'fr'] as const)('Review template (%s)', (lang) => {
     let withoutGaps = html;
     for (const c of missing) withoutGaps = withoutGaps.replace(new RegExp(`<[a-z]+[^>]*data-hb-error="${c}"[^>]*>[^<]*</[a-z]+>`, 'g'), '');
     expect(withoutGaps).not.toMatch(/\[PLACEHOLDER\]|\{(phone|max|option)\}/);
-    expect(html).toContain('⁦0560417403⁩'); // {phone} isolated LTR inside messages
+    expect(html).not.toMatch(SHOP_NUMBER); // no shop number before an order (D-029)
   });
 
   it('has the frozen value/insertion slots with the right attributes', async () => {

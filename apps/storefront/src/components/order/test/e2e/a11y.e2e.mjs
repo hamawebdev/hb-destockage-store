@@ -182,18 +182,18 @@ async function run(browser, lang) {
     await p.waitForURL('**/done/', { timeout: 20000 });
   });
 
-  await t('unserved wilaya: alert + call/WhatsApp, confirm disabled, no axe violation', async (p) => {
+  await t('unserved wilaya: alert with its next step, no shop number, confirm disabled, no axe violation', async (p) => {
     await p.selectOption('#of-wilaya', '5');
     await p.waitForFunction(() => document.getElementById('of-alert').textContent.length > 0);
     assert.equal(await p.getAttribute('#of-submit', 'aria-disabled'), 'true');
-    assert.ok(await p.isVisible('#of-help a[href="https://wa.me/213779942022"]'));
+    assert.equal(await p.locator('#order a[href^="tel:"], #order a[href*="wa.me"]').count(), 0); // no shop number before an order (D-029)
     await axe(p, `${lang} unserved-wilaya`);
   });
 
-  await t('out of stock: disabled form, WhatsApp link still reachable, no axe violation', async (p) => {
+  await t('out of stock: disabled form, the way back to the shop still reachable, no axe violation', async (p) => {
     assert.equal(await p.evaluate(() => document.querySelector('.of-fields').disabled), true);
     await p.focus('#of-unavail a');
-    assert.equal(await p.evaluate(() => document.activeElement.getAttribute('href')), 'https://wa.me/213779942022');
+    assert.equal(await p.evaluate(() => document.activeElement.getAttribute('href')), `/${lang}/`);
     await axe(p, `${lang} out-of-stock`);
   }, { page: 'oos' });
 

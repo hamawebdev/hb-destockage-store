@@ -5,7 +5,7 @@
  *     clean photo is a phone shot of hardware, not a hero image (artifacts/HOME-0/measure/report.md).
  *  2. Category tiles (tiles.ts): photo + name, the whole tile is the link. The first tile is the LCP.
  *  3. Products (pages' ProductGrid/ProductCard, unchanged), softened by the scoped rules below only on this page.
- *  4. One compact reassurance plus a quiet contact line (WhatsApp and phone remain plain links).
+ *  4. One compact reassurance. No shop phone or WhatsApp: shoppers get them after ordering (D-029).
  * Owner: shell.
  */
 import type { HomeProps } from '@hb/catalog';
@@ -13,7 +13,7 @@ import Icon from '../Icon.astro';
 import Picture from '../Picture.astro';
 import ProductGrid from '../catalog/ProductGrid.astro';
 import { showDevMarkers } from '../catalog/lib/i18n.ts';
-import { groupPhone, t } from '../../lib/strings.ts';
+import { t } from '../../lib/strings.ts';
 import type { Tile } from './tiles.ts';
 
 interface Props {
@@ -92,12 +92,6 @@ const trim4 = keep(cards.length >= 4 ? cards.length - (cards.length % 4) : cards
       ))
     }
   </ul>
-  <p class="hm-contact">
-    <span>{s('footer.contact')}</span>
-    <a class="hm-contact-a" href={l.contact.phoneHref}><bdi dir="ltr" class="nums">{groupPhone(l.contact.phoneDisplay)}</bdi></a>
-    <span aria-hidden="true">·</span>
-    <a class="hm-contact-a" href={l.contact.whatsappHref}>{s('footer.whatsapp')}</a>
-  </p>
 </section>
 
 <style is:global>
@@ -163,13 +157,11 @@ const trim4 = keep(cards.length >= 4 ? cards.length - (cards.length % 4) : cards
       .hm-tile-name { font-size: var(--fs-lead); }
     }
 
-    /* One compact reassurance, then a quiet contact line. */
+    /* One compact reassurance (no contact line: D-029). */
     .hm-assure { padding-block: var(--section-block) var(--space-8); text-align: center; }
     .hm-assure-list { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2) var(--space-6); padding: 0; font-size: var(--fs-small); }
     .hm-assure-item { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text); }
     .hm-assure-item .icon { color: var(--color-text-secondary); }
-    .hm-contact { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 var(--space-2); margin-block-start: var(--space-4); color: var(--color-text-secondary); font-size: var(--fs-small); }
-    .hm-contact-a { display: inline-flex; align-items: center; min-block-size: var(--tap-min); min-inline-size: var(--tap-min); justify-content: center; color: var(--color-accent-text); }
   }
 </style>
 

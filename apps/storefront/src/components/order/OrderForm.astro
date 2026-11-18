@@ -9,7 +9,7 @@
  * /js/order.js enhances it after LCP (shell's [data-js] loader). CSP: no script tags, no style attributes, no inline
  * handlers. Plan: artifacts/CART-0/plan.md. Owner: orderform.
  */
-import type { ContactProps, ImageProps, Lang, OrderFormProps, StringTable } from '@hb/catalog';
+import type { ImageProps, Lang, OrderFormProps, StringTable } from '@hb/catalog';
 import { orderFormModel } from './form-model.ts';
 import { publicFileVersion } from './asset-version.ts';
 import { versionSalt } from '../../../integrations/cart-switch.mjs';
@@ -20,13 +20,13 @@ interface Props {
   productName?: string;
   brandLatin?: string | null;
   strings: StringTable;
-  contact: ContactProps;
   privacyHref?: string | null;
   /** The product's compact photo (≤ 120 px candidates); null shows an empty thumbnail. */
   image?: ImageProps | null;
   mode?: 'product' | 'cart';
-  /** Cart mode: `${origin-relative}` product JSON template and the links back to the shop. */
+  /** Cart mode: `${origin-relative}` product JSON template. */
   itemsUrl?: string;
+  /** The way back to the shop: the cart's empty state, and a sold-out product's next step (no shop number before an order, D-029). */
   homeHref?: string;
   /** `layout.cartEnabled` (CART-4): a cart-off build ships order.js without its cart mode, under its own `?v=`. */
   cartEnabled?: boolean;
@@ -46,6 +46,7 @@ const { t, summary: s } = m;
 const cart = mode === 'cart';
 // One product's stock says nothing about a cart: the checkout borrows a product's form only for wilayas and endpoints.
 const unavailable = !cart && !m.orderable;
+const homeHref = p.homeHref ?? `/${p.lang}/`;
 ---
 <section id="order" class="of" aria-labelledby="of-title">
   <h2 id="of-title" class="of-sr">{t('order.title')}</h2>
@@ -89,7 +90,7 @@ const unavailable = !cart && !m.orderable;
         <h3 id="of-who-h" class="of-sr">{t('order.name.label')}</h3>
         {unavailable && (
           <p class="note note-warning" id="of-unavail">
-            <span>{t('order.unavailable')}{' '}<a href={m.contact.whatsappHref} class="of-link">{t('order.whatsappCta')}</a></span>
+            <span>{t('order.unavailable')}{' '}<a href={homeHref} class="of-link">{t('confirmation.continue')}</a></span>
           </p>
         )}
         <div class="field">
@@ -137,8 +138,6 @@ const unavailable = !cart && !m.orderable;
           <p id="of-alert" class="note note-danger of-alert" role="alert"></p>
           <p id="of-help" class="of-help" hidden>
             <button type="button" id="of-retry" class="btn btn-secondary">{t('common.retry')}</button>
-            <a class="of-link" href={m.contact.phoneHref}><bdi dir="ltr">{m.contact.phoneDisplay}</bdi></a>
-            <a class="of-link" href={m.contact.whatsappHref}>{t('order.whatsappCta')}</a>
           </p>
           <div class="of-confirm">
             <p class="of-total">
@@ -152,12 +151,6 @@ const unavailable = !cart && !m.orderable;
         <p id="of-status" class="of-sr" role="status" aria-live="polite"></p>
         <ul class="of-rs" role="list">
           <li>{t('trust.cod')}</li>
-          <li>
-            {t('footer.contact')}{' '}
-            <a class="of-link" href={m.contact.phoneHref}><bdi dir="ltr">{m.contact.phoneDisplay}</bdi></a>
-            {' · '}
-            <a class="of-link" href={m.contact.whatsappHref}>{t('footer.whatsapp')}</a>
-          </li>
         </ul>
       </section>
 

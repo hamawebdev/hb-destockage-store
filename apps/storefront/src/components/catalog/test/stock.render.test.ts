@@ -73,7 +73,8 @@ describe.each(['ar', 'fr'] as const)('stock states (%s)', (l) => {
     expect(html).toContain('cat-stock--out_of_stock');
     expect(html).not.toContain('cat-buybar');
     expect(html).not.toContain('data-cta');
-    expect(html).toContain('href="https://wa.me/'); // sold out: ask on WhatsApp instead
+    expect(html).toContain('cat-btn--next'); // sold out: back to the category (no shop WhatsApp before an order, D-029)
+    expect(html).not.toMatch(/wa\.me|tel:/);
     expect(html).not.toContain('cat-picker');
     expect(await container.renderToString(ProductView, { props: { ...product(l, POT) } })).toContain(s()['stock.low.two']!.replace('{count}', '2'));
     expect(await container.renderToString(ProductView, { props: { ...product(l, KNIVES) } })).toContain(s()['stock.available']!);

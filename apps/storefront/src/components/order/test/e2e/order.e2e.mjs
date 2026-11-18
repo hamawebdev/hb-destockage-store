@@ -166,7 +166,7 @@ async function run(browser, lang) {
     assert.equal(keys.length, 2); assert.equal(keys[0], keys[1]); assert.equal(orders.size, 1);
   });
 
-  await t('quote failure: confirm stays disabled with retry + call/WhatsApp; retry recovers', async (p) => {
+  await t('quote failure: confirm stays disabled with retry, no shop number; retry recovers', async (p) => {
     mode.quoteDown = true;
     await fill(p);
     await p.waitForFunction(() => !document.getElementById('of-help').hidden);
@@ -174,7 +174,7 @@ async function run(browser, lang) {
     assert.ok((await p.textContent('#of-alert')).length > 10);
     await p.click('#of-submit', { force: true }); // aria-disabled: still pressable by a user
     assert.equal(orderPosts().length, 0);
-    assert.ok(await p.isVisible('#of-help a[href^="tel:"]')); assert.ok(await p.isVisible('#of-help a[href="https://wa.me/213779942022"]'));
+    assert.ok(await p.isVisible('#of-retry')); assert.equal(await p.locator('#order a[href^="tel:"], #order a[href*="wa.me"]').count(), 0); // no shop number before an order (D-029)
     mode.quoteDown = false;
     await p.click('#of-retry');
     await p.waitForFunction(() => document.getElementById('of-s-total').textContent !== '—');
@@ -334,7 +334,7 @@ async function run(browser, lang) {
     await fill(p, { wilaya: '5' });
     await p.waitForFunction(() => document.getElementById('of-alert').textContent.length > 0);
     assert.equal(await p.textContent('#of-alert'), expected);
-    assert.ok(await p.isVisible('#of-help a[href="https://wa.me/213779942022"]'));
+    assert.equal(await p.locator('#order a[href^="tel:"], #order a[href*="wa.me"]').count(), 0); // no shop number before an order (D-029)
     await Promise.all([p.waitForURL('**/api/order'), p.click('#of-submit', { force: true })]);
     nativeReview(orderPosts().at(-1));
   }, { preset: { cfgDown: true }, waitCfg: false });

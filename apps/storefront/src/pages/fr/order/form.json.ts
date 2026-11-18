@@ -7,7 +7,7 @@ import { pageProps } from '../../../lib/catalog.ts';
 
 export const GET: APIRoute = () => {
   const { layout } = pageProps('order-confirmed', 'fr');
-  return new Response(orderFormConfigJson('fr', layout.strings, layout.contact).json, {
+  return new Response(orderFormConfigJson('fr', layout.strings).json, {
     headers: { 'content-type': 'application/json; charset=utf-8' },
   });
 };
