@@ -323,3 +323,5 @@ REBR-4 r1 APPROVED tier=high reviewer=rev-l commits=0ae12cd21ee78a7de1069c54abda
 MSET-6 r1 APPROVED tier=low reviewer=team-lead commits=76548531a692d1cf8bfc47a6904dbbef17add3b8,19b7835a041921e8e43ef55cea961b2674748dfe,ba71dd8c42eeb1e14ddc063682aec34b180a349c review=artifacts/CLX/lead-log.md
 BOOT-38 r1 APPROVED tier=high reviewer=review-bugs commits=0dff5d5a1d7a19cd409e16848f4648c09294787d review=artifacts/BOOT-38/review-r1.md
 BOOT-41 r3 APPROVED tier=high reviewer=review-security commits=85a9467b,b69724c0,f53e40a,f120b99 review=agent pass, three rounds (r1 and r2 CHANGES REQUIRED, fixed in b69724c, f53e40a, f120b99; r3 one Nit, docs wording, fixed in the next commit)
+BOOT-44 r1 APPROVED tier=high reviewer=review-bugs commits=dce4b3592a45ec05606b3fb7d0bd40d0408f5602 review=artifacts/BOOT-44/review-r1.md
+BOOT-44 r2 APPROVED tier=high reviewer=review-bugs commits=f385caf8eb54a4c6c227aa45f3bdea3a173b4dd6,d7873cd4a65ca4b708946bca14840e6aa919cfcb review=artifacts/BOOT-44/review-r1.md
