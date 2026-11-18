@@ -174,6 +174,7 @@ const SettingsSchema = v.strictObject({
   homeHeroProductId: v.nullable(id),
   turnstileSiteKey: v.nullable(v.pipe(v.string(), v.regex(/^[0-9A-Za-z_-]{1,64}$/, 'turnstileSiteKey must be [0-9A-Za-z_-]{1,64}'))),
   cartEnabled: v.boolean('cartEnabled must be true or false'),
+  relatedEnabled: v.optional(v.boolean('relatedEnabled must be true or false')),
   metaPixel: v.nullable(
     v.strictObject({
       pixelId: v.pipe(

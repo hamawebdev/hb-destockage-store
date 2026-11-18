@@ -128,6 +128,8 @@ export const STOREFRONT_SETTINGS_KEYS = [
   'turnstileSiteKey',
   /** CART-1: storefront cart switch, JSON boolean; missing ⇒ on. */
   'cartEnabled',
+  /** BOOT-45 / D-030: "you may also like" on product pages, JSON boolean; missing ⇒ on. */
+  'relatedEnabled',
   /** CART-1 / D-014: public Meta Pixel ID, JSON string of 15–16 digits; missing or "" ⇒ no Pixel. */
   'metaPixelId',
   /** CART-1 / D-014: JSON boolean; missing ⇒ true (the Pixel waits for consent). */

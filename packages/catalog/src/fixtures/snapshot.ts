@@ -311,6 +311,7 @@ export const fixtureSnapshot: CatalogSnapshot = {
     homeHeroProductId: 106,
     turnstileSiteKey: null,
     cartEnabled: true,
+    relatedEnabled: true,
     metaPixel: null,
   },
   wilayas: [

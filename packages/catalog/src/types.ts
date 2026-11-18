@@ -258,6 +258,11 @@ export interface SnapshotSettings {
    */
   readonly cartEnabled: boolean;
   /**
+   * BOOT-45 / D-030. "You may also like" on product pages (D1 settings key `relatedEnabled`, JSON
+   * boolean; key missing ⇒ `true`). False ⇒ product pages are built with no related products.
+   */
+  readonly relatedEnabled?: boolean | undefined;
+  /**
    * CART-1. Meta Pixel browser settings (D1 keys `metaPixelId`, `metaConsentRequired`); null when no
    * Pixel ID is set. Never carries the Conversions API token or test code (server-only keys).
    */

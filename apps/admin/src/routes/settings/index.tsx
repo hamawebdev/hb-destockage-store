@@ -1,5 +1,5 @@
 // Settings (admin-core): per-user UI language (every role), store settings (owner, ADMIN-5) and the
-// storefront cart switch (owner, CART-2).
+// storefront switches (owner): the cart (CART-2) and "you may also like" (BOOT-45, D-030).
 // Route order matters: POST /language is registered before POST / so it is matched first.
 import { eq, inArray, sql } from 'drizzle-orm';
 import type { Context } from 'hono';
@@ -20,6 +20,7 @@ import { renderError } from '../../ui/error-page.tsx';
 import { DEFAULT_DELAY_DAYS, DELAY_MAX, DELAY_MIN } from '../parcels/data.ts';
 import { Card } from '../../ui/kit.tsx';
 import { cm } from './cart-messages.ts';
+import { rm } from './related-messages.ts';
 import { loadReception, Reception } from './reception.tsx';
 
 const r = createRouter({ roles: rolesFor('self.lang') });
@@ -127,49 +128,73 @@ function formValues(s: Partial<Record<string, unknown>>): Record<string, string>
 }
 
 // ---------------------------------------------------------------------------------------------
-// Storefront cart switch (CART-2, owner only). Settings key `cartEnabled` (JSON boolean, missing ⇒
-// on: @hb/catalog settingsFromKeyValues). Read by the publish export, so the site changes at the next
-// publish; /api/order never reads it (orders from pages built before a switch still go through).
-// Its own small form so a cart change never depends on the store form being valid, and vice versa.
+// Storefront switches (owner only, settings.edit): the cart (CART-2, key `cartEnabled`) and "you may
+// also like" on product pages (BOOT-45 / D-030, key `relatedEnabled`). Each is a JSON boolean, missing
+// ⇒ on (@hb/catalog settingsFromKeyValues). Read by the publish export, so the site changes at the next
+// publish, and the card says so with a link to /publish; /api/order never reads them (orders from
+// pages built before a switch still go through). Each has its own small form so a switch change never
+// depends on the store form being valid, and vice versa.
 // ---------------------------------------------------------------------------------------------
 
 export const CART_KEY = 'cartEnabled';
+export const RELATED_KEY = 'relatedEnabled';
 
-async function loadCartEnabled(c: Context<AppEnv>): Promise<{ exists: boolean; value: boolean }> {
-  const row = await c.var.db.select({ value: settings.value }).from(settings).where(eq(settings.key, CART_KEY)).get();
+type SwitchMessage = Parameters<ReturnType<typeof cm>>[0];
+interface SwitchDef {
+  /** settings key = form field name. */
+  readonly key: typeof CART_KEY | typeof RELATED_KEY;
+  /** POST path and the `data-<name>-*` hooks on the card. */
+  readonly name: 'cart' | 'related';
+  readonly messages: (lang: AppEnv['Variables']['lang']) => (key: SwitchMessage) => string;
+}
+const SWITCHES = {
+  cart: { key: CART_KEY, name: 'cart', messages: cm },
+  related: { key: RELATED_KEY, name: 'related', messages: rm },
+} as const satisfies Record<string, SwitchDef>;
+type SwitchName = keyof typeof SWITCHES;
+type SwitchStates = Record<SwitchName, { enabled: boolean; error?: string }>;
+
+async function loadSwitch(c: Context<AppEnv>, key: SwitchDef['key']): Promise<{ exists: boolean; value: boolean }> {
+  const row = await c.var.db.select({ value: settings.value }).from(settings).where(eq(settings.key, key)).get();
   // Anything but an explicit `false` is on, exactly like the snapshot export.
   return { exists: row !== undefined, value: row?.value !== false };
 }
 
-function CartSwitch(props: { c: Context<AppEnv>; enabled: boolean; error?: string | undefined }) {
-  const { c, enabled, error } = props;
-  const tm = cm(c.var.lang);
-  const errId = 'f-cartEnabled-error';
+async function loadSwitches(c: Context<AppEnv>): Promise<SwitchStates> {
+  const [cart, related] = await Promise.all([loadSwitch(c, CART_KEY), loadSwitch(c, RELATED_KEY)]);
+  return { cart: { enabled: cart.value }, related: { enabled: related.value } };
+}
+
+function StorefrontSwitch(props: { c: Context<AppEnv>; def: SwitchDef; enabled: boolean; error?: string | undefined }) {
+  const { c, def, enabled, error } = props;
+  const tm = def.messages(c.var.lang);
+  const { key, name } = def;
+  const errId = `f-${key}-error`;
   const option = (value: 'on' | 'off', label: string, hint: string) => (
     <div class="field field--check">
-      <input type="radio" class="check" id={`f-cartEnabled-${value}`} name="cartEnabled" value={value} checked={enabled === (value === 'on')} aria-describedby={`f-cartEnabled-${value}-hint`} />
-      <label for={`f-cartEnabled-${value}`}><strong>{label}</strong></label>
-      <p class="field__hint" id={`f-cartEnabled-${value}-hint`}>{hint}</p>
+      <input type="radio" class="check" id={`f-${key}-${value}`} name={key} value={value} checked={enabled === (value === 'on')} aria-describedby={`f-${key}-${value}-hint`} />
+      <label for={`f-${key}-${value}`}><strong>{label}</strong></label>
+      <p class="field__hint" id={`f-${key}-${value}-hint`}>{hint}</p>
     </div>
   );
   return (
-    <Card title={tm('title')} id="cart-switch">
-      <div data-cart-switch>
+    <Card title={tm('title')} id={`${name}-switch`}>
+      <div {...{ [`data-${name}-switch`]: true }}>
         <p>{tm('intro')}</p>
-        <div class="callout callout--warning" data-cart-publish-note>
+        <div class="callout callout--warning" {...{ [`data-${name}-publish-note`]: true }}>
           <p>
             <strong>{tm('note.lead')}</strong> {tm('note')}
             {can(c.var.user, 'publish.run') ? <> <a href="/publish">{tm('note.link')}</a></> : null}
           </p>
         </div>
-        <Form action="/settings/cart">
+        <Form action={`/settings/${name}`}>
           <fieldset class="localized" aria-describedby={error ? errId : undefined}>
             <legend class="localized__legend">{tm('legend')}</legend>
             {error ? <p class="field__error" id={errId}>{error}</p> : null}
             {option('on', tm('on'), tm('on.hint'))}
             {option('off', tm('off'), tm('off.hint'))}
           </fieldset>
-          <p class="field__hint" data-cart-current={enabled ? 'on' : 'off'}>{tm(enabled ? 'current.on' : 'current.off')}</p>
+          <p class="field__hint" {...{ [`data-${name}-current`]: enabled ? 'on' : 'off' }}>{tm(enabled ? 'current.on' : 'current.off')}</p>
           <FormActions>
             <Submit>{tm('save')}</Submit>
           </FormActions>
@@ -179,7 +204,7 @@ function CartSwitch(props: { c: Context<AppEnv>; enabled: boolean; error?: strin
   );
 }
 
-async function renderStore(c: Context<AppEnv>, values: Record<string, string | undefined>, errors: Record<string, string> | undefined, cart: { enabled: boolean; error?: string }) {
+async function renderStore(c: Context<AppEnv>, values: Record<string, string | undefined>, errors: Record<string, string> | undefined, switches: SwitchStates) {
   const t = c.var.t;
   const wa = values['whatsapp'] ? normalizePhone(values['whatsapp']) : null;
   // Order reception (TGS-4): Telegram and Google Sheets cards, outside the store form.
@@ -215,51 +240,55 @@ async function renderStore(c: Context<AppEnv>, values: Record<string, string | u
       </FormActions>
     </Form>
     <Reception c={c} data={reception} />
-    <CartSwitch c={c} enabled={cart.enabled} error={cart.error} />
+    <StorefrontSwitch c={c} def={SWITCHES.cart} enabled={switches.cart.enabled} error={switches.cart.error} />
+    <StorefrontSwitch c={c} def={SWITCHES.related} enabled={switches.related.enabled} error={switches.related.error} />
     </>,
     { title: t('nav.settings') },
   );
 }
 
 r.get('/', requirePerm('settings.edit'), async (c) =>
-  renderStore(c, formValues(await loadStore(c)), undefined, { enabled: (await loadCartEnabled(c)).value }),
+  renderStore(c, formValues(await loadStore(c)), undefined, await loadSwitches(c)),
 );
 
-const CartForm = v.object({ cartEnabled: v.picklist(['on', 'off']) });
-
-r.post('/cart', requirePerm('settings.edit'), async (c) => {
-  const raw = await readForm(c);
-  const f = v.safeParse(CartForm, raw);
-  const current = await loadCartEnabled(c);
-  if (!f.success) {
-    c.status(422);
-    return renderStore(c, formValues(await loadStore(c)), undefined, { enabled: current.value, error: cm(c.var.lang)('invalid') });
-  }
-  const next = f.output.cartEnabled === 'on';
-  // A missing key is written even when it means the same (on), so the export reads an explicit value.
-  if (current.exists && current.value === next) {
-    noAudit(c, 'cart switch saved without changes: nothing written');
+for (const def of Object.values(SWITCHES) as SwitchDef[]) {
+  const SwitchForm = v.object({ [def.key]: v.picklist(['on', 'off']) });
+  r.post(`/${def.name}`, requirePerm('settings.edit'), async (c) => {
+    const raw = await readForm(c);
+    const f = v.safeParse(SwitchForm, raw);
+    const current = await loadSwitch(c, def.key);
+    if (!f.success) {
+      c.status(422);
+      const states = await loadSwitches(c);
+      states[def.name] = { enabled: current.value, error: def.messages(c.var.lang)('invalid') };
+      return renderStore(c, formValues(await loadStore(c)), undefined, states);
+    }
+    const next = f.output[def.key] === 'on';
+    // A missing key is written even when it means the same (on), so the export reads an explicit value.
+    if (current.exists && current.value === next) {
+      noAudit(c, `${def.name} switch saved without changes: nothing written`);
+      return c.redirect(withFlash('/settings', 'saved'), 303);
+    }
+    const db = c.var.db;
+    const userId = c.var.user.id;
+    const json = JSON.stringify(next);
+    await db.batch([
+      db
+        .insert(settings)
+        .values({ key: def.key, value: sql`${json}`, updatedBy: userId })
+        .onConflictDoUpdate({ target: settings.key, set: { value: sql`${json}`, updatedBy: userId, updatedAt: Date.now() } }),
+      audit(c, { action: 'settings.update', entity: 'settings', entityId: def.key, before: current.exists ? current.value : null, after: next }),
+    ]);
     return c.redirect(withFlash('/settings', 'saved'), 303);
-  }
-  const db = c.var.db;
-  const userId = c.var.user.id;
-  const json = JSON.stringify(next);
-  await db.batch([
-    db
-      .insert(settings)
-      .values({ key: CART_KEY, value: sql`${json}`, updatedBy: userId })
-      .onConflictDoUpdate({ target: settings.key, set: { value: sql`${json}`, updatedBy: userId, updatedAt: Date.now() } }),
-    audit(c, { action: 'settings.update', entity: 'settings', entityId: CART_KEY, before: current.exists ? current.value : null, after: next }),
-  ]);
-  return c.redirect(withFlash('/settings', 'saved'), 303);
-});
+  });
+}
 
 r.post('/', requirePerm('settings.edit'), async (c) => {
   const raw = await readForm(c);
   const f = validateForm(c, storeSchema(), raw);
   if (!f.ok) {
     c.status(422);
-    return renderStore(c, raw, f.errors, { enabled: (await loadCartEnabled(c)).value });
+    return renderStore(c, raw, f.errors, await loadSwitches(c));
   }
   const d = f.data;
   const next: StoreSettings = {

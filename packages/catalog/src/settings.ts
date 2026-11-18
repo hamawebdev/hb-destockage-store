@@ -4,6 +4,7 @@
  * The D1 `settings` table (and the seed's `data/catalog/settings.json`, which the seed upserts into
  * that table) is key → JSON. Most storefront keys map one to one onto `SnapshotSettings`; these do not:
  *  - `cartEnabled` (JSON boolean): key missing ⇒ `true` (the store as it was before the switch).
+ *  - `relatedEnabled` (JSON boolean, D-030): key missing ⇒ `true` ("you may also like" shown, as before the switch).
  *  - `metaPixelId` (JSON string) + `metaConsentRequired` (JSON boolean, missing ⇒ `true`) become
  *    `metaPixel: { pixelId, consentRequired } | null`; no or empty `metaPixelId` ⇒ `null`. The ID's
  *    format is checked by the snapshot validator, so a bad ID fails the publish with a message.
@@ -23,6 +24,7 @@ export const SNAPSHOT_SETTINGS_KEYS = [
   'homeHeroProductId',
   'turnstileSiteKey',
   'cartEnabled',
+  'relatedEnabled',
   'metaPixelId',
   'metaConsentRequired',
 ] as const;
@@ -69,6 +71,7 @@ export function settingsFromKeyValues(entries: Iterable<readonly [string, unknow
     homeHeroProductId: opt('homeHeroProductId', null),
     turnstileSiteKey: opt('turnstileSiteKey', null),
     cartEnabled: opt('cartEnabled', true),
+    relatedEnabled: opt('relatedEnabled', true),
     metaPixel,
   };
 }
@@ -84,6 +87,7 @@ export function settingsToKeyValues(s: SnapshotSettings): Record<SnapshotSetting
     homeHeroProductId: s.homeHeroProductId,
     turnstileSiteKey: s.turnstileSiteKey,
     cartEnabled: s.cartEnabled,
+    relatedEnabled: s.relatedEnabled ?? true,
     metaPixelId: s.metaPixel?.pixelId ?? null,
     metaConsentRequired: s.metaPixel?.consentRequired ?? true,
   };

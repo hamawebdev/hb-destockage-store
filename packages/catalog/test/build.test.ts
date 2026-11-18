@@ -174,6 +174,13 @@ describe('product', () => {
     expect(r.length).toBe(4);
     expect(r[0]).toBe(103);
   });
+  test('D-030: settings.relatedEnabled false ⇒ every product page has no related products, in both languages', () => {
+    const snapshot = { ...structuredClone(fixtureSnapshot), settings: { ...fixtureSnapshot.settings, relatedEnabled: false } };
+    const off = createBuildContext(snapshot, { siteUrl: FIXTURE_SITE_URL, strings, images: stubImageManifest(snapshot) });
+    for (const lang of LANGS) for (const p of off.products) expect(buildProductProps(off, lang, p.id).related).toEqual([]);
+    // On (the default) leaves the list exactly as before.
+    expect(buildProductProps(ctx, 'fr', 102).related.length).toBe(4);
+  });
 });
 
 describe('search, content, confirmation, 404', () => {

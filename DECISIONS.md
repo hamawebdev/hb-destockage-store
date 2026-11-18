@@ -352,3 +352,16 @@ Rules:
 - Why: the client asked on 2026-11-18 that shoppers see the numbers only after ordering, so that orders go through the site.
 - Evidence: the test above, the order-form browser flows (order.e2e.mjs, a11y.e2e.mjs: errors show their next step and no shop number), and the walk of the live site after the deploy recorded in artifacts/BOOT-44/.
 - Status: active
+
+## D-030 — The client turns "you may also like" on product pages off and on in the admin
+- Date: 2026-11-18 · Author: lead (client instruction) · Task: BOOT-45
+- Report says: product pages always show «قد يعجبك أيضاً» / «Vous aimerez aussi» (up to 4 related products, built into the static pages); STACK-REPORT §2 and D-002: no D1 read while a shopper waits for a page.
+- We do instead: admin → Paramètres / الإعدادات has a card «“Vous aimerez aussi” sur les pages produit» / «قسم «قد يعجبك أيضاً» في صفحات المنتجات», next to the cart switch, with one choice: Affichée / Masquée (ظاهر / مخفي). It stores the settings key `relatedEnabled` (JSON boolean, audited). The catalogue export reads it like `cartEnabled`; when it is false, every product page in both languages is built with no related products, so the section and its heading are not in the page at all. Nothing else on the product page changes.
+- Choices made for the client (nobody was available to ask):
+  - It starts on: a missing key means on, so the live shop looks exactly as before until the client changes it.
+  - The change reaches shoppers at the next publication, like every catalogue and settings change (pages are static, D-002). The card says so in both languages and links to «Publier le site» / «نشر الموقع»; the client then clicks «Publier la boutique» / «نشر المتجر» on the Publier page (D-028, about 10 minutes). No one else's help is needed. A switch that acted instantly would need the Worker to read D1 on every product page, which D-002 rules out.
+  - Who can use it: the same people as the rest of the store settings (owner). Publishing needs `publish.run` (owner, content); the card shows the link only to those who can publish.
+  - One switch for both languages, as asked; there is no per-language or per-product setting.
+- Why: the client asked on 2026-11-18 to control the section without help.
+- Evidence: packages/catalog/test/settings.test.ts and build.test.ts (D-030 tests), apps/admin/test/settings/related-switch.test.ts; local acceptance in artifacts/BOOT-45/local/ (admin set off → local publish → section gone from all 46 product pages ar+fr; set on → publish → back); after the deploy, the live shop unchanged with the switch on.
+- Status: active

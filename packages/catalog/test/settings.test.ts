@@ -11,7 +11,7 @@ import {
 } from '../src/index.ts';
 
 const base = (): Record<string, unknown> => {
-  const { cartEnabled: _c, metaPixelId: _p, metaConsentRequired: _m, ...rest } = settingsToKeyValues(fixtureSnapshot.settings);
+  const { cartEnabled: _c, relatedEnabled: _r, metaPixelId: _p, metaConsentRequired: _m, ...rest } = settingsToKeyValues(fixtureSnapshot.settings);
   return rest;
 };
 const map = (kv: Record<string, unknown>) => settingsFromKeyValues(Object.entries(kv)) as Record<string, unknown>;
@@ -27,6 +27,15 @@ describe('settingsFromKeyValues', () => {
     expect(s['cartEnabled']).toBe(true);
     expect(s['metaPixel']).toBeNull();
     expect(issues(base())).toEqual([]);
+  });
+
+  test('D-030: relatedEnabled missing ⇒ on; false/true carried; a non-boolean fails validation', () => {
+    expect(map(base())['relatedEnabled']).toBe(true);
+    expect(map({ ...base(), relatedEnabled: false })['relatedEnabled']).toBe(false);
+    expect(map({ ...base(), relatedEnabled: true })['relatedEnabled']).toBe(true);
+    expect(map({ ...base(), relatedEnabled: null })['relatedEnabled']).toBe(true);
+    expect(issues({ ...base(), relatedEnabled: false })).toEqual([]);
+    expect(issues({ ...base(), relatedEnabled: 'off' }).join()).toMatch(/settings\.relatedEnabled: relatedEnabled must be true or false/);
   });
 
   test('cartEnabled false/true is carried; a non-boolean fails validation', () => {

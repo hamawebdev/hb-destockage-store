@@ -599,8 +599,12 @@ export function buildCategoryProps(ctx: BuildContext, lang: Lang, categoryId: Id
   };
 }
 
-/** Same category first, then the rest of the parent's subtree, then anything; listing order. */
+/**
+ * Same category first, then the rest of the parent's subtree, then anything; listing order.
+ * None when the admin turned "you may also like" off (settings.relatedEnabled === false, D-030).
+ */
 function relatedProducts(ctx: BuildContext, p: SnapshotProduct): SnapshotProduct[] {
+  if (ctx.snapshot.settings.relatedEnabled === false) return [];
   const out: SnapshotProduct[] = [];
   const push = (xs: readonly SnapshotProduct[]): void => {
     for (const x of xs) if (x.id !== p.id && !out.includes(x) && out.length < ctx.relatedCount) out.push(x);
