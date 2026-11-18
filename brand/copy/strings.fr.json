@@ -235,7 +235,7 @@
   "order.errors.variant_required": "Choisissez une option (taille, couleur…) avant de commander.",
   "order.errors.variant_unavailable": "Cette option n'est plus disponible. Choisissez-en une autre.",
   "order.errors.out_of_stock": "Stock insuffisant pour cette quantité. Réduisez la quantité ou choisissez une autre option.",
-  "order.errors.order_total_out_of_range": "Le montant de cette commande dépasse la limite des commandes en ligne. Réduisez la quantité, puis confirmez à nouveau.",
+  "order.errors.order_total_out_of_range": "Le montant de cette commande dépasse la limite des commandes en ligne. Réduisez la quantité, puis confirmez à nouveau, ou revenez plus tard.",
   "order.errors.delivery_unavailable": "La livraison vers cette wilaya n'est pas disponible pour le moment. Choisissez une autre wilaya de livraison, ou revenez plus tard.",
   "order.errors.idempotency_key_invalid": "La commande n'a pas pu être lue. Rechargez la page et réessayez.",
   "order.errors.forbidden_origin": "La commande n'a pas pu être envoyée. Rechargez la page et réessayez.",
