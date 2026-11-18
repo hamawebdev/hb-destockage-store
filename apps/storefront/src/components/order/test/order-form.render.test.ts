@@ -123,7 +123,8 @@ describe.each(['ar', 'fr'] as const)('OrderForm rendered (%s)', (lang) => {
   });
 
   it('shows no shop phone or WhatsApp before an order, in any state (D-029)', async () => {
-    for (const form of [singleForm(lang), singleForm(lang, { orderable: false }), variableForm(lang)]) expect(await render(lang, form)).not.toMatch(SHOP_NUMBER);
+    const states = { 'no-number-single': singleForm(lang), 'no-number-oos': singleForm(lang, { orderable: false }), 'no-number-variable': variableForm(lang) };
+    for (const [name, form] of Object.entries(states)) expect(await render(lang, form, name)).not.toMatch(SHOP_NUMBER);
     const cart = await container.renderToString(OrderForm, { props: { lang, mode: 'cart', form: singleForm(lang), strings: strings[lang] } });
     expect(cart).not.toMatch(SHOP_NUMBER);
   });
