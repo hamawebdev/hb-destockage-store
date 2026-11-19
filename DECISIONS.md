@@ -365,3 +365,13 @@ Rules:
 - Why: the client asked on 2026-11-18 to control the section without help.
 - Evidence: packages/catalog/test/settings.test.ts and build.test.ts (D-030 tests), apps/admin/test/settings/related-switch.test.ts; local acceptance in artifacts/BOOT-45/local/ (admin set off → local publish → section gone from all 46 product pages ar+fr; set on → publish → back); after the deploy, the live shop unchanged with the switch on.
 - Status: active
+
+## D-031 — The homepage headline is the shop's name
+- Date: 2026-11-19 · Author: lead (owner instruction) · Task: BOOT-46
+- Before: the homepage headline was «أسعار التصفية، وجودة مختارة بعناية.» / «Des prix de déstockage. Une qualité choisie.»
+- We do instead: the headline is «Comptoir de Luxe» in Arabic and French (`home.heroTitle`). On the Arabic page it is marked as French, left to right, so screen readers read it correctly.
+- Choices made:
+  - Written in Latin letters on the Arabic page too, as the instruction gave one name for both languages. To use «كونتوار دو لوكس» instead, change `home.heroTitle` in brand/copy/strings.ar.json.
+  - Not changed: the footer sentence, the search-engine titles and descriptions and the link-preview images, which still speak of «أسعار التصفية» / «prix de déstockage». The instruction named the headline only.
+- Evidence: artifacts/BOOT-46/local/ (homepage screenshots, ar and fr, 360 and 1440 px).
+- Status: active

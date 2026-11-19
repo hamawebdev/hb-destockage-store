@@ -78,6 +78,7 @@ test("Arabic values are translated (differ from French) unless language-neutral"
     "common.brandName", "footer.phoneDisplay", "footer.whatsappDisplay", "footer.copyright", "order.phone.placeholder",
     "product.pack.qty", "meta.titleTemplate", "meta.siteName", "meta.category.title", "meta.product.title",
     "dev.placeholder",
+    "home.heroTitle", // the shop's Latin name in both languages (D-031)
   ]);
   for (const k of Object.keys(fr)) {
     if (k.startsWith("_meta.") || neutral.has(k)) continue;

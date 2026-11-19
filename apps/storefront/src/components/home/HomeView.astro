@@ -12,7 +12,7 @@ import type { HomeProps } from '@hb/catalog';
 import Icon from '../Icon.astro';
 import Picture from '../Picture.astro';
 import ProductGrid from '../catalog/ProductGrid.astro';
-import { showDevMarkers } from '../catalog/lib/i18n.ts';
+import { latinLang, showDevMarkers } from '../catalog/lib/i18n.ts';
 import { t } from '../../lib/strings.ts';
 import type { Tile } from './tiles.ts';
 
@@ -29,6 +29,9 @@ const reassurance = [
   { icon: 'phone', key: 'trust.call' },
 ];
 const dev = showDevMarkers();
+// The headline is the shop's Latin name in both languages: on the Arabic page it needs its own lang and direction.
+const heroTitle = s('home.heroTitle');
+const heroIsLatin = !/[\u0600-\u06FF]/.test(heroTitle);
 const featuredIds = new Set(p.featured.map((c) => c.id));
 const morePacks = p.packs.filter((c) => !featuredIds.has(c.id));
 const cards = [...p.featured, ...morePacks];
@@ -42,7 +45,7 @@ const trim4 = keep(cards.length >= 4 ? cards.length - (cards.length % 4) : cards
 ---
 <section class="hm-hero" aria-labelledby="hm-title">
   <div class="container hm-hero-in">
-    <h1 id="hm-title" class="hm-title">{s('home.heroTitle')}</h1>
+    <h1 id="hm-title" class="hm-title">{heroIsLatin ? <bdi lang={latinLang(l.lang)} dir="ltr">{heroTitle}</bdi> : heroTitle}</h1>
     <p class="hm-lead">{s('home.heroLead')}</p>
     <p class="hm-ctas"><a class="btn btn-primary" href="#hm-featured">{s('home.heroCta')}</a></p>
   </div>
